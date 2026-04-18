@@ -67,7 +67,7 @@ reviewer:
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-05-pty/`：完整 PTY + xterm 集成 demo
-- [ ] `docs/SPIKE-REPORT.md` PTY benchmark 数据表
+- [ ] **`docs/spikes/SPIKE-05-report.md`** PTY benchmark 数据表（per-task）
 - [ ] 4 Tab 并存压测录屏（`yes` × 4 + htop × 1）
 - [ ] 主线程阻塞时间火焰图
 - [ ] **ADR-003 草稿**：PTY 架构决策

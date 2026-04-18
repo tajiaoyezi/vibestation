@@ -16,6 +16,20 @@
 
 ---
 
+## 🚀 新 Agent 首次启动（5 步 · 机器可读 checklist）
+
+本项目不绑定具体 agent 工具（Claude Code / Codex / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …均可）。任何 agent 首次上手按以下顺序：
+
+1. **读本文件（你正在读）**——锁定决策、禁区、代码风格、自审四问
+2. **读 `docs/PROGRESS.md`**——当前阶段、上次 session 进度、下一步、卡点
+3. **读 `docs/tasks/README.md`**——任务索引 + 状态流转 + 新建流程
+4. **挑任务**：在 `docs/tasks/` 里选一个 `status: ready` 且 `depends_on` 已全 `done` 的 task；用 `gh pr list --state open` 查现有 PR 避免重复认领
+5. **开工**：`git checkout -b <scope>/<task-id>` → 按 task spec `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ `gh pr create`（PR body 写 `Implemented by: <agent-id>`）→ 请独立评审者（≠ 原实现者）→ merge
+
+**人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
+
+---
+
 ## 🔒 决策状态表（不要重新讨论）
 
 分 3 档。**锁定依据**指向 `docs/implementation-plan.md` 具体章节（ADR 文件 `docs/adr/` 在 Phase 3 建立后替换为 ADR 路径）。

@@ -54,7 +54,7 @@ reviewer:
   - [ ] 关键差异点（如 token 分隔、role 标识、error format）
   - [ ] 结论：MVP 能否做到"两 CLI 统一抽象"？如否，v1.0 AI-Aware 要分开实现
 - [ ] **macOS PATH 空问题验证**：Tauri 启动的子进程能读到用户 `$PATH`（`fix-path-env` crate 或等价方案）
-- [ ] 结果写入 `docs/SPIKE-REPORT.md`（Phase 3 后建立）
+- [ ] 结果写入 **`docs/spikes/SPIKE-06-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录）
 
 ### B. Apple Developer Program（副线）
 
@@ -85,7 +85,7 @@ macOS Dev Program：
 
 - [ ] `spike-tmp/spike-06-cli/`：CLI 启动脚本 + 样本录制脚本
 - [ ] CLI 输出样本 × 6+（Claude 3 + Codex 3，脱敏后可 attach 到 spike-artifacts）
-- [ ] **协议差异分析报告**（`docs/SPIKE-REPORT.md` 对应 section）
+- [ ] **协议差异分析报告**（**`docs/spikes/SPIKE-06-report.md`**，per-task）
 - [ ] macOS `fix-path-env` 验证代码片段
 - [ ] Apple Dev Program 申请截图 + 预计完成日期
 - [ ] 更新 `CLAUDE.md` 的 "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" 这条警告（移除或改为"Spike D6 已初探，v1.0 前需二次深度 spike"）

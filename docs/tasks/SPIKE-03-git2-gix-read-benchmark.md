@@ -64,7 +64,7 @@ reviewer:
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-03-git-benchmark/`：benchmark 代码（criterion crate 或自写 bench）
-- [ ] `docs/SPIKE-REPORT.md` benchmark 数据表（git2 vs gix 同场景多次取 P50/P99）
+- [ ] **`docs/spikes/SPIKE-03-report.md`** benchmark 数据表（per-task；git2 vs gix 同场景多次取 P50/P99）
 - [ ] **ADR-004 草稿**：Git 栈读路径决策
 - [ ] `CLAUDE.md` 决策表 #13 状态 PR（如走 B 路径）
 - [ ] 火焰图 × 2（git2 和 gix 各一张，便于未来优化参考）

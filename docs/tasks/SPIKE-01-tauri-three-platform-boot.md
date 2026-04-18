@@ -66,7 +66,7 @@ any of：
 
 - [ ] `spike-tmp/spike-01-tauri/`：最小 Tauri 2 项目骨架代码（不进 main 仓库，`.gitignore` 已排除）
 - [ ] 三平台启动录屏（`spike-artifacts/SPIKE-01/` Phase 3 后建立）
-- [ ] 冷启动耗时表（`docs/SPIKE-REPORT.md` Phase 3 后建立的对应 section）
+- [ ] 冷启动耗时表（**`docs/spikes/SPIKE-01-report.md`**，per-task；Phase 3 建立 `docs/spikes/` 目录）
 - [ ] IME 测试录屏
 - [ ] `CLAUDE.md` 决策表 #12 状态更新（通过 → 锁定；失败 → Electron）
 

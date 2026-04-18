@@ -76,7 +76,7 @@ Electron 路径：
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-02-tauri/` 完整硬通过测试代码 + 脚本（`.gitignore` 排除）
-- [ ] `docs/SPIKE-REPORT.md` 对应 section（Phase 3 建立模板后填写）
+- [ ] **`docs/spikes/SPIKE-02-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录后填写）
 - [ ] 三平台 30 次启动日志汇总（csv / markdown 表）
 - [ ] IME 录屏 × 6（3 平台 × 2 语种）
 - [ ] Bundle 产物体积截图

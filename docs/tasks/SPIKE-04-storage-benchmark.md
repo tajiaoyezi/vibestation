@@ -82,7 +82,7 @@ Git2 写：
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-04-storage-bench/`：benchmark 代码 + 数据集生成器
-- [ ] `docs/SPIKE-REPORT.md` storage benchmark 数据表
+- [ ] **`docs/spikes/SPIKE-04-report.md`** storage benchmark 数据表（per-task）
 - [ ] redb 2 和 rusqlite 各 1 份 `.db` 文件样例（压缩后 attach 到 spike-artifacts）
 - [ ] **ADR-005 草稿**：本地存储决策
 - [ ] `CLAUDE.md` 决策表 #14 更新 PR

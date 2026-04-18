@@ -1,0 +1,58 @@
+# Task spec frontmatter validator
+# 触发：PR 修改 docs/tasks/*.md / scripts/validate-task-spec.mjs / 本 workflow
+# 来源：README.md §原则 7（state transition gate · Codex PR #10 F1）· Phase 4 落地
+# 目的：自动校验 task spec frontmatter schema · 防 draft → ready / ready → done 翻转漏洞
+
+name: Task Spec Validator
+
+on:
+  pull_request:
+    paths:
+      - "docs/tasks/**.md"
+      - "scripts/validate-task-spec.mjs"
+      - ".github/workflows/task-spec-validator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "docs/tasks/**.md"
+      - "scripts/validate-task-spec.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate task spec frontmatter
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # 脚本无外部依赖 · 用 LTS
+          node-version: "20"
+
+      - name: Run validator
+        run: node scripts/validate-task-spec.mjs
+
+      # 可选：生成 summary 添加到 PR（便于 reviewer 快速看）
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Task Spec Validation"
+            echo ""
+            echo "Script: \`scripts/validate-task-spec.mjs\`"
+            echo ""
+            echo "若失败：按 \`docs/tasks/README.md\` 的字段说明修复 frontmatter。"
+            echo ""
+            echo "常见错误："
+            echo "- \`status: blocked\` 必填 \`blocked_by\` + \`blocked_from\`"
+            echo "- \`status: done\` 必填 \`reviewer\`（且 ≠ \`owner\`）"
+            echo "- \`status: in-progress\` 必填 \`owner\`"
+            echo "- 文件名前缀必须与 \`id\` 一致"
+          } >> $GITHUB_STEP_SUMMARY

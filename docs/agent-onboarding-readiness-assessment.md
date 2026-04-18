@@ -275,6 +275,71 @@ Vibestation 现在的状态，不是“文档不足，无法接手”；恰恰�
 
 ---
 
+## 二次复审（2026-04-18 · PR #18 合入后）
+
+### 已修复项
+
+与上一版评估相比，以下问题已经明显改善：
+
+- `README.md`、`AGENTS.md`、`CLAUDE.md` 的阶段表述已基本同步到“Phase 1-4 全交付 / Spike W0 可启动”
+- 首批关键路径 task 已不再是 `ready=0`，当前已有 3 个 `ready` task：`SPIKE-01`、`SPIKE-02`、`MVP-01`
+- `MVP-11/12/13/16` 对不存在 `§5.4` 的引用已回退为 `§10.1` 范围依据
+- `SPIKE-04` 的 `§512` 笔误已修正为 `§5.2`
+
+### 仍未闭合的问题
+
+#### 1. `ready` 翻转 gate 仍没有被真实满足
+
+本地仓库当前把 `SPIKE-01`、`SPIKE-02`、`MVP-01` 标为 `ready`，并写入了 reviewer 字段；但复核 GitHub PR #18 元数据时，`reviews` 仍为空，不能证明：
+
+- reviewer 自己 push 了翻转 commit，或
+- author push 后 reviewer 对最新 HEAD 做了正式 re-approve
+
+这意味着：
+
+- **task 状态已经前进**
+- 但**仓库自己定义的翻转 gate 证据仍然缺失**
+
+如果项目继续坚持现有 gate 规则，这 3 个 `ready` 在流程上仍然不稳固。
+
+#### 2. `docs/PROGRESS.md` 变成新的主要漂移点
+
+当前本地仓库已经在 `main`，而且 PR #18 已合入；但 `docs/PROGRESS.md` 仍写：
+
+- 当前 Active branch 是 `docs/spec-flip-spike-01-spike-02-mvp-01`
+- Next concrete action 是 “PR #18 review + merge”
+- Blocked by 仍是 PR #18 review
+
+这会直接误导新 agent 对“当前分支 / 当前阻塞 / 下一步”的判断。
+
+此外，`docs/PROGRESS.md` 还存在内部矛盾：
+
+- 上方写“分支保护已显式暂缓”
+- 阶段切换信号表里仍写“Spike W0 启动 = 用户应用分支保护后”
+
+#### 3. `docs/SESSION-STARTUP.md` 仍有残留旧状态
+
+虽然文件开头已经同步到新阶段，但中段仍残留旧事实，例如：
+
+- 仍把 `SPIKE-01` 写成 `draft`
+- 仍把 `docs/tasks/` 写成 “27 task spec · 全 draft”
+
+这说明 onboarding 文档同步已完成大半，但**还没有完全收尾**。
+
+### 当前判断更新
+
+二次复审后，结论从“7/10”略有提升，但仍不建议写成“完全开发就绪”。
+
+更准确的状态是：
+
+- **上下文接手：强**
+- **直接按流程开工：比上一轮好，但仍有治理层残缺**
+
+如果只看“能不能开始做事”，答案已经接近 **可以**。
+如果看“是否严格符合仓库自己定义的流程”，答案仍是 **还差最后一轮收尾**。
+
+---
+
 ## 后续事项
 
 - 若要把结论升级为“完全满足快速介入开发”，建议先完成上面的 P0/P1 修补

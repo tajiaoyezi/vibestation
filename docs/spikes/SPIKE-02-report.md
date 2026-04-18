@@ -11,17 +11,27 @@
 
 | # | 判据 | macOS Phase A | Ubuntu X11 | Ubuntu Wayland |
 |---|---|---|---|---|
-| 1 | 连续启动 10 次零失败 | `TBD` | — Phase B | — Phase B |
-| 2 | 剪贴板 copy/paste（含中文） | `TBD` | — Phase B | — Phase B |
-| 3 | IME 中文拼音 + 日文罗马字 | `TBD` | — Phase B | — Phase B |
-| 4 | Bundle 大小 < 30MB / 40MB | `TBD` | — Phase B | — Phase B |
-| 5 | Clipboard plugin smoke test | `TBD` | — Phase B | — Phase B |
-| 5 | FS plugin smoke test | `TBD` | — Phase B | — Phase B |
+| 1 | 连续启动 10 次零失败 | ✅ 10/10 · median 212ms · range 42ms | — Phase B | — Phase B |
+| 2 | 剪贴板 copy/paste（含中文） | ✅ 跨 app Cmd+V 中日英+emoji 完整 | — Phase B | — Phase B |
+| 3a | IME **中文拼音** | ✅ 录屏 `spike-artifacts/SPIKE-02/macos-ime-zh.mp4` | — Phase B | — Phase B |
+| 3b | IME **日文罗马字** | ⚠️ **SKIPPED（用户决策全平台降级）** · 见 §4.5 + §已知风险 | ⚠️ SKIPPED | ⚠️ SKIPPED |
+| 4 | Bundle 大小 < 30MB / 40MB | ✅ .app 10MB · .dmg 4MB（7.5× 余量） | — Phase B | — Phase B |
+| 5 | Clipboard plugin smoke test | ✅ 写 / 读 / 跨 app Cmd+V 三路径 | — Phase B | — Phase B |
+| 5 | FS plugin smoke test | ✅ 写 / 读 / terminal cat 验证 | — Phase B | — Phase B |
 | 5 | Updater plugin smoke test | ⚠️ **归 SPIKE-06**（需 Apple Dev Program 签名 key） | — | — |
-| 6 | ADR-006 草稿 + 决策表 #12 | **Phase A 给 conditional accepted 建议** · 等 Phase B 三平台全过才翻正式 accepted | — | — |
+| 6 | ADR-006 草稿 + 决策表 #12 | Phase A macOS 强信号支持 "conditional accepted" · 等 Phase B 三平台全过才翻正式 accepted | — | — |
 
-**Phase A 整体判定**：`TBD`（回填后更新）
+**Phase A 整体判定**：✅ **PASS（有 1 项降级 · 见下）**
+- Tauri 2 + 2 plugin 在 macOS 全维度通过（启动 / 稳定性 / 渲染 / clipboard / fs / 中文 IME / bundle size）
+- 日文 IME 全平台 SKIPPED · 属于**用户明示的 scope reduction** · 不是技术失败
+
 **SPIKE-02 整体 status**：保持 `in-progress` · Phase B Ubuntu 未补完前不翻 `done`
+
+**关于日文降级的产品含义**（等 v0.1 产品决策）：
+- 选项 A · v0.1 明确不 promise 日文支持 · README 声明 "中文优先 · 日文 best-effort"
+- 选项 B · v0.1 前通过 MVP-02（xterm.js IME）实机验证时附带日文测试
+- 选项 C · v0.1 后按用户实际反馈再补测
+  → 归到后续 ADR / 产品 spec 决定 · 不在本 Spike scope
 
 ---
 
@@ -83,46 +93,70 @@ pnpm tauri build
 
 然后打开 `.app` · 肉眼点 4 个按钮 · 录屏 IME 中日输入。
 
-### 4.2 连续启动 10 次稳定性
-
-<!-- 用户跑完回填 -->
+### 4.2 连续启动 10 次稳定性（2026-04-19 · 用户执行）
 
 ```
-Run 1:  TBD  (TBD ms)
-Run 2:  TBD  (TBD ms)
-...
-Run 10: TBD  (TBD ms)
+Run 1:  229 ms  ✅
+Run 2:  212 ms  ✅
+Run 3:  206 ms  ✅
+Run 4:  217 ms  ✅
+Run 5:  190 ms  ✅
+Run 6:  226 ms  ✅
+Run 7:  207 ms  ✅
+Run 8:  192 ms  ✅
+Run 9:  216 ms  ✅
+Run 10: 187 ms  ✅
 
-Summary: TBD/10 success · TBD fail
-Min: TBD ms · Median: TBD ms · Max: TBD ms
+Summary: 10/10 success · 0 fail
+Sorted (ms): 187 190 192 206 207 212 216 217 226 229
+Min: 187 ms · Median: 212 ms · Max: 229 ms · Range: 42 ms
 ```
 
-### 4.3 Clipboard plugin smoke test（用户肉眼 + 录屏）
+**解读**：
+- 10/10 启动成功 · 无 panic / crash · spec "连续启动零失败" 判据 ✅
+- Median 212ms 对比 SPIKE-01 的 202ms 仅慢 10ms · 证明 clipboard + fs plugin 初始化开销极小
+- Range 42ms · 极低变异性 · 启动路径稳定
 
-- [ ] 点 "写入剪贴板" · UI 显示 ✅
-- [ ] 切 Safari/Notes · Cmd+V · 粘贴出 `Hello · 你好 · こんにちは · 🎉 SPIKE-02` 完整无丢字
-- [ ] 点 "读取剪贴板" · UI 显示读出内容 · 长度正确
+### 4.3 Clipboard plugin smoke test（用户肉眼验证）
+
+- [x] 点 "写入剪贴板" · UI 显示 ✅ 绿色反馈
+- [x] 切 Safari/Notes · Cmd+V · 粘贴出 `Hello · 你好 · こんにちは · 🎉 SPIKE-02` **完整无丢字**（含中文 + 日文假名 + emoji）
+- [x] 点 "读取剪贴板" · UI 显示读出内容 · 长度正确
+
+**注**：剪贴板测试包含日文字符串（`こんにちは`）· 但这是**跨 app 字符串传递** · 不是 IME 输入路径 · 属于 clipboard plugin 的 UTF-8 完整性验证 · 与日文 IME 测试是两码事 · 不受日文降级影响。
 
 ### 4.4 FS plugin smoke test
 
-- [ ] 点 "写 ~/.vibestation-spike-02-test.txt" · UI 显示 ✅
-- [ ] Terminal 执行 `cat ~/.vibestation-spike-02-test.txt` · 输出 `Hello · 你好 · こんにちは · 🎉 SPIKE-02`
-- [ ] 点 "读 ~/..." · UI 读出内容正确
+- [x] 点 "写 ~/.vibestation-spike-02-test.txt" · UI 显示 ✅
+- [x] Terminal 执行 `cat ~/.vibestation-spike-02-test.txt` · 输出 `Hello · 你好 · こんにちは · 🎉 SPIKE-02`
+- [x] 点 "读 ~/..." · UI 读出内容正确
 
-### 4.5 IME 测试（用户录屏）
+### 4.5 IME 测试（中文 pass · 日文降级）
 
-- [ ] **中文拼音**：切输入法 · 输入 "你好世界" · 候选词正常 · 无丢字 · 光标对齐
-- [ ] **日文罗马字**：切日文输入法 · 输入 "こんにちは" · 候选词正常 · 假名 + 汉字转换正常
-- [ ] 录屏存 `spike-artifacts/SPIKE-02/macos-ime-zh.mov` 和 `spike-artifacts/SPIKE-02/macos-ime-ja.mov`（gitignored）
+**中文拼音**（2026-04-19 · 用户执行）
+- [x] 切输入法 · 输入 "你好世界"
+- [x] 候选词正常 · 无丢字 · 光标对齐
+- [x] 录屏归档：`spike-artifacts/SPIKE-02/macos-ime-zh.mp4`（gitignored · 本地 500KB）
+
+**日文罗马字 · 全平台 SKIPPED**
+- 用户 2026-04-19 决策：日文 IME 三平台均不做测试 · 本 Spike 范围内不涉及日文相关任何操作
+- **降级依据**：
+  - macOS 下中日 IME 都走 IMKit 统一协议 · 中文 IMKit 跑通 → 日文大概率兼容（弱信号）
+  - MVP 用户画像中文优先 · 日文属于 "nice to have"
+- **风险转移**：
+  - 见 §7 最终判定 + §已知风险条目（本 report 新增）
+  - 产品立场决定留给 v0.1 GA 前的 README 产品定位（本 Spike 不替产品决策）
+- **重新验证触发条件**：
+  - 若 v0.1 post-GA 有日文用户实机反馈问题 → 补测 + 可能触发 SPIKE-02.5 回归
 
 ### 4.6 Bundle size
 
-<!-- 回填 -->
+```
+macOS .app:  10 MB     ✅ (无硬阈值 · 参考 SPIKE-01 的 8.2MB · 本 Spike +2 plugin 增 1.8MB 合理)
+macOS .dmg:  4 MB      ✅ (目标 < 30MB · 7.5× 余量)
+```
 
-```
-macOS .app:  TBD MB
-macOS .dmg:  TBD MB (目标 < 30MB)
-```
+压缩比 = 10MB binary + metadata → 4MB dmg（压缩率 60%）· 正常。Universal 2 未开（当前 aarch64 only · 后续 x86_64 bundle 会翻倍）。
 
 ---
 
@@ -177,9 +211,9 @@ macOS .dmg:  TBD MB (目标 < 30MB)
    - Clipboard：点写入 · 切别的 app Ctrl+V 粘贴验证 · 再点读取确认
    - FS：点写 · terminal `cat ~/.vibestation-spike-02-test.txt` 验证 · 点读
    - IME 中文：fcitx5 切中文 · 输入 "你好世界" · 录屏
-   - IME 日文：fcitx5 切 mozc 或 anthy · 输入 "こんにちは世界" · 录屏
+   - **IME 日文：SKIPPED**（用户 2026-04-19 决策全平台降级 · 见主 report §4.5）· 你也不需要测
    
-   录屏存本地 spike-artifacts/SPIKE-02/ubuntu-{x11,wayland}-{clipboard,fs,ime-zh,ime-ja}.mp4（不入 repo · 后续整理归档）
+   录屏存本地 spike-artifacts/SPIKE-02/ubuntu-{x11,wayland}-{clipboard,fs,ime-zh}.mp4（不入 repo · 后续整理归档 · **日文录屏不需要**）
 
 5. 返回格式：
    直接填到 docs/spikes/SPIKE-02-report.md 第 5 节 "Phase B Ubuntu 数据"（新增段落）· 格式：
@@ -198,7 +232,8 @@ macOS .dmg:  TBD MB (目标 < 30MB)
 通过标准：
 - 10x 稳定性 10/10 · 任一 session 一次 crash 即 Fail
 - 剪贴板 + FS 读写在两会话都 PASS
-- IME 中日在两会话都 PASS（fcitx5 下合格即可 · ibus 失败不算整体 fail · 但 ADR 需注明推荐 fcitx5）
+- IME **中文**在两会话都 PASS（fcitx5 下合格即可 · ibus 失败不算整体 fail · 但 ADR 需注明推荐 fcitx5）
+- IME **日文 SKIPPED**（用户 2026-04-19 决策降级 · 你不需要测 · 也不需要配 fcitx5-mozc）
 - Bundle AppImage + deb 各 < 40MB
 
 失败信号触发（任一）：
@@ -240,22 +275,40 @@ macOS .dmg:  TBD MB (目标 < 30MB)
 
 | 阶段 | 判定 | 触发动作 |
 |---|---|---|
-| Phase A macOS | `TBD` | 全 PASS → 写 ADR-006 草稿 "conditional accepted" · 等 Phase B 正式 accepted |
-| Phase B Ubuntu | `TBD` | 两会话全 PASS → ADR-006 accepted · `CLAUDE.md` 决策表 #12 B → A · SPIKE-02 翻 done · 解锁 SPIKE-03..06 |
+| Phase A macOS | ✅ **PASS**（有 1 项降级） · 硬判据 5/5 + 降级 1/1（日文 IME） | Phase A 合入 · 写 ADR-006 草稿 "conditional accepted" · 等 Phase B 正式 accepted |
+| Phase B Ubuntu | **TBD** | 两会话全 PASS（无日文要求）→ ADR-006 accepted · `CLAUDE.md` 决策表 #12 B → A · SPIKE-02 翻 done · 解锁 SPIKE-03..06 |
+
+**Phase A 硬数据**（可直接写入 ADR-006 "conditional accepted" 依据）：
+- 冷启动 median 212ms（目标 < 2s · 10× 余量）· 10/10 稳定
+- Bundle .dmg 4MB / .app 10MB（目标 < 30MB · 7.5× 余量）
+- Clipboard + FS plugin smoke 全 pass · 中文 IME 录屏归档
+- 日文 IME 用户降级 · 不是技术失败
 
 失败路径（参考 spec §Fail Signals）：
-- macOS 单项 fail → 扩 Spike 补测 · 不急着切 Electron
+- macOS 单项 fail → 扩 Spike 补测 · 不急着切 Electron（当前无此触发）
 - Ubuntu 两会话都 fail → 触发 Electron 28+ fallback spike（SPIKE-02.5）
 - Ubuntu 一会话 fail → 评估是 IME 框架问题（fcitx5 → ibus）还是 webkit2gtk 问题 · 分情况处理
 
 ---
 
+## 7.5 · 已知风险（本 Spike 新增 · 随 report 归档）
+
+> 本 report 发现 1 个新风险条目 · spec §已知风险固定不改 · 在 report 侧补。
+
+| # | 风险 | 级别 | 缓解 |
+|---|---|---|---|
+| R-SPIKE-02-01 | **日文 IME 全平台未实机验证** · 降级为 "IMKit / fcitx5 通用协议一致性" 假设 | MEDIUM | (1) v0.1 产品定位决定是否 promise 日文（默认 best-effort） · (2) MVP-02 xterm.js IME 实现时可附带验证 · (3) v0.1 post-GA 若有日文用户反馈问题 · 触发 SPIKE-02.5 回归 |
+
+---
+
 ## 8 · 自审四问
 
-1. **递归完备性**：5 项 §3.1.1 判据 + updater descope 说明 + Phase A/B 两路径 · ✅
-2. **反向场景**：macOS 失败扩测 · Ubuntu 失败分三级 · 不越权直接切 Electron · ✅
-3. **边界适用性**：updater 明确归 SPIKE-06 · 不在当前 Spike 强验证 · 避免假 PASS · ✅
-4. **YAGNI**：骨架最小扩展（只加 2 plugin · 不碰 updater / notification / dialog 等）· ✅
+1. **递归完备性**：5 项 §3.1.1 硬判据 + updater descope 到 SPIKE-06 + 日文降级到 v0.1 产品决策 + Phase A/B 两路径 · 所有降级项均有明确 owner / 触发条件 · ✅
+2. **反向场景**：macOS 失败扩测 · Ubuntu 失败分三级 · 日文 post-GA 反馈触发 SPIKE-02.5 · 不越权切 Electron · ✅
+3. **边界适用性**：updater 明确归 SPIKE-06 · 日文明确归产品决策 + MVP-02 · 避免 "假 PASS" 或 "假失败" · ✅
+4. **YAGNI**：骨架最小扩展（只加 2 plugin 不碰 updater / notification / dialog）· 日文按用户明示 scope reduction 降级 · 不虚增测试面 · ✅
+
+**诚实声明**：本 Phase A 相对 spec §3.1.1 硬判据有 **2 项降级**（updater 技术依赖降级到 SPIKE-06 · 日文用户决策降级到 v0.1 产品决策）· 不是 full pass。但 **5 项硬判据 + 中文 IME 全 pass** · 强信号支持 Tauri 2 在 macOS 可靠 · ADR-006 可以 conditional accepted 前行。
 
 ---
 
@@ -264,6 +317,7 @@ macOS .dmg:  TBD MB (目标 < 30MB)
 | 日期 | 实施者 | 变更 |
 |---|---|---|
 | 2026-04-19 AM | Claude Code (Sonnet 4.6) | 骨架 cp + 2 plugin 扩展 + UI 重构 + 测量脚本 + report 骨架 + Ubuntu prompt |
-| `TBD` | User | Phase A macOS 10x 稳定性 + clipboard/fs/IME 肉眼验证 + 录屏 |
-| `TBD` | Claude Code | 回填 Phase A 数据 · 开 PR |
-| `TBD` | User / Ubuntu agent | Phase B Ubuntu 数据补 + ADR-006 accepted + #12 B→A |
+| 2026-04-19 AM | User | Phase A macOS 执行：10/10 稳定性 · median 212ms · clipboard/fs 全 pass · 中文 IME 录屏 |
+| 2026-04-19 AM | User | 决策：日文 IME 全平台降级 · 本 Spike 不涉及任何日文测试 · 产品定位延后决定 |
+| 2026-04-19 AM | Claude Code (Sonnet 4.6) | 回填数据 · 标注日文降级 · 加 R-SPIKE-02-01 风险 · 改 Phase B Ubuntu prompt · 开 Phase A PR |
+| `TBD` | User / Ubuntu agent | Phase B Ubuntu 数据补（仅中文 IME · 日文也 skip）+ ADR-006 accepted + #12 B→A |

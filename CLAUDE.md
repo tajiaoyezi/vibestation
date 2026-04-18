@@ -157,17 +157,17 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（pre-code stage · 2026-04-18）
+## 🏁 当前可执行动作（Pre-code Phase 1-4 全交付 · Spike W0 可启动）
 
-**⚠️ 仓库当前无代码**。`pnpm tauri dev` 等会失败。
+**⚠️ 仓库仍无代码**：`pnpm tauri dev` / `cargo build` 仍会失败，第一行代码在 SPIKE-01 启动后产生（`spike-tmp/spike-01-tauri/` · `.gitignore` 已排除）。
 
-本阶段可做的 3 件事：
+本阶段可做的 3 件事（按优先级）：
 
-1. **Phase 2 文档**：`docs/tasks/` 框架 + Spike 6 task spec + MVP 前 10 个详细 spec（参考 `implementation-plan.md` §7 + §10.1）
-2. **Phase 3 文档**：`docs/adr/ADR-001..010` + `CONTRIBUTING.md` + `CHANGELOG.md` + `docs/spikes/`（per-task SPIKE 报告目录）+ `docs/spike-artifacts/`（per-task 录屏/截图目录）+ `docs/session-history/`
-3. **Phase 4 基础设施**：`.github/` issue/PR 模板 + CI workflow 骨架 + `CODE_OF_CONDUCT.md` + `.github/dependabot.yml`
+1. **启动 Spike W0 Day 1**：认领 [`SPIKE-01 Tauri 三平台空壳启动`](./docs/tasks/SPIKE-01-tauri-three-platform-boot.md)（status: ready → in-progress 流程见上方第 5 步）。后续 W0-D2~D6 = SPIKE-02..06 顺序执行
+2. **帮 draft spec 升级 ready**：`docs/tasks/` 当前 27 个 spec 大部分仍是 draft；挑一个**不在 W0 关键路径上**的（例如 v0.2/v0.3/v1.0 的 MVP-12..20）走独立评审，演练 `draft → ready` 翻转 gate
+3. **遇到新决策时提议 ADR**：按 `docs/adr/_template.md` 走 ADR 流程（≥ 2 候选选项 + 正面/负面/风险 + 用户拍板 gate）
 
-Phase 1-4 全部完成后启动 Spike Week 0 Day 1。
+详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
 
 ---
 

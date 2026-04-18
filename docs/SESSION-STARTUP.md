@@ -5,38 +5,48 @@
 
 ---
 
-## ⚠️ 当前阶段：Pre-code（2026-04-18）
+## ⚠️ 当前阶段：Pre-code Phase 1-4 全交付 · Spike W0 可启动（2026-04-18 之后）
 
-**仓库还没有代码**，只有规划文档（1600+ 行）+ 视觉原型（4 份 HTML）。
+**仓库仍无代码**（第一行代码在 SPIKE-01 启动时产生），但 Phase 1-4 全套规划 / spec / 治理 / CI 基础设施**已完整交付**：
 
-- `pnpm tauri dev` 会失败（没 package.json 没 src-tauri）
-- `cargo build` 会失败（没 Cargo.toml）
-- 没有 `docs/tasks/` / `docs/adr/` / `CHANGELOG.md` / `.github/`（Phase 2-4 待建立）
+- ✅ `docs/tasks/` × 27（7 SPIKE + 20 MVP，全 frontmatter 合法）
+- ✅ `docs/adr/` × 10（6 accepted + 4 proposed pending Spike）
+- ✅ `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` / `CHANGELOG.md`
+- ✅ `.github/` 全套（4 issue 模板 + PR 模板 + 3 workflows + dependabot）
+- ✅ `docs/spikes/` + `docs/spike-artifacts/` + `docs/session-history/` 三个 per-task 目录
+- ⚠️ `pnpm tauri dev` / `cargo build` 仍会失败（SPIKE-01 启动后才有骨架）
+- ⚠️ main 分支保护**未应用**（用户暂缓 · 见 `docs/BRANCH-PROTECTION.md`）
 
-**不要按"开发期 Playbook"操作。先读 `docs/PROGRESS.md` 的"📍 当前位置"和"🔜 下一步"。**
+**先读 `docs/PROGRESS.md` 的"📍 当前位置"和"🔜 下一步"获取最新状态。**
 
 ---
 
 ## 🏁 今天立即能做的（3 选 1）
 
-### 选项 A：Phase 2 文档升级
-补 `docs/tasks/` 框架（task schema + _template + 索引）+ 6 个 Spike task spec（SPIKE-01 到 SPIKE-06）+ MVP 前 10 个详细 spec。参考 `docs/implementation-plan.md` §7 + §10.1。
+### 选项 A · 启动 Spike W0 Day 1（推荐）
+认领 `docs/tasks/SPIKE-01-tauri-three-platform-boot.md`：
+- 在 mac + Ubuntu 24 Wayland + X11 三平台跑 Tauri 2 空壳启动
+- 量化测冷启动耗时（mac < 2s · Linux < 3s）+ IME 录屏
+- 产出 `docs/spikes/SPIKE-01-report.md` + `docs/spike-artifacts/SPIKE-01/*.mp4`
+- **如果只有单平台**：先做 mac 半边，标记 Ubuntu 部分 `pending-cross-platform` 等接力
 
-### 选项 B：Phase 3 文档升级
-补 `docs/adr/` × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ `CONTRIBUTING.md` + `CHANGELOG.md`（Keep a Changelog）+ `docs/spikes/`（per-task SPIKE 报告目录）+ `docs/spike-artifacts/`（per-task 录屏/截图目录）。
+### 选项 B · 帮 draft spec 升级 ready（不在 W0 关键路径上）
+当前 27 个 spec 大部分仍是 draft。挑 v0.2/v0.3/v1.0 的 MVP（如 MVP-12..20）做独立评审：
+- 走 `docs/tasks/README.md` 第 7 步流程
+- 演练 `draft → ready` 翻转 gate（reviewer push 翻转 commit 推荐）
 
-### 选项 C：Phase 4 基础设施
-补 `.github/ISSUE_TEMPLATE/` + `.github/PULL_REQUEST_TEMPLATE.md` + `.github/workflows/ci.yml` 骨架 + `CODE_OF_CONDUCT.md` + `.github/dependabot.yml`。
-
-**Phase 1-4 全部完成后**才启动 Spike Week 0 Day 1（Tauri 骨架搭建）。
+### 选项 C · 遇到新决策时提议 ADR-011+
+按 `docs/adr/_template.md`：
+- ≥ 2 候选选项 + 正面/负面/风险
+- 独立评审 + **用户拍板 gate**（B → A 升级硬阻塞）
 
 ---
 
 ## 📖 上手流程（phase-aware）
 
-### Pre-code 阶段（当前）
+### Pre-code · Spike W0 阶段（当前 · 2026-04-18 之后）
 
-**权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补 Pre-code 阶段的具体动作。
+**权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补当前阶段的具体动作（认领 Spike / 写 spec PR / 翻转 gate）。
 
 ```
 阅读（对齐 CLAUDE.md 第 1-3 步）：
@@ -220,25 +230,26 @@ git2 读慢（Day 4）：
 
 ### Q1：为什么 `pnpm tauri dev` 会失败？
 
-当前 **pre-code 阶段**，没有 `package.json` / `src-tauri/` / `crates/`。Spike W0 Day 1 后才有骨架。
+仍处 **pre-code 阶段**（无 `package.json` / `src-tauri/` / `crates/`）。SPIKE-01 启动后会在 `spike-tmp/spike-01-tauri/` 建第一个 Tauri 骨架（`.gitignore` 已排除，作者本地 scratchpad），MVP-01 后才把生产骨架并入主仓库。
 
 ### Q2：我今天能做的第一件事是什么？
 
-三选一，见本文件顶部 **"🏁 今天立即能做的"**：Phase 2 / 3 / 4 文档升级。
+三选一，见本文件顶部 **"🏁 今天立即能做的"**：启动 SPIKE-01 / 帮 draft spec 升 ready / 提议新 ADR。
 
-### Q3：`CLAUDE.md` 里引用的 `docs/adr/ADR-NNN` 为什么打不开？
+### Q3：`CLAUDE.md` 里引用的 `docs/adr/ADR-NNN` 在哪？
 
-ADR 文件在 Phase 3 才建立。当前锁定依据指向 `docs/implementation-plan.md` 章节。
+`docs/adr/` 目录已在 Phase 3 建立，当前 10 个 ADR（ADR-001..010）齐全。索引见 `docs/adr/README.md`。
 
 ### Q4：我要修一个已锁决策（A 栏）怎么办？
 
 `CLAUDE.md` "🚫 禁区" 末尾 ⚠️ 条款：新开 ADR → 独立评审（不同 agent + 用户）→ 同步 CLAUDE.md + implementation-plan.md。
 
-### Q5：为什么 `CLAUDE.md` 和本文件两份？
+### Q5：为什么有 `AGENTS.md` / `CLAUDE.md` / 本文件三份？
 
 | 文件 | 读者 | 内容 |
 |------|------|------|
-| `CLAUDE.md` | **Agent**（Claude Code 自动加载）| 稳定规则 + 决策 + 禁区 + 命令速查 |
+| `AGENTS.md` | **任意 agent CLI**（Codex / Cursor / Aider / OpenCode / 自建 …）| 工具无关入口 · 极简 · 路由到 CLAUDE.md |
+| `CLAUDE.md` | **Agent**（Claude Code 自动加载 · 也是项目权威单文件入口）| 稳定规则 + 决策 + 禁区 + 命令速查 |
 | `SESSION-STARTUP.md` | **人类** | 当前阶段状态 + Playbook + FAQ |
 
 ### Q6：每周投入 < 10 小时怎么办？
@@ -252,9 +263,11 @@ ADR 文件在 Phase 3 才建立。当前锁定依据指向 `docs/implementation-
 
 ## 📮 贡献入口
 
-- Bug：GitHub Issue `bug_report` 模板（Phase 4 建立）
-- Feature：先开 Issue 讨论 → 写 spec 放 `docs/tasks/` → PR
-- 代码规范：`CONTRIBUTING.md`（Phase 3 建立）
+- Bug：GitHub Issue `bug_report` 模板（已建 · `.github/ISSUE_TEMPLATE/bug_report.yml`）
+- Feature：GitHub Issue `feature_request` 模板（已建）→ 写 spec 放 `docs/tasks/` → PR
+- Task spec 提议：GitHub Issue `task_spec_proposal` 模板（已建）
+- 代码规范：[`CONTRIBUTING.md`](../CONTRIBUTING.md)（已建）
+- 行为准则：[`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md)（Contributor Covenant 2.1 中文 · 已建）
 - 不签 CLA（Apache 2.0 本身有 patent grant）
 
 ---

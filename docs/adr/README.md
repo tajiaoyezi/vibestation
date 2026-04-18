@@ -100,11 +100,30 @@ gh pr create --title "docs(adr): 新增 ADR-011 <标题>"
 
 ## 🔗 与其他治理文档的关系
 
-- `CLAUDE.md §决策状态表`：**快速索引 + 锁定状态** · 每条对应一个 ADR 文件
+- `CLAUDE.md §决策状态表`：**快速索引 + 锁定状态** · 本目录的 10 个 ADR 覆盖其中 10 条（见下方精确清单）· 其余条款仍由 `implementation-plan.md` / 原型文件锁定
 - `implementation-plan.md`：**战略依据** · ADR 的"背景与问题"通常引用此文具体章节
 - `docs/tasks/SPIKE-*`：**验证依据** · `proposed` ADR 依赖 Spike 结论 · Spike 通过后更新 ADR 状态
 - `docs/tasks/README.md`：**任务流程** · 实施 ADR 决策的具体 task spec
 
 ---
 
-**本目录 Phase 3 建立（2026-04-18）· 10 个 ADR 覆盖 `CLAUDE.md` 决策表所有 A + B 档。**
+## 📊 ADR 覆盖范围（Codex PR #12 review F1 复核精确描述）
+
+**已 ADR 化（10 条）**：
+- A 档 · 6 条：`#1` License · `#2` MVP 范围 · `#3` AI-Aware v1.0 vision · `#5` Cargo workspace · `#6` 前端栈 · `#7` Diff 自建
+- B 档 · 4 条：`#12` 桌面框架 · `#13` Git 栈 · `#14` 本地存储 · `#15` PTY 方案（全部 proposed · 待 Spike 通过升级为 accepted）
+
+**A 档未 ADR 化**（5 条 · 已在其他文档锁定 · 需要改变决策时才补 ADR）：
+- `#4` Calm Studio 视觉方向 → 锁定 @ `design/directions/1-calm-studio.html`
+- `#8` 平台 MVP = macOS + Ubuntu → 锁定 @ `implementation-plan.md §3.1`
+- `#9` Tool Windows 默认状态 → 锁定 @ 原型 JS `DEFAULT_STATE`
+- `#10` Telemetry 默认关 + opt-in → 锁定 @ `implementation-plan.md §5.1` + R30
+- `#11` Landing page 栈 = Astro → 锁定 @ `implementation-plan.md §12`
+
+**C 档（2 条 · 时间锁定结果开放）**：不建 ADR · 由时间节点触发决策并直接更新 `CLAUDE.md` 决策表。
+- `#16` 项目域名 TLD（W10 附近）
+- `#17` Logo 最终定稿（v0.1 发布前）
+
+---
+
+**本目录 Phase 3 建立（2026-04-18）· 当前 10 个 ADR · 覆盖范围如上精确描述。**

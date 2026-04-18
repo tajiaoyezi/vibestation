@@ -56,12 +56,34 @@ docs/spike-artifacts/
 
 ## 🚫 禁区
 
-- ❌ **raw 未脱敏 CLI 输出**（含 auth token / PII）· 必须放 `~/.vibestation-spike-raw/<SPIKE-NN>/`（home 路径 · repo 外）· 命名强制 `.raw` 后缀（被 `.gitignore` 拦截即使放错位置也不会误 commit）
+- ❌ **raw 未脱敏 CLI 输出**（含 auth token / PII）· 必须放 `~/.vibestation-spike-raw/<SPIKE-NN>/`（home 路径 · repo 外）
 - ❌ **生产服务器日志 / 用户真实数据**
 - ❌ **含 API key / private key / session cookie** 的任何文件
 - ❌ **非本项目数据**（如别的 repo 的 dump）
 
-`.github/workflows/secret-scan.yml` 会在 PR 跑 gitleaks · commit 前也请本地跑一次（`gitleaks detect --source docs/spikes/ docs/spike-artifacts/`）。
+### Secret leakage 防护状态（**Codex PR #12 F3 复核 · 精确描述实际落地**）
+
+> ⚠️ **不要把计划当成已落地**。以下防护分两层 · 每层的真实状态明确标注：
+
+**第 1 层 · `.gitignore` `.raw` 拦截**（PR #9 落地 · 合入 main 后生效）
+- 来源：PR #9 commit `2b86def` 加入 `*.raw` / `spike-raw/` / `.spike-raw/` 到 `.gitignore`
+- 状态：**depends on PR #9 merge** · 在 PR #9 merge 到 main 之前 · 本 repo `.gitignore` 不含这些规则 · 放错位置的 `.raw` 文件**可能**被 commit
+- 操作：SPIKE-06 实施 agent 必须在 PR #9 merge 之后才能开始 §A.5 样本录制 · 或自行 verify 当前 main 的 `.gitignore` 已含相关规则
+
+**第 2 层 · `gitleaks` CI 扫描**（PR #11 Phase 4 基础设施落地）
+- 来源：PR #11 `.github/workflows/secret-scan.yml` · 对所有 PR 跑 gitleaks
+- 状态：**depends on PR #11 merge** · 未 merge 前 CI 不跑 gitleaks · commit 后 secret 不会被自动检测
+- 操作：在 PR #11 merge 前 · SPIKE-06 实施 agent **必须本地跑** `gitleaks detect` 作为唯一扫描（SPIKE-06 A.5.3 要求）
+
+**当前合入状态参考**（以 main 实际内容为准）：
+```bash
+# 检查 .gitignore 是否已含 raw 拦截
+grep -E '^\*\.raw$|^spike-raw/$|^\.spike-raw/$' .gitignore || echo "❌ PR #9 未 merge · raw 拦截未生效"
+# 检查 gitleaks CI 是否已落地
+test -f .github/workflows/secret-scan.yml || echo "❌ PR #11 未 merge · CI gitleaks 未生效"
+```
+
+任一检查失败 → 按上文操作（延后 SPIKE-06 §A.5 实施 · 或使用本地 gitleaks 替代）。
 
 ---
 

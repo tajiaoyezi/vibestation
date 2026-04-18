@@ -92,8 +92,23 @@ cp docs/tasks/_template.md docs/tasks/SPIKE-07-<slug>.md
 cp docs/adr/_template.md docs/adr/ADR-011-<slug>.md
 
 # 2. 填写决策 · 必须有 ≥ 2 个候选选项 + 正面/负面/风险
-# 3. 开 PR · 独立评审 · 若对应 CLAUDE.md 决策表 B 栏 → A 栏，同步更新决策表
+# 3. 开 PR · Conventional Commits + 中文 + trailer
+# 4. 独立评审（≠ 原作者 · 任意 agent / 人类）
+# 5. **（B → A 升级专属 gate · Codex PR #12 F2 教训）** · 用户（Arbiter · @leaf）
+#    必须在 PR 里明确 approve 后才能 merge · 三件套缺一不可：
+#    (a) Spike 通过（对应 SPIKE-NN 有 passing benchmark 数据 / 结论写入 report）
+#    (b) 独立评审通过（非作者 agent / 人类）
+#    (c) **用户拍板**（Arbiter approve · PR 评论中明确"agree to promote #<N>
+#        from B → A" 或同等声明）
+#    **任一缺失 → 不得 merge** · 不得代替用户决策（即使 reviewer 是另一个 agent）
+# 6. Merge 后同步更新 `CLAUDE.md` 决策表（B 栏 → A 栏 + 锁定依据 ADR 路径）
+# 7. 同步更新 `docs/adr/README.md` 索引状态（proposed → accepted）
 ```
+
+**A 档决策的修改流程**（推翻已 accepted ADR）：
+1. 新建 `docs/adr/ADR-XXX-*.md`（替代原 ADR）· 或修改原 ADR 加 `status: deprecated · superseded by ADR-XXX`
+2. 同样走 **Spike（若需要） + 独立评审 + 用户拍板** 三件套
+3. 用户拍板是硬 gate · 即使只是"微调"也不能绕过
 
 ### D · 其他（基础设施 / 文档小改）
 

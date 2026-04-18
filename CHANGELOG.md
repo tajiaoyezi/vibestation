@@ -39,15 +39,16 @@
 - `docs/spike-artifacts/README.md` · Spike 录屏 / 截图目录占位
 - `docs/session-history/README.md` · Session 历史目录占位
 
-**Phase 4（2026-04-18）· GitHub 基础设施**：
-- `.github/ISSUE_TEMPLATE/` · config / bug_report / feature_request / task_spec_proposal 四模板
-- `.github/PULL_REQUEST_TEMPLATE.md` · PR schema（Implemented by / Reviewed by / 翻转 gate / 自审四问）
-- `.github/dependabot.yml` · cargo + npm + github-actions 周更
-- `.github/workflows/ci.yml` · CI skeleton（markdown-lint active · rust/frontend 占位）
-- `.github/workflows/secret-scan.yml` · gitleaks 硬阻塞（落地 SPIKE-06 §A.5.3）
-- `.github/workflows/task-spec-validator.yml` · frontmatter schema 校验（落地 README §原则 7）
-- `scripts/validate-task-spec.mjs` · 224 行 · 无依赖 · Node 20+
-- `docs/BRANCH-PROTECTION.md` · GitHub 分支保护 checklist（reviewer 应用指南）
+<!-- Phase 4（GitHub 基础设施）条目已移除 · Codex PR #12 F5 复核：
+     该 Phase 4 在 PR #11（独立分支 `docs/phase-4-github-infra`）交付 ·
+     不在本 PR #12 的 Phase 3 diff 范围内 · 在此记入会误导 reviewer
+     以为 gitleaks / task-spec-validator / PR template 等已在此 PR 生效。
+     正确做法：**PR #11 merge 时** · 在独立 commit 中把 Phase 4 条目加入
+     本 CHANGELOG 的 [Unreleased]（或直接合入对应版本 release）。 -->
+
+**Phase 4（在独立 PR #11 交付 · 本 CHANGELOG 条目在 PR #11 merge 时补入）**：
+- 见 [PR #11 description](https://github.com/tajiaoyezi/vibestation/pull/11) 的实际交付清单
+- 涵盖：`.github/` 模板 / dependabot / ci skeleton / secret-scan (gitleaks) / task-spec-validator / validate-task-spec.mjs / BRANCH-PROTECTION.md
 
 ### Changed · 决策锁定（A 栏）
 

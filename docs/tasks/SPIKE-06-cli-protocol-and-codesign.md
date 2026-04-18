@@ -195,7 +195,7 @@ macOS Dev Program（B）：
 
 ## 🔗 相关
 
-- ADR：**暂不建 ADR**（CLI 协议 MVP 不锁，v1.0 前再建 ADR-006）
+- ADR：**暂不建 ADR**（CLI 协议 MVP 不锁；v1.0 前由 SPIKE-07 触发建 **ADR-011 AI-Aware greenlight**（或 deferred · 基于 SPIKE-07 结论） · 见 [ADR-009](../adr/ADR-009-ai-aware-v1-vision.md)）
 - 对应 `CLAUDE.md` ⚠️ 条款：Claude CLI / Codex CLI 输出协议未经实机验证
 - `implementation-plan.md` 章节：§附录 A D6 · §9 R1 · §1.1 AI-Aware vision
 - 上游：SPIKE-05

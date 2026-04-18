@@ -46,7 +46,7 @@ reviewer:
   - [ ] `tauri-plugin-clipboard-manager`（读写 + 中文字符）
   - [ ] `tauri-plugin-fs`（读写用户目录文件）
   - [ ] `tauri-plugin-updater`（假 update manifest URL 能发起请求并解析响应）
-- [ ] **ADR 草稿**：`docs/adr/ADR-002-desktop-framework.md`（Phase 3 建立 ADR 目录前，暂以 `implementation-plan.md §3.1` 内嵌 changelog 记录）
+- [ ] **ADR 草稿**：`docs/adr/ADR-006-desktop-framework.md`（Phase 3 建立 ADR 目录前，暂以 `implementation-plan.md §3.1` 内嵌 changelog 记录）
 - [ ] **`CLAUDE.md` 决策表 #12 更新**：B 栏 → A 栏，注明 "Spike W0 D2 hard-pass 通过"
 
 ## 🔀 Electron Fallback 路径
@@ -80,7 +80,7 @@ Electron 路径：
 - [ ] 三平台 30 次启动日志汇总（csv / markdown 表）
 - [ ] IME 录屏 × 6（3 平台 × 2 语种）
 - [ ] Bundle 产物体积截图
-- [ ] **ADR-002 草稿**：桌面框架锁定依据（Tauri 或 Electron）
+- [ ] **ADR-006 草稿**：桌面框架锁定依据（Tauri 或 Electron · `docs/adr/ADR-006-desktop-framework.md` 已 proposed · Spike 通过后 proposed → accepted）
 - [ ] **`CLAUDE.md` 更新 PR**：决策表 #12 B → A
 
 ## 🛠 依赖资源（Resources Needed）
@@ -106,7 +106,7 @@ Electron 路径：
 
 ## 🔗 相关
 
-- ADR：`docs/adr/ADR-002-desktop-framework.md`
+- ADR：`docs/adr/ADR-006-desktop-framework.md`
 - 对应 `CLAUDE.md` 决策表：**#12 桌面框架**（Day 2 结束后移入 A 栏）
 - `implementation-plan.md` 章节：§3.1.1 · §附录 A D1-D2 · §9 R12
 - 上游：SPIKE-01

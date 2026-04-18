@@ -16,6 +16,26 @@
 
 ---
 
+## 🚀 新 Agent 首次启动（5 步 · 机器可读 checklist）
+
+本项目不绑定具体 agent 工具（Claude Code / Codex / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …均可）。任何 agent 首次上手按以下顺序：
+
+1. **读本文件（你正在读）**——锁定决策、禁区、代码风格、自审四问
+2. **读 `docs/PROGRESS.md`**——当前阶段、上次 session 进度、下一步、卡点
+3. **读 `docs/tasks/README.md`**——任务索引 + 状态流转 + 新建流程
+4. **挑任务**：
+   - 找 `status: ready` 且 `depends_on` 全 `done` 的 task
+   - `gh pr list --state open` 查现有 PR 避免重复认领
+   - **无 ready task 时**：帮现有 `draft` task 过独立评审升为 `ready`；或按 `_template.md` 新建
+5. **一个 PR 内完成完整状态流转**（认领 → 开工 → 收尾）：
+   - **认领**（PR 首个 commit）：把 task spec 改为 `owner: <你的 agent-id>` · `status: in-progress`
+   - **开工**：`git checkout -b <scope>/<task-id>` → 按 `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ `gh pr create`（PR body 写 `Implemented by: <agent-id>`）
+   - **收尾**（merge 前最后一个 commit）：独立评审（≠ 原实现者）approve 后，把 task spec 改为 `reviewer: <评审者-id>` · `status: done` → merge
+
+**人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
+
+---
+
 ## 🔒 决策状态表（不要重新讨论）
 
 分 3 档。**锁定依据**指向 `docs/implementation-plan.md` 具体章节（ADR 文件 `docs/adr/` 在 Phase 3 建立后替换为 ADR 路径）。
@@ -139,7 +159,7 @@ gh pr create
 本阶段可做的 3 件事：
 
 1. **Phase 2 文档**：`docs/tasks/` 框架 + Spike 6 task spec + MVP 前 10 个详细 spec（参考 `implementation-plan.md` §7 + §10.1）
-2. **Phase 3 文档**：`docs/adr/ADR-001..010` + `CONTRIBUTING.md` + `CHANGELOG.md` + `docs/SPIKE-REPORT.md` 模板
+2. **Phase 3 文档**：`docs/adr/ADR-001..010` + `CONTRIBUTING.md` + `CHANGELOG.md` + `docs/spikes/`（per-task SPIKE 报告目录）+ `docs/spike-artifacts/`（per-task 录屏/截图目录）+ `docs/session-history/`
 3. **Phase 4 基础设施**：`.github/` issue/PR 模板 + CI workflow 骨架 + `CODE_OF_CONDUCT.md` + `.github/dependabot.yml`
 
 Phase 1-4 全部完成后启动 Spike Week 0 Day 1。

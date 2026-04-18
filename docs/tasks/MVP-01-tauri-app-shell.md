@@ -17,7 +17,7 @@ reviewer: User (Arbiter)
 
 # MVP-01: Tauri 应用骨架 + 启动流程
 
-> **状态**：`ready`（2026-04-18 翻转 · Arbiter approve · spec PR `docs/onboarding-cleanup-and-section-5-4`）  
+> **状态**：`ready`（2026-04-18 翻转 · Arbiter approve · spec PR `docs/onboarding-cleanup-and-section-5-4`）
 > ⚠️ 实施前提：SPIKE-02 必须先 done（桌面框架锁定）
 > **依赖**：SPIKE-02（桌面框架已锁定）/ **阻塞**：MVP-02..04 · MVP-10
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) MVP B 折中方案 · §3.1 架构 · §3.2 Cargo workspace

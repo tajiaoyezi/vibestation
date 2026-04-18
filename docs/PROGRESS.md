@@ -16,7 +16,7 @@
 | **Unpushed branches** | 无 | push 后 |
 | **Next concrete action** | **启动 Phase 2**：`docs/tasks/` 框架（schema + _template + README 索引）+ Spike 6 task spec + MVP 前 10 详细 spec | session end |
 | **Blocked by** | 无 | 阻塞变化 |
-| **Missing infra** | `docs/tasks/` · `docs/adr/` · `docs/session-history/` · `CONTRIBUTING.md` · `CHANGELOG.md` · `.github/` · `CODE_OF_CONDUCT.md`（Phase 2-4 待建）| Phase 完成时 |
+| **Missing infra** | `docs/tasks/` · `docs/adr/` · `docs/spikes/` · `docs/spike-artifacts/` · `docs/session-history/` · `CONTRIBUTING.md` · `CHANGELOG.md` · `.github/` · `CODE_OF_CONDUCT.md`（Phase 2-4 待建）| Phase 完成时 |
 | **Required env/accounts** | GitHub CLI 已登录 `tajiaoyezi` · 远端 `origin` 跟踪 `main` | 新账号/工具时 |
 
 ---
@@ -58,7 +58,7 @@
 1. **Phase 2 启动**：`docs/tasks/` 框架（schema + `_template.md` + README 索引）
 2. Phase 2 · Spike 6 个 task spec（SPIKE-01 Tauri scaffold / SPIKE-02 Wayland Pass/Fail / SPIKE-03 PTY / SPIKE-04 git2 / SPIKE-05 Claude CLI / SPIKE-06 storage benchmark）
 3. Phase 2 · MVP 前 10 个详细 spec（MVP-01..10）+ 后 10 个占位 spec
-4. Phase 3：ADR × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ CONTRIBUTING + CHANGELOG + SPIKE-REPORT 模板 + `docs/session-history/`
+4. Phase 3：ADR × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ CONTRIBUTING + CHANGELOG + `docs/spikes/`（per-task SPIKE 报告目录）+ `docs/spike-artifacts/`（per-task 录屏/截图目录）+ `docs/session-history/`
 5. Phase 4：`.github/` Issue/PR 模板 + CI workflow + CODE_OF_CONDUCT + dependabot
 6. **Spike Week 0 Day 1**：Tauri 2 + SolidJS + Cargo workspace 骨架（Phase 1-4 全部完成后）
 

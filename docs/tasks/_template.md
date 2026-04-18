@@ -13,6 +13,8 @@ owner:                            # 认领者标识（留空 = 未认领）
 phase: W0-D1                      # W0-D1 / W1 / W5 / v0.2 / ...
 depends_on: []                    # ["SPIKE-01", "MVP-03"]
 blocks: []                        # 该 task 完成后解锁哪些 task
+blocked_by: []                    # 仅 status: blocked 时必填：["SPIKE-02", "apple-dev-program-approval"]
+blocked_note:                     # 可选：人类可读的阻塞原因（1-2 句）
 estimate: 1d                      # 0.5d / 1d / 3d / 1w
 plan_ref: implementation-plan.md §N.N  # 引用的战略计划章节
 risk_ref:                         # R1 / R12 / R27（implementation-plan §9 风险 ID，可选）

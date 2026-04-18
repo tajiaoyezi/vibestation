@@ -23,7 +23,7 @@
 补 `docs/tasks/` 框架（task schema + _template + 索引）+ 6 个 Spike task spec（SPIKE-01 到 SPIKE-06）+ MVP 前 10 个详细 spec。参考 `docs/implementation-plan.md` §7 + §10.1。
 
 ### 选项 B：Phase 3 文档升级
-补 `docs/adr/` × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ `CONTRIBUTING.md` + `CHANGELOG.md`（Keep a Changelog）+ `docs/SPIKE-REPORT.md` 模板。
+补 `docs/adr/` × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ `CONTRIBUTING.md` + `CHANGELOG.md`（Keep a Changelog）+ `docs/spikes/`（per-task SPIKE 报告目录）+ `docs/spike-artifacts/`（per-task 录屏/截图目录）。
 
 ### 选项 C：Phase 4 基础设施
 补 `.github/ISSUE_TEMPLATE/` + `.github/PULL_REQUEST_TEMPLATE.md` + `.github/workflows/ci.yml` 骨架 + `CODE_OF_CONDUCT.md` + `.github/dependabot.yml`。
@@ -99,8 +99,10 @@ vibestation/
 ├── docs/
 │   ├── tasks/                    (Phase 2)
 │   │   ├── README.md · _template.md · SPIKE-NN-*.md · MVP-NN-*.md
-│   ├── adr/                      (Phase 3)
-│   ├── SPIKE-REPORT.md           (Phase 3)  Spike 结束填报
+│   ├── adr/                      (Phase 3)  ADR-NNN-<slug>.md
+│   ├── spikes/                   (Phase 3)  per-task SPIKE 报告（SPIKE-NN-report.md）
+│   ├── spike-artifacts/          (Phase 3)  per-task 录屏/截图（<SPIKE-NN>/*.png/mp4）
+│   ├── session-history/          (Phase 3)  session 归档
 │   └── ENV-SETUP.md              (Spike W0)
 └── src-tauri/ + web/ + crates/   (Spike W0)
 ```
@@ -180,13 +182,13 @@ redb 数据损坏：
 
 ```
 Tauri on Wayland 失败（Day 2）：
-  1. docs/SPIKE-REPORT.md 标红 R12
+  1. docs/spikes/SPIKE-02-report.md 标红 R12
   2. docs/adr/ADR-002 supersede：Tauri 2 → Electron 28+
   3. 更新 CLAUDE.md 决策表 #12 从 B 栏移 A 栏
   4. 更新 implementation-plan.md §3.1
 
 redb benchmark 输给 rusqlite（Day 6）：
-  1. SPIKE-REPORT 标 R27
+  1. docs/spikes/SPIKE-04-report.md 标 R27
   2. ADR-005 supersede → rusqlite
   3. 更新 CLAUDE.md #14
 

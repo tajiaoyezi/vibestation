@@ -40,7 +40,7 @@ draft ──┐
 | `draft` | 草稿，字段未填完 | 新建 |
 | `ready` | 可被认领，字段完整，Acceptance 明确 | 作者自审 + 独立评审通过 |
 | `in-progress` | 已被某 agent/人类认领实施 | PR 打开且分支存在 |
-| `blocked` | 被依赖项或外部资源阻塞 | `blocks_by` 字段填写原因 |
+| `blocked` | 被依赖项或外部资源阻塞 | `blocked_by` 字段填 task-id / 外部资源，`blocked_note` 可选填人类可读原因 |
 | `done` | PR 已 merge 到 main，Acceptance 全过 | Acceptance 逐项勾完 + merge |
 
 **规则**：
@@ -61,6 +61,8 @@ draft ──┐
 | `phase` | string | ✅ | `W0-D1` / `W1` / `W5` / `v0.2` |
 | `depends_on` | list | ✅（可空 `[]`）| 依赖的 task id |
 | `blocks` | list | ✅（可空 `[]`）| 该 task 完成后解锁的 task id |
+| `blocked_by` | list | ⛔（仅 `status: blocked` 时必填）| 阻塞源：task-id（如 `["SPIKE-02"]`）或外部资源（如 `["apple-dev-program-approval"]`）|
+| `blocked_note` | string | ⛔ 可选 | 人类可读的阻塞原因说明（1-2 句）|
 | `estimate` | string | ✅ | `0.5d` / `1d` / `3d` |
 | `plan_ref` | string | ✅ | `implementation-plan.md` 章节 `§3.1.1` |
 | `risk_ref` | string | ⛔ 可选 | `R1` / `R12` / `R27` 等 `implementation-plan §9` 风险 ID |

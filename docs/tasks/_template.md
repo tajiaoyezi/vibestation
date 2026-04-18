@@ -14,6 +14,7 @@ phase: W0-D1                      # W0-D1 / W1 / W5 / v0.2 / ...
 depends_on: []                    # ["SPIKE-01", "MVP-03"]
 blocks: []                        # 该 task 完成后解锁哪些 task
 blocked_by: []                    # 仅 status: blocked 时必填：["SPIKE-02", "apple-dev-program-approval"]
+blocked_from:                     # 仅 status: blocked 时必填：ready | in-progress（进入 blocked 前的状态，解除时自动恢复）
 blocked_note:                     # 可选：人类可读的阻塞原因（1-2 句）
 estimate: 1d                      # 0.5d / 1d / 3d / 1w
 plan_ref: implementation-plan.md §N.N  # 引用的战略计划章节

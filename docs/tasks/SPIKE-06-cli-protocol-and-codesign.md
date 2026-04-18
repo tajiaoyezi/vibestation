@@ -5,18 +5,29 @@ title: Claude CLI / Codex CLI 实机 + macOS Developer Program 申请
 status: draft
 owner:
 phase: W0-D6
-depends_on: ["SPIKE-05"]
+depends_on: ["SPIKE-05", "phase-4-infra-landing"]
 blocks: []
+blocked_by: []
+blocked_from:
+blocked_note:
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D6 · §9 R1
 risk_ref: R1
 reviewer:
 ---
 
+<!--
+  depends_on 包含外部资源 "phase-4-infra-landing"：Codex PR #10 R6 F2 教训 ·
+  SPIKE-06 §A.5.3 的 CI 硬阻塞依赖 .github/workflows/secret-scan.yml +
+  docs/BRANCH-PROTECTION.md · 这两个文件在 PR #11（Phase 4）落地 · 未 merge
+  前 SPIKE-06 实施进度应卡在 `status: blocked` / blocked_by: ["phase-4-infra-landing"]
+  / blocked_from: ready（待 ready 后用）。PR #11 merge 后从 depends_on 移除此条。
+-->
+
 # SPIKE-06: Claude CLI / Codex CLI 实机 + macOS Dev Program
 
 > **状态**：`draft`
-> **依赖**：SPIKE-05（PTY 架构已验证）
+> **依赖**：SPIKE-05（PTY 架构已验证）· `phase-4-infra-landing`（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 在 main · 来自 PR #11）
 > **战略依据**：[`implementation-plan.md §附录 A D6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
 
 ---
@@ -90,10 +101,18 @@ reviewer:
 
 > ⚠️ Codex 在 PR #7 Round 1 指出：新样本归档流程（auth failures / long conversations / mixed-output failure cases）如没有强制 redaction，会成为 repo 侧 secret leakage 路径。以下为消除该漏洞的强制要求。
 
-**A.5.1 · Raw captures 隔离**
-- [ ] 原始未脱敏捕获**禁止进 repo**，路径：`~/.vibestation-spike-raw/SPIKE-06/`（`.gitignore` 已排除 `*.raw` / `spike-raw/`）
-- [ ] 仓库内 `.gitignore` 显式包含 `~/.vibestation-spike-raw/`（相对路径写入 `/tmp/` 或命名匹配，CI 检查）
-- [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`
+**A.5.1 · Raw captures 隔离**（Codex PR #10 F4 复核 · 修正假修复）
+
+> ⚠️ **原描述（PR #7）声称"`.gitignore` 已排除"但 repo 实际未加。PR #9 的 Codex 第 4 轮审查发现该矛盾 · 本次修正**：
+> - `.gitignore` 真加了 `*.raw` / `spike-raw/` / `.spike-raw/`（本 PR 同 commit 落地）
+> - `~/.vibestation-spike-raw/` 是 home 目录 · **repo worktree 外 · gitignore 本就覆盖不到** · 原描述"仓库内 .gitignore 显式包含 home 路径"技术不可行，已删
+
+- [ ] **Raw 文件命名强制约定**：所有原始未脱敏捕获**必须**以 `.raw` 结尾（如 `claude-auth-fail-01.raw`）——即使误放 worktree 内也会被拦截
+- [ ] **存储位置**（按用户习惯选 · 前者首选）：
+  - (a) `~/.vibestation-spike-raw/SPIKE-06/` · home 路径 · 天然在 repo 外（推荐）
+  - (b) worktree 内：必须放 `spike-raw/` / `.spike-raw/` 目录 或用 `.raw` 后缀 → 被 `.gitignore` 拦截
+- [ ] **防误 commit 自检**：若 `git status` 看到任何 raw file（即 `.gitignore` 规则失效）→ **立刻停止 commit**，修命名或路径再提交
+- [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`（派生文件**不得**以 `.raw` 结尾）
 
 **A.5.2 · 脱敏要求**（每个样本 commit 前完成）
 - [ ] 删除所有 **auth token / API key / JWT / session cookie**
@@ -102,10 +121,59 @@ reviewer:
 - [ ] 替换 **git remote URL** 为 `https://github.com/EXAMPLE/REPO.git` 占位
 - [ ] **仓库 URL / 组织名** 替换为匿名（除非是公开样例）
 
-**A.5.3 · 自动 secret scan**（merge 前硬阻塞）
-- [ ] commit 前**必过 `gitleaks` 扫描**：`gitleaks detect --source docs/spikes/ docs/spike-artifacts/`（零 hit 通过）
-- [ ] Phase 4 CI 加 `.github/workflows/secret-scan.yml`，对所有 PR 跑 gitleaks（SPIKE-06 merge 前先用本地运行验证）
-- [ ] 若 gitleaks 报 false positive → 更新 `.gitleaks.toml` 加精准 allow 规则（不得整体 disable 规则）
+**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex R4 F4 + R5 F2 + R6 F2 复核 · **conditional on Phase 4 landing**）
+
+> ⚠️ **R6 F2 复核教训**：SPIKE-06 声明"CI 硬阻塞 gitleaks"的前提条件是 PR #11（Phase 4 基础设施）**已 merge 到 main**。在 PR #11 merge 前 · 这些 CI workflow 文件不存在 · 要求也不可能满足。解决方式：
+> 1. 把 `phase-4-infra-landing` 写进 SPIKE-06 `depends_on`（frontmatter · 已加）
+> 2. 本节要求**按 Phase 4 是否落地分情况**（conditional）
+
+**Pre-flight check（SPIKE-06 实施前 · 实施 agent 必做）**：
+
+```bash
+# 检查 Phase 4 基础设施是否已在 main
+test -f .github/workflows/secret-scan.yml || echo "❌ secret-scan.yml 缺失 · PR #11 未 merge"
+test -f docs/BRANCH-PROTECTION.md || echo "❌ BRANCH-PROTECTION 文档缺失 · PR #11 未 merge"
+gh api repos/tajiaoyezi/vibestation/branches/main/protection 2>/dev/null | jq '.required_status_checks.contexts[] | select(. == "gitleaks")' || echo "⚠️ gitleaks 未配为 required check · admin 未按 BRANCH-PROTECTION.md 应用"
+```
+
+如任一失败 → SPIKE-06 进入 `status: blocked` · `blocked_by: ["phase-4-infra-landing"]` · `blocked_from: ready`（按 `docs/tasks/README.md §blocked 状态恢复规则`）· 等 PR #11 merge 后恢复。
+
+---
+
+### 情况 A · PR #11 已 merge 到 main（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 存在）
+
+此时 CI 硬阻塞 **已上线** · 实施 agent 的要求：
+
+- [ ] **本地 pre-commit 必跑**（双保险 · merge 前）：
+  ```bash
+  brew install gitleaks
+  gitleaks detect --source docs/spikes/SPIKE-06-report.md --source docs/spike-artifacts/SPIKE-06/
+  # 要求：零 hit 通过
+  ```
+- [ ] **CI 硬阻塞**（PR 自动跑 · 失败不可 merge）：
+  - Workflow 文件：`.github/workflows/secret-scan.yml`（gitleaks-action@v2）
+  - 触发：PR + push main · workflow_dispatch 手动
+  - Required status check：`gitleaks`（admin 已按 `docs/BRANCH-PROTECTION.md §2` 应用）
+- [ ] **Reviewer 双保险**：PR 描述贴本地 `gitleaks detect` 输出截图（零 hit 证据）+ CI 通过
+
+---
+
+### 情况 B · PR #11 未 merge（workflow 文件不存在）
+
+**SPIKE-06 task 不应进入 in-progress** · 应 `status: blocked · blocked_by: ["phase-4-infra-landing"] · blocked_from: ready`。
+
+若特殊情况必须在 PR #11 之前实施（例如 Apple Dev Program 申请 · 不涉及样本录制）：
+- [ ] **只做 §B Apple Developer Program 副线**（不触发样本 / 脱敏 / secret-scan）
+- [ ] **禁止**在 §A（样本录制）做任何 commit · 直到 PR #11 merge
+- [ ] reviewer 明确在 PR 描述标注"仅 §B · 未触发 §A.5 要求"
+
+---
+
+### 通用 · False positive 处理（两种情况都适用）
+
+- 优先：具体 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略）
+- 次选：创建 `.gitleaks.toml` 加**最小范围**精准 allow 规则 · **禁止整体 disable rule type**
+- 不可：关闭 workflow / 强制 merge · 违反 `docs/BRANCH-PROTECTION.md` "禁止 bypass" 原则
 
 **A.5.4 · 样本真实性与脱敏平衡**
 - [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）
@@ -165,7 +233,7 @@ macOS Dev Program（B）：
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-06-cli/`：CLI 启动脚本 + 样本录制脚本
-- [ ] CLI 输出样本 × 6+（Claude 3 + Codex 3，脱敏后可 attach 到 spike-artifacts）
+- [ ] CLI 输出样本 × 36+（Claude 18 + Codex 18 = 2 CLI × 6 场景 × 3 次，脱敏后 attach 到 `docs/spike-artifacts/SPIKE-06/`；与 §A.2 样本矩阵对齐）
 - [ ] **协议差异分析报告**（**`docs/spikes/SPIKE-06-report.md`**，per-task）
 - [ ] macOS `fix-path-env` 验证代码片段
 - [ ] Apple Dev Program 申请截图 + 预计完成日期
@@ -191,7 +259,7 @@ macOS Dev Program（B）：
 
 - CLI 输出协议"初探" ≠ "完整解析" —— MVP 不做 AI-Aware 联动，只需要能"作为一个普通终端程序运行"即可
 - 对外文档必须坚持 AI-Aware 是 v1.0 vision（`CLAUDE.md` "🚫 禁区" 条款）—— 本 Spike 的协议报告**不得出现在对外 README / landing**，只在内部文档
-- 样本录制要脱敏（auth token / 用户输入可能含敏感信息）
+- 样本脱敏要求已上升为 §A.5 **blocking acceptance**（Codex PR #7 F4 + PR #10 复核），此处不再作为 "建议性注释"
 
 ## 🔗 相关
 

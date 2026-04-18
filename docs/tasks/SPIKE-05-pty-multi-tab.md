@@ -36,6 +36,10 @@ reviewer:
 
 ## ✅ 通过标准（Pass Criteria）
 
+> ⚠️ **PTY 架构真正锁定 = A（短时压测）+ B（长时/背压/内存）都通过**。只过 A 不能锁定——慢消费者场景未验证时 mpsc unbounded channel 会在真实使用里 OOM。Codex PR #3 Round 1 Finding 2 教训。
+
+### A. 短时压测（当前·阻塞项）
+
 - [ ] **单 Tab 高吞吐压测**：
   - [ ] Tab 里 `yes`（无限输出）连续运行 10s 不卡顿、不丢帧
   - [ ] Tab 里 `htop` 运行 10s，UI 更新正常（5Hz+）
@@ -47,16 +51,58 @@ reviewer:
 - [ ] **PTY 吞吐 benchmark**：
   - [ ] 单 Tab 吞吐 ≥ 20 MB/s（`yes | pv` 或等价测试）
   - [ ] 4 Tab 并存总吞吐 ≥ 40 MB/s（不必线性，但不可 < 2 Tab 总吞吐）
+
+### B. 长时 Soak + 背压 + 内存有界（阻塞项 · Codex PR #3 加入）
+
+> 本 Spike 文档自述"mpsc unbounded channel 满时需要 bounded + back-pressure 设计"。该风险必须在锁定前验证：任一 Tab/renderer 消费慢于 PTY 产出时，**输出不可无界堆积**。
+
+**B.1 · 10 分钟慢消费者 soak test**
+- [ ] 4 Tab 全部 `yes` 持续 10 分钟
+- [ ] **人为制造慢消费者**：在 xterm 前端加 50ms 人工延迟（模拟前端卡顿）
+- [ ] 期间记录：
+  - [ ] mpsc channel 队列深度 over time（最大值 + 均值）
+  - [ ] RSS 内存 over time（每 10s 采样）
+  - [ ] PTY 数据丢弃量 / 丢弃比例（如启用了 bounded + drop）
+- [ ] **通过门槛**：
+  - [ ] channel 队列深度上限可证有界（如 ≤ 10,000 条或等价上限）
+  - [ ] RSS 增长 ≤ 100MB（10 分钟内不可无界）
+  - [ ] 总 RSS ≤ 500MB（4 Tab + yes）
+
+**B.2 · 隐藏 tab 场景**（常见失效模式）
+- [ ] 4 Tab 都 `yes`，3 个 Tab 隐藏（不显示 xterm），只 1 个 active
+- [ ] 持续 5 分钟
+- [ ] 隐藏 tab 的 PTY 数据按**明确策略**处理（可选之一）：
+  - (a) 持续渲染到 off-screen buffer（bounded size）
+  - (b) 限制 scroll back 长度
+  - (c) bounded channel + 显式丢弃（可接受 · 需在 UI 提示用户）
+- [ ] **不允许**：unbounded 内存堆积（即使是"后台 tab"）
+
+**B.3 · 架构必备条件**（阻塞锁定的硬要求）
+- [ ] mpsc channel **必须是 bounded**（非 unbounded）
+- [ ] 队列满时有明确策略：阻塞生产者 / 丢弃最老 / 丢弃最新——**必须显式记录所选策略**
+- [ ] 实现代码里 channel 容量是配置项（不是 hardcoded）
+
+### C. 正确性验证（当前）
+
 - [ ] **resize 正确**：调整 Tab 大小后，PTY `SIGWINCH` 正确传达，`htop` / `vim` 即时重排
 - [ ] **进程退出清理**：Tab 内 `exit` 后 PTY 资源（fd + thread）释放，无泄漏
 - [ ] 结论写入 **ADR-003 草稿**（Phase 3 后建立）
 
 ## ❌ 失败信号（Fail Signals）
 
+短时（A）：
+
 - 单 Tab `yes` 卡顿（主线程阻塞 > 50ms）→ mpsc / 渲染路径有瓶颈
 - 4 Tab 互相拖慢（总吞吐 < 2 Tab 总吞吐）→ 单读线程瓶颈触发 fallback
 - 切换 Tab 冻结其他 Tab → 单读线程实现错误（scroll back 可能串流）
 - `SIGWINCH` 不传达 → portable-pty 在目标平台有 bug
+
+**长时/背压（B · Codex 加入）**：
+
+- **B.1 soak 期间 RSS 增长 > 200MB** → mpsc unbounded 或 scroll back 无界，不可锁定
+- **B.1 channel 深度单调增长到 > 100,000 条** → 生产快于消费且无背压
+- **B.2 隐藏 tab 5 分钟 RSS 增长 > 50MB** → off-screen 处理策略缺失
+- **B.3 channel 仍是 unbounded** → **硬拒绝锁定**，即使性能看似通过
 
 ## 🔀 Fallback 方案
 

@@ -7,6 +7,12 @@ owner:
 phase: W0-D4
 depends_on: ["SPIKE-02"]
 blocks: []
+writes_to:
+  - "spike-tmp/spike-04-storage-bench/"
+  - "docs/tasks/SPIKE-04-*.md"
+  - "spike-artifacts/SPIKE-04/"
+reads_from:
+  - "SPIKE-02:spike-tmp/spike-02-tauri/"
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D4 · §9 R27 · §3.2
 risk_ref: R27
@@ -85,7 +91,7 @@ Git2 写：
 - [ ] `docs/SPIKE-REPORT.md` storage benchmark 数据表
 - [ ] redb 2 和 rusqlite 各 1 份 `.db` 文件样例（压缩后 attach 到 spike-artifacts）
 - [ ] **ADR-005 草稿**：本地存储决策
-- [ ] `CLAUDE.md` 决策表 #14 更新 PR
+- [ ] **独立 `chore(decision)` PR**：锁定 `CLAUDE.md` 决策表 #14（本 SPIKE merge 后另开）
 - [ ] git2 写 smoke test 代码 + 输出日志
 
 ## 🛠 依赖资源（Resources Needed）

@@ -7,6 +7,12 @@ owner:
 phase: W0-D6
 depends_on: ["SPIKE-05"]
 blocks: []
+writes_to:
+  - "spike-tmp/spike-06-cli/"
+  - "docs/tasks/SPIKE-06-*.md"
+  - "spike-artifacts/SPIKE-06/"
+reads_from:
+  - "SPIKE-05:spike-tmp/spike-05-pty/"  # 在验证过的 PTY 里跑 CLI
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D6 · §9 R1
 risk_ref: R1
@@ -88,7 +94,7 @@ macOS Dev Program：
 - [ ] **协议差异分析报告**（`docs/SPIKE-REPORT.md` 对应 section）
 - [ ] macOS `fix-path-env` 验证代码片段
 - [ ] Apple Dev Program 申请截图 + 预计完成日期
-- [ ] 更新 `CLAUDE.md` 的 "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" 这条警告（移除或改为"Spike D6 已初探，v1.0 前需二次深度 spike"）
+- [ ] **独立 `chore(decision)` PR**：更新 `CLAUDE.md` 的 "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" 警告（本 SPIKE merge 后另开；内容："Spike D6 已初探，v1.0 前需二次深度 spike"）
 
 ## 🛠 依赖资源（Resources Needed）
 

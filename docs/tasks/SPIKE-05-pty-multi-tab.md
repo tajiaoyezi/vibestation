@@ -7,6 +7,12 @@ owner:
 phase: W0-D5
 depends_on: ["SPIKE-02"]
 blocks: ["SPIKE-06"]
+writes_to:
+  - "spike-tmp/spike-05-pty/"
+  - "docs/tasks/SPIKE-05-*.md"
+  - "spike-artifacts/SPIKE-05/"
+reads_from:
+  - "SPIKE-02:spike-tmp/spike-02-tauri/"
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D5 · §3.1
 risk_ref:
@@ -71,7 +77,7 @@ reviewer:
 - [ ] 4 Tab 并存压测录屏（`yes` × 4 + htop × 1）
 - [ ] 主线程阻塞时间火焰图
 - [ ] **ADR-003 草稿**：PTY 架构决策
-- [ ] `CLAUDE.md` 决策表 #15 更新 PR（通过后）
+- [ ] **独立 `chore(decision)` PR**：通过后锁定 `CLAUDE.md` 决策表 #15（本 SPIKE merge 后另开）
 
 ## 🛠 依赖资源（Resources Needed）
 

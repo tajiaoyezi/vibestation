@@ -11,8 +11,13 @@ title: <中文标题，≤ 30 字>
 status: draft                     # draft | ready | in-progress | blocked | done
 owner:                            # 认领者标识（留空 = 未认领）
 phase: W0-D1                      # W0-D1 / W1 / W5 / v0.2 / ...
-depends_on: []                    # ["SPIKE-01", "MVP-03"]
+depends_on: []                    # 任务依赖：["SPIKE-01", "MVP-03"]（必须全 done 才能 ready）
 blocks: []                        # 该 task 完成后解锁哪些 task
+writes_to: []                     # 本 task 会修改/创建的文件或目录（并发声明）
+                                  # 例：["spike-tmp/spike-01-tauri/", "docs/tasks/SPIKE-01-*.md"]
+                                  # ⚠ 不得包含 CLAUDE.md 决策表（锁定走独立 chore(decision) PR）
+reads_from: []                    # 本 task 依赖哪些其他 task 的产出（代码/文档/数据）
+                                  # 例：["SPIKE-01:spike-tmp/spike-01-tauri/"]（格式 <task-id>:<path>）
 estimate: 1d                      # 0.5d / 1d / 3d / 1w
 plan_ref: implementation-plan.md §N.N  # 引用的战略计划章节
 risk_ref:                         # R1 / R12 / R27（implementation-plan §9 风险 ID，可选）

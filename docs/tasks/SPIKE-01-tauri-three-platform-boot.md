@@ -7,6 +7,11 @@ owner:
 phase: W0-D1
 depends_on: []
 blocks: ["SPIKE-02", "SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
+writes_to:
+  - "spike-tmp/spike-01-tauri/"      # 空壳项目代码（gitignored）
+  - "docs/tasks/SPIKE-01-*.md"       # status / owner 字段更新
+  - "spike-artifacts/SPIKE-01/"      # 录屏 / 截图（Phase 3 建立该目录）
+reads_from: []
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D1
 risk_ref: R12
@@ -68,7 +73,7 @@ any of：
 - [ ] 三平台启动录屏（`spike-artifacts/SPIKE-01/` Phase 3 后建立）
 - [ ] 冷启动耗时表（`docs/SPIKE-REPORT.md` Phase 3 后建立的对应 section）
 - [ ] IME 测试录屏
-- [ ] `CLAUDE.md` 决策表 #12 状态更新（通过 → 锁定；失败 → Electron）
+- [ ] **锁定 `CLAUDE.md` 决策表 #12 走独立 PR**（本 SPIKE merge 后另开 `chore(decision): 锁定 #12 桌面框架`，见 `docs/tasks/README.md` 并发安全 §2）
 
 ## 🛠 依赖资源（Resources Needed）
 

@@ -7,6 +7,12 @@ owner:
 phase: W0-D2
 depends_on: ["SPIKE-01"]
 blocks: ["SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
+writes_to:
+  - "spike-tmp/spike-02-tauri/"
+  - "docs/tasks/SPIKE-02-*.md"
+  - "spike-artifacts/SPIKE-02/"
+reads_from:
+  - "SPIKE-01:spike-tmp/spike-01-tauri/"  # 基于 SPIKE-01 的空壳骨架扩展
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D2
 risk_ref: R12
@@ -47,7 +53,7 @@ reviewer:
   - [ ] `tauri-plugin-fs`（读写用户目录文件）
   - [ ] `tauri-plugin-updater`（假 update manifest URL 能发起请求并解析响应）
 - [ ] **ADR 草稿**：`docs/adr/ADR-002-desktop-framework.md`（Phase 3 建立 ADR 目录前，暂以 `implementation-plan.md §3.1` 内嵌 changelog 记录）
-- [ ] **`CLAUDE.md` 决策表 #12 更新**：B 栏 → A 栏，注明 "Spike W0 D2 hard-pass 通过"
+- [ ] **`CLAUDE.md` 决策表 #12 锁定走独立 PR**：本 SPIKE merge 后开 `chore(decision): 锁定 #12 桌面框架 <Tauri|Electron>`（不在本 SPIKE PR 里改 `CLAUDE.md`，避免 scalar 冲突）
 
 ## 🔀 Electron Fallback 路径
 
@@ -81,7 +87,7 @@ Electron 路径：
 - [ ] IME 录屏 × 6（3 平台 × 2 语种）
 - [ ] Bundle 产物体积截图
 - [ ] **ADR-002 草稿**：桌面框架锁定依据（Tauri 或 Electron）
-- [ ] **`CLAUDE.md` 更新 PR**：决策表 #12 B → A
+- [ ] **独立 `chore(decision)` PR**：锁定 `CLAUDE.md` 决策表 #12（本 SPIKE merge 后另开）
 
 ## 🛠 依赖资源（Resources Needed）
 

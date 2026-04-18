@@ -59,8 +59,10 @@ draft ──┐
 | `status` | enum | ✅ | 见上表 |
 | `owner` | string | ⛔ 留空 = 未认领 | 认领者标识（PR `Implemented by` 填写的 agent/人类 ID）|
 | `phase` | string | ✅ | `W0-D1` / `W1` / `W5` / `v0.2` |
-| `depends_on` | list | ✅（可空 `[]`）| 依赖的 task id |
+| `depends_on` | list | ✅（可空 `[]`）| 任务依赖的 task id（必须全 `done` 才能 `ready`）|
 | `blocks` | list | ✅（可空 `[]`）| 该 task 完成后解锁的 task id |
+| `writes_to` | list | ✅（可空 `[]`）| **并发声明**：本 task 会修改/创建的文件或目录。不得包含 `CLAUDE.md` 决策表（锁定走独立 PR）|
+| `reads_from` | list | ✅（可空 `[]`）| 依赖的其他 task 产出，格式 `<task-id>:<path>`，如 `"SPIKE-01:spike-tmp/spike-01-tauri/"` |
 | `estimate` | string | ✅ | `0.5d` / `1d` / `3d` |
 | `plan_ref` | string | ✅ | `implementation-plan.md` 章节 `§3.1.1` |
 | `risk_ref` | string | ⛔ 可选 | `R1` / `R12` / `R27` 等 `implementation-plan §9` 风险 ID |
@@ -127,6 +129,41 @@ draft ──┐
 
 ---
 
+## 🔀 并发安全（多 agent 并行执行时读）
+
+本项目欢迎多个 agent 实例 / 人类同时推进不同 task。**并发安全靠两个机制**：
+
+### 1. `writes_to` 声明（显式 · 认领前检查）
+
+每个 task 的 frontmatter 必须声明 `writes_to`，列出本 task 会修改/创建的文件或目录。认领 task 前：
+
+```bash
+gh pr list --state open                           # 查所有 open PR
+# 对每个 open PR 查看其引用 task 的 writes_to
+# 检查本 task 的 writes_to 是否与任何 open PR 的 writes_to 有交集
+```
+
+**有交集** → 选其他 task 或等对方 merge
+**无交集** → 认领（改 status: in-progress + owner + 开分支）
+
+### 2. 锁定表更新独立化（强制 · 防 scalar 冲突）
+
+`CLAUDE.md` 决策表 A/B/C 档是 **scalar 字段**（单值），多 SPIKE 同时触发锁定会并发冲突。规则：
+
+- ❌ **spec PR 不得在同一 PR 里修改 `CLAUDE.md` 决策表**
+- ✅ **spec merge 后开独立 PR**，标题 `chore(decision): 锁定 #N <决策>`
+- ✅ SPIKE spec 的 Deliverables 里应注明 "锁定 #N 走独立 PR"
+
+### 3. 冲突升级路径
+
+| 冲突类型 | 处理 |
+|---------|------|
+| 两个 task 的 `writes_to` 有交集（认领前未发现）| 后认领者 rebase + 保留两方意图；冲突字段由 Arbiter（用户）仲裁 |
+| scalar 字段冲突（如 PROGRESS `Active branch`、决策表某行）| 不 merge 两方，Arbiter 写新值 |
+| 依赖链破坏（reads_from 的上游 task 被 supersede）| 触发 task 重新 ready：`status: blocked` → 等上游更新 → 本 task spec 按新 schema 重写 |
+
+---
+
 ## 🚀 新建 task 的流程
 
 ```bash
@@ -155,10 +192,11 @@ Co-authored-by: <Agent Identity> via <email>"
 
 ## ⚠️ 原则（不要重演 Phase 1 过度设计）
 
-1. **不做 claim 机制 / 自动状态流转 / CI 校验脚本**——Phase 2 真遇到并发问题再加（CLAUDE.md "📝 写规则/清单前的自审四问" 第 4 条 YAGNI）
+1. **不做 claim 机制 / 自动状态流转 / CI 校验脚本**——当前靠**声明式字段 `writes_to` / `reads_from`** + agent 自觉；CI 校验 Phase 4 真遇到冲突再加
 2. **状态字段靠 PR description 和 commit 同步**，不在文件里搞复杂的锁
-3. **task spec 冲突**：同一 task 两人同时动 → PR 冲突时 rebase + 保留两方意图 + scalar 冲突找 Arbiter（用户）
-4. **task spec 是"一个 PR 一个逻辑单元"的依据**——评审者按 Acceptance 逐项对照
+3. **锁定表更新独立化**（见上面「并发安全 §2」）：spec PR 不动 `CLAUDE.md` 决策表
+4. **task spec 冲突**：同一 task 两人同时动 → PR 冲突时 rebase + 保留两方意图 + scalar 冲突找 Arbiter（用户）
+5. **task spec 是"一个 PR 一个逻辑单元"的依据**——评审者按 Acceptance 逐项对照
 
 ---
 

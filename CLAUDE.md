@@ -16,6 +16,23 @@
 
 ---
 
+## 🚀 新 Agent 首次启动（5 步 · 机器可读 checklist）
+
+本项目不绑定具体 agent 工具（Claude Code / Codex / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …均可）。任何 agent 首次上手按以下顺序：
+
+1. **读本文件（你正在读）**——锁定决策、禁区、代码风格、自审四问
+2. **读 `docs/PROGRESS.md`**——当前阶段、上次 session 进度、下一步、卡点
+3. **读 `docs/tasks/README.md`**——任务索引 + 状态流转 + `writes_to`/`reads_from` 并发字段
+4. **挑任务**：在 `docs/tasks/` 里选一个 `status: ready` 且 `depends_on` 已全 `done` 的 task，然后：
+   - `gh pr list --state open` 查现有 PR
+   - 检查本 task 的 `writes_to` 是否与任何 open PR 的 `writes_to` 有交集
+   - 有交集 → 选其他 task 或等对方 merge；无交集 → 认领（下一步）
+5. **开工**：`git checkout -b <scope>/<task-id>` → 按 task spec `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ `gh pr create`（PR body 写 `Implemented by: <agent-id>`）→ 请独立评审者（≠ 原实现者）→ merge
+
+**人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不要在本文件重复）。
+
+---
+
 ## 🔒 决策状态表（不要重新讨论）
 
 分 3 档。**锁定依据**指向 `docs/implementation-plan.md` 具体章节（ADR 文件 `docs/adr/` 在 Phase 3 建立后替换为 ADR 路径）。
@@ -127,6 +144,8 @@ gh pr create
 3. **PR description 必填**：`Implemented by: X · Reviewed by: Y`（列具体实例 ID）
 4. **独立评审 = 评审者 ≠ 原实现者**（具体是 Claude 实例 B / Codex / Cursor / 人类均可）
 5. **PR 冲突**：优先 rebase；冲突时**保留两方意图**；单值冲突（如 PROGRESS 的 Active branch）由 Arbiter（用户）仲裁
+6. **`writes_to` 并发声明**：每个 task spec 必须声明 `writes_to`（本 task 会修改的文件/目录）。认领前用 `gh pr list --state open` 检查已开 PR 的 `writes_to`，有交集则换 task 或等对方 merge。**声明靠自觉，CI 校验 Phase 4 真遇到并发冲突再加**
+7. **锁定表更新独立化**：task spec 里**不要**和产出（代码 / benchmark 数据 / ADR 草稿）一起修改 `CLAUDE.md` 决策表（A/B/C 档）。spec merge 后开独立小 PR，标题 `chore(decision): 锁定 #N <决策>`。理由：锁定表是 scalar 字段，3 个 SPIKE 同时把 #12/#14/#15 从 B 移到 A 会触发并发冲突。
 
 **本规则为初版**，随 Phase 2-4 真实冲突场景迭代。不追求一次性完美。任务 claim 机制等复杂治理，**Phase 2 真遇到并发问题再加**。
 

@@ -10,13 +10,13 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `docs/onboarding-cleanup-and-section-5-4`（PR #17 open · 待 review + merge）| 分支切换 |
-| **Latest commit** | 见 `git log --oneline -1`（PR 持续推 fix commit · 不在此处硬编码）| 每次 commit |
-| **Worktree status** | 见 `git status` · 不在此处硬编码 | 每次 commit |
-| **Unpushed branches** | 见 `git branch -vv` · 不在此处硬编码 | push 后 |
-| **Next concrete action** | **PR #17 review + merge**（codex round-2 review BLOCK 修复中）→ 修复后**用户在 GitHub approve** → 拆 PR #18（§5.4 限缩重写）+ PR #19（SPIKE-01/02/MVP-01 ready 翻转 · 走标准 (a)/(b) gate）| session end |
-| **Blocked by** | PR #17 等用户 review · 全部 27 task spec 仍 draft（`ready=0`，待 PR #19 解锁）| 阻塞变化 |
-| **Missing infra** | 无（Pre-code stage 4 Phase 全交付 · onboarding 入口同步进行中 · §5.4 战略章节待 PR #18 重写）| Phase 完成时 |
+| **Active branch** | `docs/spec-flip-spike-01-spike-02-mvp-01`（PR #19 open · 等用户 GitHub approve）| 分支切换 |
+| **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
+| **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
+| **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
+| **Next concrete action** | **PR #19 review + merge**（用户在 GitHub UI approve · 走 (b) 路径变种 · 分支保护暂缓声明）→ 之后 SPIKE-01 进入 ready 池 · 启动 SPIKE-01 实施时 spike 分支即可直接 claim | session end |
+| **Blocked by** | PR #19 等用户 review · 24 个 v0.2/v0.3/v1.0 task spec 仍 draft（按需触发翻转 · 不阻塞 W0）| 阻塞变化 |
+| **Missing infra** | 无（Pre-code stage 4 Phase 全交付 · onboarding 入口已对齐 · §5.4 战略章节按 YAGNI 推迟到 v0.2 kickoff）| Phase 完成时 |
 | **Required env/accounts** | GitHub CLI · Apple Developer Program（W0-D6 申请）· 三平台测试机（mac / Ubuntu Wayland / X11 · W0 全周用）| 新账号/工具时 |
 
 ---
@@ -144,17 +144,20 @@
 
 ## Session 日志（近 4 次）
 
-### Session 6（2026-04-18 晚上-夜）· Codex 双轮评审 + PR #17 缩范围
+### Session 6（2026-04-18 晚上-夜）· Codex 双轮评审 + PR #17 缩范围 + PR #19 ready 翻转
 - **Codex round-1 评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）
 - **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10 · 已加 historical snapshot banner）
-- **PR #17 v1（已废弃方案）**：试图一次性修全 5 项 + AGENTS.md 重写 + §5.4 v2.1 增补 + 翻转 SPIKE-01/02/MVP-01 ready
-- **Codex round-2 评审 BLOCK**：发现 3 CRITICAL（ready 翻转绕过 gate · SESSION-STARTUP 同步未完 · §5.4 引入新冲突）+ 3 HIGH + 3 MEDIUM + 2 LOW
-- **PR #17 v2（当前 · 缩范围方案 A）**：
-  - 撤回 ready 翻转（SPIKE-01/02/MVP-01 改回 draft）→ 拆 PR #19 走标准 (a)/(b) gate
-  - 撤回 §5.4 v2.1 增补全段（含 RepoOperationState 等虚构类型 / R10/R15 风险编号错乱 / 与 MVP-11/13 Don't 冲突）→ 拆 PR #18 限缩重写
-  - 4 MVP plan_ref 改回 §10.1（删 §5.4 引用）
-  - 修 CRITICAL 2（SESSION-STARTUP 中段 + Planned 目录树）+ HIGH 4 (PROGRESS 状态字段) + HIGH 5 (CLAUDE.md trailer 统一) + MEDIUM 7 (assessment banner) + LOW 11 (硬编码行数)
-  - 保留：AGENTS.md 重写 / CLAUDE.md / SESSION-STARTUP / README onboarding 同步 / SPIKE-04 §512 → §5.2 笔误修复
+- **PR #17 v1（已废弃）→ v2（已 merge `68c0c21`）**：
+  - v1 试图一次修全 5 项 + AGENTS 重写 + §5.4 增补 + 翻转 ready
+  - Codex round-2 BLOCK：3 CRITICAL（ready 翻转绕过 gate · SESSION-STARTUP 同步未完 · §5.4 虚构内容）+ 3 HIGH + 3 MEDIUM + 2 LOW
+  - v2 缩范围方案 A：撤回 §5.4 + ready 翻转 · 修全部 11 项 codex 指控 · 8 commits / 净 +118/-250
+  - 拆出去：§5.4 重写 → 后来按 YAGNI 删除（§10.1 workaround 够用，v0.2 kickoff 时再补）
+  - 拆出去：ready 翻转 → PR #19（本 session 完成）
+- **PR #19 ready 翻转**（当前 · open 等 GitHub approve）：
+  - SPIKE-01 / SPIKE-02 / MVP-01 翻 status: ready
+  - 走 (b) 路径变种（分支保护暂缓 · 靠 reviewer 真实 GitHub approve 替代技术强制）
+  - **关键差异 vs PR #17 v1**：reviews ≠ ∅ · 不再走"merge 间接 approve"自创路径
+- **§5.4 战略章节决定**：按 YAGNI 推迟到 v0.2 kickoff（届时需要数据流 / IPC / 状态机的实施级细节，现在写就是过早优化；当前 4 MVP 用 §10.1 workaround）
 - **AGENTS.md 重写**：纠正 codex 自动生成版本的"Claude 名替换错乱 + 阶段过期"双 bug，改为工具无关的极简入口（路由 + 关键约束摘录），权威单文件入口仍指向 CLAUDE.md
 
 ### Session 5（2026-04-18 下午-晚上）· Pre-code stage 完备

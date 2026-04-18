@@ -23,13 +23,13 @@ reviewer:
 
 ## 🎯 目标（Goal）
 
-（1）在 SPIKE-05 验证的 PTY 里**实机运行 Claude CLI + Codex CLI**，录制输出样本，初探协议差异——消除 R1 风险。
+（1）在 SPIKE-05 验证的 PTY 里**实机运行 Claude CLI + Codex CLI**，**录制脱敏样本**供 SPIKE-07 协议验证 spike 使用。**本 Spike 不下调 R1**——R1 降级只能通过 SPIKE-07 的 ADR 完成。
 （2）**提交 Apple Developer Program 申请**，为 v0.1 发布 macOS 公证准备（审核周期 2 天-2 周）。
 
 ## 📖 背景（Context）
 
-- `CLAUDE.md` "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" —— 本 Spike 消除这条警告
-- **R1**（HIGH / HIGH）：CLI 输出协议与猜测不同，解析失败 → 核心功能块
+- `CLAUDE.md` "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" —— **本 Spike 保留该警告不动**，警告降级需经 SPIKE-07 ADR
+- **R1**（HIGH / HIGH）：CLI 输出协议与猜测不同，解析失败 → 核心功能块；**本 Spike 不认定 R1 已消除或已下调**
 - **Apple Developer Program 是 macOS 分发硬门槛**（未公证的 dmg 用户需绕过 Gatekeeper），审核不可控，必须 W0 提交
 - AI-Aware Pane 联动是 v1.0 vision（对外不提），但 CLI 输出协议验证 MVP 就需要——MVP 只做"多 Tab 里跑 CLI"，不做联动
 
@@ -83,8 +83,34 @@ reviewer:
 
 ### A.4 · 结果归档
 
-- [ ] 样本全部写入 **`docs/spikes/SPIKE-06-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录）
-- [ ] 录屏 / 样本文件归档到 `docs/spike-artifacts/SPIKE-06/`（Phase 3 建立）
+- [ ] 样本全部写入 **`docs/spikes/SPIKE-06-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录）**注：仅脱敏派生版本，原始捕获不进 repo**
+- [ ] 脱敏后的样本归档到 `docs/spike-artifacts/SPIKE-06/`（Phase 3 建立）；**原始未脱敏捕获保留本地 `~/.vibestation-spike-raw/SPIKE-06/`（不进 git）**
+
+### A.5 · 样本脱敏 + Secret 扫描（阻塞项 · Codex PR #7 F4 加入）
+
+> ⚠️ Codex 在 PR #7 Round 1 指出：新样本归档流程（auth failures / long conversations / mixed-output failure cases）如没有强制 redaction，会成为 repo 侧 secret leakage 路径。以下为消除该漏洞的强制要求。
+
+**A.5.1 · Raw captures 隔离**
+- [ ] 原始未脱敏捕获**禁止进 repo**，路径：`~/.vibestation-spike-raw/SPIKE-06/`（`.gitignore` 已排除 `*.raw` / `spike-raw/`）
+- [ ] 仓库内 `.gitignore` 显式包含 `~/.vibestation-spike-raw/`（相对路径写入 `/tmp/` 或命名匹配，CI 检查）
+- [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`
+
+**A.5.2 · 脱敏要求**（每个样本 commit 前完成）
+- [ ] 删除所有 **auth token / API key / JWT / session cookie**
+- [ ] 删除 **用户 prompt / CLI 输入** 中可能含 PII 的片段（邮箱、真实姓名、电话、身份证号）
+- [ ] 替换 **本地文件系统路径** 为 `/home/USER/...` 或 `/Users/USER/...` 占位
+- [ ] 替换 **git remote URL** 为 `https://github.com/EXAMPLE/REPO.git` 占位
+- [ ] **仓库 URL / 组织名** 替换为匿名（除非是公开样例）
+
+**A.5.3 · 自动 secret scan**（merge 前硬阻塞）
+- [ ] commit 前**必过 `gitleaks` 扫描**：`gitleaks detect --source docs/spikes/ docs/spike-artifacts/`（零 hit 通过）
+- [ ] Phase 4 CI 加 `.github/workflows/secret-scan.yml`，对所有 PR 跑 gitleaks（SPIKE-06 merge 前先用本地运行验证）
+- [ ] 若 gitleaks 报 false positive → 更新 `.gitleaks.toml` 加精准 allow 规则（不得整体 disable 规则）
+
+**A.5.4 · 样本真实性与脱敏平衡**
+- [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）
+- [ ] 脱敏**必须丢失敏感值**（JWT 的真实 claim / signature 不留）
+- [ ] 每个样本附脱敏清单：`{redacted_fields: ["api_key", "user_email", ...], replacement_strategy: "..."}`
 
 ### B. Apple Developer Program（副线）
 
@@ -110,7 +136,16 @@ CLI 主线（A）：
 
 - Claude CLI / Codex CLI 在 PTY 里**无法启动**（缺 tty / 环境变量 / auth 路径问题）→ 调查阻塞点
 - 输出乱码（ANSI 解析失败 / 编码问题）→ 调查 xterm 配置
-- 样本覆盖不全（6 场景任一缺失或 < 3 次） → **不允许**声明 R1 已初探
+- 样本覆盖不全（6 场景任一缺失或 < 3 次） → **不允许**声明样本录制完成
+- **任何样本声称"R1 已消除/已下调/协议已清楚"** → 硬拒绝 merge（文档合规检查）
+
+**Secret Redaction & Scan（A.5 · Codex F4 加入）**：
+
+- **`gitleaks` 扫描出任一敏感值**（auth token / API key / JWT / session cookie / PII）→ **硬拒绝 merge**
+- **样本含真实本地路径** `/Users/<real-name>/...` 或 `/home/<real-name>/...` → 硬拒绝
+- **样本含真实 git remote URL**（非占位）→ 硬拒绝
+- **raw 原始捕获文件意外 commit 进 repo**（路径含 `spike-raw/` 或 `.raw` 扩展名）→ 硬拒绝 + 立刻 `git filter-branch` 清理历史
+- **脱敏丢失结构信息**（如 JWT 整个删除而非保留占位结构）→ fail + 要求重录
 
 macOS Dev Program（B）：
 
@@ -134,7 +169,7 @@ macOS Dev Program（B）：
 - [ ] **协议差异分析报告**（**`docs/spikes/SPIKE-06-report.md`**，per-task）
 - [ ] macOS `fix-path-env` 验证代码片段
 - [ ] Apple Dev Program 申请截图 + 预计完成日期
-- [ ] 更新 `CLAUDE.md` 的 "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" 这条警告（移除或改为"Spike D6 已初探，v1.0 前需二次深度 spike"）
+- [ ] **不更新** `CLAUDE.md` "⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证" 警告（本 Spike 保留警告不变；降级由 SPIKE-07 ADR 完成）
 
 ## 🛠 依赖资源（Resources Needed）
 
@@ -146,7 +181,7 @@ macOS Dev Program（B）：
 
 ## ⚠️ 已知风险
 
-- **R1**（`implementation-plan.md §9`，HIGH / HIGH）：CLI 输出协议未实机验证，本 Spike 消除初探；**v1.0 AI-Aware 前需二次深度 spike**（W23 前后，本 Spike 不覆盖）
+- **R1**（`implementation-plan.md §9`，HIGH / HIGH）：CLI 输出协议未实机验证；**本 Spike 仅录制脱敏样本，不下调 R1**。R1 降级由 **SPIKE-07 parser-oriented spike**（W23 前后）的 ADR 完成
 - **macOS PATH 空问题**：已知 macOS GUI app 启动子进程不读 shell profile，`fix-path-env` 是常见方案
 - **Apple Dev Program 审核不可控**：最长 2 周，W0 不提交会阻塞 v0.1 发布（W12）
 

@@ -46,9 +46,11 @@ draft ────────► ready ─────────────�
 
 **`blocked` 状态恢复规则**（解除阻塞时执行）：
 
-- 从 `in-progress` 进入 `blocked`：解除后**回到 `in-progress`**，`owner` **保留**，对应 branch 和 open PR **不动**（agent 继续原工作）
-- 从 `ready` 进入 `blocked`：解除后**回到 `ready`**，`owner` 保持空（等待新 agent 认领）
-- 解除时必做：清空 `blocked_by` 和 `blocked_note` 字段
+- **进入 `blocked` 时必填 `blocked_from` 字段**（显式记录进入前的状态：`ready` 或 `in-progress`），避免靠"隐含约定"猜测回退目标
+- 解除阻塞时**机械恢复**到 `blocked_from` 记录的值：
+  - 从 `in-progress` 进入 `blocked` → 解除后 `status = in-progress`，`owner` **保留**，原 branch / open PR **不动**（agent 继续原工作）
+  - 从 `ready` 进入 `blocked` → 解除后 `status = ready`，`owner` 保持空（等待新 agent 认领）
+- 解除时必做：清空 `blocked_by` / `blocked_from` / `blocked_note` 三个字段
 
 **其他规则**：
 - 状态字段**必须**与 `PROGRESS.md`、PR description 一致
@@ -69,6 +71,7 @@ draft ────────► ready ─────────────�
 | `depends_on` | list | ✅（可空 `[]`）| 依赖的 task id |
 | `blocks` | list | ✅（可空 `[]`）| 该 task 完成后解锁的 task id |
 | `blocked_by` | list | ⛔（仅 `status: blocked` 时必填）| 阻塞源：task-id（如 `["SPIKE-02"]`）或外部资源（如 `["apple-dev-program-approval"]`）|
+| `blocked_from` | enum | ⛔（仅 `status: blocked` 时必填）| 进入 `blocked` 前的状态：`ready` / `in-progress`；解除阻塞时自动恢复到此状态 |
 | `blocked_note` | string | ⛔ 可选 | 人类可读的阻塞原因说明（1-2 句）|
 | `estimate` | string | ✅ | `0.5d` / `1d` / `3d` |
 | `plan_ref` | string | ✅ | `implementation-plan.md` 章节 `§3.1.1` |
@@ -172,8 +175,17 @@ gh pr create
 #    - Author: <作者 agent-id>
 #    - Spec Reviewed by: <待评审>（和实施 task 的 Reviewer 不同）
 
-# 7. 独立评审（≠ 原作者）approve 后，在 merge 前最后一个 commit
-#    把 task status 从 draft 改为 ready：
+# 7. 独立评审（≠ 原作者）approve 后，把 task status 从 draft → ready
+#
+#    **关键 gate（Codex PR #6 F1 + PR #10 教训）**：作者不得在 approve 之后私自
+#    修改 spec 并翻转 status；必须走以下两种路径之一防绕过：
+#
+#    (a) Reviewer 自己 push 翻转 commit（推荐）
+#        —— reviewer 在 PR branch 上 commit + push 翻转，作者无法插入新改动
+#    (b) Author 翻转 status，Reviewer 必须 **re-approve 最新 HEAD** 才能 merge
+#        —— GitHub 分支保护：require approval from latest commit
+#
+#    二选一，由评审者在 PR 评论里声明选哪个：
 git commit -m "chore(tasks/SPIKE-07): spec reviewed, status: ready"
 git push
 

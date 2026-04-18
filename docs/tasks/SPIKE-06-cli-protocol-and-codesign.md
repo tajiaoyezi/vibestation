@@ -165,7 +165,7 @@ macOS Dev Program（B）：
 ## 📦 产出（Deliverables）
 
 - [ ] `spike-tmp/spike-06-cli/`：CLI 启动脚本 + 样本录制脚本
-- [ ] CLI 输出样本 × 6+（Claude 3 + Codex 3，脱敏后可 attach 到 spike-artifacts）
+- [ ] CLI 输出样本 × 36+（Claude 18 + Codex 18 = 2 CLI × 6 场景 × 3 次，脱敏后 attach 到 `docs/spike-artifacts/SPIKE-06/`；与 §A.2 样本矩阵对齐）
 - [ ] **协议差异分析报告**（**`docs/spikes/SPIKE-06-report.md`**，per-task）
 - [ ] macOS `fix-path-env` 验证代码片段
 - [ ] Apple Dev Program 申请截图 + 预计完成日期
@@ -191,7 +191,7 @@ macOS Dev Program（B）：
 
 - CLI 输出协议"初探" ≠ "完整解析" —— MVP 不做 AI-Aware 联动，只需要能"作为一个普通终端程序运行"即可
 - 对外文档必须坚持 AI-Aware 是 v1.0 vision（`CLAUDE.md` "🚫 禁区" 条款）—— 本 Spike 的协议报告**不得出现在对外 README / landing**，只在内部文档
-- 样本录制要脱敏（auth token / 用户输入可能含敏感信息）
+- 样本脱敏要求已上升为 §A.5 **blocking acceptance**（Codex PR #7 F4 + PR #10 复核），此处不再作为 "建议性注释"
 
 ## 🔗 相关
 

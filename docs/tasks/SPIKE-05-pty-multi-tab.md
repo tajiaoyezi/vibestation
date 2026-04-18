@@ -78,9 +78,30 @@ reviewer:
 - [ ] **不允许**：unbounded 内存堆积（即使是"后台 tab"）
 
 **B.3 · 架构必备条件**（阻塞锁定的硬要求）
+
+> Codex PR #10 F2 教训：共享读线程架构下**禁止**在 channel 满时阻塞生产者——因为生产者 = 唯一的共享读线程，它一阻塞就停止 poll 其他 PTY fd → 所有 Tab 输出卡死 → PTY kernel buffer 也满 → 子进程 write 系统调用阻塞 → CLI 命令整体 hang。这是把"单 Tab OOM 风险"交换成了"全局死锁 / 挂起风险"，不是真缓解。
+
 - [ ] mpsc channel **必须是 bounded**（非 unbounded）
-- [ ] 队列满时有明确策略：阻塞生产者 / 丢弃最老 / 丢弃最新——**必须显式记录所选策略**
+- [ ] 队列满时的策略**限于**二选一：`drop-oldest`（丢最老的数据，保留最新输出）/ `drop-newest`（丢新输出，保留历史）
+  - ❌ **禁止** `block-producer`（共享读线程路径上 = 全局 stall）
+  - ✅ 若架构切到"**per-session 一线程**"（每 Tab 自己的 reader）则可允许 `block-producer`——因为只阻塞该 Tab 自己的 reader，不 cascade 其他 Tab
+- [ ] drop 发生时必须**记 metric**（drop 计数 + drop 比例）供后续观测
+- [ ] 所选策略必须在代码里显式标注（常量 / enum）+ commit message 说明原因
 - [ ] 实现代码里 channel 容量是配置项（不是 hardcoded）
+
+**B.4 · 一慢拖全部测试（head-of-line blocking · Codex PR #10 F2 加入）**
+
+> Codex PR #10 F2 教训：共享读线程架构的核心风险是**一个慢消费者拖垮全部 Tab**。B.1 soak test 只证"总体不 OOM"，不证"per-tab 独立"。本测试是共享读线程架构锁定的硬门槛。
+
+- [ ] 4 Tab 并存，全部跑 `yes`
+- [ ] **Tab 1 前端人为卡死**：xterm render 回调里 `setTimeout(..., 500)` 或等价，模拟前端 event loop 阻塞
+- [ ] 持续 3 分钟
+- [ ] **Tab 2/3/4 必须全部满足**（过一票否决）：
+  - [ ] 每 Tab 吞吐下降 ≤ 10%（对比 B.1 无慢消费者 soak 基线）
+  - [ ] 主线程阻塞时间 ≤ 16ms（60fps）
+  - [ ] 无"空白帧 / 冻结 > 100ms"现象
+- [ ] **Tab 1 行为**：允许按 B.3 策略 drop 数据（并记 metric），但**不允许**阻塞 Tab 2/3/4 的数据流
+- [ ] **对照测试**：切到"per-session 一线程"架构再跑同样测试 → 若共享读线程失败而 per-session 通过 → 触发 fallback 切换
 
 ### C. 正确性验证（当前）
 
@@ -103,11 +124,15 @@ reviewer:
 - **B.1 channel 深度单调增长到 > 100,000 条** → 生产快于消费且无背压
 - **B.2 隐藏 tab 5 分钟 RSS 增长 > 50MB** → off-screen 处理策略缺失
 - **B.3 channel 仍是 unbounded** → **硬拒绝锁定**，即使性能看似通过
+- **B.3 共享读线程 + 策略选了 `block-producer`** → 架构自相矛盾（全局 stall 风险），**硬拒绝锁定**
+- **B.4 一慢拖全部失败**：Tab 1 慢消费时 Tab 2/3/4 任一吞吐下降 > 10% / 主线程阻塞 > 16ms → **硬拒绝共享读线程锁定**，强制切换到 per-session 一线程
+- **B.4 Tab 2/3/4 出现 "冻结 > 100ms" / 空白帧** → 同上，head-of-line blocking 确认
 
 ## 🔀 Fallback 方案
 
-**通过** → `CLAUDE.md` #15 B → A，锁定 portable-pty + 单读线程 + mpsc
-**单读瓶颈失败** → 切换到"每 session 一线程"，评估 Tab 数上限（MVP 用户很少开 8+ Tab，20 线程可接受）
+**通过（A + B.1-4 全过）** → `CLAUDE.md` #15 B → A，锁定 portable-pty + 共享读线程 + mpsc（drop 策略显式）
+**B.4 一慢拖全部失败** → **强制**切换到"每 session 一线程"，Tab 数上限按 20（MVP 用户很少开 8+ Tab，20 线程栈 ~40MB 可接受）；per-session 架构下 `block-producer` 策略重新可选
+**单读瓶颈失败（A 阶段短时吞吐）** → 同上，切换到"每 session 一线程"
 **portable-pty 平台 bug** → 调查能否修 / 换 `pty-process` 或 `alacritty_terminal` crate
 
 ## 📦 产出（Deliverables）

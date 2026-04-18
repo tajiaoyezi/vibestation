@@ -11,7 +11,7 @@ blocked_by: []
 blocked_from:
 blocked_note:
 estimate: 5d
-plan_ref: implementation-plan.md §10.1 · §5.4
+plan_ref: implementation-plan.md §10.1（MVP 范围 · push/pull/fetch 砍到 v0.2）
 risk_ref:
 reviewer:
 ---

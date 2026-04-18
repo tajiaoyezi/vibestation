@@ -15,7 +15,7 @@ reviewer:
 
 # SPIKE-01: Tauri 2 三平台空壳启动
 
-> **状态**：`draft`
+> **状态**：`draft` → spec 独立评审后翻转 `ready`（待用户在 GitHub 上正式 approve · 走 docs/tasks/README.md 第 7 步 (a)/(b) gate）
 > **依赖**：— / **阻塞**：SPIKE-02..06 全部（Tauri 是所有后续 Spike 的载体）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D1`](../implementation-plan.md)
 

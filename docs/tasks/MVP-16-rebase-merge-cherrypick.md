@@ -11,7 +11,7 @@ blocked_by: []
 blocked_from:
 blocked_note:
 estimate: 7d
-plan_ref: implementation-plan.md §10.1 · §5.4
+plan_ref: implementation-plan.md §10.1（MVP 范围 · rebase/merge/cherry-pick 砍到 v0.3）
 risk_ref:
 reviewer:
 ---

@@ -10,13 +10,13 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（Phase 1-4 全部 merged）| 分支切换 |
-| **Latest commit** | `a157e93` · `docs(tasks): MVP-11..20 占位 spec (#10)` | 每次 commit |
-| **Worktree status** | **clean**（Phase 1-4 Pre-code stage 全部 merged · 2026-04-18 session 5）| 每次 commit |
-| **Unpushed branches** | 无 | push 后 |
-| **Next concrete action** | **Spike Week 0 Day 1 启动**：实施 [SPIKE-01 Tauri 三平台空壳启动](./tasks/SPIKE-01-tauri-three-platform-boot.md)（需用户先应用 main 分支保护 · 见 [BRANCH-PROTECTION.md](./BRANCH-PROTECTION.md)）| session end |
-| **Blocked by** | 无（Pre-code 全备 · Spike W0 可启动）| 阻塞变化 |
-| **Missing infra** | 无（Pre-code stage 4 Phase 全交付）| Phase 完成时 |
+| **Active branch** | `docs/onboarding-cleanup-and-section-5-4`（PR #17 open · 待 review + merge）| 分支切换 |
+| **Latest commit** | 见 `git log --oneline -1`（PR 持续推 fix commit · 不在此处硬编码）| 每次 commit |
+| **Worktree status** | 见 `git status` · 不在此处硬编码 | 每次 commit |
+| **Unpushed branches** | 见 `git branch -vv` · 不在此处硬编码 | push 后 |
+| **Next concrete action** | **PR #17 review + merge**（codex round-2 review BLOCK 修复中）→ 修复后**用户在 GitHub approve** → 拆 PR #18（§5.4 限缩重写）+ PR #19（SPIKE-01/02/MVP-01 ready 翻转 · 走标准 (a)/(b) gate）| session end |
+| **Blocked by** | PR #17 等用户 review · 全部 27 task spec 仍 draft（`ready=0`，待 PR #19 解锁）| 阻塞变化 |
+| **Missing infra** | 无（Pre-code stage 4 Phase 全交付 · onboarding 入口同步进行中 · §5.4 战略章节待 PR #18 重写）| Phase 完成时 |
 | **Required env/accounts** | GitHub CLI · Apple Developer Program（W0-D6 申请）· 三平台测试机（mac / Ubuntu Wayland / X11 · W0 全周用）| 新账号/工具时 |
 
 ---
@@ -42,7 +42,7 @@
 - [x] B 阶段技术调研 / planner v1 / 4 视觉方向 + Calm Studio 定稿 / 2 Logo 候选
 - [x] Codex 项目级评审（7 CRITICAL + 12 HIGH + 5 MEDIUM + 13 反对）
 - [x] 4 项分歧决策：Apache 2.0 / MVP B 折中 / AI-Aware 撤出 / Tauri 改口
-- [x] planner v2（14 章 1473 行 · 30 风险）
+- [x] planner v2（14 章 + 附录 · 30 风险）
 - [x] 独立仓库 + GitHub push + Apache 2.0 LICENSE + NOTICE
 - [x] Phase 1 v1 → v4 simplified（承认过度设计 · 砍多 agent 治理抽象 · 保留 Git 普世 + 自审四问）
 
@@ -79,11 +79,17 @@
 
 ## 🔜 下一步（按执行顺序）
 
-### 🔐 **用户手动步骤 · 启动 Spike W0 前必做**（`docs/BRANCH-PROTECTION.md`）
+### 🔐 **用户手动步骤**（`docs/BRANCH-PROTECTION.md` · 当前**已显式暂缓**）
 
-1. 打开 <https://github.com/tajiaoyezi/vibestation/settings/branches>
-2. 按 `docs/BRANCH-PROTECTION.md` 应用 main 分支保护（required checks / 禁直推 / 强制 PR + 1 approval / Dismiss stale approvals / Require linear history）
-3. 验证：`gh pr create` 未 approve 时 merge 按钮 disabled
+用户已表态暂不应用 main 分支保护（单人 + Codex review 模式下不致命）。**当前流程靠 reviewer 肉眼守门**（accepted tech debt · 见 `docs/tasks/README.md` §原则 7）。
+
+升级触发条件（任一）：
+1. 仓库改 public
+2. 第二位外部 contributor 出现
+3. MVP-01 开始写 Rust 代码
+4. 第一个 release tag
+
+触发时按 `docs/BRANCH-PROTECTION.md` checklist 一次性应用。
 
 ### 🚀 **Spike Week 0**（Phase 1-4 全备 · 可启动）
 
@@ -101,7 +107,7 @@
 
 ## ⚠️ 当前卡点 / 注意事项
 
-- **分支保护未应用**（`docs/BRANCH-PROTECTION.md` admin 待手动配置）：当前 PR 可直接 merge 无 required check · Spike W0 前必须应用
+- **分支保护已显式暂缓**（用户表态 · 单人 + Codex review 模式下不致命 · 升级触发条件见上方 §🔐 用户手动步骤）
 - **R1 Claude/Codex CLI 协议**：SPIKE-06 样本录制 · R1 降级须经 SPIKE-07 parser 验证 + ADR-011
 - **R12 CRITICAL Tauri Wayland**：SPIKE-02 必过 · 失败切 Electron + 1-2 周额外工期
 - **R27 存储 silent loss**：SPIKE-04 B.5 reconcile forward 设计须实机验证
@@ -124,7 +130,7 @@
 
 | 产出 | 路径 |
 |------|------|
-| v2 实施计划（14 章 1473 行）| `docs/implementation-plan.md` |
+| v2 实施计划（14 章 + 附录）| `docs/implementation-plan.md` |
 | 7 个 Spike spec（W0 + v1.0-pre）| `docs/tasks/SPIKE-0[1-7]-*.md` |
 | 20 个 MVP spec（v0.1 详细 + v0.2+ 占位）| `docs/tasks/MVP-[01-20]-*.md` |
 | 10 个 ADR（6 accepted + 4 proposed）| `docs/adr/ADR-0[01-10]-*.md` |
@@ -137,6 +143,19 @@
 ---
 
 ## Session 日志（近 4 次）
+
+### Session 6（2026-04-18 晚上-夜）· Codex 双轮评审 + PR #17 缩范围
+- **Codex round-1 评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）
+- **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10 · 已加 historical snapshot banner）
+- **PR #17 v1（已废弃方案）**：试图一次性修全 5 项 + AGENTS.md 重写 + §5.4 v2.1 增补 + 翻转 SPIKE-01/02/MVP-01 ready
+- **Codex round-2 评审 BLOCK**：发现 3 CRITICAL（ready 翻转绕过 gate · SESSION-STARTUP 同步未完 · §5.4 引入新冲突）+ 3 HIGH + 3 MEDIUM + 2 LOW
+- **PR #17 v2（当前 · 缩范围方案 A）**：
+  - 撤回 ready 翻转（SPIKE-01/02/MVP-01 改回 draft）→ 拆 PR #19 走标准 (a)/(b) gate
+  - 撤回 §5.4 v2.1 增补全段（含 RepoOperationState 等虚构类型 / R10/R15 风险编号错乱 / 与 MVP-11/13 Don't 冲突）→ 拆 PR #18 限缩重写
+  - 4 MVP plan_ref 改回 §10.1（删 §5.4 引用）
+  - 修 CRITICAL 2（SESSION-STARTUP 中段 + Planned 目录树）+ HIGH 4 (PROGRESS 状态字段) + HIGH 5 (CLAUDE.md trailer 统一) + MEDIUM 7 (assessment banner) + LOW 11 (硬编码行数)
+  - 保留：AGENTS.md 重写 / CLAUDE.md / SESSION-STARTUP / README onboarding 同步 / SPIKE-04 §512 → §5.2 笔误修复
+- **AGENTS.md 重写**：纠正 codex 自动生成版本的"Claude 名替换错乱 + 阶段过期"双 bug，改为工具无关的极简入口（路由 + 关键约束摘录），权威单文件入口仍指向 CLAUDE.md
 
 ### Session 5（2026-04-18 下午-晚上）· Pre-code stage 完备
 - **4 个 PR 全 merge 到 main**（Phase 1-4 完整交付）

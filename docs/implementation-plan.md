@@ -1483,3 +1483,4 @@ v2 由 5 天扩展为 **5-6 天**，新增 redb vs rusqlite benchmark、Tauri Pa
 **文档完**
 
 本文档（v2）为 Vibestation 项目从 Spike（2026-04-20 周）到 v1.0 GA（2026-11 下旬）的完整实施指南，共 14 章 + 附录，预计总投入 **28-30 周 × 20-25 小时 ≈ 600-750 小时**（带 20% buffer）。所有技术决策可追溯到 `terminal-git-workbench-tech-research.md` 调研报告、`vibestation-codex-review-and-response.md` 评审与应对，或本文第 9 节风险登记册。
+

@@ -11,7 +11,7 @@ blocked_by: []
 blocked_from:
 blocked_note:
 estimate: 4d
-plan_ref: implementation-plan.md §10.1 · §5.4
+plan_ref: implementation-plan.md §10.1（MVP 范围 · 分支 CRUD 砍到 v0.2）
 risk_ref:
 reviewer:
 ---

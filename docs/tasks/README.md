@@ -124,7 +124,8 @@ draft ────────► ready ─────────────�
 | [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| draft | 1d | SPIKE-02 | R3 |
 | [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | draft | 1d | SPIKE-02 | R27 |
 | [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | draft | 1d | SPIKE-02 | — |
-| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | draft | 1d | SPIKE-05 | R1 |
+| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | draft | 1d | SPIKE-05 · phase-4-infra-landing | R1 |
+| [SPIKE-07](./SPIKE-07-cli-protocol-parser.md) | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）| draft | 3d | SPIKE-06 | R1 |
 
 ### MVP（v0.1 范围 · B 折中方案）
 
@@ -140,7 +141,23 @@ draft ────────► ready ─────────────�
 | [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | draft | 5d | MVP-07 |
 | [MVP-09](./MVP-09-stage-unstage-commit.md) | Stage/Unstage + Commit 操作（git2 写）| draft | 4d | MVP-08 · SPIKE-04 |
 | [MVP-10](./MVP-10-settings-telemetry-packaging.md) | 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）| draft | 5d | MVP-01..09 全部 |
-| MVP-11..20 | 占位 spec（最小骨架）| 待下一 PR | — | — |
+
+**占位 spec（v0.2 / v0.3 / v1.0 范围 · `implementation-plan.md §10.1` 砍到后续版本）**：
+
+| ID | 标题 | 状态 | 目标版本 | 估时 | 依赖 |
+|----|------|------|---------|------|------|
+| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft | v0.2 | 5d | MVP-09 |
+| [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft | v0.2 | 8d | MVP-07 |
+| [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete | draft | v0.2 | 4d | MVP-07/09 |
+| [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |
+| [MVP-15](./MVP-15-diff-syntax-highlight.md) | Diff 复杂语法高亮（tree-sitter）| draft | v0.3 | 6d | MVP-08 |
+| [MVP-16](./MVP-16-rebase-merge-cherrypick.md) | Rebase / Merge / Cherry-pick | draft | v0.3 | 7d | MVP-13 |
+| [MVP-17](./MVP-17-external-terminal-pane-detach.md) | Pop to External + Pane Detach | draft | v0.3 | 4d | MVP-14 |
+| [MVP-18](./MVP-18-ai-aware-pane-linking.md) | **AI-Aware Pane 联动**（v1.0 vision · 对外禁提）| draft | v1.0 | 15d | MVP-14 · SPIKE-07 |
+| [MVP-19](./MVP-19-session-commit-binding.md) | **AI session ↔ commit 自动绑定**（v1.0 vision）| draft | v1.0 | 8d | MVP-18 |
+| [MVP-20](./MVP-20-ai-one-click-rollback.md) | **AI 一键回滚（session 级 revert）**（v1.0 vision）| draft | v1.0 | 6d | MVP-19 |
+
+> 占位 spec 用途：在 `<TYPE>-NN-<slug>` 编号连续性 + 依赖可视化上提前占位，v0.2 / v0.3 / v1.0 启动时按 kickoff 详化到实施 spec（补具体 UI 截图 / Acceptance 可量化门槛 / 数据模型细节）。
 
 ### BUG / FEAT
 

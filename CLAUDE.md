@@ -32,6 +32,10 @@
    2. **认领**（分支上第一个 commit · 单独的 claim commit）：把 task spec 改为 `owner: <你的 agent-id>` · `status: in-progress` → `git commit -m "chore(<task-id>): claim"`
    3. **开工**（后续 commits）：按 `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ push → `gh pr create`（PR body 写 `Implemented by: <agent-id>`）
    4. **收尾**（独立评审 ≠ 原实现者 approve 后 · merge 前最后一个 commit）：把 task spec 改为 `reviewer: <评审者-id>` · `status: done` → `git commit -m "chore(<task-id>): done"` → push → merge
+      - **翻转 gate**（Codex PR #6 F1 / PR #10 教训 · 防"作者在 approve 后私自改 spec 再 merge"漏洞，二选一）：
+        - **(a) Reviewer 自己 push** 翻转 commit 到 PR branch（推荐 · 作者无法插入新改动）
+        - **(b) Author push 翻转 commit 后 Reviewer 对最新 HEAD re-approve**（GitHub 分支保护应开启 "require approval from latest commit"）
+      - 同规则适用于 spec PR 的 `draft → ready` 翻转（详见 `docs/tasks/README.md` 第 7 步）
 
 **人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
 

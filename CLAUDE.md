@@ -27,10 +27,11 @@
    - 找 `status: ready` 且 `depends_on` 全 `done` 的 task
    - `gh pr list --state open` 查现有 PR 避免重复认领
    - **无 ready task 时**：帮现有 `draft` task 过独立评审升为 `ready`；或按 `_template.md` 新建
-5. **一个 PR 内完成完整状态流转**（认领 → 开工 → 收尾）：
-   - **认领**（PR 首个 commit）：把 task spec 改为 `owner: <你的 agent-id>` · `status: in-progress`
-   - **开工**：`git checkout -b <scope>/<task-id>` → 按 `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ `gh pr create`（PR body 写 `Implemented by: <agent-id>`）
-   - **收尾**（merge 前最后一个 commit）：独立评审（≠ 原实现者）approve 后，把 task spec 改为 `reviewer: <评审者-id>` · `status: done` → merge
+5. **一个 PR 内完成完整状态流转**（建分支 → 认领 → 开工 → 收尾）：
+   1. **建分支**：`git checkout -b <scope>/<task-id>`（先于所有 commit）
+   2. **认领**（分支上第一个 commit · 单独的 claim commit）：把 task spec 改为 `owner: <你的 agent-id>` · `status: in-progress` → `git commit -m "chore(<task-id>): claim"`
+   3. **开工**（后续 commits）：按 `Acceptance` 实施 → commit（Conventional Commits + 中文描述 + `Co-authored-by` trailer）→ push → `gh pr create`（PR body 写 `Implemented by: <agent-id>`）
+   4. **收尾**（独立评审 ≠ 原实现者 approve 后 · merge 前最后一个 commit）：把 task spec 改为 `reviewer: <评审者-id>` · `status: done` → `git commit -m "chore(<task-id>): done"` → push → merge
 
 **人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
 

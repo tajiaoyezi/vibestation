@@ -36,21 +36,32 @@
 
 ### Pre-code 阶段（当前）
 
+**权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补 Pre-code 阶段的具体动作。
+
 ```
-1. 读 CLAUDE.md                    (3 分钟) — 锁定决策 + 禁区 + 自审四问
-2. 读 docs/PROGRESS.md             (2 分钟) — 当前位置 + 卡点 + 下一步
-3. 挑选 Phase 2/3/4 动作
-4. 开 feature 分支：
-     git checkout -b docs/phase-<N>-<slug>
-5. 修改文档
-6. commit（Conventional Commits + 中文描述 + Co-authored-by trailer）
-7. git push -u origin <branch>
-8. gh pr create（PR body 写 "Implemented by: <agent-id>"）
-9. 独立评审（可以是另一个 Codex/Claude/人类）→ merge
-10. Session end 前更新 PROGRESS.md 的 Next concrete action
+阅读（对齐 CLAUDE.md 第 1-3 步）：
+  1. CLAUDE.md                    (3 分钟)
+  2. docs/PROGRESS.md             (2 分钟)
+  3. docs/tasks/README.md         (3 分钟) — Pre-code 期间选文档动作，非业务 task
+
+动作（对齐 CLAUDE.md 第 4-5 步）：
+  4. 挑选 Phase 2/3/4 文档升级动作
+  5. 按 CLAUDE.md 第 5 步流程（建分支 → 认领 commit → 开工 commits → 收尾 commit）：
+     a. git checkout -b docs/phase-<N>-<slug>
+     b. 如动作对应某个 task spec → 首 commit 把 task 改 owner/status: in-progress
+        如动作是"修文档"无 task → 跳过 claim
+     c. 修改文档 → commit（Conventional Commits + 中文描述 + Co-authored-by trailer）
+     d. git push -u origin <branch> → gh pr create（body 写 "Implemented by: <agent-id>"）
+     e. 独立评审（Codex/Claude 另一实例/人类）approve
+     f. 如对应 task → merge 前最后 commit 改 reviewer/status: done
+     g. merge
+
+收尾：
+  6. Session end 前更新 PROGRESS.md 的 Next concrete action
 ```
 
 > ⚠️ **任何 commit 都走 PR，不直接 push main**。claim / 状态变更 / stale 释放等都走 PR。
+> ⚠️ 流程细节（状态机、blocked 恢复规则）以 `docs/tasks/README.md` "🔄 状态流转"为权威。
 
 ### Code-ready 阶段（Spike W0 完成后）
 

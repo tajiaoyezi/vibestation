@@ -93,6 +93,9 @@ bun.lockb
 # ────────────── Vibestation 特定 ──────────────
 # 本地 Spike / 实验目录
 spike-tmp/
+# Spike 录屏 / 截图 / 大文件产物（本地归档 · 不入 repo · 走 LFS 或外部存储）
+# 背景：SPIKE-01 macos-ime.mov 2.4MB 意外进 commit · 此规则防复发
+spike-artifacts/
 # Spike 原始未脱敏捕获（SPIKE-06 CLI 输出样本 · 含 auth token / PII · 严禁进 repo）
 # 任何以 .raw 结尾的文件、任何 spike-raw 目录均被屏蔽
 # 这条规则与 SPIKE-06 §A.5.1 的文件命名约定配套（强制 .raw 后缀）

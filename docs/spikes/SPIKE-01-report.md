@@ -11,11 +11,12 @@
 
 | 平台 | 冷启动中位数 | 目标 | 结果 | 窗口渲染 | resize | IME 中文 | 稳定性 5min |
 |---|---|---|---|---|---|---|---|
-| macOS 26.3.1 (M 系列) | `TBD` ms | < 2000ms | `TBD` | `TBD` | `TBD` | `TBD` | `TBD` |
+| macOS 26.3.1 (M 系列) | **202ms** | < 2000ms | ✅ PASS (10× 余量) | ✅ | ✅ | ✅ | ✅ |
 | Ubuntu 24 X11 | — | < 3000ms | **TBD**（Phase B） | — | — | — | — |
 | Ubuntu 24 Wayland | — | < 3000ms | **TBD**（Phase B） | — | — | — | — |
 
-**Phase A 整体判定**：`TBD` · Phase B 数据回填后重新评估。
+**Phase A 整体判定**：✅ **PASS** · macOS 上 Tauri 2 冷启动 / 渲染 / IME / 稳定性 4 维度全过 · 远超目标。
+**SPIKE-01 整体 status**：保持 `in-progress` · Phase B Ubuntu 未补完前不翻 `done`（按 spec 3 平台全过才算通过）。
 
 ---
 
@@ -75,40 +76,49 @@ pnpm tauri build              # 构建 release bundle (~3-8 min)
 ./scripts/measure-boot-macos.sh 10   # 测 10 次冷启动
 ```
 
-### 4.2 采样数据
-
-<!-- 用户跑完后回填 -->
+### 4.2 采样数据（2026-04-18 · 用户执行）
 
 ```
-Run 1:  TBD ms
-Run 2:  TBD ms
-Run 3:  TBD ms
-Run 4:  TBD ms
-Run 5:  TBD ms
-Run 6:  TBD ms
-Run 7:  TBD ms
-Run 8:  TBD ms
-Run 9:  TBD ms
-Run 10: TBD ms
+Run 1:  239 ms
+Run 2:  189 ms
+Run 3:  209 ms
+Run 4:  193 ms
+Run 5:  209 ms
+Run 6:  198 ms
+Run 7:  213 ms
+Run 8:  202 ms
+Run 9:  193 ms
+Run 10: 194 ms
 
-Min:    TBD ms
-Median: TBD ms
-Max:    TBD ms
+Samples (sorted): 189, 193, 193, 194, 198, 202, 209, 209, 213, 239
+Min:    189 ms
+Median: 202 ms
+Max:    239 ms
+Mean:   203.9 ms
+Range:  50 ms (Max - Min)
 ```
+
+**统计解读**：
+- 中位数 202ms · 是目标 2000ms 的 **10.1%** · 飞过目标
+- 极差 50ms · 变异性极低 · 说明 macOS 启动路径非常稳定 · 无异常值
+- 第 1 次 239ms 略高（冷缓存）· 后续 9 次收敛在 189-213ms 区间
 
 ### 4.3 人工验证（用户观察 · 录屏归档）
 
-- [ ] 窗口启动后显示 "Hello Vibestation" · 无黑屏 / 白屏
-- [ ] 窗口 resize 正常（拖拽右下角）
-- [ ] 最小化 / 最大化 / 关闭正常
-- [ ] 输入框可输入中文（拼音切换 · 候选词弹出正常）· 录屏见 `spike-artifacts/SPIKE-01/macos-ime.mov`
-- [ ] 单次启动 → 5 分钟内无 panic / 崩溃日志
+- [x] 窗口启动后显示 "Hello Vibestation" · 无黑屏 / 白屏
+- [x] 窗口 resize 正常（拖拽右下角）
+- [x] 最小化 / 最大化 / 关闭正常
+- [x] 输入框可输入中文（拼音切换 · 候选词弹出正常）· 录屏见 `spike-artifacts/SPIKE-01/macos-ime.mov`
+- [x] 单次启动 → 5 分钟内无 panic / 崩溃日志
+
+**5/5 全 pass**。
 
 ### 4.4 Bundle 信息
 
-- Release binary: `spike-tmp/spike-01-tauri/src-tauri/target/release/spike-01-tauri`
+- Release binary: `spike-tmp/spike-01-tauri/src-tauri/target/release/spike-01-tauri` (8.4 MB)
 - .app bundle: `spike-tmp/spike-01-tauri/src-tauri/target/release/bundle/macos/spike-01-tauri.app`
-- Bundle size: `TBD`
+- **Bundle size: 8.2 MB** · 远低于 Tauri 推广资料的 < 20 MB 常规预期（符合 `implementation-plan.md §3.1 bundle size 预算` 目标）
+- 同时生成 DMG: `src-tauri/target/release/bundle/dmg/spike-01-tauri_0.1.0_aarch64.dmg`
 
 ---
 
@@ -207,8 +217,16 @@ Max:    TBD ms
 
 | 阶段 | 判定 | 触发动作 |
 |---|---|---|
-| Phase A macOS | `TBD`（回填后更新） | 通过 → Phase B 启动；失败 → Day 2 Electron fallback（mac 都过不了不用测 Ubuntu） |
-| Phase B Ubuntu | `TBD`（回填后更新） | 三平台全通过 → `CLAUDE.md` 决策表 #12 从 B 栏移入 A 栏 + 翻 SPIKE-01 `status: done` · 解锁 SPIKE-02 |
+| Phase A macOS | ✅ **PASS**（冷启动 202ms · 4 维度全过） | 进入 Phase B 筹备期 · 待用户 Ubuntu 24 环境就绪 |
+| Phase B Ubuntu | **TBD** | 两会话全通过 → `CLAUDE.md` 决策表 #12 从 B 栏移入 A 栏 + 翻 SPIKE-01 `status: done` · 解锁 SPIKE-02 |
+
+**当前 SPIKE-01 status = `in-progress`**：尊重 spec "3 平台全过才算 done" 的判定规则 · macOS 单平台过不等于整体过。下游 SPIKE-02..06 仍 blocked 在 SPIKE-01 full done。
+
+**Phase A 的强信号**：
+- 冷启动飞过目标 10×（202ms vs 目标 2000ms）
+- Bundle 8.2MB 极小
+- 渲染 / 交互 / IME / 稳定性全过
+- → 高强度支持 Tauri 2 在 macOS 是可靠选择 · Ubuntu 风险主要集中在 webkit2gtk + Wayland IME · 不会反向推翻 macOS 结论
 
 Fallback 路径（参考 spec §Fail Signals）：
 - **Ubuntu 某平台失败** → 不立即 abandon Tauri · 先评估是 Wayland IME 问题（可能换 ibus）还是根本渲染问题
@@ -229,5 +247,7 @@ Fallback 路径（参考 spec §Fail Signals）：
 
 | 日期 | 实施者 | 变更 |
 |---|---|---|
-| 2026-04-18 | Claude Code (Sonnet 4.6) | 骨架 + 埋点 + 测量脚本 · Phase A 待用户跑 bench · Phase B 文档化 prompt |
-| `TBD` | User / Ubuntu agent | Phase A 数据回填 + Phase B 完成 |
+| 2026-04-18 AM | Claude Code (Sonnet 4.6) | 骨架 + 埋点 + 测量脚本 + report 骨架 + Phase B Ubuntu prompt |
+| 2026-04-18 PM | User | Phase A macOS 实测：10 次采样 median 202ms + 5/5 人工验证 pass + IME 录屏 |
+| 2026-04-18 PM | Claude Code (Sonnet 4.6) | 回填数据 · Phase A 判定 PASS · 本 PR 只收 Phase A 成果 · SPIKE-01 整体保持 in-progress 等 Phase B |
+| `TBD` | User / Ubuntu agent | Phase B · Ubuntu X11 + Wayland 数据回填 · 走单独 PR |

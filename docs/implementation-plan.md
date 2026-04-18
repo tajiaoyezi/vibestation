@@ -516,7 +516,7 @@ pub struct UserSession {
 
 ### 5.3 窗口 / Tab / Pane 系统
 
-> **v2 说明**：Pane 系统的三层模型保持 v1 设计。但 (a) 默认布局改为 "Primary + Secondary 侧栏都收起，只显终端"，降低首次打开时的 UI chrome 负担；(b) Smart Layouts 合并 AI+Watch 和 AI+Test 为单一 "AI + Runner"；(c) AI-Aware Pane 联动降级为 v1.0 vision，MVP / README 不宣传。
+> **v2 说明**：Pane 系统的三层模型保持 v1 设计。但 (a) 默认布局改为 **Primary Sidebar 展开（workspace 切换即时可见）+ Secondary Sidebar（Git Log）+ Bottom Panel 收起**（对齐原型 `design/directions/1-calm-studio.html` 的 `DEFAULT_STATE = { primary:true, secondary:false, bottom:false }`）—— Codex 评审（2026-04-18）建议"全收起"，但权衡后仍保留 Primary 展开，因为 workspace 切换是核心卖点，首次打开应即时可见；(b) Smart Layouts 合并 AI+Watch 和 AI+Test 为单一 "AI + Runner"；(c) AI-Aware Pane 联动降级为 v1.0 vision，MVP / README 不宣传。
 
 #### 5.3.1 三层模型
 
@@ -532,25 +532,37 @@ Workspace（项目容器）
 
 #### 5.3.2 默认布局（v2 调整）
 
-**初次打开应用 / 新建 Workspace 的默认视图**：
+**初次打开应用 / 新建 Workspace 的默认视图**（与原型 `design/directions/1-calm-studio.html` 的 `DEFAULT_STATE` 一致）：
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Tab bar (只显 Tab、Workspace 切换、设置按钮)              │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│                                                          │
-│            单 Pane 终端（全宽全高）                       │
-│                                                          │
-│                                                          │
-├──────────────────────────────────────────────────────────┤
-│  Status bar: cwd · shell · git branch                    │
+│  Tab bar + Workspace 名 + Theme toggle                   │
+├────────┬──────────────────────────────────────────┬──────┤
+│Primary │                                          │ AS-R │
+│Sidebar │                                          │(细条)│
+│ (236w) │     单 Pane 终端（充满剩余宽度）          │ (36w)│
+│        │                                          │      │
+│ WS 列表│                                          │ [G]  │
+│ 分支树 │                                          │ [S]  │
+│        │                                          │ [R]  │
+├────────┴──────────────────────────────────────────┴──────┤
+│  Status bar: branch · unstaged · Claude status · ctx     │
 └──────────────────────────────────────────────────────────┘
 ```
 
-Git 面板、Activity Strip、Secondary 侧栏全部**默认收起**。用户按 `⌘1` 唤出 Git 面板、`⌘2` 唤出 Workspace 切换面板。
+**展开**：Primary Sidebar（236px，显 Workspace 列表 + 分支树）· Right Activity Strip（36px 细条，Git/Commit/Diff 图标按钮）
+**收起**：Secondary Sidebar（Git Log 400px）· Bottom Panel（Problems/Output/Diff 240px）
 
-> 设计依据：用户初诉求是"桌面清爽的多 Tab 终端"，先让视觉干净、必要时再唤出功能面板。对齐 Calm Studio 定稿视觉方向。
+**切换快捷键**：
+- `⌘B` — toggle Primary Sidebar（左栏）
+- `⌘9` — toggle Secondary Sidebar（Git Log，**致敬 JetBrains ⌘9**）
+- `⌘J` — toggle Bottom Panel（VSCode 风）
+
+> **设计依据与权衡**：
+> - Primary 展开 → 用户首次打开就看到 "workspace 切换" 这个核心卖点；否则面对纯终端不知道怎么多项目管理
+> - Secondary + Bottom 收起 → 保持视觉干净，避免 Codex 批评的 "UI chrome 过重"
+> - Codex 2026-04-18 评审建议"全收起"，但权衡后保留此折中（workspace 即时可见 > 绝对干净）
+> - 对齐 Calm Studio 定稿视觉方向
 
 #### 5.3.3 Rust 数据模型
 
@@ -1020,7 +1032,7 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 
 - [ ] 启动应用，欢迎页可创建第一个 workspace
 - [ ] 选择项目目录，自动识别是否 git 仓库
-- [ ] 打开 workspace，**默认视图：只显终端（Git 面板 / Activity Strip / Sidebar 全部收起）**
+- [ ] 打开 workspace，**默认视图**：Primary Sidebar 展开（workspace 列表 + 分支树）· Right Activity Strip 细条可见 · Secondary Sidebar（Git Log）+ Bottom Panel 收起（与原型 `design/directions/1-calm-studio.html` DEFAULT_STATE 一致）
 - [ ] 终端 Tab：新建/关闭/重命名，切换不丢 buffer
 - [ ] **终端可运行 zsh/bash、Claude CLI、Codex CLI、vim、htop、yes、tmux**
 - [ ] **Pane 分屏**：`⌘\` 右分屏、`⌘⇧\` 下分屏、`⌘⌃W` 关 Pane，**最多 1 层嵌套（4 Pane）**

@@ -17,7 +17,7 @@ reviewer:
 
 # MVP-01: Tauri 应用骨架 + 启动流程
 
-> **状态**：`draft` → spec 独立评审后 `ready`
+> **状态**：`draft` → spec 独立评审后翻转 `ready`（待用户在 GitHub 上正式 approve · 走 docs/tasks/README.md 第 7 步 (a)/(b) gate）
 > **依赖**：SPIKE-02（桌面框架已锁定）/ **阻塞**：MVP-02..04 · MVP-10
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) MVP B 折中方案 · §3.1 架构 · §3.2 Cargo workspace
 

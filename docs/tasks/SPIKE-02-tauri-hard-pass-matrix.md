@@ -15,7 +15,7 @@ reviewer:
 
 # SPIKE-02: Tauri 硬通过矩阵 + Electron fallback 验证
 
-> **状态**：`draft`
+> **状态**：`draft` → spec 独立评审后翻转 `ready`（待用户在 GitHub 上正式 approve · 走 docs/tasks/README.md 第 7 步 (a)/(b) gate）
 > **依赖**：SPIKE-01（空壳启动通过）/ **阻塞**：SPIKE-03..06（桌面框架锁定后才能做 git / storage / PTY / CLI 验证）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D2`](../implementation-plan.md)
 

@@ -9,7 +9,7 @@
 > 给 Claude CLI / Codex CLI 用户的多 Tab 终端 + JetBrains 级 Git 工作台。
 > 一个窗口管多项目，每个 Tab 一个 CLI 会话，右栏看 Git，不再为了看 commit 打开一堆 IDE。
 
-**项目状态**：规划期 · v0.0.0 · 尚未发布可用二进制，代码仓库即将进入 Spike Week 0。
+**项目状态**：规划期 · v0.0.0 · 尚未发布可用二进制 · **Pre-code Phase 1-4 已全部交付**（27 task spec + 10 ADR + 全套治理），等待启动 Spike Week 0 Day 1（SPIKE-01 Tauri 三平台空壳）。
 
 ---
 
@@ -22,7 +22,7 @@ vibestation/
 ├── README.md               本文件
 ├── .gitignore              Rust / Node / Tauri / OS
 ├── docs/
-│   ├── implementation-plan.md          v2 实施计划（14 章 · 1473 行）
+│   ├── implementation-plan.md          v2 实施计划（14 章 + 附录）
 │   ├── codex-review-and-response.md    Codex 独立评审与应对
 │   └── tech-research.md                 CodexMonitor / lapce / gitui 预研
 └── design/
@@ -49,7 +49,7 @@ open design/index.html
 
 | 文档 | 内容 | 行数 |
 |------|------|------|
-| [`docs/implementation-plan.md`](docs/implementation-plan.md) | 产品定位 / 4 crate → 2 crate 架构 / 数据模型 / IPC / 30 风险 / 降级树 / 终端正确性矩阵 / 安全边界 / 分发运营 | 1473 |
+| [`docs/implementation-plan.md`](docs/implementation-plan.md) | 产品定位 / 4 crate → 2 crate 架构 / 数据模型 / IPC / 30 风险 / 降级树 / 终端正确性矩阵 / 安全边界 / 分发运营 | 14 章 + 附录 |
 | [`docs/codex-review-and-response.md`](docs/codex-review-and-response.md) | Codex 独立评审（7 CRITICAL · 12 HIGH · 5 MEDIUM · 13 强烈反对）+ Claude 元评论 + 用户 4 项决策 | 157 |
 | [`docs/tech-research.md`](docs/tech-research.md) | 三项目深度预研与可借鉴点（PTY 多会话表 / AsyncLog 双速率 / logwalker 时间堆 / workspace 配置）| — |
 
@@ -78,7 +78,13 @@ open design/index.html
 
 ## 贡献
 
-正式进入 Spike 后再开放贡献（预计 W2-W3）。届时 `CONTRIBUTING.md` + `CODE_OF_CONDUCT.md` 会补齐。**不要求贡献者签署 CLA**。
+贡献流程已就绪。详见：
+- [`AGENTS.md`](AGENTS.md) · 任意 agent CLI 通用入口
+- [`CLAUDE.md`](CLAUDE.md) · 项目权威单文件入口（规则 / 决策 / 禁区 / 5 步 PR 流程）
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) · 详细贡献指南
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) · Contributor Covenant 2.1 中文版
+
+**不要求贡献者签署 CLA**（Apache 2.0 本身已含 patent grant）。
 
 ## 非目标
 

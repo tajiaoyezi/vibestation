@@ -70,10 +70,10 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 
 ## 📦 产出（Deliverables）
 
-- [ ] benchmark 数据表（`docs/SPIKE-REPORT.md` 对应 section）
+- [ ] benchmark 数据表（**`docs/spikes/<id>-report.md`**，per-task 文件；Phase 3 建立 `docs/spikes/` 目录）
 - [ ] 录屏 / 截图（`docs/spike-artifacts/<id>/`，Phase 3 建立该目录）
 - [ ] ADR 草稿或补丁（`docs/adr/ADR-XXX-<slug>.md`，Phase 3 建立）
-- [ ] 代码 proof-of-concept（`spike-tmp/` 目录，`.gitignore` 已排除）
+- [ ] 代码 proof-of-concept（`spike-tmp/<id>/`，`.gitignore` 已排除；仅作者本地工作区，**不可作为其他 task 的依赖源**）
 
 ## 🛠 依赖资源（Resources Needed）
 
@@ -84,7 +84,7 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 ## ⚠️ 已知风险
 
 - **Rn**（`implementation-plan.md §9`）：描述 + 影响
-- 未知风险：Spike 过程中记录到 `SPIKE-REPORT.md`
+- 未知风险：Spike 过程中记录到 `docs/spikes/<id>-report.md`（per-task）
 
 ---
 

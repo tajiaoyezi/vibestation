@@ -1,0 +1,17 @@
+# Issue 模板配置
+# 文档：https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+
+# 禁止空白 issue（强制用结构化模板）
+blank_issues_enabled: false
+
+# 在模板选择器下方的 "Don't see your issue here?" 区域显示引导链接
+contact_links:
+  - name: 💬 讨论（Discussion）
+    url: https://github.com/tajiaoyezi/vibestation/discussions
+    about: 开放式讨论、功能想法、架构疑问 → 请先来 Discussions，不要开 issue。
+  - name: 🔐 安全漏洞（Security）
+    url: https://github.com/tajiaoyezi/vibestation/security/advisories/new
+    about: 报告安全漏洞请用 GitHub Security Advisory（私密），**不要开 issue**。
+  - name: 📖 文档（Docs）
+    url: https://github.com/tajiaoyezi/vibestation/blob/main/docs/implementation-plan.md
+    about: 查阅战略计划、SPIKE / MVP spec、决策表 → 先读文档再 issue。

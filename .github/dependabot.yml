@@ -1,0 +1,85 @@
+# Dependabot · 自动依赖更新（Phase 4 · 2026-04-18）
+# 文档：https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# 策略：
+# - cargo / npm 周更一次，降低评审负担
+# - security 更新立即 PR（patch-level 自动 merge 建议走 GitHub branch protection）
+# - GitHub Actions 周更（防止 action 版本漂移）
+#
+# 重要：pre-code 阶段（Phase 1-4）尚无 Cargo.toml / package.json，cargo 与 npm 生态
+# 将在 Spike W0 后首次 commit Cargo.lock / pnpm-lock.yaml 时自动激活。
+
+version: 2
+
+updates:
+  # ────────────── Rust / Cargo ──────────────
+  - package-ecosystem: "cargo"
+    directory: "/"                      # app + core crate 在 workspace root
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "rust"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # 大版本升级独立 PR（方便逐一评审）
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+      minor-updates:
+        update-types:
+          - "minor"
+
+  # ────────────── Node / npm / pnpm ──────────────
+  - package-ecosystem: "npm"
+    directory: "/"                      # frontend 在 root 还是 app/web/ 待 Spike W0 确定
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Tauri / SolidJS / xterm.js 大版本单独 PR
+    ignore:
+      # 避免主要框架被自动升级（需要手动测 + ADR）
+      - dependency-name: "@tauri-apps/api"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "solid-js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "xterm"
+        update-types: ["version-update:semver-major"]
+    groups:
+      patch-updates:
+        update-types:
+          - "patch"
+      minor-updates:
+        update-types:
+          - "minor"
+
+  # ────────────── GitHub Actions ──────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

@@ -1,0 +1,87 @@
+name: 🐛 Bug Report · 缺陷报告
+description: 报告一个确认的 bug（已复现）· 未复现请先到 Discussions 确认
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢提交 bug report。**在开始前**：
+        - 搜索 [现有 issues](https://github.com/tajiaoyezi/vibestation/issues?q=is%3Aissue) 避免重复
+        - Pre-code 阶段（Phase 1-4）**尚无代码可跑**，此模板主要用于记录 spec 级 bug / 文档不一致
+        - 真实运行 bug 要等 Spike W0 后才有意义
+
+  - type: input
+    id: summary
+    attributes:
+      label: 一句话概括
+      description: "尽量具体。例：'SPIKE-04 B.5 的 op-log 和 MVP-09 的 commit 数据模型字段名不一致'"
+      placeholder: ""
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 复现步骤（Reproduction Steps）
+      description: 越具体越好
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围
+      options:
+        - Spec / 文档（当前阶段最常见）
+        - 构建 / CI
+        - 前端（SolidJS / xterm）
+        - 后端（Rust / Tauri）
+        - 跨平台（mac / linux）
+        - 其他
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: 环境（OS / 版本 / commit SHA）
+      placeholder: "macOS 15.0 · commit abc1234 · or N/A for spec-level bugs"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 补充信息（可选）
+      description: 相关 PR / commit / log / 截图
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: pre-submit
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索过 [现有 issues](https://github.com/tajiaoyezi/vibestation/issues?q=is%3Aissue) 无重复
+          required: true
+        - label: 这不是安全漏洞（安全漏洞走 Security Advisory）
+          required: true

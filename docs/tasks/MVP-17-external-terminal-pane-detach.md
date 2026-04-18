@@ -47,7 +47,7 @@ reviewer:
   - 传递当前 workspace 的 cwd + shell + env
   - 当前 Tab 的 scrollback buffer 不跟随（技术限制，明确告知用户）
 - **Pane Detach**：
-  - 右键菜单 "Detach Pane" 
+  - 右键菜单 "Detach Pane"
   - 生成新 Tauri WebviewWindow，内容为该 Pane
   - 关闭 detached window 时内容重新吸回原 Pane 位置
   - 多 detached window 间可拖回原窗口

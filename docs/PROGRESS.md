@@ -10,21 +10,21 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（PR #17 v2 + PR #18 已 merge · session 6 闭环）| 分支切换 |
+| **Active branch** | `main`（PR #20 merged · SPIKE-01 Phase A macOS PASS · session 7 ongoing）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **启动 SPIKE-01**（已 ready · 直接 `git checkout -b spike/SPIKE-01-...` → claim → 实施）· 单平台 mac 模式可独立完成 4-5/7 Pass Criteria，Ubuntu 部分可后续接力 | session end |
-| **Blocked by** | 无（3 个 ready task 可立即认领 · 24 个 v0.2/v0.3/v1.0 spec 仍 draft 按需触发翻转 · 不阻塞 W0）| 阻塞变化 |
-| **Missing infra** | 无（Pre-code stage 4 Phase 全交付 · onboarding 入口已对齐 · §5.4 战略章节按 YAGNI 推迟到 v0.2 kickoff）| Phase 完成时 |
-| **Required env/accounts** | GitHub CLI · Apple Developer Program（W0-D6 申请）· 三平台测试机（mac / Ubuntu Wayland / X11 · W0 全周用）| 新账号/工具时 |
+| **Next concrete action** | **Phase B Ubuntu 等环境就绪**（用户暂无 Ubuntu 24 机器 · Phase B 原话 prompt 已备 · 见 `docs/spikes/SPIKE-01-report.md §5.1`）· 备选：讨论是否并行启动 SPIKE-03/04 benchmark 类（不依赖 Tauri UI · 需要用户确认修改 blocks 语义） | session end |
+| **Blocked by** | SPIKE-02..06 仍 blocked 在 SPIKE-01 **full done**（Phase A macOS 过 ≠ 整体过 · 尊重 spec 3 平台规则）| 阻塞变化 |
+| **Missing infra** | Ubuntu 24 LTS 环境（物理机 / VM · Phase B 前置）| Phase 完成时 |
+| **Required env/accounts** | GitHub CLI ✅ · Rust toolchain (rustc 1.95.0) ✅ · Node 20.17.0 ✅ · pnpm 9.15.9 ✅ · tauri-cli 2.x ✅ · Ubuntu 24 LTS **TODO** · Apple Developer Program（W0-D6 申请 · TODO）| 新账号/工具时 |
 
 ---
 
 ## 📍 当前位置
 
-**阶段**：**Pre-code · Phase 1-4 全部完成 ✅**（2026-04-18 session 5 · 4 个 PR 合入 main）· **Spike W0 Day 1 可启动**
-**日期**：2026-04-18（session 5）
+**阶段**：**Spike W0 Day 1 · SPIKE-01 Phase A (macOS) ✅ PASS** · Phase B (Ubuntu) 待环境就绪（2026-04-18 session 7 · 首行代码入盒里程碑）
+**日期**：2026-04-18（session 7）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（按时间顺序）**：
 - PR #1/#2（Phase 1）· 战略计划 v4 simplified + 决策表 + Calm Studio 视觉
@@ -35,6 +35,10 @@
 - **PR #9 `0d15fa9`**（Phase 2 tech debt）· 4 commits · 12 Codex findings 闭合
 - **PR #12 `d020365`**（Phase 3 文档）· ADR × 10 + CONTRIBUTING + CHANGELOG + 3 目录 README
 - **PR #10 `a157e93`**（Phase 2 占位 spec）· MVP-11..20 + SPIKE-07
+- **PR #17 `68c0c21`**（session 6 onboarding 对齐 v2）· 缩范围方案 A · 11 Codex 指控全闭合
+- **PR #18 `5ece9a9`**（session 6 spec 翻转）· SPIKE-01/02/MVP-01 走 (b) 路径变种 ready
+- **PR #19 `b7b374e`**（session 6 Codex 二次复审漂移修）· 5 项漂移 + (b) 变种正式定义 + overview 归档
+- **PR #20 `2ed80f4`**（session 7 **第一行 Rust 代码入盒**）· SPIKE-01 Phase A macOS 冷启动 202ms PASS · 骨架 + 埋点 + 测量脚本 + report + Ubuntu agent 原话 prompt
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -72,10 +76,21 @@
 - [x] **`docs/BRANCH-PROTECTION.md`** · admin 应用 main 保护的完整 checklist
 - [x] Codex 3 HIGH findings 全闭合 + CI self-trigger fix（`a6fd6c6`）
 
-### Codex 对抗性审查全统计
-- **7 轮审查 · 29 findings 全闭合**（23 HIGH + 6 MEDIUM）
+### Codex 对抗性审查全统计（至 session 6 结束）
+- **9 轮审查 · ~33 findings 全闭合**（含 session 6 三轮 + 二次复审）
 - 平均每轮从 4 HIGH 收敛到 1-2 HIGH · 质量曲线明显
 - 最深发现：SPIKE-04 op-log phantom data（marker-loss crash window）· SPIKE-05 后端 IPC queue 满 HOL
+
+### Spike W0 · SPIKE-01 Phase A（session 7 · PR #20）
+- [x] Tauri 2 vanilla-ts 骨架（`spike-tmp/spike-01-tauri/` · gitignored · 8.4MB binary · 8.2MB .app bundle）
+- [x] Rust 端冷启动埋点（`boot_start` → `setup` callback · 差值打 stderr）
+- [x] 测量脚本（mac + Ubuntu 两份 · 仓库归档 `docs/spikes/scripts/SPIKE-01/`）
+- [x] **macOS 冷启动 10 次中位数 202ms**（目标 < 2000ms · 10× 余量）· Min 189 · Max 239 · Range 50ms 极稳
+- [x] **Bundle 8.2MB**（目标 < 20MB · 2.4× 余量）
+- [x] 人工验证 5/5 pass：渲染 / resize / 最小最大关闭 / IME 中文输入 / 5 分钟稳定
+- [x] IME 录屏归档（本地 `spike-artifacts/` · gitignored · 2.4MB 大文件不入 repo）
+- [x] Phase B Ubuntu 原话 prompt 准备就绪（`docs/spikes/SPIKE-01-report.md §5.1`）
+- [ ] **Phase B Ubuntu X11 + Wayland**（等用户环境就绪 · 触发后完成 3 平台全过才翻 SPIKE-01 done）
 
 ## 🔜 下一步（按执行顺序）
 
@@ -91,14 +106,16 @@
 
 触发时按 `docs/BRANCH-PROTECTION.md` checklist 一次性应用。
 
-### 🚀 **Spike Week 0**（Phase 1-4 全备 · 可启动）
+### 🚀 **Spike Week 0**（进行中 · SPIKE-01 Phase A 已 PASS）
 
-1. **W0-D1** · [SPIKE-01 Tauri 三平台空壳启动](./tasks/SPIKE-01-tauri-three-platform-boot.md)
-2. **W0-D2** · [SPIKE-02 Tauri 硬通过矩阵](./tasks/SPIKE-02-tauri-hard-pass-matrix.md)（R12 CRITICAL · 失败触发 Electron fallback）
-3. **W0-D3** · [SPIKE-03 git2 vs gix benchmark](./tasks/SPIKE-03-git2-gix-read-benchmark.md)（linux kernel 仓库 · R3）
-4. **W0-D4** · [SPIKE-04 redb vs rusqlite + git2 写](./tasks/SPIKE-04-storage-benchmark.md)（R27 · B.5 含 reconcile forward）
-5. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md)（B.4 前端/后端/hidden-tab 三子场景 HOL）
-6. **W0-D6** · [SPIKE-06 Claude/Codex CLI 实机 + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md)（R1 保留 · 样本录制 · gitleaks 硬阻塞）
+1. **W0-D1** · [SPIKE-01](./tasks/SPIKE-01-tauri-three-platform-boot.md) · **Phase A macOS ✅ PASS（PR #20 merged）** · **Phase B Ubuntu 等环境就绪**
+2. **W0-D2** · [SPIKE-02 Tauri 硬通过矩阵](./tasks/SPIKE-02-tauri-hard-pass-matrix.md)（R12 CRITICAL · blocked by SPIKE-01 full done）
+3. **W0-D3** · [SPIKE-03 git2 vs gix benchmark](./tasks/SPIKE-03-git2-gix-read-benchmark.md)（linux kernel 仓库 · R3 · blocked by SPIKE-01 full done · ⚠️ 可讨论是否并行解锁 · bench 类不依赖 Tauri UI）
+4. **W0-D4** · [SPIKE-04 redb vs rusqlite + git2 写](./tasks/SPIKE-04-storage-benchmark.md)（R27 · B.5 含 reconcile forward · blocked by SPIKE-01 full done · ⚠️ 同上）
+5. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md)（B.4 前端/后端/hidden-tab 三子场景 HOL · blocked by SPIKE-01 full done）
+6. **W0-D6** · [SPIKE-06 Claude/Codex CLI 实机 + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md)（R1 保留 · 样本录制 · gitleaks 硬阻塞 · blocked by SPIKE-01 full done）
+
+**并行化讨论点**：SPIKE-03/04 是 CLI benchmark（git2 / redb / storage）· 不依赖 Tauri UI · 不依赖 Ubuntu GUI · 仅依赖 Rust toolchain（已就绪）。严格按 spec `blocks` 关系 · 这两个 spec 目前 blocked 在 SPIKE-01 full done；但 **macOS Phase A 的强信号已经足够证明 Tauri 可用** · 反向推翻风险低。若用户决定并行解锁 SPIKE-03/04 · 需修改对应 spec 的 `depends_on` 语义（从 "SPIKE-01 full done" 改为 "SPIKE-01 Phase A done"）。
 
 ### 📦 Spike W0 通过后 · MVP 实施（目标 v0.1 GA · 12-14 周）
 
@@ -107,9 +124,10 @@
 
 ## ⚠️ 当前卡点 / 注意事项
 
+- **Ubuntu 24 环境缺失**（Phase B 前置 · 阻塞 SPIKE-01 full done · 从而阻塞下游 5 个 Spike）· 缓解：用户补物理机 / VM / 或 SSH 远程 Ubuntu · 原话 prompt 已备即拿即用
 - **分支保护已显式暂缓**（用户表态 · 单人 + Codex review 模式下不致命 · 升级触发条件见上方 §🔐 用户手动步骤）
 - **R1 Claude/Codex CLI 协议**：SPIKE-06 样本录制 · R1 降级须经 SPIKE-07 parser 验证 + ADR-011
-- **R12 CRITICAL Tauri Wayland**：SPIKE-02 必过 · 失败切 Electron + 1-2 周额外工期
+- **R12 CRITICAL Tauri Wayland**：Phase A macOS PASS 强信号 · 但 Wayland + webkit2gtk + IME 仍是关键未验收点 · 不要因 macOS 过就提前放松
 - **R27 存储 silent loss**：SPIKE-04 B.5 reconcile forward 设计须实机验证
 - **Apple Developer Program 审核**：W0-D6 立刻提交 · 最长 2 周影响 v0.1 发布（W12）
 - **域名未定**（W10 决定）· **Logo 未最终选定**（v0.1 前定）
@@ -119,8 +137,8 @@
 | 信号 | 触发 |
 |------|------|
 | ✅ Phase 1-4 Pre-code 完备 | **已达成**（2026-04-18 session 5 · 4 PR 全 merge）|
-| 🟡 Spike W0 启动 | **已达成**（用户表态分支保护暂缓 · 流程靠 reviewer 守门 · accepted tech debt · 见上方 §🔐 用户手动步骤）|
-| 🟡 Spike Pass | W0-D6 全过（Tauri / git2 / storage / PTY / CLI 五硬通过 + Apple 申请）|
+| ✅ Spike W0 启动 | **已达成**（2026-04-18 session 7 · 第一行 Rust 代码入盒 · SPIKE-01 Phase A macOS PASS · PR #20）|
+| 🟡 Spike Pass | W0-D6 全过（SPIKE-01 full done 需补 Phase B Ubuntu / 然后 02-06 顺序 · Apple 申请并行）|
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede |
 | 🟡 MVP 实施启动 | Spike W0 + ADR-003/005/006/007 proposed → accepted |
 | 🎯 v0.1 GA | MVP-01..10 全过 §10.1 + §10.6 终端正确性矩阵 + §10.3 跨平台 |
@@ -142,7 +160,20 @@
 
 ---
 
-## Session 日志（近 4 次）
+## Session 日志（近 5 次）
+
+### Session 7（2026-04-18 夜）· Spike W0 启动 · SPIKE-01 Phase A PASS（第一行代码里程碑）
+- **第一行 Rust 代码入盒**：`spike-tmp/spike-01-tauri/`（gitignored）· Tauri 2 vanilla-ts 骨架 · 8.4MB binary
+- **macOS 冷启动实测**：10 次采样 median **202ms**（目标 < 2000ms · **10× 余量** · Min 189 / Max 239 / Range 50ms 极稳）
+- **Bundle 8.2MB**（目标 < 20MB · 2.4× 余量）
+- **人工验证 5/5 pass**：窗口渲染 / resize / 最小最大关闭 / IME 中文输入（拼音 + 候选词正常）/ 5 分钟稳定性
+- **IME 录屏**：本地存 `spike-artifacts/SPIKE-01/macos-ime.mov`（2.4MB · gitignored · 中途 amend 修了一次录屏误入 commit 的事故 · 补了 `.gitignore` `spike-artifacts/` 规则）
+- **PR #20 `2ed80f4`** · 3 commits：`ad1852e` claim + `1085a7b` 骨架 + `bff7a2e` 数据回填 + .gitignore 修复
+- **环境栈就绪**：rustup stable (rustc 1.95.0 · 2026-04-14) + NVM Node 20.17.0 + pnpm 9.15.9 (绕开 corepack 0.29.3 签名 bug) + tauri-cli 2.x + Xcode CLT
+- **Phase B Ubuntu 策略**：用户暂无 Ubuntu 24 环境 → 在 report §5.1 写好**给接手 agent 的原话 prompt**（自包含背景 / 任务 / 步骤 / 返回格式）· 未来任意 Ubuntu agent / 人肉执行者都可直接粘贴复用
+- **SPIKE-01 整体 status 保持 in-progress**：尊重 spec "3 平台全过" 规则 · 单平台过不算整体过 · 下游 SPIKE-02..06 仍 blocked 在 full done
+- **并行化讨论待决**：SPIKE-03/04 是 CLI benchmark · 不依赖 Tauri UI · 严格按 blocks 关系被阻 · macOS Phase A 强信号下可讨论修改 depends_on 语义解锁
+- **用户新增协作规则**：agent 在完成阶段 / 需要分工时 · 必须给出**原话 prompt** · 用户直接转达给其他 agent（Claude / Codex / Cursor / 人肉均可）· Phase B Ubuntu prompt 是本规则落地的第一个产出
 
 ### Session 6（2026-04-18 晚上-夜）· Codex 三轮评审 + PR #17 缩范围 + PR #18 ready 翻转 + 后续修复
 - **Codex round-1 评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）

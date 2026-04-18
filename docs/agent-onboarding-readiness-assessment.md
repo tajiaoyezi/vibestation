@@ -1,3 +1,13 @@
+> ⚠️ **HISTORICAL SNAPSHOT · 已被部分修复**
+>
+> 本文档是 **Codex round-1 评估稿**（pre-PR-17 状态），评分 7/10，命中 5 项问题。
+> PR #17 已修复其中 4 项（入口文档过期 / §512 笔误 / AGENTS.md 错乱 / ready=0 流程阻塞通过 PR #19 后续解锁）；§5.4 断链待 PR #18 重写；分支保护用户暂缓。
+> **最新现状**以 [`docs/PROGRESS.md`](./PROGRESS.md) 和 [`AGENTS.md`](../AGENTS.md) 为准 · 本文件保留作为评审历史档案，**不应作为当前 onboarding 入口**。
+>
+> 后续可演进路径：迁到 `docs/session-history/`，或随每轮 codex 评估累积成 onboarding 自检系列文档。
+
+---
+
 # Vibestation · 新接手 Agent 介入开发可行性复核
 
 > 评估时间：2026-04-18

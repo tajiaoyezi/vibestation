@@ -232,6 +232,25 @@ git push
      - 任一 merge 后发现 gate 违规 → 立刻开 revert PR + 复盘写入 `docs/session-history/`
      - Phase 4 validator 上线后：本条第 7 项自动失效，规则从 "advisory" 升级为 "enforced"
 
+8. **🔀 翻转 gate "(b) 路径变种"** · 分支保护暂缓阶段的合规说明（Codex round-3 PR #18 review 复核）：
+
+   本节是上方第 7 步 `(a)/(b)` gate 在**当前 accepted tech debt 状态**下的正式衍生路径。**纯术语收敛 · 不引入新规则**。
+
+   **背景**：上方 `(b)` 标准路径强依赖 GitHub 分支保护 `require approval from latest commit`，但项目当前分支保护已被用户显式暂缓（accepted tech debt）。在该状态下 `(b)` 标准路径的"技术强制"缺失。
+
+   **(b) 路径变种** = 在分支保护暂缓阶段对 `(b)` 的人工执行版本：
+
+   - **流程上等价于 (b)**：Author push 翻转 commit + Reviewer re-approve 最新 HEAD
+   - **替代品**：靠 reviewer 真实 GitHub UI approve（`reviews ≠ ∅`）+ reviewer 在 PR comment 里**显式声明走哪个路径**（README §第 7 步 (a)/(b) 二选一）
+   - **关键硬要件**：
+     - `gh pr view <N> --json reviews` 返回的 `reviews` 列表**必须非空**（含至少一个 `state: APPROVED`）
+     - PR comments 必须含 reviewer 的路径声明（防作者私自代签）
+   - **不合规变种**（已被 PR #17 v1 codex round-2 抓出 BLOCK）：
+     - "merge 间接 approve"：作者 push 翻转 commit + 直接 squash merge · `reviews=[]` · 不算 approve
+     - "comments=[]"：reviewer 没在 PR 评论里声明路径 · 即使 `reviews ≠ ∅` 也仍违反 README §205 要求
+
+   **何时升级**：分支保护一旦应用（升级触发条件见 `docs/PROGRESS.md §🔐 用户手动步骤`），本变种自动失效，规则回归 `(b)` 标准路径（技术强制 require-from-latest）。
+
 ---
 
 **本目录 Phase 2 建立（2026-04-18）。SPIKE-01..06 作为 Spike W0 启动的硬依赖。**

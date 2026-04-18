@@ -27,23 +27,30 @@
 ## 🔄 状态流转
 
 ```
-draft ──┐
-        ├──► ready ──► in-progress ──► done
-        │        ▲           │
-        │        └──────────┤
-        │                    ▼
-        └──────────────► blocked ──► ready（blocker 解除）
+      (新建)          (spec 过独立评审)    (认领)         (Acceptance 全过)
+draft ────────► ready ──────────────► in-progress ────────────► done
+                  ▲ │                      ▲ │
+                  │ │ (外部阻塞)           │ │ (外部阻塞)
+                  │ └────► blocked ◄──────┘ │
+                  │   (blocked_by 填原因)   │
+                  └──── (阻塞解除恢复原状态)─┘
 ```
 
-| 状态 | 含义 | 进入条件 |
-|------|------|---------|
-| `draft` | 草稿，字段未填完 | 新建 |
-| `ready` | 可被认领，字段完整，Acceptance 明确 | 作者自审 + 独立评审通过 |
-| `in-progress` | 已被某 agent/人类认领实施 | PR 打开且分支存在 |
-| `blocked` | 被依赖项或外部资源阻塞 | `blocked_by` 字段填 task-id / 外部资源，`blocked_note` 可选填人类可读原因 |
-| `done` | PR 已 merge 到 main，Acceptance 全过 | Acceptance 逐项勾完 + merge |
+| 状态 | 含义 | 进入条件 | 出口条件 |
+|------|------|---------|---------|
+| `draft` | 草稿，字段未填完 / 未评审 | 新建 | 作者自审 + 独立评审通过 → `ready` |
+| `ready` | 可被认领，字段完整，Acceptance 明确 | spec PR 评审通过（同 PR 最后一个 commit 改 `status: ready`）| 某 agent 认领 → `in-progress` · 或遇外部阻塞 → `blocked` |
+| `in-progress` | 已被认领并实施中 | 实施 PR 首个 commit 改 `owner` + `status: in-progress` | Acceptance 全过 → `done` · 或遇外部阻塞 → `blocked` |
+| `blocked` | 被依赖项或外部资源阻塞 | 从 `ready` 或 `in-progress` 进入；必填 `blocked_by`（上游 task-id 或外部资源名）；可选 `blocked_note`（人类可读原因）| 阻塞解除 → **恢复到进入前的状态**（见下方规则）|
+| `done` | PR 已 merge 到 main，Acceptance 全过 | 实施 PR merge 前最后一个 commit 改 `reviewer` + `status: done` → merge | 终态（不删文件，作为历史留档）|
 
-**规则**：
+**`blocked` 状态恢复规则**（解除阻塞时执行）：
+
+- 从 `in-progress` 进入 `blocked`：解除后**回到 `in-progress`**，`owner` **保留**，对应 branch 和 open PR **不动**（agent 继续原工作）
+- 从 `ready` 进入 `blocked`：解除后**回到 `ready`**，`owner` 保持空（等待新 agent 认领）
+- 解除时必做：清空 `blocked_by` 和 `blocked_note` 字段
+
+**其他规则**：
 - 状态字段**必须**与 `PROGRESS.md`、PR description 一致
 - `done` 状态的 task 文件**不删除**，作为历史留档（Phase 3 可选归档到 `docs/session-history/`）
 
@@ -129,13 +136,15 @@ draft ──┐
 
 ---
 
-## 🚀 新建 task 的流程
+## 🚀 新建 task 的流程（spec 创建 PR · `draft → ready` 落盘）
+
+> 本流程用于**创建新的 task spec**（从无到 `status: ready`）。实施 task 的流程见 `CLAUDE.md` "🚀 新 Agent 首次启动" 第 5 步（`ready → in-progress → done`）。
 
 ```bash
 # 1. 复制模板
 cp docs/tasks/_template.md docs/tasks/SPIKE-07-<slug>.md
 
-# 2. 填写 frontmatter + 正文 section
+# 2. 填写 frontmatter（默认 status: draft）+ 正文 section
 
 # 3. 开 feature 分支
 git checkout -b docs/tasks/SPIKE-07-<slug>
@@ -147,10 +156,20 @@ git checkout -b docs/tasks/SPIKE-07-<slug>
 git commit -m "docs(tasks): 新增 SPIKE-07 <中文描述>
 
 Co-authored-by: <Agent Identity> via <email>"
+git push -u origin docs/tasks/SPIKE-07-<slug>
+gh pr create
 
-# 6. PR description 写 "Implemented by: X · Reviewed by: Y"
+# 6. PR description 必填：
+#    - Author: <作者 agent-id>
+#    - Spec Reviewed by: <待评审>（和实施 task 的 Reviewer 不同）
 
-# 7. 独立评审（≠ 原作者）→ merge
+# 7. 独立评审（≠ 原作者）approve 后，在 merge 前最后一个 commit
+#    把 task status 从 draft 改为 ready：
+git commit -m "chore(tasks/SPIKE-07): spec reviewed, status: ready"
+git push
+
+# 8. merge → 此后其他 agent 可从 status: ready 认领
+#    （走 CLAUDE.md 5 步导游的"认领 → 开工 → 收尾"流程）
 ```
 
 ---

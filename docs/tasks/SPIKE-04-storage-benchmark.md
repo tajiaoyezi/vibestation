@@ -37,7 +37,9 @@ reviewer:
 
 ## ✅ 通过标准（Pass Criteria）
 
-### A. Storage Benchmark（主线）
+> ⚠️ **R27 真正消除 = A（性能）+ B（数据安全）都通过**。仅 A 通过只能说"性能可接受"，不能说 R27 已消除。Codex PR #3 Round 1 Finding 1 教训。
+
+### A. Storage 性能 benchmark（主线 · 阻塞项）
 
 - [ ] **数据集构造**：10 workspace × 100 profile × 10,000 snapshot（总 ~1000 万行）
 - [ ] **redb 2 benchmark**：
@@ -45,14 +47,42 @@ reviewer:
   - [ ] 单键读取 P99 < 5ms
   - [ ] 范围查询（workspace 下 100 profile）P99 < 50ms
   - [ ] DB 文件大小 / 压缩后大小
-- [ ] **rusqlite benchmark**（相同场景，相同硬件，同次跑）
-- [ ] **对比结论**（下面 3 种之一）：
-  - (A) redb 2 所有场景达标 → 锁定 redb，`CLAUDE.md` #14 B → A
-  - (B) redb 2 读写满足但稳定性有疑虑（crash / 数据损坏率 > 0）→ 锁定 rusqlite
-  - (C) redb 2 性能不满足 → 锁定 rusqlite
+- [ ] **rusqlite benchmark**（相同场景，相同硬件，同次跑，fsync 策略对齐）
+
+### B. Storage 数据安全 · R27 真正消除（主线 · 阻塞项 · Codex PR #3 加入）
+
+> `implementation-plan.md §9 R27` 真实风险是"redb 文件损坏或升级迁移失败导致用户数据丢失"。缓解项包括 `schema_version`、备份、自检回滚、导入导出。性能 benchmark 无法消除该风险。
+
+**B.1 · Crash / 断电恢复**（进程级）
+- [ ] 在写入中途（10% / 50% / 90% 进度各一次）用 `kill -9` 终止进程
+- [ ] 重启进程后 DB 能被打开、已提交的事务完整、未提交的事务丢失但不污染
+- [ ] 三种场景各测 10 次，0 次出现"库无法打开"或"数据交错损坏"
+
+**B.2 · 坏库检测**
+- [ ] 手动在 `.redb` 文件中间写入 512 字节随机数据
+- [ ] 打开时能明确报错（不是 silent 成功或 segfault）
+- [ ] 错误可映射到"用户可读的恢复建议"（如"从备份还原"）
+
+**B.3 · Schema 迁移前后兼容**
+- [ ] DB 文件头部带 `schema_version` 标记
+- [ ] 写一个旧 schema → 新 schema 的 migration 脚本
+- [ ] migration 成功率 100%（10 次各种数据量样本测试）
+- [ ] 新版本读旧 DB：能识别旧版本并触发 migration，不会 silent 覆盖
+- [ ] 旧版本读新 DB：能识别并拒绝加载（不是崩溃）
+
+**B.4 · 备份 / 恢复闭环**
+- [ ] 能导出 `.redb` 整文件到用户指定备份路径
+- [ ] 从备份恢复到新路径，校验数据完整性（对比原库的 checksum / row count）
+- [ ] 对 rusqlite 做等价测试
+
+**B.5 · 综合结论**（基于 A + B 共同决定）
+- [ ] (A) redb 2 · A 达标 + B 全通过 → 锁定 redb，`CLAUDE.md` #14 B → A，R27 消除
+- [ ] (B) redb 2 · A 达标但 B 任一项失败 → **R27 未消除**，锁定 rusqlite 兜底
+- [ ] (C) redb 2 · A 不达标 → 锁定 rusqlite（性能优先）
+- [ ] (D) 双失败 → Arbiter 仲裁，扩展 Spike 评估 sled 或 LMDB
 - [ ] 结论写入 **ADR-005**（Phase 3 后建立）
 
-### B. Git2 写路径 smoke test（副线）
+### C. Git2 写路径 smoke test（副线）
 
 - [ ] 在临时 repo 里用 git2 完成：`add` + `commit` + 验证 commit hash 正确
 - [ ] 支持中文 commit message（UTF-8 无乱码）
@@ -60,21 +90,29 @@ reviewer:
 
 ## ❌ 失败信号（Fail Signals）
 
-Storage：
+Storage 性能（A）：
 
-- redb 2 在 1000 万行测试中出现数据损坏 / crash → 直接切 rusqlite（R27 触发）
-- rusqlite 和 redb 双方都不达标 → 升级为 Arbiter 仲裁（需要 D5 额外半天做其他存储方案评估，如 sled 0.34）
+- redb 2 在 1000 万行性能测试中出现数据损坏 / crash（写入过程）→ 直接切 rusqlite（R27 触发）
+- rusqlite 和 redb 两方性能都不达标 → Arbiter 仲裁扩展评估 sled / LMDB
 
-Git2 写：
+**Storage 数据安全（B · Codex 加入）**：
+
+- **B.1 crash 恢复失败**：任一场景库无法打开 → 锁定 rusqlite 或扩展评估
+- **B.2 坏库检测失败**：silent 成功或 segfault → 锁定 rusqlite
+- **B.3 migration 兼容失败**：旧版本读新 DB 崩溃 → 锁定 rusqlite
+- **B.4 备份恢复失败**：恢复后数据 checksum 不匹配 → 锁定 rusqlite
+
+Git2 写（C）：
 
 - 中文 commit message 乱码 → 调查 UTF-8 encoding 参数
 - `commit` 成功但 git log 读不到 → 调查 ref update
 
 ## 🔀 Fallback 方案
 
-**Storage 通过 (A)** → `CLAUDE.md` #14 锁定 redb 2，B → A
-**Storage 通过 (B)/(C)** → `CLAUDE.md` #14 更新为 "rusqlite"，B 栏保留 fallback 注
-**Storage 双失败** → Arbiter 仲裁是否扩展 Spike 评估 sled
+**Storage A + B 全通过** → `CLAUDE.md` #14 锁定 redb 2，B → A，R27 消除
+**Storage A 通过但 B 任一失败** → **R27 未真正消除**，锁定 rusqlite
+**Storage A 不达标** → 锁定 rusqlite
+**双失败** → Arbiter 仲裁
 
 **Git2 写通过** → MVP-0X commit 功能 spec 可正式写入
 **Git2 写失败** → 调查 + 增补 SPIKE-04.5 专项 spike（不扩展本 Spike）

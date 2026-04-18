@@ -1,0 +1,131 @@
+# CI skeleton · Phase 4 建立，Spike W0 后逐步填充真实 job
+# 当前状态（2026-04-18 · pre-code）：
+#   - Rust / TypeScript 代码尚不存在（Cargo.toml / package.json 在 Spike W0 创建）
+#   - 本文件占位 + 文档字段校验 job · 其他 job 作为占位 step 运行 echo
+#   - Spike W0 后填充 cargo clippy / cargo test / cargo fmt / pnpm lint / pnpm typecheck
+#
+# 设计：每个 job 独立 · 失败一个不影响其他 job 继续跑 · 便于 PR 看到完整失败清单
+# 超时：每 job ≤ 10min（CI 成本 + 失败反馈速度）
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ────────────── 文档 / Spec 校验（当前阶段唯一实际工作的 job）──────────────
+  markdown-lint:
+    name: Markdown lint · 文档一致性
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: contains(github.event.pull_request.changed_files, 'md') || true  # 当前总是跑
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for trailing whitespace
+        run: |
+          if grep -rn ' $' --include='*.md' docs/ CLAUDE.md README.md NOTICE 2>/dev/null; then
+            echo "::error::Trailing whitespace detected in Markdown files"
+            exit 1
+          fi
+          echo "✓ No trailing whitespace"
+
+      - name: Check for broken internal anchor links（简化版）
+        run: |
+          # 仅检查明显的坏链接格式（如 [text]() 空 href）
+          broken=$(grep -rn '\](\(\))' --include='*.md' docs/ 2>/dev/null || true)
+          if [ -n "$broken" ]; then
+            echo "::warning::Empty anchor links detected:"
+            echo "$broken"
+          fi
+          echo "✓ No obvious broken anchor links"
+
+  # ────────────── Rust 构建与测试（Spike W0 后填充）──────────────
+  rust-build:
+    name: Rust · cargo check (placeholder)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # pre-code 阶段跳过 · Spike W0 后改为 true
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+      - name: cargo clippy -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: cargo test
+        run: cargo test --workspace
+
+  # ────────────── Frontend 构建与测试（Spike W0 后填充）──────────────
+  frontend-build:
+    name: Frontend · pnpm lint/typecheck (placeholder)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # pre-code 阶段跳过 · Spike W0 后改为 true
+    if: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm lint
+        run: pnpm lint
+
+      - name: pnpm typecheck
+        run: pnpm typecheck
+
+  # ────────────── 占位 placeholder（pre-code 状态指示器）──────────────
+  pre-code-status:
+    name: Pre-code status · 当前阶段说明
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Status
+        run: |
+          echo "📌 Phase 4 CI skeleton (pre-code stage)"
+          echo "   · markdown-lint: active"
+          echo "   · rust-build: disabled (enable after Spike W0)"
+          echo "   · frontend-build: disabled (enable after Spike W0)"
+          echo "   · secret-scan: active (see .github/workflows/secret-scan.yml)"
+          echo "   · task-spec-validator: active (see .github/workflows/task-spec-validator.yml)"
+          echo ""
+          echo "See: docs/BRANCH-PROTECTION.md for required-checks config guide."

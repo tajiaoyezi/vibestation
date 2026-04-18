@@ -1,0 +1,98 @@
+name: 📋 Task Spec Proposal · 新 task spec 提议
+description: 提议新建一个 task spec（SPIKE / MVP / BUG / FEAT）· 用于 maintainer 认可后正式 PR
+title: "[TASK] "
+labels: ["task-proposal", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **此模板用于提议**新的 task spec（未来可走 `docs/tasks/_template.md` 流程写正式 spec）。
+        直接写完整 spec 请开 PR（follow `docs/tasks/README.md` 第 7 步流程），不走本模板。
+
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: Task 类型
+      options:
+        - SPIKE（技术验证 / benchmark）
+        - MVP（MVP 功能 · v0.1 范围只允许 MVP-01..20 之外的 spec proposal · 极少见）
+        - FEAT（v0.2+ 功能）
+        - BUG（已确认缺陷 · 建议走 Bug Report 模板）
+    validations:
+      required: true
+
+  - type: input
+    id: proposed-id
+    attributes:
+      label: 建议 ID
+      description: "格式：<TYPE>-<编号>-<slug> · 例：SPIKE-07-cli-protocol-parser"
+      placeholder: "SPIKE-07-cli-protocol-parser"
+    validations:
+      required: true
+
+  - type: input
+    id: summary
+    attributes:
+      label: 一句话描述
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 动机（为什么现在做）
+      description: 对应 `implementation-plan.md` / `CLAUDE.md` 决策表哪条？对应哪个 R 风险？
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope（做什么 / 不做什么）
+      value: |
+        **Do**：
+        -
+
+        **Don't**：
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance 骨架
+      description: 可量化判据 · 后续 PR 里详化
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依赖 / 阻塞
+      placeholder: "depends_on: [SPIKE-06]\nblocks: []"
+    validations:
+      required: false
+
+  - type: input
+    id: estimate
+    attributes:
+      label: 工期估计
+      placeholder: "0.5d / 1d / 3d / 1w"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: pre-submit
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 已搜索 [现有 issues](https://github.com/tajiaoyezi/vibestation/issues?q=is%3Aissue) 无重复
+          required: true
+        - label: 此 task 不重复 docs/tasks/SPIKE-01..06 和 MVP-01..20 已存在的 spec
+          required: true
+        - label: 自审四问过关（递归完备性 / 反向场景 / 边界适用性 / YAGNI · 见 CLAUDE.md）
+          required: true

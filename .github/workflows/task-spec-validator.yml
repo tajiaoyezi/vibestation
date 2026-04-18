@@ -1,0 +1,110 @@
+# Task spec frontmatter validator
+# 来源：README.md §原则 7（state transition gate · Codex PR #10 F1）· Phase 4 落地
+# 目的：自动校验 task spec frontmatter schema · 防 draft → ready / ready → done 翻转漏洞
+#
+# 触发策略（Codex PR #11 review F1 教训）：
+#   GitHub 官方文档：带 `paths` 过滤的 workflow 在无关 PR 上会被 skipped · check 保持 Pending ·
+#   若是 required status check 则**永久阻塞合并**。
+#   → 解决方式：workflow 总是触发（无 paths filter），在 job 内用 git diff 判断是否需要跑校验 ·
+#     无相关变更直接 exit 0 (success)，保证 required check 永远产生终态结论（pass/fail，不 pending）。
+
+name: Task Spec Validator
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate task spec frontmatter
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 需要 base branch 全历史才能 diff detect 变更文件
+          fetch-depth: 0
+
+      - name: Detect relevant changes
+        id: detect
+        run: |
+          # 对 pull_request / push / manual 三种触发分别算 diff base
+          # PR: base ref · push: 前一个 commit · workflow_dispatch: 强制全量
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            BASE_SHA="${{ github.event.before }}"
+            # 新 branch 首次 push · before 是 all-zeros · 直接全量
+            if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              echo "changed=all" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            # workflow_dispatch / 其他：强制全量校验
+            echo "changed=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 在 base..HEAD 范围内检查相关文件变更
+          CHANGED=$(git diff --name-only "$BASE_SHA" HEAD -- \
+            'docs/tasks/*.md' \
+            'scripts/validate-task-spec.mjs' \
+            '.github/workflows/task-spec-validator.yml' \
+            || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "changed=none" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No task-spec-related changes detected in this diff."
+          else
+            echo "changed=yes" >> "$GITHUB_OUTPUT"
+            echo "📝 Detected changes in:"
+            echo "$CHANGED"
+          fi
+
+      - name: Setup Node.js
+        if: steps.detect.outputs.changed != 'none'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run validator (all specs)
+        if: steps.detect.outputs.changed != 'none'
+        run: node scripts/validate-task-spec.mjs
+
+      - name: Skip notice (no relevant changes)
+        if: steps.detect.outputs.changed == 'none'
+        run: |
+          echo "✓ This PR / push does not modify task specs or the validator."
+          echo "  Task spec validator check passes trivially (no-op)."
+          echo ""
+          echo "  This design prevents required-check Pending bug:"
+          echo "  workflow always runs and always reaches a terminal state (pass/fail),"
+          echo "  so branch protection can rely on this check without false blocks."
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## Task Spec Validation"
+            echo ""
+            echo "Trigger changed mode: \`${{ steps.detect.outputs.changed }}\`"
+            echo "Script: \`scripts/validate-task-spec.mjs\`"
+            echo ""
+            if [ "${{ steps.detect.outputs.changed }}" = "none" ]; then
+              echo "No task spec changes in this diff · validator skipped (no-op success)."
+            else
+              echo "若失败：按 \`docs/tasks/README.md\` 字段说明修复 frontmatter。"
+              echo ""
+              echo "常见错误："
+              echo "- \`status: blocked\` 必填 \`blocked_by\` + \`blocked_from\`"
+              echo "- \`status: done\` 必填 \`reviewer\`（且 ≠ \`owner\`）"
+              echo "- \`status: in-progress\` 必填 \`owner\`"
+              echo "- 文件名前缀必须与 \`id\` 一致"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

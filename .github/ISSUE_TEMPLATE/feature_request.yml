@@ -1,0 +1,74 @@
+name: ✨ Feature Request · 功能建议
+description: 建议新功能 · v0.2+ 范围走本模板，MVP v0.1 范围功能已在 docs/tasks/MVP-01..10 锁定
+title: "[FEAT] "
+labels: ["feature", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **提交前**：
+        - MVP v0.1 范围**已锁定**（`implementation-plan.md §10.1` B 折中方案）· 超出此范围的建议自动进入 v0.2+ 评估
+        - **AI-Aware / Mission Control / AI session 感知** 是 v1.0 vision（MVP/v0.2/v0.3 不提 · `CLAUDE.md` 决策表 #3）· 不接受此类对外宣传建议
+        - 不确定是否 in scope → 先到 [Discussions](https://github.com/tajiaoyezi/vibestation/discussions) 问
+
+  - type: input
+    id: summary
+    attributes:
+      label: 一句话描述功能
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 动机 / 用户场景
+      description: 谁在什么场景下需要？现在没有这个功能会怎样？
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 方案设想
+      description: 不必是最终方案；描述你期望的用户交互 / UI / 行为
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 替代方案 / 现有绕路
+      description: 现在用户用什么方式 work around？有没有其他方案比这个更好？
+    validations:
+      required: false
+
+  - type: dropdown
+    id: target-version
+    attributes:
+      label: 目标版本
+      description: 供维护者参考；最终由维护者决定
+      options:
+        - v0.1（MVP · 仅当你认为属于已锁定 §10.1 范围内的缺项）
+        - v0.2（Push/Pull/Fetch / rail graph / 高级 Pane 等）
+        - v0.3（Diff 语法高亮 / rebase / detach 等）
+        - v1.0（AI-Aware 相关 · 内部使用 · 不对外宣传）
+        - 不确定
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ai-aware-check
+    attributes:
+      label: AI-Aware 叙事合规
+      description: 对外可见功能建议不得以 "AI-Aware" / "Mission Control" 为核心叙事
+      options:
+        - label: 本建议不以 AI-Aware / AI session 感知 / Mission Control 作为核心对外卖点
+          required: true
+
+  - type: checkboxes
+    id: pre-submit
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索 [现有 issues / discussions](https://github.com/tajiaoyezi/vibestation/issues?q=is%3Aissue) 无重复
+          required: true

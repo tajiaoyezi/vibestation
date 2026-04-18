@@ -101,34 +101,55 @@ reviewer:
   - [ ] **Phase 2 失败场景**（DB commit 失败 / abort / crash）：append `{tx_id, status: "aborted", reason, ts_abort}` · 或什么都不 append（崩溃场景）
   - [ ] **Manifest**：每次 Phase 2 committed 后原子更新 `~/.vibestation/manifest.json`：`{schema_version, per_table: {row_count, table_checksum}, last_committed_tx_id}`（先写 `.tmp` + rename，原子）
 
-  **Op-log / DB / Manifest 三件套的语义**（用来区分 silent loss vs 正常 abort）：
-  - `pending` 但无后续 `committed` / `aborted` → **崩溃场景** · 允许（正常事务中途被 kill）
-  - `committed` 但 DB 查不到 → **真正的 silent loss** · 必须报警 + 回滚
-  - `aborted` 且 DB 查不到 → 正常 · 不报警
-  - `committed` 且 DB 查到 → 正常 · 一致
-  - [ ] **Op-log 保留策略**：保留到对应备份已成功创建为止（≥ 当前周期快照 + 3 份），老的滚动删除
-  - [ ] **崩溃恢复场景**：启动时扫 op-log 最后 N 条 pending 无 committed/aborted → 视为 crash interrupted · 不报警，交由用户感知（"上次有未完成操作"）
+  **Op-log / DB / Manifest 三件套的语义**（**Codex PR #10 R6 F1 复核修正**· DB 为 ground truth · 支持 reconcile forward）：
 
-- [ ] **启动自检**（基于 op-log / manifest · 区分 silent loss vs 正常 abort）：
+  > ⚠️ **R6 F1 教训**：2-phase ordering 留一个 crash window — DB commit 成功后 · 进程在写 op-log `committed` 或 manifest 更新之前崩溃。R5 的 spec 会把这种**合法已 committed 数据**误判为 silent loss / checksum 失败 · 触发不必要回滚。
+  >
+  > **修正**：**DB 是 ground truth · op-log / manifest 是辅助索引**。启动自检检测到"pending 无 committed 但 DB 有数据" / "DB row_count > manifest row_count" 时 · **必须先走 reconcile forward 路径** · 只有 DB 也缺数据时才报 silent loss。
+
+  四种交叉状态 + 处理方式：
+
+  | op-log 状态 | DB 里有数据 | 处理 |
+  |---|---|---|
+  | `committed` | ✅ 有 | **正常 · 一致** · 不报警 |
+  | `committed` | ❌ 无 | **真 silent loss** · 报警 + 回滚 |
+  | `pending` 无后续 | ✅ 有 | **Phase-2 marker 丢失**（R6 F1 场景）· **reconcile forward**：补写 `committed` 到 op-log + 更新 manifest · 继续启动 · 不报警 |
+  | `pending` 无后续 | ❌ 无 | **Crash interrupted**（事务中断）· 补写 `aborted` 到 op-log · 继续启动 · 可选 UI 提示 |
+  | `aborted` | ❌ 无 | 正常 · 不报警 |
+  | `aborted` | ✅ 有 | **矛盾状态**（不应发生）· 报警 + 进入详细诊断 |
+
+  - [ ] **Op-log 保留策略**：保留到对应备份已成功创建为止（≥ 当前周期快照 + 3 份），老的滚动删除
+  - [ ] **DB-first 原则**：op-log / manifest 不一致时 · **永远以 DB 的实际内容为真** · 用 DB 推导并修补 op-log / manifest · 不反向（不可用 op-log "强制" DB 回滚到某状态 · 除非 DB 确认有损坏）
+
+- [ ] **启动自检**（**基于 DB ground truth · reconcile forward 优先**）：
   - [ ] (1) 打开 DB + 读 `schema_version`
-  - [ ] (2) **对照 manifest**：逐表比对 row_count + table_checksum
-    - row_count 缺失 → **silent data loss 报警** · 具体丢失行数 = `manifest.row_count - db.row_count`
-    - table_checksum 不一致 → **silent overwrite 报警** · 进入回滚流程
-  - [ ] (3) **对照 op-log**（仅针对 `status: committed` 的条目 · 跳过 `pending` 和 `aborted`）：对最后 N 条 committed tx_id 做 DB sampling 校验（至少 100 条 · 或 op-log 全部）
-    - 若 op-log `committed` 声称已 commit 但 DB 查不到 → **silent logical loss** · 报警 + 回滚
-    - **禁止**对 `pending` 条目做同样校验（避免误判中断事务为 loss）
-  - [ ] (4) **悬挂事务扫描**：op-log 里 `pending` 无后续 `committed/aborted` 超过 N 分钟 → 视为 crash interrupted，UI 提示"上次有 M 个未完成操作"（可选：提供 cleanup 入口）
-  - [ ] 任一 (2)(3) check 失败 → 进入恢复流程；(4) 悬挂事务**不**触发回滚
+  - [ ] (2) **Reconcile forward 扫描**（在所有 silent-loss / overwrite 判定**之前**跑）：
+    - 对 op-log 中所有 `pending` 无后续条目 → 查 DB 里该 tx_id 对应的数据
+      - DB 有 → 补写 `committed` 到 op-log + 触发 manifest 重算（用 DB 实际 row_count + checksum 重建 manifest.json）
+      - DB 无 → 补写 `aborted` 到 op-log
+    - Reconcile forward 期间不触发任何回滚 · 纯前向修复
+  - [ ] (3) **Silent-loss 检测**（仅在 reconcile forward 完成后）：对 `status: committed` 条目做 DB sampling 校验（至少 100 条 · 或 op-log 全部）
+    - 若 op-log `committed` 声称 commit 但 DB 查不到 → **真 silent logical loss** · 报警 + 回滚
+  - [ ] (4) **Manifest 检测**（同样在 reconcile forward 后）：
+    - row_count / checksum 对照 DB 实际状态 → 若 DB < manifest（即真缺数据）→ silent loss · 报警
+    - 若 DB > manifest（DB 多于 manifest · 可能 marker loss 场景遗漏）→ 走 reconcile forward 兜底（重建 manifest · 不报警）
+  - [ ] (5) **悬挂事务扫描**：reconcile forward 已把 pending 都归类完毕 · 此步仅作日志记录
+
+- [ ] **Marker-loss crash test**（R6 F1 专项 · 必过）：
+  - [ ] 写入 50 行事务 → 在 DB 事务 commit 成功后但 op-log 写 `committed` 之前`kill -9`（用 fault injection 或改 app 加 debug 开关）
+  - [ ] 重启 → 自检必须走 reconcile forward 路径 → 补 `committed` marker + 重建 manifest → **不触发回滚**
+  - [ ] 验证：50 行数据全部保留（DB 里 + 自检后 manifest.row_count 正确）· 无 "silent data loss" / "silent overwrite" 误报
 - [ ] **last-good backup 链路**：
   - [ ] app 每次**干净退出**时异步创建 DB + manifest + op-log 的三件套快照 `~/.vibestation/backups/auto-<ts>.backup/`
   - [ ] 每 10min **周期性快照**（降级：崩溃场景也有近期备份）
   - [ ] 保留最近 3 份 + 1 份 "last-known-good"（每次启动自检通过后更新），老的自动回收
 - [ ] **自动回滚流程**：自检失败 → 弹窗 "DB 损坏 · 检测到 silent loss / overwrite · 从 `<ts>` 的备份恢复？"（给出备份时间 + 预计丢失数据范围 = `current - backup` 的 op-log diff）→ 用户确认 → 回滚 → 再跑自检 → 通过则启动，失败则提示用 export/import（B.4 路径）手动恢复
-- [ ] **Silent data loss 测试**（启动自检须能发现 · 区分真 loss vs 正常 abort）：
-  - [ ] **正常 abort 场景**（不得报警）：写入 100 行事务 → 在 DB commit 之前 `kill -9` → 重启 → op-log 里该事务只有 `pending` 无 `committed` → 自检**视为 crash interrupted**（不报 silent loss · 可选 UI 提示"上次有未完成操作"）
-  - [ ] **真 silent loss 场景**（必须报警）：写入 100 行事务 → DB commit 成功 + op-log 写 `committed` + manifest 已更新 → **手动破坏 DB 删掉后 20 行**（模拟 DB 层 silent corruption）→ 重启 → 自检对照 op-log `committed` 条目找不到对应 DB 数据 → **必须报 "silent data loss: 20 行 committed 但 DB 查不到"** 并触发回滚
+- [ ] **Silent data loss 测试**（启动自检须正确分类 3 种场景 · R6 F1 教训）：
+  - [ ] **正常 abort 场景**（不得报警 · 不得回滚）：写入 100 行事务 → 在 DB commit 之前 `kill -9` → 重启 → op-log 里该事务只有 `pending` 无 `committed` · DB 也无数据 → 自检走 **reconcile forward** 补 `aborted` → 不报 silent loss
+  - [ ] **Marker-loss 场景**（不得报警 · 不得回滚 · R6 F1 专项）：写入 50 行事务 → DB commit 成功但 op-log `committed` 未写前 `kill -9` → 重启 → op-log 只有 `pending` · DB 有数据 → 自检走 **reconcile forward** 补 `committed` + 重建 manifest → 50 行数据保留 · 无误报
+  - [ ] **真 silent loss 场景**（必须报警 + 回滚）：写入 100 行事务 → DB commit + op-log `committed` + manifest 完成 → **手动破坏 DB 删掉后 20 行**（模拟 DB 层 silent corruption）→ 重启 → reconcile forward 不改变状态（op-log 已 `committed`）→ silent-loss 检测对照 `committed` 条目找不到 DB 数据 → **报 "silent data loss: 20 行 committed 但 DB 查不到"** + 回滚
   - [ ] 手动在 `.redb` 中间 byte 改 1 个 → 启动自检 table_checksum 不匹配 → **必须**触发回滚，不得 silent "启动成功"
-  - [ ] 手动删除 `.redb` 中的某一行（不改 row_count 校验字段）→ 自检 row_count mismatch 必报警
+  - [ ] 手动删除 `.redb` 中的某一行（不改 row_count 校验字段）→ 自检 row_count mismatch → reconcile forward 尝试重建 manifest · 重建后仍对不上 committed op-log 条目 → silent loss 报警
 - [ ] **Silent overwrite 测试**（migration 场景）：
   - [ ] 启动 migration 到一半 `kill -9` → 重启后 DB 必须**原子呈现**："新 schema 完整写入" 或 "旧 schema 完整保留" 二选一
   - [ ] **禁止** "新 schema 一半覆盖旧 schema 一半"（旧版回退读失败 + 新版读数据错位，用户无感知）

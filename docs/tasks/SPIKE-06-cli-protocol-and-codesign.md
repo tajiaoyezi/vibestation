@@ -5,18 +5,29 @@ title: Claude CLI / Codex CLI 实机 + macOS Developer Program 申请
 status: draft
 owner:
 phase: W0-D6
-depends_on: ["SPIKE-05"]
+depends_on: ["SPIKE-05", "phase-4-infra-landing"]
 blocks: []
+blocked_by: []
+blocked_from:
+blocked_note:
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D6 · §9 R1
 risk_ref: R1
 reviewer:
 ---
 
+<!--
+  depends_on 包含外部资源 "phase-4-infra-landing"：Codex PR #10 R6 F2 教训 ·
+  SPIKE-06 §A.5.3 的 CI 硬阻塞依赖 .github/workflows/secret-scan.yml +
+  docs/BRANCH-PROTECTION.md · 这两个文件在 PR #11（Phase 4）落地 · 未 merge
+  前 SPIKE-06 实施进度应卡在 `status: blocked` / blocked_by: ["phase-4-infra-landing"]
+  / blocked_from: ready（待 ready 后用）。PR #11 merge 后从 depends_on 移除此条。
+-->
+
 # SPIKE-06: Claude CLI / Codex CLI 实机 + macOS Dev Program
 
 > **状态**：`draft`
-> **依赖**：SPIKE-05（PTY 架构已验证）
+> **依赖**：SPIKE-05（PTY 架构已验证）· `phase-4-infra-landing`（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 在 main · 来自 PR #11）
 > **战略依据**：[`implementation-plan.md §附录 A D6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
 
 ---
@@ -110,36 +121,59 @@ reviewer:
 - [ ] 替换 **git remote URL** 为 `https://github.com/EXAMPLE/REPO.git` 占位
 - [ ] **仓库 URL / 组织名** 替换为匿名（除非是公开样例）
 
-**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex PR #10 F4 + R5 F2 复核 · Phase 4 PR #11 已落地）
+**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex R4 F4 + R5 F2 + R6 F2 复核 · **conditional on Phase 4 landing**）
 
-> ⚠️ **Phase 4 基础设施已上线（PR #11 · merge 后）**：
-> - `.github/workflows/secret-scan.yml` · gitleaks PR + push 硬阻塞
-> - 分支保护应用 `docs/BRANCH-PROTECTION.md` 后，gitleaks check 成为 required status check
-> - `.gitleaks.toml` 暂不建（无 false positive 时保持 default 规则集，Phase 2 A.5.2 脱敏要求比 gitleaks 默认更严）
->
-> **Codex PR #10 R5 F2 复核教训**：原描述"Phase 4 scope"是空头承诺 · 本次修正后指向 PR #11 实际落地的文件路径。
+> ⚠️ **R6 F2 复核教训**：SPIKE-06 声明"CI 硬阻塞 gitleaks"的前提条件是 PR #11（Phase 4 基础设施）**已 merge 到 main**。在 PR #11 merge 前 · 这些 CI workflow 文件不存在 · 要求也不可能满足。解决方式：
+> 1. 把 `phase-4-infra-landing` 写进 SPIKE-06 `depends_on`（frontmatter · 已加）
+> 2. 本节要求**按 Phase 4 是否落地分情况**（conditional）
 
-**SPIKE-06 实施 agent 的硬要求**：
+**Pre-flight check（SPIKE-06 实施前 · 实施 agent 必做）**：
 
-- [ ] **本地 pre-commit 必跑**（merge 前 · 不依赖 CI）：
+```bash
+# 检查 Phase 4 基础设施是否已在 main
+test -f .github/workflows/secret-scan.yml || echo "❌ secret-scan.yml 缺失 · PR #11 未 merge"
+test -f docs/BRANCH-PROTECTION.md || echo "❌ BRANCH-PROTECTION 文档缺失 · PR #11 未 merge"
+gh api repos/tajiaoyezi/vibestation/branches/main/protection 2>/dev/null | jq '.required_status_checks.contexts[] | select(. == "gitleaks")' || echo "⚠️ gitleaks 未配为 required check · admin 未按 BRANCH-PROTECTION.md 应用"
+```
+
+如任一失败 → SPIKE-06 进入 `status: blocked` · `blocked_by: ["phase-4-infra-landing"]` · `blocked_from: ready`（按 `docs/tasks/README.md §blocked 状态恢复规则`）· 等 PR #11 merge 后恢复。
+
+---
+
+### 情况 A · PR #11 已 merge 到 main（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 存在）
+
+此时 CI 硬阻塞 **已上线** · 实施 agent 的要求：
+
+- [ ] **本地 pre-commit 必跑**（双保险 · merge 前）：
   ```bash
-  # 安装 gitleaks（一次性 · brew / apt / 下载 release 二选一）
-  brew install gitleaks  # or: apt install gitleaks  or download from releases
-  # merge PR 前对新 commit 的样本目录全量扫
+  brew install gitleaks
   gitleaks detect --source docs/spikes/SPIKE-06-report.md --source docs/spike-artifacts/SPIKE-06/
-  # 要求：零 hit 通过 · 不得忽略任一 finding
+  # 要求：零 hit 通过
   ```
-- [ ] **Reviewer 双保险**：PR 描述**必须贴 `gitleaks detect` 命令本地输出截图**（零 hit 证据）· CI 也必须通过 `.github/workflows/secret-scan.yml`（双检查）
-- [ ] **CI 硬阻塞（PR #11 落地）**：
+- [ ] **CI 硬阻塞**（PR 自动跑 · 失败不可 merge）：
   - Workflow 文件：`.github/workflows/secret-scan.yml`（gitleaks-action@v2）
   - 触发：PR + push main · workflow_dispatch 手动
-  - 权限：`contents: read` + `pull-requests: read`（最小权限）
-  - 失败上传 SARIF report 为 artifact（14 天保留）
-  - **Required status check**：`gitleaks`（见 `docs/BRANCH-PROTECTION.md §2`，admin 应用后强制）
-- [ ] **False positive 处理**（若真实误报）：
-  - 优先：在具体 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略机制）
-  - 次选：创建 `.gitleaks.toml` 加**最小范围**精准 allow 规则 · **禁止整体 disable rule type**
-  - 不可：关闭 workflow / 强制 merge · 违反 `docs/BRANCH-PROTECTION.md` 的"禁止 bypass"原则
+  - Required status check：`gitleaks`（admin 已按 `docs/BRANCH-PROTECTION.md §2` 应用）
+- [ ] **Reviewer 双保险**：PR 描述贴本地 `gitleaks detect` 输出截图（零 hit 证据）+ CI 通过
+
+---
+
+### 情况 B · PR #11 未 merge（workflow 文件不存在）
+
+**SPIKE-06 task 不应进入 in-progress** · 应 `status: blocked · blocked_by: ["phase-4-infra-landing"] · blocked_from: ready`。
+
+若特殊情况必须在 PR #11 之前实施（例如 Apple Dev Program 申请 · 不涉及样本录制）：
+- [ ] **只做 §B Apple Developer Program 副线**（不触发样本 / 脱敏 / secret-scan）
+- [ ] **禁止**在 §A（样本录制）做任何 commit · 直到 PR #11 merge
+- [ ] reviewer 明确在 PR 描述标注"仅 §B · 未触发 §A.5 要求"
+
+---
+
+### 通用 · False positive 处理（两种情况都适用）
+
+- 优先：具体 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略）
+- 次选：创建 `.gitleaks.toml` 加**最小范围**精准 allow 规则 · **禁止整体 disable rule type**
+- 不可：关闭 workflow / 强制 merge · 违反 `docs/BRANCH-PROTECTION.md` "禁止 bypass" 原则
 
 **A.5.4 · 样本真实性与脱敏平衡**
 - [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）

@@ -97,7 +97,7 @@ cargo fmt --all -- --check
 git checkout -b <scope>/<slug>
 git commit -m "feat(scope): 中文描述
 
-Co-authored-by: <Agent Identity> via <email>"
+Co-authored-by: <Agent Name> <email>"
 gh pr create
 ```
 
@@ -148,7 +148,7 @@ gh pr create
 **当前阶段（Pre-code + Phase 2-4 文档期）规则**：
 
 1. **禁止 push main**：任何变更走 feature 分支（命名 `<scope>/<slug>`，如 `docs/phase-2-tasks` · `feat/git-log`）+ PR + 独立评审
-2. **Commit trailer 标识 agent**：`Co-authored-by: <Agent Identity> via <user-email>`（例 `Claude Code <noreply@anthropic.com>` / `Codex CLI <noreply@openai.com>` / `OpenCode <xxx>`）
+2. **Commit trailer 标识 agent**：`Co-authored-by: <Agent Name> <email>`（例 `Co-authored-by: Claude Code <noreply@anthropic.com>` / `Co-authored-by: Codex CLI <noreply@openai.com>` / `Co-authored-by: OpenCode <noreply@opencode.ai>`）
 3. **PR description 必填**：`Implemented by: X · Reviewed by: Y`（列具体实例 ID）
 4. **独立评审 = 评审者 ≠ 原实现者**（具体是 Claude 实例 B / Codex / Cursor / 人类均可）
 5. **PR 冲突**：优先 rebase；冲突时**保留两方意图**；单值冲突（如 PROGRESS 的 Active branch）由 Arbiter（用户）仲裁

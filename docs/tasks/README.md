@@ -184,7 +184,7 @@ git checkout -b docs/tasks/SPIKE-07-<slug>
 # 5. commit + push + PR（Conventional Commits + 中文描述 + trailer）
 git commit -m "docs(tasks): 新增 SPIKE-07 <中文描述>
 
-Co-authored-by: <Agent Identity> via <email>"
+Co-authored-by: <Agent Name> <email>"
 git push -u origin docs/tasks/SPIKE-07-<slug>
 gh pr create
 

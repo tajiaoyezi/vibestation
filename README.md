@@ -22,7 +22,7 @@ vibestation/
 ├── README.md               本文件
 ├── .gitignore              Rust / Node / Tauri / OS
 ├── docs/
-│   ├── implementation-plan.md          v2 实施计划（14 章 · 1473 行）
+│   ├── implementation-plan.md          v2 实施计划（14 章 + 附录）
 │   ├── codex-review-and-response.md    Codex 独立评审与应对
 │   └── tech-research.md                 CodexMonitor / lapce / gitui 预研
 └── design/
@@ -49,7 +49,7 @@ open design/index.html
 
 | 文档 | 内容 | 行数 |
 |------|------|------|
-| [`docs/implementation-plan.md`](docs/implementation-plan.md) | 产品定位 / 4 crate → 2 crate 架构 / 数据模型 / IPC / 30 风险 / 降级树 / 终端正确性矩阵 / 安全边界 / 分发运营 | 1473 |
+| [`docs/implementation-plan.md`](docs/implementation-plan.md) | 产品定位 / 4 crate → 2 crate 架构 / 数据模型 / IPC / 30 风险 / 降级树 / 终端正确性矩阵 / 安全边界 / 分发运营 | 14 章 + 附录 |
 | [`docs/codex-review-and-response.md`](docs/codex-review-and-response.md) | Codex 独立评审（7 CRITICAL · 12 HIGH · 5 MEDIUM · 13 强烈反对）+ Claude 元评论 + 用户 4 项决策 | 157 |
 | [`docs/tech-research.md`](docs/tech-research.md) | 三项目深度预研与可借鉴点（PTY 多会话表 / AsyncLog 双速率 / logwalker 时间堆 / workspace 配置）| — |
 

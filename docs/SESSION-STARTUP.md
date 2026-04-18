@@ -49,25 +49,31 @@
 **权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补当前阶段的具体动作（认领 Spike / 写 spec PR / 翻转 gate）。
 
 ```
-阅读（对齐 CLAUDE.md 第 1-3 步）：
-  1. CLAUDE.md                    (3 分钟)
-  2. docs/PROGRESS.md             (2 分钟)
-  3. docs/tasks/README.md         (3 分钟) — Pre-code 期间选文档动作，非业务 task
+阅读（对齐 AGENTS.md / CLAUDE.md 5 跳 onboarding）：
+  1. AGENTS.md                    (1 分钟) — 工具无关入口 · 路由
+  2. CLAUDE.md                    (3 分钟) — 项目权威规则 / 决策表 / 禁区
+  3. docs/PROGRESS.md             (2 分钟) — 当前位置 + 下一步
+  4. docs/tasks/README.md         (3 分钟) — 任务索引 + 状态流转 + 翻转 gate
 
-动作（对齐 CLAUDE.md 第 4-5 步）：
-  4. 挑选 Phase 2/3/4 文档升级动作
-  5. 按 CLAUDE.md 第 5 步流程（建分支 → 认领 commit → 开工 commits → 收尾 commit）：
-     a. git checkout -b docs/phase-<N>-<slug>
-     b. 如动作对应某个 task spec → 首 commit 把 task 改 owner/status: in-progress
-        如动作是"修文档"无 task → 跳过 claim
-     c. 修改文档 → commit（Conventional Commits + 中文描述 + Co-authored-by trailer）
-     d. git push -u origin <branch> → gh pr create（body 写 "Implemented by: <agent-id>"）
-     e. 独立评审（Codex/Claude 另一实例/人类）approve
-     f. 如对应 task → merge 前最后 commit 改 reviewer/status: done
+动作（按 CLAUDE.md 第 5 步导游）：
+  5. 三选一：
+     A. 启动 SPIKE-01 Tauri 三平台空壳（status: draft，需先走翻转 gate 升 ready）
+     B. 帮某个 v0.2/v0.3/v1.0 draft spec（MVP-12..20）走独立评审升 ready
+     C. 提议新 ADR（按 docs/adr/_template.md · 含用户拍板 gate）
+
+  6. 实施：
+     a. git checkout -b <scope>/<task-id>      # spike/SPIKE-01 / docs/spec-flip-MVP-15 / 等
+     b. 首 commit 改 owner + status: in-progress（如认领 task）
+     c. 实施 commits（Conventional Commits + 中文 + Co-authored-by）
+     d. push + gh pr create（PR body 必填 Implemented by / Reviewed by）
+     e. 独立评审（≠ 原作者）approve
+     f. 翻转 gate（二选一）：
+        (a) Reviewer 自己 push 翻转 commit（推荐 · 防作者私自改 spec）
+        (b) Author push 翻转 + Reviewer re-approve 最新 HEAD
      g. merge
 
 收尾：
-  6. Session end 前更新 PROGRESS.md 的 Next concrete action
+  7. Session end 前更新 PROGRESS.md（Active branch / Latest commit / Next action）
 ```
 
 > ⚠️ **任何 commit 都走 PR，不直接 push main**。claim / 状态变更 / stale 释放等都走 PR。
@@ -85,48 +91,48 @@
 
 ---
 
-## 📁 当前仓库结构
-
-### Current（已存在）
+## 📁 当前仓库结构（Pre-code Phase 1-4 全交付）
 
 ```
 vibestation/
-├── CLAUDE.md                     agent 总入口
-├── README.md                     对外（规划期最小版）
-├── LICENSE                       Apache 2.0
-├── NOTICE
+├── AGENTS.md                     工具无关 agent 入口（路由到 CLAUDE.md）
+├── CLAUDE.md                     项目权威单文件入口（规则 / 决策 / 禁区）
+├── README.md                     对外（规划期）
+├── LICENSE / NOTICE              Apache 2.0
+├── CONTRIBUTING.md               贡献指南 + 用户拍板 gate
+├── CODE_OF_CONDUCT.md            Contributor Covenant 2.1 中文
+├── CHANGELOG.md                  Keep a Changelog（release-please 维护）
 ├── .gitignore
+├── .github/
+│   ├── ISSUE_TEMPLATE/           4 模板（config / bug / feature / task_spec_proposal）
+│   ├── PULL_REQUEST_TEMPLATE.md  强制 Implemented by / Reviewed by / 翻转 gate
+│   ├── dependabot.yml            cargo + npm + github-actions 周更
+│   └── workflows/                ci.yml · secret-scan.yml · task-spec-validator.yml
+├── scripts/
+│   └── validate-task-spec.mjs    frontmatter validator + 9 条 self-test
 ├── docs/
-│   ├── SESSION-STARTUP.md        本文件
+│   ├── SESSION-STARTUP.md        本文件 · 人类启动手册
 │   ├── PROGRESS.md               滚动进度快照
-│   ├── implementation-plan.md    v2 战略计划（14 章 1473 行）
+│   ├── BRANCH-PROTECTION.md      admin 分支保护 checklist
+│   ├── implementation-plan.md    v2 战略计划（14 章 + 附录）
 │   ├── codex-review-and-response.md
-│   └── tech-research.md
+│   ├── tech-research.md
+│   ├── agent-onboarding-readiness-assessment.md  codex 评估稿（pre-PR-17 snapshot）
+│   ├── tasks/                    27 task spec（7 SPIKE + 20 MVP · 全 draft）
+│   │   ├── README.md · _template.md
+│   │   ├── SPIKE-01..07-*.md
+│   │   └── MVP-01..20-*.md
+│   ├── adr/                      10 ADR（6 accepted + 4 proposed pending Spike）
+│   │   ├── README.md · _template.md
+│   │   └── ADR-001..010-*.md
+│   ├── spikes/                   per-task SPIKE 报告目录（SPIKE-NN-report.md · 待 Spike 启动后产出）
+│   ├── spike-artifacts/          per-task 录屏/截图目录（<SPIKE-NN>/*.png/mp4 · 待 Spike 启动后产出）
+│   └── session-history/          session 归档（Phase 3 建立）
 └── design/
-    ├── index.html · directions/ · logos/
+    ├── index.html · directions/ · logos/   Calm Studio 视觉定稿
 ```
 
-### Planned（Phase 2-4 陆续建立）
-
-```
-├── CONTRIBUTING.md               (Phase 3)
-├── CHANGELOG.md                  (Phase 3)  Keep a Changelog
-├── CODE_OF_CONDUCT.md            (Phase 4)  Contributor Covenant 2.1
-├── .github/                      (Phase 4)
-│   ├── ISSUE_TEMPLATE/*.yml
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   ├── workflows/ci.yml
-│   └── dependabot.yml
-├── docs/
-│   ├── tasks/                    (Phase 2)
-│   │   ├── README.md · _template.md · SPIKE-NN-*.md · MVP-NN-*.md
-│   ├── adr/                      (Phase 3)  ADR-NNN-<slug>.md
-│   ├── spikes/                   (Phase 3)  per-task SPIKE 报告（SPIKE-NN-report.md）
-│   ├── spike-artifacts/          (Phase 3)  per-task 录屏/截图（<SPIKE-NN>/*.png/mp4）
-│   ├── session-history/          (Phase 3)  session 归档
-│   └── ENV-SETUP.md              (Spike W0)
-└── src-tauri/ + web/ + crates/   (Spike W0)
-```
+**Spike W0 启动后会新增**：`src-tauri/` + `web/` + `crates/`（实际代码骨架 · 由 SPIKE-01 / MVP-01 创建）+ `docs/ENV-SETUP.md`。
 
 ---
 

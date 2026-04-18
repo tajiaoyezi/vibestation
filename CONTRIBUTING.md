@@ -55,7 +55,7 @@ git commit -m "chore(MVP-01): claim"
 # 3. 开工（后续 commits · Conventional Commits + 中文 + trailer）
 git commit -m "feat(MVP-01): 实现 Tauri 应用骨架
 
-Co-authored-by: <Agent Identity> via <email>"
+Co-authored-by: <Agent Name> <email>"
 git push -u origin feat/MVP-01-tauri-app-shell
 gh pr create
 
@@ -125,7 +125,7 @@ cp docs/adr/_template.md docs/adr/ADR-011-<slug>.md
 
 <可选正文 · 解释 why 而非 what>
 
-Co-authored-by: <Agent Identity> via <email>
+Co-authored-by: <Agent Name> <email>
 ```
 
 **type 枚举**：`feat` / `fix` / `docs` / `refactor` / `chore` / `test` / `perf` / `ci`

@@ -43,7 +43,7 @@
 | **人类阶段感知手册** | `docs/SESSION-STARTUP.md` | 当前阶段 Playbook + FAQ |
 | **任务索引** | `docs/tasks/README.md` + `docs/tasks/<TYPE-NN>-*.md` | 27 个 task spec |
 | **架构决策** | `docs/adr/README.md` + `docs/adr/ADR-NNN-*.md` | 10 ADR · 6 accepted + 4 proposed |
-| **战略计划（1485 行）** | `docs/implementation-plan.md` | 完整产品定位 / 架构 / 风险登记 / Milestone |
+| **战略计划（14 章 + 附录）** | `docs/implementation-plan.md` | 完整产品定位 / 架构 / 风险登记 / Milestone |
 | **视觉原型** | `design/directions/1-calm-studio.html` | Calm Studio 定稿 · 1329 行可直接 `open` 体验 |
 | **贡献指南** | `CONTRIBUTING.md` | PR 流程 + Commit 规范 + 用户拍板 gate |
 | **分支保护** | `docs/BRANCH-PROTECTION.md` | admin checklist（当前未应用） |

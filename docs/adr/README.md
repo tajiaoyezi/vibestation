@@ -53,7 +53,7 @@ git checkout -b docs/adr-011-<slug>
 git add docs/adr/ADR-011-<slug>.md docs/adr/README.md
 git commit -m "docs(adr): 新增 ADR-011 <中文标题>
 
-Co-authored-by: <agent> via <email>"
+Co-authored-by: <Agent Name> <email>"
 gh pr create --title "docs(adr): 新增 ADR-011 <标题>"
 
 # 4. 独立评审（≠ 原作者）· 确认 Spike / 讨论依据充分 · 过"翻转 gate"

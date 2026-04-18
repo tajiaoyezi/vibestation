@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vibestation — Codex-Inspired</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root { --ease: cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* Dark (deep blue HUD) */
+:root, [data-theme="dark"] {
+  --bg-0: oklch(0.17 0.03 250);
+  --bg-1: oklch(0.20 0.035 250);
+  --bg-2: oklch(0.24 0.04 250);
+  --bg-3: oklch(0.28 0.045 250);
+  --line: oklch(0.32 0.05 250);
+  --line-soft: oklch(0.26 0.04 250);
+  --line-hot: oklch(0.50 0.10 235);
+  --text-1: oklch(0.96 0.01 240);
+  --text-2: oklch(0.76 0.02 240);
+  --text-3: oklch(0.56 0.03 240);
+  --text-4: oklch(0.42 0.03 240);
+  --cyan: oklch(0.82 0.14 210);
+  --cyan-dim: oklch(0.55 0.14 210);
+  --purple: oklch(0.72 0.22 305);
+  --orange: oklch(0.78 0.17 55);
+  --green: oklch(0.82 0.20 150);
+  --red: oklch(0.70 0.22 25);
+  --yellow: oklch(0.88 0.16 92);
+  --accent: var(--cyan);
+  --accent-soft: oklch(from var(--cyan) l c h / 0.12);
+  --purple-soft: oklch(from var(--purple) l c h / 0.14);
+  --orange-soft: oklch(from var(--orange) l c h / 0.14);
+  --glow-cyan: 0 0 8px oklch(from var(--cyan) l c h / 0.45);
+  --glow-orange: 0 0 8px oklch(from var(--orange) l c h / 0.5);
+  --glow-purple: 0 0 8px oklch(from var(--purple) l c h / 0.5);
+  --bg-page: radial-gradient(ellipse at top, oklch(0.22 0.06 245) 0%, var(--bg-0) 55%);
+}
+
+/* Light (cool gray dashboard) */
+[data-theme="light"] {
+  --bg-0: oklch(0.98 0.01 245);
+  --bg-1: oklch(0.95 0.015 245);
+  --bg-2: oklch(0.92 0.02 245);
+  --bg-3: oklch(0.88 0.025 245);
+  --line: oklch(0.84 0.025 245);
+  --line-soft: oklch(0.90 0.02 245);
+  --line-hot: oklch(0.55 0.15 235);
+  --text-1: oklch(0.22 0.04 250);
+  --text-2: oklch(0.42 0.04 250);
+  --text-3: oklch(0.58 0.04 250);
+  --text-4: oklch(0.72 0.03 250);
+  --cyan: oklch(0.48 0.17 230);
+  --cyan-dim: oklch(0.60 0.15 230);
+  --purple: oklch(0.45 0.20 290);
+  --orange: oklch(0.60 0.18 55);
+  --green: oklch(0.52 0.17 150);
+  --red: oklch(0.55 0.22 25);
+  --yellow: oklch(0.68 0.15 88);
+  --accent: var(--cyan);
+  --accent-soft: oklch(from var(--cyan) l c h / 0.10);
+  --purple-soft: oklch(from var(--purple) l c h / 0.10);
+  --orange-soft: oklch(from var(--orange) l c h / 0.10);
+  --glow-cyan: none;
+  --glow-orange: none;
+  --glow-purple: none;
+  --bg-page: radial-gradient(ellipse at top, oklch(0.95 0.025 245) 0%, var(--bg-0) 55%);
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --bg-0: oklch(0.98 0.01 245);
+    --bg-1: oklch(0.95 0.015 245);
+    --bg-2: oklch(0.92 0.02 245);
+    --bg-3: oklch(0.88 0.025 245);
+    --line: oklch(0.84 0.025 245);
+    --line-soft: oklch(0.90 0.02 245);
+    --line-hot: oklch(0.55 0.15 235);
+    --text-1: oklch(0.22 0.04 250);
+    --text-2: oklch(0.42 0.04 250);
+    --text-3: oklch(0.58 0.04 250);
+    --text-4: oklch(0.72 0.03 250);
+    --cyan: oklch(0.48 0.17 230);
+    --cyan-dim: oklch(0.60 0.15 230);
+    --purple: oklch(0.45 0.20 290);
+    --orange: oklch(0.60 0.18 55);
+    --green: oklch(0.52 0.17 150);
+    --red: oklch(0.55 0.22 25);
+    --yellow: oklch(0.68 0.15 88);
+    --accent: var(--cyan);
+    --accent-soft: oklch(from var(--cyan) l c h / 0.10);
+    --purple-soft: oklch(from var(--purple) l c h / 0.10);
+    --orange-soft: oklch(from var(--orange) l c h / 0.10);
+    --glow-cyan: none;
+    --glow-orange: none;
+    --glow-purple: none;
+    --bg-page: radial-gradient(ellipse at top, oklch(0.95 0.025 245) 0%, var(--bg-0) 55%);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-1);
+  background: var(--bg-page), var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  transition: color .2s, background .2s;
+}
+.mono, code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: "ss02", "zero", "calt"; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+button:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+/* ──────────── App shell ──────────── */
+.app { display: grid; grid-template-rows: 48px 36px 1fr 26px; height: 100vh; }
+
+/* Row 1: Top bar (chrome + tabs + controls) */
+.topbar { display: grid; grid-template-columns: 244px 1fr 320px; align-items: stretch; border-bottom: 1px solid var(--line-soft); background: var(--bg-0); -webkit-app-region: drag; }
+.chrome { display: flex; align-items: center; gap: 12px; padding: 0 16px; border-right: 1px solid var(--line-soft); -webkit-app-region: no-drag; }
+.traffic { display: flex; gap: 7px; }
+.traffic span { width: 11px; height: 11px; border-radius: 2px; background: var(--bg-3); }
+.traffic .c1 { background: oklch(from var(--red) l c h); }
+.traffic .c2 { background: oklch(from var(--orange) l c h); }
+.traffic .c3 { background: oklch(from var(--green) l c h); }
+.brand { display: flex; align-items: center; gap: 9px; }
+.brand .mk {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  background: conic-gradient(from 180deg at 50% 50%, var(--cyan), var(--purple), var(--cyan));
+  display: grid; place-items: center;
+  color: white; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 11px;
+  box-shadow: var(--glow-cyan);
+}
+.brand .tt { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 12.5px; letter-spacing: -0.2px; }
+.brand .tt .d { color: var(--text-3); font-weight: 400; }
+.brand .ver { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-4); }
+
+.tabs { display: flex; align-items: stretch; -webkit-app-region: no-drag; overflow: hidden; }
+.tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 14px;
+  min-width: 180px; max-width: 280px;
+  border-right: 1px solid var(--line-soft);
+  color: var(--text-3);
+  font-size: 12.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.tab:hover { color: var(--text-1); background: var(--bg-1); }
+.tab.active { color: var(--text-1); background: var(--bg-1); }
+.tab.active::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--accent);
+  box-shadow: var(--glow-cyan);
+}
+.tab .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-4); }
+.tab.active .dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.tab .lb { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.tab .sess { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-4); }
+.tab.active .sess { color: var(--orange); }
+.tab .diff { color: var(--orange); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+.tab-new { display: grid; place-items: center; width: 40px; color: var(--text-3); border-right: 1px solid var(--line-soft); }
+.tab-new:hover { color: var(--accent); background: var(--bg-1); }
+
+.topbar-right { display: flex; align-items: center; gap: 8px; padding: 0 14px; justify-content: flex-end; -webkit-app-region: no-drag; }
+.live-clock {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  background: var(--bg-1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-2);
+}
+.live-clock .d { color: var(--text-4); }
+.live-clock .v.hot { color: var(--orange); text-shadow: var(--glow-orange); }
+.live-clock .v.cy { color: var(--cyan); text-shadow: var(--glow-cyan); }
+
+.theme-switch { display: flex; align-items: center; gap: 2px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 6px; padding: 2px; }
+.theme-switch button { display: grid; place-items: center; width: 26px; height: 22px; color: var(--text-3); border-radius: 4px; }
+.theme-switch button:hover { color: var(--text-1); }
+.theme-switch button.on { color: var(--cyan); background: var(--bg-2); text-shadow: var(--glow-cyan); }
+
+.icon-btn { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 6px; color: var(--text-3); }
+.icon-btn:hover { color: var(--text-1); background: var(--bg-1); }
+
+/* Row 2: HUD status bar */
+.hudbar {
+  display: grid;
+  grid-template-columns: 244px 1fr 320px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-0);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+}
+.hudbar .sys-group {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 14px;
+  border-right: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+.sys-lamp {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 4px;
+  background: var(--bg-1);
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.sys-lamp .dot { width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 4px currentColor; }
+.sys-lamp.ok .dot { background: var(--green); color: var(--green); animation: pulse 2s var(--ease) infinite; }
+.sys-lamp.warn .dot { background: var(--orange); color: var(--orange); }
+.sys-lamp.active .dot { background: var(--cyan); color: var(--cyan); animation: pulse 1.4s var(--ease) infinite; }
+.sys-lamp strong { color: var(--text-1); font-weight: 600; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+.hud-live {
+  display: flex; align-items: center; gap: 14px;
+  padding: 0 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  white-space: nowrap;
+}
+.hud-live::-webkit-scrollbar { display: none; }
+
+.metric {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--text-3);
+  padding: 3px 0;
+}
+.metric .k { color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; font-size: 9.5px; }
+.metric .v { color: var(--text-1); font-weight: 600; }
+.metric .v.cy { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.metric .v.or { color: var(--orange); text-shadow: var(--glow-orange); }
+.metric .v.pr { color: var(--purple); text-shadow: var(--glow-purple); }
+.metric .v.gr { color: var(--green); }
+.metric .sep { color: var(--line); margin: 0 2px; }
+
+.sparkline {
+  display: inline-block;
+  vertical-align: -3px;
+}
+
+.hud-right {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px;
+  border-left: 1px solid var(--line-soft);
+  justify-content: flex-end;
+}
+
+/* ──────────── Main grid ──────────── */
+.main { display: grid; grid-template-columns: 244px 1fr 320px; min-height: 0; }
+
+/* ───── Left: Sidebar ───── */
+.sidebar { display: flex; flex-direction: column; background: var(--bg-0); border-right: 1px solid var(--line-soft); min-height: 0; overflow-y: auto; }
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg-0); border-radius: 4px; }
+
+.side-title {
+  padding: 12px 14px 6px;
+  font-size: 10px;
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+}
+.side-title .glyph { color: var(--cyan); margin-right: 6px; text-shadow: var(--glow-cyan); }
+.side-title .count { color: var(--text-3); }
+
+.workspace-list { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 2px; }
+.ws-card {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 9px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+.ws-card:hover { background: var(--bg-1); }
+.ws-card.on {
+  border-color: var(--line);
+  background: linear-gradient(to right, var(--accent-soft), transparent 70%);
+  border-left: 2px solid var(--accent);
+  padding-left: 9px;
+}
+.ws-card .led { width: 8px; height: 8px; border-radius: 50%; background: var(--text-4); }
+.ws-card.on .led { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.ws-card.dirty .led { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+.ws-card .nm { color: var(--text-2); font-weight: 500; }
+.ws-card.on .nm { color: var(--text-1); }
+.ws-card .mini { display: flex; gap: 4px; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-4); }
+.ws-card .mini .k { color: var(--text-4); }
+.ws-card .mini .v { color: var(--text-2); }
+.ws-card .mini .v.or { color: var(--orange); }
+.ws-card .mini .v.cy { color: var(--cyan); }
+
+.side-section {
+  margin: 4px 10px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+  background: var(--bg-1);
+}
+.side-section .sect-head { display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); margin-bottom: 8px; }
+.side-section .sect-head strong { color: var(--cyan); }
+
+.metric-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 4px;
+}
+.metric-row .lb { font-size: 10px; color: var(--text-3); }
+.metric-row .vl { font-size: 12.5px; font-weight: 600; color: var(--text-1); }
+.metric-row .vl.cy { color: var(--cyan); }
+.metric-row .vl.or { color: var(--orange); text-shadow: var(--glow-orange); }
+.metric-row .vl.pr { color: var(--purple); }
+.bar-track { height: 3px; background: var(--bg-3); border-radius: 2px; overflow: hidden; margin: 3px 0 8px; }
+.bar-fill { height: 100%; background: var(--cyan); border-radius: 2px; }
+.bar-fill.or { background: var(--orange); box-shadow: var(--glow-orange); }
+.bar-fill.pr { background: var(--purple); }
+
+.tree-block { padding: 2px 8px 16px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; }
+.tree-row { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 5px; color: var(--text-3); cursor: pointer; }
+.tree-row:hover { color: var(--text-2); background: var(--bg-1); }
+.tree-row.on { color: var(--text-1); background: var(--bg-1); }
+.tree-row .gd { color: var(--text-4); user-select: none; }
+.tree-row .led { width: 6px; height: 6px; border-radius: 50%; }
+.tree-row.local .led { background: var(--cyan); }
+.tree-row.remote .led { background: var(--text-4); border: 1px solid var(--text-3); }
+.tree-row.tag .led { background: var(--orange); }
+.tree-row .tag { margin-left: auto; font-size: 9.5px; color: var(--text-3); background: var(--bg-2); padding: 1px 5px; border-radius: 3px; }
+.tree-row .tag.up { color: var(--orange); background: var(--orange-soft); }
+
+/* ───── Center: Terminal + Session Timeline ───── */
+.center { display: grid; grid-template-columns: 1fr 240px; min-height: 0; background: var(--bg-0); }
+
+.terminal-wrap { display: flex; flex-direction: column; min-width: 0; min-height: 0; border-right: 1px solid var(--line-soft); }
+
+.terminal-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px;
+  background: linear-gradient(to bottom, var(--bg-1), var(--bg-0));
+  border-bottom: 1px solid var(--line-soft);
+}
+.chip-agent {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--bg-1);
+  font-size: 11px;
+  color: var(--text-2);
+}
+.chip-agent .avat { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(from 180deg, var(--cyan), var(--purple), var(--cyan)); box-shadow: var(--glow-cyan); }
+.chip-agent strong { color: var(--text-1); font-weight: 600; }
+.chip-agent .mono { color: var(--text-3); }
+.path-breadcrumb { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); }
+.path-breadcrumb .sep { color: var(--text-4); margin: 0 4px; }
+.path-breadcrumb .leaf { color: var(--cyan); }
+
+.mini-actions { display: flex; gap: 4px; }
+.mini-actions button {
+  display: grid; place-items: center;
+  width: 26px; height: 22px;
+  border-radius: 5px;
+  color: var(--text-3);
+}
+.mini-actions button:hover { color: var(--text-1); background: var(--bg-2); }
+
+.terminal { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 18px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.65; color: var(--text-2); }
+.terminal::-webkit-scrollbar { width: 10px; }
+.terminal::-webkit-scrollbar-track { background: transparent; }
+.terminal::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg-0); border-radius: 5px; }
+
+.t-line { white-space: pre-wrap; word-break: break-word; }
+.t-dim { color: var(--text-4); }
+.t-ok { color: var(--green); }
+.t-warn { color: var(--orange); }
+.t-cy { color: var(--cyan); }
+.t-pr { color: var(--purple); }
+.t-user { color: var(--text-1); }
+
+.msg-you, .msg-ai {
+  margin: 6px 0 12px;
+  padding: 10px 14px 12px 14px;
+  border-radius: 10px;
+  position: relative;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-1);
+}
+.msg-you { border-left: 3px solid var(--text-3); }
+.msg-ai { border-left: 3px solid var(--cyan); background: linear-gradient(180deg, oklch(from var(--cyan) l c h / 0.06), transparent); }
+
+.msg-head {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin-bottom: 4px;
+}
+.msg-head .who { font-weight: 600; }
+.msg-ai .msg-head .who { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.msg-you .msg-head .who { color: var(--text-1); }
+.msg-head .time { color: var(--text-4); }
+.msg-head .tok { color: var(--text-4); margin-left: auto; }
+
+.msg-body code { background: var(--bg-2); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line-soft); font-size: 11.5px; color: var(--text-1); }
+
+.tools {
+  display: flex; flex-direction: column; gap: 3px;
+  margin-top: 8px;
+  padding: 8px;
+  background: var(--bg-0);
+  border-radius: 6px;
+  border: 1px solid var(--line-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.tool {
+  display: grid;
+  grid-template-columns: 14px 52px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 0;
+  color: var(--text-2);
+}
+.tool .pref { color: var(--cyan); }
+.tool .pref.edit { color: var(--orange); }
+.tool .verb { color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; font-size: 9.5px; font-weight: 600; }
+.tool .verb.edit { color: var(--orange); }
+.tool .verb.bash { color: var(--purple); }
+.tool .arg { color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tool .diff { color: var(--text-3); font-size: 10px; }
+.tool .diff .ad { color: var(--green); }
+.tool .diff .dl { color: var(--red); }
+.tool .time { color: var(--text-4); font-size: 10px; }
+
+.divider-dash { display: flex; align-items: center; gap: 10px; margin: 6px 0; color: var(--text-4); font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+.divider-dash::before, .divider-dash::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
+
+.cursor { display: inline-block; width: 7px; height: 14px; background: var(--cyan); vertical-align: -2px; box-shadow: var(--glow-cyan); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0.2; } }
+
+.term-input { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--line-soft); background: var(--bg-0); }
+.term-input .arrow { color: var(--cyan); font-family: 'JetBrains Mono', monospace; text-shadow: var(--glow-cyan); }
+.term-input input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--text-1); font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+.term-input input::placeholder { color: var(--text-4); }
+.term-input .kbd { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 1px 5px; border: 1px solid var(--line); border-radius: 3px; color: var(--text-3); background: var(--bg-1); }
+
+/* Session timeline */
+.timeline { display: flex; flex-direction: column; min-height: 0; background: var(--bg-0); }
+.tl-head { padding: 10px 14px 8px; border-bottom: 1px solid var(--line-soft); }
+.tl-head .ttl { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.tl-head .ttl .acc { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.tl-head .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+.tl-stat { padding: 6px 8px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 6px; }
+.tl-stat .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
+.tl-stat .v { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-1); font-weight: 600; margin-top: 2px; }
+.tl-stat .v.cy { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.tl-stat .v.or { color: var(--orange); text-shadow: var(--glow-orange); }
+.tl-stat .v.pr { color: var(--purple); text-shadow: var(--glow-purple); }
+.tl-stat .sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-4); margin-top: 1px; }
+
+.tl-scroll { flex: 1; overflow-y: auto; padding: 8px 0 16px; position: relative; }
+.tl-scroll::-webkit-scrollbar { width: 8px; }
+.tl-scroll::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg-0); border-radius: 4px; }
+
+.tl-list { position: relative; padding-left: 48px; }
+.tl-list::before {
+  content: '';
+  position: absolute;
+  left: 22px; top: 0; bottom: 0;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--cyan) 0%, var(--line) 40%, var(--line) 100%);
+  opacity: 0.5;
+}
+.tl-item { position: relative; padding: 6px 12px 6px 0; }
+.tl-item::before {
+  content: ''; position: absolute; left: -32px; top: 12px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--bg-0); border: 1.5px solid var(--text-3);
+}
+.tl-item.ai::before { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.tl-item.tool::before { background: var(--bg-0); border-color: var(--purple); }
+.tl-item.edit::before { background: var(--orange); border-color: var(--orange); box-shadow: 0 0 4px var(--orange); }
+.tl-item.now::before { background: var(--green); border-color: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.4s var(--ease) infinite; }
+.tl-item .t { display: flex; align-items: baseline; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-4); }
+.tl-item .t .kind { text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+.tl-item.ai .t .kind { color: var(--cyan); }
+.tl-item.edit .t .kind { color: var(--orange); }
+.tl-item.tool .t .kind { color: var(--purple); }
+.tl-item.now .t .kind { color: var(--green); }
+.tl-item .m { margin-top: 2px; font-size: 11.5px; color: var(--text-1); line-height: 1.5; }
+.tl-item .m .mono { color: var(--text-2); }
+.tl-item .foot { margin-top: 4px; display: flex; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-4); }
+.tl-item .foot .ad { color: var(--green); }
+.tl-item .foot .dl { color: var(--red); }
+
+/* ───── Right: Git panel ───── */
+.gitpanel { display: flex; flex-direction: column; min-height: 0; background: var(--bg-0); border-left: 1px solid var(--line-soft); }
+.gp-head { padding: 10px 14px 10px; border-bottom: 1px solid var(--line-soft); display: flex; flex-direction: column; gap: 8px; }
+.gp-row { display: flex; align-items: center; gap: 8px; }
+.gp-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
+.gp-title strong { color: var(--cyan); text-shadow: var(--glow-cyan); text-transform: none; letter-spacing: 0; font-weight: 600; }
+.gp-row .spacer { flex: 1; }
+
+.activity-card { padding: 10px 12px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 7px; }
+.activity-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.activity-head .lb { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.08em; }
+.activity-head .vl { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-1); font-weight: 600; }
+.activity-head .vl .u { color: var(--text-4); font-size: 10px; margin-left: 3px; }
+
+.search-wrap { position: relative; flex: 1; }
+.search-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-4); }
+.search-wrap input {
+  width: 100%;
+  padding: 5px 32px 5px 28px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 6px;
+  color: var(--text-1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  outline: 0;
+}
+.search-wrap input::placeholder { color: var(--text-4); }
+.search-wrap input:focus { border-color: var(--cyan); }
+.search-wrap .kbd { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--text-3); padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; background: var(--bg-2); }
+
+.filters { display: flex; flex-wrap: wrap; gap: 5px; }
+.fp {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: var(--bg-1);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.fp .k { color: var(--text-4); }
+.fp.on { color: var(--cyan); border-color: var(--cyan-dim); background: var(--accent-soft); }
+.fp.on .k { color: var(--cyan-dim); }
+
+.commits { flex: 1; overflow-y: auto; padding: 0 0 8px; }
+.commits::-webkit-scrollbar { width: 8px; }
+.commits::-webkit-scrollbar-thumb { background: var(--line); border: 2px solid var(--bg-0); border-radius: 4px; }
+
+.c-row {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  padding: 8px 14px 8px 6px;
+  border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+  position: relative;
+}
+.c-row:hover { background: var(--bg-1); }
+.c-row.sel { background: linear-gradient(to right, var(--accent-soft), transparent 80%); }
+.c-row.sel::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--cyan); box-shadow: var(--glow-cyan);
+}
+
+.gph { position: relative; display: flex; justify-content: center; padding-top: 6px; }
+.gph .vl { position: absolute; top: 0; bottom: 0; width: 1.5px; background: var(--text-4); opacity: 0.3; }
+.gph .vl.cy { background: var(--cyan); opacity: 0.5; }
+.gph .vl.or { background: var(--orange); opacity: 0.4; }
+.gph .n { width: 9px; height: 9px; border-radius: 50%; background: var(--bg-0); border: 1.5px solid var(--text-3); z-index: 1; }
+.gph .n.m { border-color: var(--cyan); }
+.gph .n.ai { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.gph .n.or { border-color: var(--orange); }
+
+.cb .top { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.ref-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  border: 1px solid var(--line);
+  background: var(--bg-1);
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+.ref-chip .pf { opacity: 0.6; }
+.ref-chip.head { color: var(--cyan); border-color: var(--cyan-dim); background: var(--accent-soft); }
+.ref-chip.remote { color: var(--text-3); }
+.ref-chip.tag { color: var(--orange); border-color: oklch(from var(--orange) l c h / 0.4); background: var(--orange-soft); }
+.ref-chip.ai-session { color: var(--purple); border-color: oklch(from var(--purple) l c h / 0.4); background: var(--purple-soft); }
+
+.cb .msg { color: var(--text-1); font-size: 12px; font-weight: 500; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cb .meta {
+  display: flex; align-items: center; gap: 10px; margin-top: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-3);
+}
+.cb .meta .hash { color: var(--cyan); }
+.cb .meta .by::before { content: '· '; color: var(--text-4); }
+.cb .meta .tm { margin-left: auto; color: var(--text-4); }
+
+/* ──────────── Bottom HUD strip ──────────── */
+.bot {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-soft);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.bot .group { display: flex; gap: 14px; align-items: center; }
+.bot .group.right { justify-content: flex-end; }
+.bot .it { display: flex; align-items: center; gap: 5px; }
+.bot .it .k { color: var(--text-4); }
+.bot .it .v { color: var(--text-1); }
+.bot .it .v.cy { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.bot .it .v.or { color: var(--orange); text-shadow: var(--glow-orange); }
+.bot .it .v.gr { color: var(--green); }
+.bot .center-lamp {
+  display: flex; align-items: center; gap: 8px;
+  padding: 2px 12px;
+  border-left: 1px solid var(--line); border-right: 1px solid var(--line);
+  color: var(--cyan);
+}
+.bot .center-lamp .h { width: 6px; height: 6px; background: var(--cyan); border-radius: 50%; box-shadow: 0 0 6px var(--cyan); animation: pulse 1.4s var(--ease) infinite; }
+
+/* utility */
+.i { display: inline-block; width: 14px; height: 14px; flex-shrink: 0; }
+
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══════ TOPBAR ══════ -->
+  <header class="topbar">
+    <div class="chrome">
+      <div class="traffic"><span class="c1"></span><span class="c2"></span><span class="c3"></span></div>
+      <div class="brand">
+        <div class="mk">V</div>
+        <div class="tt">vibe<span class="d">station</span></div>
+        <div class="ver">α.1</div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab">
+        <span class="dot"></span>
+        <span class="lb">blog-go-next</span>
+        <span class="diff">+3</span>
+      </div>
+      <div class="tab active">
+        <span class="dot"></span>
+        <span class="lb">vibestation</span>
+        <span class="sess">42m</span>
+      </div>
+      <div class="tab">
+        <span class="dot"></span>
+        <span class="lb">knowledge-wiki</span>
+      </div>
+      <button class="tab-new" title="New tab">
+        <svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3v10 M3 8h10"/></svg>
+      </button>
+    </div>
+
+    <div class="topbar-right">
+      <div class="live-clock">
+        <span class="d">UTC+8</span>
+        <span class="v cy">19:32:41</span>
+      </div>
+      <div class="theme-switch" role="radiogroup" aria-label="Theme">
+        <button data-theme-set="light" title="Light"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="3"/><path d="M8 1v2 M8 13v2 M1 8h2 M13 8h2 M3 3l1.4 1.4 M11.6 11.6L13 13 M3 13l1.4-1.4 M11.6 4.4L13 3"/></svg></button>
+        <button data-theme-set="auto" class="on" title="Auto"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5"/><path d="M8 3 A5 5 0 0 0 8 13 Z" fill="currentColor"/></svg></button>
+        <button data-theme-set="dark" title="Dark"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"/></svg></button>
+      </div>
+      <button class="icon-btn" title="Settings">
+        <svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="2"/><path d="M13.5 8a5.5 5.5 0 0 0-.1-1l1.4-1.1-1.4-2.4-1.6.6a5.5 5.5 0 0 0-1.7-1L9.6 1.5h-3.2l-.5 1.6a5.5 5.5 0 0 0-1.7 1l-1.6-.6-1.4 2.4L2.6 7a5.5 5.5 0 0 0 0 2L1.2 10.1l1.4 2.4 1.6-.6a5.5 5.5 0 0 0 1.7 1l.5 1.6h3.2l.5-1.6a5.5 5.5 0 0 0 1.7-1l1.6.6 1.4-2.4L13.4 9a5.5 5.5 0 0 0 .1-1Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════ HUD strip ══════ -->
+  <div class="hudbar">
+    <div class="sys-group">
+      <span class="sys-lamp ok"><span class="dot"></span>SYS <strong>OK</strong></span>
+      <span class="sys-lamp active"><span class="dot"></span>AI <strong>LIVE</strong></span>
+      <span class="sys-lamp warn"><span class="dot"></span>GIT <strong>Δ3</strong></span>
+    </div>
+
+    <div class="hud-live">
+      <span class="metric"><span class="k">session</span><span class="v cy">42<span style="color: var(--text-4)">m</span></span></span>
+      <span class="sep">│</span>
+      <span class="metric"><span class="k">tokens</span><span class="v or">18.4k<span style="color: var(--text-4)">/200k</span></span>
+        <svg class="sparkline" width="54" height="14" viewBox="0 0 54 14" fill="none"><polyline points="0,11 6,10 12,9 18,9 24,7 30,6 36,6 42,4 48,5 54,3" stroke="var(--orange)" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="sep">│</span>
+      <span class="metric"><span class="k">edits</span><span class="v gr">29<span style="color: var(--text-4)">+</span></span><span class="v" style="color: var(--red)">6<span style="color: var(--text-4)">−</span></span></span>
+      <span class="sep">│</span>
+      <span class="metric"><span class="k">tool calls</span><span class="v pr">11</span>
+        <svg class="sparkline" width="54" height="14" viewBox="0 0 54 14" fill="none"><g fill="var(--purple)" opacity="0.8"><rect x="0" y="10" width="4" height="4"/><rect x="6" y="7" width="4" height="7"/><rect x="12" y="8" width="4" height="6"/><rect x="18" y="5" width="4" height="9"/><rect x="24" y="9" width="4" height="5"/><rect x="30" y="3" width="4" height="11"/><rect x="36" y="6" width="4" height="8"/><rect x="42" y="8" width="4" height="6"/><rect x="48" y="4" width="4" height="10"/></g></svg>
+      </span>
+      <span class="sep">│</span>
+      <span class="metric"><span class="k">branch</span><span class="v cy">main</span><span class="v" style="color: var(--orange)">↑2</span></span>
+    </div>
+
+    <div class="hud-right">
+      <span class="metric"><span class="k">model</span><span class="v pr">sonnet-4-6</span></span>
+      <span class="metric"><span class="k">cost</span><span class="v">$0.42</span></span>
+    </div>
+  </div>
+
+  <!-- ══════ MAIN ══════ -->
+  <main class="main">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="side-title"><span><span class="glyph">▸</span>WORKSPACES</span><span class="count">4</span></div>
+      <div class="workspace-list">
+        <div class="ws-card dirty">
+          <span class="led"></span>
+          <span class="nm">blog-go-next</span>
+          <div class="mini"><span class="k">Δ</span><span class="v or">3</span></div>
+        </div>
+        <div class="ws-card on">
+          <span class="led"></span>
+          <span class="nm">vibestation</span>
+          <div class="mini"><span class="k">sess</span><span class="v cy">42m</span></div>
+        </div>
+        <div class="ws-card">
+          <span class="led"></span>
+          <span class="nm">knowledge-wiki</span>
+          <div class="mini"><span class="k">idle</span></div>
+        </div>
+        <div class="ws-card dirty">
+          <span class="led"></span>
+          <span class="nm">dosphere</span>
+          <div class="mini"><span class="k">Δ</span><span class="v or">12</span></div>
+        </div>
+      </div>
+
+      <div class="side-section">
+        <div class="sect-head"><span>◈ SESSION METRICS</span><strong>LIVE</strong></div>
+        <div class="metric-row"><span class="lb">context</span><span class="vl or">18.4k / 200k</span></div>
+        <div class="bar-track"><div class="bar-fill or" style="width: 9.2%;"></div></div>
+        <div class="metric-row"><span class="lb">input / output</span><span class="vl cy">12.1k · 6.3k</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width: 67%;"></div></div>
+        <div class="metric-row"><span class="lb">elapsed</span><span class="vl">42m 11s</span></div>
+        <div class="metric-row"><span class="lb">est. cost</span><span class="vl pr">$0.42</span></div>
+      </div>
+
+      <div class="side-title"><span><span class="glyph">▸</span>BRANCHES</span><span class="count">7</span></div>
+      <div class="tree-block">
+        <div class="tree-row"><span class="gd">┬</span><span>HEAD</span></div>
+        <div class="tree-row on local"><span class="gd">├─</span><span class="led"></span><span>main</span><span class="tag up">↑2</span></div>
+        <div class="tree-row local"><span class="gd">├─</span><span class="led"></span><span>feat/git-log-view</span></div>
+        <div class="tree-row local"><span class="gd">├─</span><span class="led"></span><span>feat/pty-multi-tab</span></div>
+        <div class="tree-row local"><span class="gd">├─</span><span class="led"></span><span>fix/wayland-clipboard</span></div>
+        <div class="tree-row remote"><span class="gd">├─</span><span class="led"></span><span>origin/main</span></div>
+        <div class="tree-row remote"><span class="gd">├─</span><span class="led"></span><span>origin/dependabot…</span></div>
+        <div class="tree-row tag"><span class="gd">└─</span><span class="led"></span><span>v0.1.0-alpha.1</span></div>
+      </div>
+    </aside>
+
+    <!-- Center (terminal + timeline) -->
+    <section class="center">
+
+      <div class="terminal-wrap">
+        <div class="terminal-head">
+          <div class="chip-agent">
+            <div class="avat"></div>
+            <span>claude-code <strong>v2.3.1</strong> <span class="mono">· sess_a7c3f21e</span></span>
+          </div>
+          <div class="path-breadcrumb">
+            ~<span class="sep">/</span>CodeWorkSpace<span class="sep">/</span>PersonalWorkspace<span class="sep">/</span><span class="leaf">vibestation</span>
+          </div>
+          <div class="mini-actions">
+            <button title="Clear"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 5h10 M5 5v8 a1 1 0 0 0 1 1h4 a1 1 0 0 0 1-1V5 M6 5V3 a1 1 0 0 1 1-1h2 a1 1 0 0 1 1 1v2"/></svg></button>
+            <button title="Export"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3v8 M4 7l4 4 4-4 M3 13h10"/></svg></button>
+            <button title="Maximize"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3h4 M3 3v4 M13 3h-4 M13 3v4 M3 13h4 M3 13v-4 M13 13h-4 M13 13v-4"/></svg></button>
+          </div>
+        </div>
+
+        <div class="terminal" id="terminal">
+<div class="t-line"><span class="t-dim">$ </span><span class="t-cy">claude</span> <span class="t-dim">--resume sess_a7c3f21e</span></div>
+<div class="t-line"><span class="t-dim">↳ Resumed. Context 18.4k / 200k · model </span><span class="t-pr">claude-sonnet-4-6</span></div>
+<div class="t-line">&nbsp;</div>
+
+<div class="msg-you">
+  <div class="msg-head">
+    <span class="who">YOU</span>
+    <span class="time">· 19:28:03</span>
+    <span class="tok">48 tokens</span>
+  </div>
+  <div class="msg-body">
+    把 <code>AsyncLog</code> 的双速率从硬编码改成读 <code>config.toml</code>，前台 / 后台各给默认 <code>2ms</code> / <code>1000ms</code>。
+  </div>
+</div>
+
+<div class="msg-ai">
+  <div class="msg-head">
+    <span class="who">● CLAUDE</span>
+    <span class="time">· 19:28:07</span>
+    <span class="tok">+1.4k · 2.3s</span>
+  </div>
+  <div class="msg-body">
+    好。先定位 <code>AsyncLog</code> 当前结构和配置读取入口。
+    <div class="tools">
+      <div class="tool"><span class="pref">▸</span><span class="verb">read</span><span class="arg">crates/git/src/async_log.rs</span><span class="diff">320 L</span><span class="time">0.4s</span></div>
+      <div class="tool"><span class="pref">▸</span><span class="verb">grep</span><span class="arg">SLEEP_FOREGROUND|SLEEP_BACKGROUND</span><span class="diff">2 hits</span><span class="time">0.2s</span></div>
+      <div class="tool"><span class="pref">▸</span><span class="verb">read</span><span class="arg">crates/core/src/config.rs</span><span class="diff">147 L</span><span class="time">0.3s</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider-dash"><span>3 tool calls · 1.8s</span></div>
+
+<div class="msg-ai">
+  <div class="msg-head">
+    <span class="who">● CLAUDE</span>
+    <span class="time">· 19:28:11</span>
+    <span class="tok">+2.1k · 3.4s</span>
+  </div>
+  <div class="msg-body">
+    定位到硬编码：<code>async_log.rs:47,52</code>。把 <code>SleepCadence</code> 抽到 <code>GitConfig</code>，默认值保留；<code>config.toml</code> 增 <code>[git.log]</code> 段落。
+    <div class="tools">
+      <div class="tool"><span class="pref edit">✎</span><span class="verb edit">edit</span><span class="arg">crates/git/src/async_log.rs</span><span class="diff"><span class="ad">+14</span> <span class="dl">−6</span></span><span class="time">0.3s</span></div>
+      <div class="tool"><span class="pref edit">✎</span><span class="verb edit">edit</span><span class="arg">crates/core/src/config.rs</span><span class="diff"><span class="ad">+11</span> <span class="dl">−0</span></span><span class="time">0.3s</span></div>
+      <div class="tool"><span class="pref edit">✎</span><span class="verb edit">edit</span><span class="arg">config/default.toml</span><span class="diff"><span class="ad">+4</span> <span class="dl">−0</span></span><span class="time">0.2s</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="divider-dash"><span>3 edits · +29 / −6 · 0.9s</span></div>
+
+<div class="msg-you">
+  <div class="msg-head">
+    <span class="who">YOU</span>
+    <span class="time">· 19:29:18</span>
+    <span class="tok">16 tokens</span>
+  </div>
+  <div class="msg-body">
+    跑一下 <code>cargo test -p vibestation-git</code>
+  </div>
+</div>
+
+<div class="msg-ai">
+  <div class="msg-head">
+    <span class="who">● CLAUDE</span>
+    <span class="time">· 19:29:21</span>
+    <span class="tok">+0.3k · 0.8s</span>
+  </div>
+  <div class="msg-body">
+    <div class="tools">
+      <div class="tool"><span class="pref" style="color: var(--purple)">▸</span><span class="verb bash">bash</span><span class="arg">cargo test -p vibestation-git</span><span class="diff"></span><span class="time">3.6s</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="t-line"><span class="t-dim">   Compiling vibestation-git v0.1.0 (crates/git)</span></div>
+<div class="t-line"><span class="t-dim">    Finished `test` profile [unoptimized + debuginfo] in 3.42s</span></div>
+<div class="t-line"><span class="t-dim">     Running unittests src/lib.rs</span></div>
+<div class="t-line">&nbsp;</div>
+<div class="t-line"><span class="t-dim">running </span><span class="t-user">14</span><span class="t-dim"> tests</span></div>
+<div class="t-line">test async_log::tests::respects_sleep_cadence .......... <span class="t-ok">ok</span></div>
+<div class="t-line">test async_log::tests::fallback_on_missing_config ...... <span class="t-ok">ok</span></div>
+<div class="t-line">test async_log::tests::reacts_to_cancellation .......... <span class="t-ok">ok</span></div>
+<div class="t-line"><span class="t-dim">test repo::tests::opens_workspace ...................... </span><span class="t-ok">ok</span></div>
+<div class="t-line"><span class="t-dim">test repo::tests::diff_status_honors_gitignore ......... </span><span class="t-ok">ok</span></div>
+<div class="t-line"><span class="t-dim">…9 more</span></div>
+<div class="t-line">&nbsp;</div>
+<div class="t-line">test result: <span class="t-ok">ok</span>. <span class="t-user">14 passed</span>; 0 failed; 0 ignored<span class="cursor"></span></div>
+        </div>
+
+        <div class="term-input">
+          <span class="arrow">❯</span>
+          <input type="text" placeholder="向 Claude 发送消息  ·  / 命令  ·  @ 文件引用"/>
+          <span class="kbd">⌘K</span>
+          <span class="kbd">⌘↵</span>
+        </div>
+      </div>
+
+      <!-- Session timeline -->
+      <aside class="timeline">
+        <div class="tl-head">
+          <div class="ttl">◈ <span class="acc">SESSION TIMELINE</span> · sess_a7c3f21e</div>
+          <div class="stats">
+            <div class="tl-stat"><div class="k">Turns</div><div class="v cy">8</div><div class="sub">4 user · 4 ai</div></div>
+            <div class="tl-stat"><div class="k">Tools</div><div class="v pr">11</div><div class="sub">7 read · 3 edit · 1 bash</div></div>
+            <div class="tl-stat"><div class="k">Edits</div><div class="v or">+29 / −6</div><div class="sub">3 files</div></div>
+            <div class="tl-stat"><div class="k">Latency</div><div class="v">p95 3.4s</div><div class="sub">avg 1.2s</div></div>
+          </div>
+        </div>
+        <div class="tl-scroll">
+          <div class="tl-list">
+            <div class="tl-item now">
+              <div class="t"><span class="kind">NOW</span><span>19:29:24 · idle</span></div>
+              <div class="m">等待下一个输入…</div>
+            </div>
+            <div class="tl-item tool">
+              <div class="t"><span class="kind">bash</span><span>19:29:21 · 3.6s</span></div>
+              <div class="m"><span class="mono">cargo test -p vibestation-git</span></div>
+              <div class="foot"><span>14 passed</span><span>0 failed</span></div>
+            </div>
+            <div class="tl-item ai">
+              <div class="t"><span class="kind">ai</span><span>19:29:21 · 0.8s</span></div>
+              <div class="m">运行测试以验证 <span class="mono">config.toml</span> 路径生效。</div>
+            </div>
+            <div class="tl-item edit">
+              <div class="t"><span class="kind">edit</span><span>19:28:14 · 0.3s</span></div>
+              <div class="m"><span class="mono">config/default.toml</span></div>
+              <div class="foot"><span class="ad">+4</span><span class="dl">−0</span></div>
+            </div>
+            <div class="tl-item edit">
+              <div class="t"><span class="kind">edit</span><span>19:28:13 · 0.3s</span></div>
+              <div class="m"><span class="mono">crates/core/src/config.rs</span></div>
+              <div class="foot"><span class="ad">+11</span><span class="dl">−0</span></div>
+            </div>
+            <div class="tl-item edit">
+              <div class="t"><span class="kind">edit</span><span>19:28:11 · 0.3s</span></div>
+              <div class="m"><span class="mono">crates/git/src/async_log.rs</span></div>
+              <div class="foot"><span class="ad">+14</span><span class="dl">−6</span></div>
+            </div>
+            <div class="tl-item ai">
+              <div class="t"><span class="kind">ai</span><span>19:28:11 · 3.4s</span></div>
+              <div class="m">提取 <span class="mono">SleepCadence</span> 到 <span class="mono">GitConfig</span>。</div>
+            </div>
+            <div class="tl-item tool">
+              <div class="t"><span class="kind">read</span><span>19:28:09 · 0.3s</span></div>
+              <div class="m"><span class="mono">crates/core/src/config.rs</span></div>
+              <div class="foot"><span>147 lines</span></div>
+            </div>
+            <div class="tl-item tool">
+              <div class="t"><span class="kind">grep</span><span>19:28:08 · 0.2s</span></div>
+              <div class="m"><span class="mono">SLEEP_FOREGROUND|SLEEP_BACKGROUND</span></div>
+              <div class="foot"><span>2 matches</span></div>
+            </div>
+            <div class="tl-item tool">
+              <div class="t"><span class="kind">read</span><span>19:28:07 · 0.4s</span></div>
+              <div class="m"><span class="mono">crates/git/src/async_log.rs</span></div>
+              <div class="foot"><span>320 lines</span></div>
+            </div>
+            <div class="tl-item ai">
+              <div class="t"><span class="kind">ai</span><span>19:28:07 · 2.3s</span></div>
+              <div class="m">定位 AsyncLog 结构 + 配置入口。</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Git panel -->
+    <aside class="gitpanel">
+      <div class="gp-head">
+        <div class="gp-row">
+          <span class="gp-title">GIT LOG · <strong>main</strong></span>
+          <span class="spacer"></span>
+          <button class="icon-btn" title="Pull"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 11V3 M4 7l4 4 4-4 M3 13h10"/></svg></button>
+          <button class="icon-btn" title="Push"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 3v8 M4 7l4-4 4 4 M3 13h10"/></svg></button>
+          <button class="icon-btn" title="Refresh"><svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M13 8a5 5 0 1 1-1.5-3.5 M13 2v3h-3"/></svg></button>
+        </div>
+
+        <div class="activity-card">
+          <div class="activity-head"><span class="lb">· COMMITS / 14 DAYS</span><span class="vl">42<span class="u">×</span></span></div>
+          <svg width="100%" height="32" viewBox="0 0 280 32" preserveAspectRatio="none">
+            <g>
+              <rect x="0"   y="22" width="18" height="8"  fill="var(--cyan-dim)" opacity="0.7"/>
+              <rect x="20"  y="14" width="18" height="16" fill="var(--cyan-dim)" opacity="0.8"/>
+              <rect x="40"  y="18" width="18" height="12" fill="var(--cyan-dim)" opacity="0.7"/>
+              <rect x="60"  y="8"  width="18" height="22" fill="var(--cyan)"/>
+              <rect x="80"  y="4"  width="18" height="26" fill="var(--cyan)"/>
+              <rect x="100" y="12" width="18" height="20" fill="var(--cyan)"/>
+              <rect x="120" y="16" width="18" height="16" fill="var(--cyan-dim)" opacity="0.8"/>
+              <rect x="140" y="24" width="18" height="6"  fill="var(--cyan-dim)" opacity="0.55"/>
+              <rect x="160" y="20" width="18" height="12" fill="var(--cyan-dim)" opacity="0.7"/>
+              <rect x="180" y="10" width="18" height="22" fill="var(--cyan)"/>
+              <rect x="200" y="6"  width="18" height="26" fill="var(--cyan)"/>
+              <rect x="220" y="2"  width="18" height="30" fill="var(--orange)"/>
+              <rect x="240" y="8"  width="18" height="24" fill="var(--cyan)"/>
+              <rect x="260" y="14" width="18" height="18" fill="var(--cyan-dim)" opacity="0.7"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="gp-row">
+          <div class="search-wrap">
+            <svg class="i" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="M14 14l-3.5-3.5"/></svg>
+            <input type="text" placeholder="搜索 commit / hash / author…"/>
+            <span class="kbd">⌘F</span>
+          </div>
+        </div>
+        <div class="filters">
+          <span class="fp on"><span class="k">branch:</span>main</span>
+          <span class="fp"><span class="k">author:</span>*</span>
+          <span class="fp"><span class="k">date:</span>-30d</span>
+          <span class="fp"><span class="k">path:</span>—</span>
+        </div>
+      </div>
+
+      <div class="commits">
+        <div class="c-row sel">
+          <div class="gph"><span class="vl cy" style="top: 18px;"></span><span class="n ai"></span></div>
+          <div class="cb">
+            <div class="top">
+              <span class="ref-chip head"><span class="pf">HEAD→</span>main</span>
+              <span class="ref-chip remote"><span class="pf">↑</span>origin/main</span>
+              <span class="ref-chip ai-session"><span class="pf">sess</span> 42m</span>
+            </div>
+            <div class="msg">feat(git): AsyncLog 双速率改为可配置 + 默认保留 2ms/1000ms</div>
+            <div class="meta"><span class="hash">a7c3f21</span><span class="by">leafiel</span><span class="tm">just now</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n ai"></span></div>
+          <div class="cb">
+            <div class="top"><span class="ref-chip ai-session"><span class="pf">sess</span> 1h14m</span></div>
+            <div class="msg">feat(pty): 单读线程 + mpsc 广播 · 修复多 Tab Mutex 瓶颈</div>
+            <div class="meta"><span class="hash">9d4e81b</span><span class="by">leafiel</span><span class="tm">2h ago</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"></div>
+            <div class="msg">refactor(core): 拆 Workspace 持久态到 redb</div>
+            <div class="meta"><span class="hash">6f02a15</span><span class="by">leafiel</span><span class="tm">昨天 23:04</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"><span class="ref-chip tag"><span class="pf">#</span>v0.1.0-alpha.1</span></div>
+            <div class="msg">chore(release): 预发 0.1.0-alpha.1</div>
+            <div class="meta"><span class="hash">c2d4fe0</span><span class="by">leafiel</span><span class="tm">昨天 19:30</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"></div>
+            <div class="msg">fix(macos): GUI PATH 为空 · 接入 fix-path-env</div>
+            <div class="meta"><span class="hash">0e8b7a2</span><span class="by">leafiel</span><span class="tm">2 天前</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl or"></span><span class="n or"></span></div>
+          <div class="cb">
+            <div class="top"><span class="ref-chip"><span class="pf">origin/</span>dependabot…tokio-1.42</span></div>
+            <div class="msg">build(deps): bump tokio from 1.40.0 to 1.42.0</div>
+            <div class="meta"><span class="hash">4b11c09</span><span class="by">dependabot[bot]</span><span class="tm">3 天前</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"></div>
+            <div class="msg">docs: 调研 CodexMonitor / lapce / gitui</div>
+            <div class="meta"><span class="hash">dc14a2a</span><span class="by">leafiel</span><span class="tm">3 天前</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"></div>
+            <div class="msg">feat(ui): Codex-Inspired HUD 视觉方向</div>
+            <div class="meta"><span class="hash">f7040da</span><span class="by">leafiel</span><span class="tm">4 天前</span></div>
+          </div>
+        </div>
+
+        <div class="c-row">
+          <div class="gph"><span class="vl cy"></span><span class="n m"></span></div>
+          <div class="cb">
+            <div class="top"></div>
+            <div class="msg">chore: init Tauri 2 + SolidJS + Cargo workspace</div>
+            <div class="meta"><span class="hash">3a1e5c8</span><span class="by">leafiel</span><span class="tm">5 天前</span></div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ══════ Bottom HUD ══════ -->
+  <footer class="bot">
+    <div class="group">
+      <span class="it"><span class="k">⎇</span><span class="v cy">main</span><span class="k">↑</span><span class="v">2</span></span>
+      <span class="it"><span class="k">Δ</span><span class="v or">3 unstaged</span></span>
+      <span class="it"><span class="k">branch-ahead</span><span class="v">2 / 0</span></span>
+    </div>
+    <div class="center-lamp"><span class="h"></span><span>CLAUDE ONLINE · sonnet-4-6</span></div>
+    <div class="group right">
+      <span class="it"><span class="k">tok</span><span class="v or">18.4k / 200k</span></span>
+      <span class="it"><span class="k">p95</span><span class="v">3.4s</span></span>
+      <span class="it"><span class="k">cost</span><span class="v">$0.42</span></span>
+      <span class="it"><span class="k">UTF-8 · LF · 13px</span></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const switches = document.querySelectorAll('[data-theme-set]');
+  const apply = (t) => switches.forEach(b => b.classList.toggle('on', b.dataset.themeSet === t));
+  const saved = localStorage.getItem('vs-theme') || 'auto';
+  root.dataset.theme = saved;
+  apply(saved);
+  switches.forEach(btn => btn.addEventListener('click', () => {
+    const v = btn.dataset.themeSet;
+    root.dataset.theme = v;
+    localStorage.setItem('vs-theme', v);
+    apply(v);
+  }));
+  const term = document.getElementById('terminal');
+  if (term) term.scrollTop = term.scrollHeight;
+  // Fake live clock tick
+  const clock = document.querySelector('.live-clock .v');
+  if (clock) {
+    setInterval(() => {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }, 1000);
+  }
+</script>
+</body>
+</html>

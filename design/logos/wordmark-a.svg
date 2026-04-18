@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 56" width="280" height="56" role="img" aria-label="Vibestation">
+  <defs>
+    <linearGradient id="wa-cursor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <g font-family="'JetBrains Mono', ui-monospace, 'Commit Mono', monospace" font-weight="600" letter-spacing="-0.5">
+    <text x="8" y="38" font-size="30" fill="currentColor">vibe</text>
+    <text x="86" y="38" font-size="30" fill="currentColor" opacity="0.55">station</text>
+    <rect x="236" y="16" width="3" height="24" fill="url(#wa-cursor)">
+      <animate attributeName="opacity" values="1;1;0;0;1" dur="1.2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+</svg>

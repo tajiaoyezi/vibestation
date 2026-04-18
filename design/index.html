@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Vibestation — 设计方向总览</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root, [data-theme="dark"] {
+  --bg-0: oklch(0.14 0.01 255);
+  --bg-1: oklch(0.18 0.01 255);
+  --bg-2: oklch(0.22 0.012 255);
+  --line: oklch(0.26 0.012 255);
+  --line-soft: oklch(0.22 0.01 255);
+  --text-1: oklch(0.96 0.005 255);
+  --text-2: oklch(0.72 0.012 255);
+  --text-3: oklch(0.52 0.013 255);
+  --text-4: oklch(0.40 0.013 255);
+  --accent: oklch(0.78 0.13 230);
+  --accent-soft: oklch(0.78 0.13 230 / 0.14);
+  --warning: oklch(0.82 0.13 80);
+  --success: oklch(0.80 0.14 155);
+}
+[data-theme="light"] {
+  --bg-0: oklch(0.99 0.003 255);
+  --bg-1: oklch(0.96 0.004 255);
+  --bg-2: oklch(0.93 0.006 255);
+  --line: oklch(0.88 0.008 255);
+  --line-soft: oklch(0.93 0.006 255);
+  --text-1: oklch(0.22 0.02 255);
+  --text-2: oklch(0.42 0.02 255);
+  --text-3: oklch(0.58 0.018 255);
+  --text-4: oklch(0.70 0.015 255);
+  --accent: oklch(0.52 0.16 235);
+  --accent-soft: oklch(0.52 0.16 235 / 0.1);
+  --warning: oklch(0.65 0.16 70);
+  --success: oklch(0.52 0.16 155);
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --bg-0: oklch(0.99 0.003 255);
+    --bg-1: oklch(0.96 0.004 255);
+    --bg-2: oklch(0.93 0.006 255);
+    --line: oklch(0.88 0.008 255);
+    --line-soft: oklch(0.93 0.006 255);
+    --text-1: oklch(0.22 0.02 255);
+    --text-2: oklch(0.42 0.02 255);
+    --text-3: oklch(0.58 0.018 255);
+    --text-4: oklch(0.70 0.015 255);
+    --accent: oklch(0.52 0.16 235);
+    --accent-soft: oklch(0.52 0.16 235 / 0.1);
+    --warning: oklch(0.65 0.16 70);
+    --success: oklch(0.52 0.16 155);
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  transition: background .25s, color .25s;
+}
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.wrap { max-width: 1280px; margin: 0 auto; padding: 48px 32px 96px; }
+
+.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; padding-bottom: 40px; border-bottom: 1px solid var(--line-soft); margin-bottom: 48px; }
+.hero h1 { font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 38px; margin: 0 0 8px; letter-spacing: -1.2px; }
+.hero h1 .dim { color: var(--text-3); font-weight: 400; }
+.hero p { color: var(--text-2); font-size: 15px; margin: 0 0 20px; max-width: 640px; }
+.meta-row { display: flex; gap: 16px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-3); flex-wrap: wrap; }
+.meta-row span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 999px; }
+.meta-row span .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+.theme-switch { display: flex; align-items: center; gap: 2px; background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 8px; padding: 3px; flex-shrink: 0; }
+.theme-switch button { display: grid; place-items: center; width: 32px; height: 28px; color: var(--text-3); border: 0; background: none; cursor: pointer; border-radius: 5px; }
+.theme-switch button:hover { color: var(--text-1); }
+.theme-switch button.on { color: var(--text-1); background: var(--bg-2); }
+.theme-switch svg { width: 16px; height: 16px; }
+
+.section-title { display: flex; align-items: baseline; gap: 14px; margin: 48px 0 20px; padding-bottom: 12px; border-bottom: 1px solid var(--line-soft); }
+.section-title h2 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: -.3px; }
+.section-title .tag { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-4); }
+.section-title .count { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-3); }
+
+.grid-directions { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px; }
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  padding: 20px 22px;
+  position: relative;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 300px;
+}
+.card:hover { border-color: var(--line); transform: translateY(-2px); box-shadow: 0 12px 32px -12px oklch(0 0 0 / 0.22); }
+.card.ready { border-color: oklch(from var(--accent) l c h / 0.35); }
+.card.ready::after { content: 'READY'; position: absolute; top: 14px; right: 18px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 4px; }
+.card.pending { opacity: 0.7; }
+.card.pending::after { content: 'PENDING'; position: absolute; top: 14px; right: 18px; font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.1em; color: var(--warning); background: oklch(from var(--warning) l c h / 0.14); padding: 3px 8px; border-radius: 4px; }
+
+.card .num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-4); letter-spacing: 0.1em; }
+.card h3 { font-size: 20px; margin: 0; font-weight: 600; letter-spacing: -.4px; }
+.card h3 .tag { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-3); font-weight: 400; margin-left: 8px; }
+.card p.tag-line { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.55; }
+.card .refs { display: flex; flex-wrap: wrap; gap: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; }
+.card .refs span { padding: 2px 7px; background: var(--bg-2); border-radius: 4px; color: var(--text-3); }
+
+.preview {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16/10;
+  background: var(--bg-0);
+  position: relative;
+  display: grid;
+  grid-template-rows: 18px 1fr 12px;
+}
+.preview .bar { background: var(--bg-2); border-bottom: 1px solid var(--line-soft); }
+.preview .canvas { display: grid; grid-template-columns: 15% 1fr 32%; }
+.preview .col { border-right: 1px solid var(--line-soft); }
+.preview .col.last { border-right: 0; }
+.preview .foot { background: var(--bg-1); border-top: 1px solid var(--line-soft); }
+.preview.p-2 { background: #0a0a0a; color: #6fe07a; }
+.preview.p-2 .bar, .preview.p-2 .foot { background: #131313; border-color: #1a1a1a; }
+.preview.p-2 .col { border-color: #1a1a1a; }
+.preview.p-3 { background: oklch(0.18 0.04 240); }
+.preview.p-3 .bar { background: oklch(0.22 0.05 240); border-color: oklch(0.26 0.05 240); }
+.preview.p-3 .foot { background: oklch(0.22 0.05 240); border-color: oklch(0.26 0.05 240); }
+.preview.p-3 .col { border-color: oklch(0.26 0.05 240); }
+.preview.p-4 { background: #1e1e1e; }
+.preview.p-4 .bar { background: #2d2d30; border-color: #3c3c3c; }
+.preview.p-4 .foot { background: #007acc; }
+.preview.p-4 .col { border-color: #3c3c3c; }
+
+.card-actions { display: flex; gap: 10px; margin-top: auto; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, border-color .15s;
+}
+.btn:hover { background: var(--bg-0); border-color: var(--accent); text-decoration: none; }
+.btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn.primary:hover { background: oklch(from var(--accent) calc(l + 0.06) c h); color: white; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Logo strip */
+.logo-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.logo-card { background: var(--bg-1); border: 1px solid var(--line-soft); border-radius: 12px; overflow: hidden; }
+.logo-card .caption { padding: 12px 16px; border-top: 1px solid var(--line-soft); display: flex; align-items: baseline; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.logo-card .caption .name { color: var(--text-1); font-weight: 500; }
+.logo-card .caption .role { color: var(--text-4); }
+.logo-render { display: grid; grid-template-columns: 1fr 1fr; }
+.logo-render > div { padding: 28px 24px; display: grid; place-items: center; min-height: 110px; }
+.logo-render .dark { background: #111; color: #fff; }
+.logo-render .light { background: #f5f5f7; color: #111; }
+.logo-render svg { max-width: 100%; height: auto; }
+.logo-render .mark-bg { background: oklch(0.14 0.01 255); color: #fff; }
+.logo-render .mark-bg-light { background: oklch(0.96 0.003 255); color: #111; }
+
+/* Decision matrix */
+table.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+table.matrix th, table.matrix td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--line-soft); }
+table.matrix th { background: var(--bg-2); color: var(--text-3); font-weight: 500; font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+table.matrix tr:last-child td { border-bottom: 0; }
+table.matrix td .stars { color: var(--accent); letter-spacing: 1px; }
+table.matrix td .star-dim { color: var(--text-4); }
+table.matrix .name { font-weight: 500; color: var(--text-1); }
+table.matrix .tag { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-3); margin-left: 6px; }
+
+.callout {
+  margin-top: 32px;
+  padding: 18px 22px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid oklch(from var(--accent) l c h / 0.35);
+  color: var(--text-1);
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+.callout strong { color: var(--accent); font-weight: 600; }
+.callout p { margin: 0; }
+.callout p + p { margin-top: 10px; }
+
+.howto {
+  margin-top: 18px;
+  padding: 16px 20px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+}
+.howto code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: var(--bg-2); padding: 2px 8px; border-radius: 4px; color: var(--text-1); border: 1px solid var(--line-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div>
+      <h1>vibe<span class="dim">station</span></h1>
+      <p>Claude CLI / Codex CLI 用户的 Mission Control。JetBrains 级 Git 视图 × 多项目终端 × AI session 感知。</p>
+      <div class="meta-row">
+        <span><span class="dot"></span>设计方向探索 · Round 1</span>
+        <span class="mono">2026-04-17</span>
+        <span class="mono">spec · planner v1</span>
+      </div>
+    </div>
+    <div class="theme-switch" role="radiogroup" aria-label="Theme">
+      <button data-theme-set="light" aria-label="Light" title="Light">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="3"/><path d="M8 1v2 M8 13v2 M1 8h2 M13 8h2 M3 3l1.4 1.4 M11.6 11.6L13 13 M3 13l1.4-1.4 M11.6 4.4L13 3"/></svg>
+      </button>
+      <button data-theme-set="auto" class="on" aria-label="Auto" title="Auto">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="8" r="5"/><path d="M8 3 A5 5 0 0 0 8 13 Z" fill="currentColor"/></svg>
+      </button>
+      <button data-theme-set="dark" aria-label="Dark" title="Dark">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M13 9.5A5 5 0 0 1 6.5 3a5 5 0 1 0 6.5 6.5Z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Directions -->
+  <div class="section-title">
+    <h2>视觉方向</h2>
+    <span class="tag">// 打开原型查看真实交互 + 双主题切换</span>
+    <span class="count">4 ready / all ready ✓</span>
+  </div>
+
+  <div class="grid-directions">
+
+    <a class="card ready" href="directions/1-calm-studio.html" target="_blank">
+      <span class="num">01</span>
+      <h3>Calm Studio <span class="tag">主推</span></h3>
+      <p class="tag-line">柔和 oklch 双主题 · Inter + JetBrains Mono 双料字体 · 克制色彩、精致留白、微妙分层。对标 Linear / Zed / Raycast。</p>
+      <div class="refs">
+        <span>Linear</span><span>Zed</span><span>Raycast</span><span>Vercel Geist</span>
+      </div>
+      <div class="preview">
+        <div class="bar"></div>
+        <div class="canvas">
+          <div class="col" style="background: var(--bg-1)"></div>
+          <div class="col" style="background: var(--bg-0)"></div>
+          <div class="col last" style="background: var(--bg-1)"></div>
+        </div>
+        <div class="foot"></div>
+      </div>
+      <div class="card-actions">
+        <span class="btn primary">打开原型 →</span>
+      </div>
+    </a>
+
+    <a class="card ready" href="directions/2-terminal-native.html" target="_blank">
+      <span class="num">02</span>
+      <h3>Terminal Native</h3>
+      <p class="tag-line">CRT phosphor 绿 + 琥珀 · JetBrains Mono 全局等宽 · 字符边框装饰 · 扫描线 + 字符光标。对标 Ghostty / Charm.sh / desktop-cc-gui。</p>
+      <div class="refs">
+        <span>Ghostty</span><span>Charm</span><span>desktop-cc-gui</span><span>Dracula</span>
+      </div>
+      <div class="preview p-2">
+        <div class="bar"></div>
+        <div class="canvas">
+          <div class="col"></div><div class="col"></div><div class="col last"></div>
+        </div>
+        <div class="foot"></div>
+      </div>
+      <div class="card-actions">
+        <span class="btn">打开原型 →</span>
+      </div>
+    </a>
+
+    <a class="card ready" href="directions/3-codex-inspired.html" target="_blank">
+      <span class="num">03</span>
+      <h3>Codex-Inspired</h3>
+      <p class="tag-line">深蓝 HUD + 青/紫/橙多彩灯号 · 顶部 live metrics 条 · 中央独立 session timeline 面板 · commit activity 柱状图 · 呼吸脉冲状态灯。对标 codexmonitor.app / Grafana。</p>
+      <div class="refs">
+        <span>codexmonitor.app</span><span>Grafana</span><span>Bloomberg</span><span>FlightRadar</span>
+      </div>
+      <div class="preview p-3">
+        <div class="bar"></div>
+        <div class="canvas">
+          <div class="col"></div><div class="col"></div><div class="col last"></div>
+        </div>
+        <div class="foot"></div>
+      </div>
+      <div class="card-actions">
+        <span class="btn">打开原型 →</span>
+      </div>
+    </a>
+
+    <a class="card ready" href="directions/4-vscode-dense.html" target="_blank">
+      <span class="num">04</span>
+      <h3>VSCode-Dense</h3>
+      <p class="tag-line">VSCode Dark+ 经典配色 · 左侧 Activity Bar + 彩色文件图标 · 命令面板 · 标志性蓝色 status bar · 面包屑导航 · 信息密度高。对标 VSCode / Cursor。</p>
+      <div class="refs">
+        <span>VSCode</span><span>Cursor</span><span>GitLens</span><span>Codicons</span>
+      </div>
+      <div class="preview p-4">
+        <div class="bar"></div>
+        <div class="canvas">
+          <div class="col"></div><div class="col"></div><div class="col last"></div>
+        </div>
+        <div class="foot"></div>
+      </div>
+      <div class="card-actions">
+        <span class="btn">打开原型 →</span>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="callout">
+    <p><strong>全部 4 个方向就绪</strong> · 建议打开顺序：Calm Studio → Terminal Native → Codex-Inspired → VSCode-Dense，每个都切双主题（右上角开关）感受差异。</p>
+    <p>别急着选 "最好看的"——选<strong>"你愿意每天 8 小时盯着它 coding 的"</strong>。明星项目的前提是你自己爱用。</p>
+  </div>
+
+  <!-- Logos -->
+  <div class="section-title">
+    <h2>Logo 候选</h2>
+    <span class="tag">// 暗亮双背景展示 · SVG 源码见 logos/</span>
+    <span class="count">2 ready / 3 pending</span>
+  </div>
+
+  <div class="logo-strip">
+    <div class="logo-card">
+      <div class="logo-render">
+        <div class="dark">
+          <object type="image/svg+xml" data="logos/wordmark-a.svg" style="width: 220px; color: #fff;"></object>
+        </div>
+        <div class="light">
+          <object type="image/svg+xml" data="logos/wordmark-a.svg" style="width: 220px; color: #111;"></object>
+        </div>
+      </div>
+      <div class="caption">
+        <span class="name">wordmark-a.svg</span>
+        <span class="role">文字标 · 光标闪烁</span>
+      </div>
+    </div>
+
+    <div class="logo-card">
+      <div class="logo-render">
+        <div class="mark-bg">
+          <object type="image/svg+xml" data="logos/mark.svg" style="width: 88px;"></object>
+        </div>
+        <div class="mark-bg-light">
+          <object type="image/svg+xml" data="logos/mark.svg" style="width: 88px;"></object>
+        </div>
+      </div>
+      <div class="caption">
+        <span class="name">mark.svg</span>
+        <span class="role">图标标 · 终端提示符 + 节点</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Decision matrix -->
+  <div class="section-title">
+    <h2>决策矩阵</h2>
+    <span class="tag">// 每格 1–5 星，★=强 / ☆=弱</span>
+  </div>
+
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th>方向</th>
+        <th>独特性</th>
+        <th>社区亲和</th>
+        <th>开发成本</th>
+        <th>可扩展性</th>
+        <th>我推荐</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="name">Calm Studio</span><span class="tag">// 主推</span></td>
+        <td><span class="stars">★★★★</span><span class="star-dim">☆</span></td>
+        <td><span class="stars">★★★★★</span></td>
+        <td><span class="stars">★★★★</span><span class="star-dim">☆</span></td>
+        <td><span class="stars">★★★★★</span></td>
+        <td><span class="stars">★★★★★</span></td>
+      </tr>
+      <tr>
+        <td><span class="name">Terminal Native</span></td>
+        <td><span class="stars">★★★★★</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+        <td><span class="stars">★★★★</span><span class="star-dim">☆</span></td>
+        <td><span class="stars">★★</span><span class="star-dim">☆☆☆</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+      </tr>
+      <tr>
+        <td><span class="name">Codex-Inspired</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+        <td><span class="stars">★★★★</span><span class="star-dim">☆</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+      </tr>
+      <tr>
+        <td><span class="name">VSCode-Dense</span></td>
+        <td><span class="stars">★★</span><span class="star-dim">☆☆☆</span></td>
+        <td><span class="stars">★★★★★</span></td>
+        <td><span class="stars">★★★★★</span></td>
+        <td><span class="stars">★★★</span><span class="star-dim">☆☆</span></td>
+        <td><span class="stars">★★</span><span class="star-dim">☆☆☆</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="howto">
+    <strong>打开方式：</strong>
+    <code>open /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation-design/index.html</code>
+    <br/><br/>
+    <strong>直接看主推方向：</strong>
+    <code>open /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation-design/directions/1-calm-studio.html</code>
+  </div>
+
+</div>
+
+<script>
+  const root = document.documentElement;
+  const switches = document.querySelectorAll('[data-theme-set]');
+  const saved = localStorage.getItem('vs-theme') || 'auto';
+  root.dataset.theme = saved;
+  const applyActive = (t) => switches.forEach(b => b.classList.toggle('on', b.dataset.themeSet === t));
+  applyActive(saved);
+  switches.forEach(btn => btn.addEventListener('click', () => {
+    const v = btn.dataset.themeSet;
+    root.dataset.theme = v;
+    localStorage.setItem('vs-theme', v);
+    applyActive(v);
+  }));
+</script>
+</body>
+</html>

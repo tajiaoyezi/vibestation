@@ -1,0 +1,101 @@
+# ────────────── OS ──────────────
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# ────────────── Editor / IDE ──────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.zed/
+
+# ────────────── Rust / Cargo ──────────────
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# ────────────── Node / npm / pnpm ──────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn-integrity
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# ────────────── Tauri ──────────────
+src-tauri/target/
+src-tauri/gen/
+src-tauri/WixTools/
+*.app
+*.dmg
+*.AppImage
+*.deb
+*.msi
+*.exe
+
+# ────────────── Frontend build ──────────────
+dist/
+dist-ssr/
+build/
+.vite/
+.turbo/
+.next/
+.nuxt/
+.output/
+.astro/
+.svelte-kit/
+
+# ────────────── Env / secrets ──────────────
+.env
+.env.local
+.env.*.local
+.secrets
+secrets.toml
+
+# ────────────── Logs / caches ──────────────
+*.log
+logs/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ────────────── Test / coverage ──────────────
+coverage/
+*.lcov
+.nyc_output/
+test-results/
+playwright-report/
+
+# ────────────── Local dev databases / data ──────────────
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.redb
+*.redb-lock
+dev-data/
+user-data/
+
+# ────────────── Package manager ──────────────
+.npm/
+.yarn/
+.bun/
+bun.lockb
+
+# ────────────── Vibestation 特定 ──────────────
+# 本地 Spike / 实验目录
+spike-tmp/
+# 本地 profiling 产物
+*.pprof
+*.heapprofile
+flamegraph.svg
+# 本地终端配置扫描缓存
+.vs-profile-cache/

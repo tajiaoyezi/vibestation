@@ -38,14 +38,23 @@ GitHub 分支保护**不能写进 repo**（GitHub 产品设计），所以本文
   - **Required status checks**（勾选以下全部）：
     - [ ] `Markdown lint · 文档一致性`（from `.github/workflows/ci.yml`）
     - [ ] `gitleaks`（from `.github/workflows/secret-scan.yml`）
+    - [ ] `Guard · inline gitleaks:allow 检测`（from `.github/workflows/secret-scan.yml` · **Codex PR #11 F3** · 防 `# gitleaks:allow` 内联 bypass · 该 guard job 的 name 字段必须与此处一致）
     - [ ] `Validate task spec frontmatter`（from `.github/workflows/task-spec-validator.yml`）
     - [ ] `Pre-code status · 当前阶段说明`（always-green 指示器）
     - 以下 Spike W0 后启用：
       - [ ] `Rust · cargo check`
       - [ ] `Frontend · pnpm lint/typecheck`
 
+> ⚠️ **Required check 选型关键** · Codex PR #11 F1 教训：
+> - 所有 required check 的 workflow **必须无 `paths` 过滤 · 总是触发**
+> - 带 `paths` 过滤 + 被设为 required → 无关 PR 永久 Pending 卡死合并
+> - 正确 pattern：workflow 无 `paths` · job 内用 `git diff` 判断是否需实质校验 · 无关则 echo skip + `exit 0`
+> - 当前所有 required workflow 已按此 pattern 改造（见 `.github/workflows/task-spec-validator.yml` / `secret-scan.yml`）
+
 **消除风险**：
 - SPIKE-06 A.5.3 F4：merge 前硬阻塞 gitleaks 扫描
+- **Codex PR #11 F3**：防 gitleaks inline bypass（`# gitleaks:allow` 内联绕过被 CI 拒绝）
+- **Codex PR #11 F1**：防 required check pending 死锁
 - `docs/tasks/README.md §原则 7`：frontmatter validator enforced
 
 ### 3. Require conversation resolution before merging

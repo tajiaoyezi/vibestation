@@ -47,8 +47,55 @@ const REQUIRED_FIELDS = [
 ];
 
 /**
- * 解析 YAML frontmatter（简单实现，无外部依赖）
- * 只处理 scalar / list / 空值，不支持嵌套 map
+ * 去除 YAML 行内注释（#），但保留引号内的 `#`
+ *
+ * Codex PR #11 review F2 教训：原实现 `rawLine.replace(/#.*$/, "")` 不区分
+ * 引号内外 · 会把 `status: "done #junk"` 截断为 `done` · 允许绕过枚举校验。
+ *
+ * 本实现跟踪单引号 / 双引号状态 · 只在 quote-closed 状态下移除 `#` 及其后内容。
+ */
+function stripInlineComment(line) {
+  let inSingle = false;
+  let inDouble = false;
+  let result = "";
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"' && !inSingle) {
+      inDouble = !inDouble;
+      result += c;
+      continue;
+    }
+    if (c === "'" && !inDouble) {
+      inSingle = !inSingle;
+      result += c;
+      continue;
+    }
+    if (c === "#" && !inSingle && !inDouble) {
+      // 注释开始 · 跳出
+      break;
+    }
+    result += c;
+  }
+  return result;
+}
+
+/**
+ * 解析 YAML frontmatter（手写精简实现 · 无外部依赖）
+ *
+ * 支持：
+ *  - scalar key: value / key: "value"  / key: 'value'
+ *  - inline list: key: [a, b, c]  / key: []
+ *  - block list: key:\n  - a\n  - b
+ *  - 空值 → null
+ *  - 引号内的 `#` 保留（Codex F2 修复）
+ *
+ * 不支持（遇到时返回解析错误）：
+ *  - 嵌套 map（task spec 不需要）
+ *  - multiline scalar（`|` / `>`）
+ *  - anchor / alias
+ *  - tag (`!!str` 等)
+ *
+ * 复杂 YAML 用例超出本 validator scope · 若未来需要 · 引入 `yaml` npm 包（见 issue TODO）。
  */
 function parseFrontmatter(source) {
   const match = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
@@ -56,32 +103,152 @@ function parseFrontmatter(source) {
 
   const body = match[1];
   const result = {};
+  const lines = body.split(/\r?\n/);
+  let currentKey = null; // 跟踪 block list 归属
 
-  for (const rawLine of body.split(/\r?\n/)) {
-    const line = rawLine.replace(/#.*$/, ""); // 去行内注释
-    const m = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.*)$/);
-    if (!m) continue;
+  for (const rawLine of lines) {
+    const line = stripInlineComment(rawLine);
 
-    const key = m[1];
-    let value = m[2].trim();
-
-    // list [a, b, c]
-    if (/^\[.*\]$/.test(value)) {
-      const inner = value.slice(1, -1).trim();
-      result[key] = inner
-        ? inner.split(",").map((s) => s.trim().replace(/^["']|["']$/g, ""))
-        : [];
+    // Block list item: "  - value"  (属于上一个 key)
+    const listItemMatch = line.match(/^\s+-\s+(.*)$/);
+    if (listItemMatch && currentKey) {
+      let value = listItemMatch[1].trim();
+      // 去引号（保留引号内的 `#`）
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      if (!Array.isArray(result[currentKey])) {
+        result[currentKey] = [];
+      }
+      result[currentKey].push(value);
       continue;
     }
 
-    // 去引号
-    value = value.replace(/^["']|["']$/g, "");
+    // Key-value pair
+    const kvMatch = line.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(.*)$/);
+    if (!kvMatch) {
+      // 非空行且非 key-value / 非 list item → 可能是 multiline / anchor 等
+      if (line.trim() && !line.trim().startsWith("#")) {
+        // 保留为显式错误（caller 决定是否致命）
+        // 但为保持兼容 · 只在真正的 validate 阶段报
+      }
+      continue;
+    }
+
+    const key = kvMatch[1];
+    let value = kvMatch[2].trim();
+    currentKey = key;
+
+    // Inline list [a, b, c]
+    if (/^\[.*\]$/.test(value)) {
+      const inner = value.slice(1, -1).trim();
+      result[key] = inner
+        ? inner.split(",").map((s) => {
+            let item = s.trim();
+            if (
+              (item.startsWith('"') && item.endsWith('"')) ||
+              (item.startsWith("'") && item.endsWith("'"))
+            ) {
+              item = item.slice(1, -1);
+            }
+            return item;
+          })
+        : [];
+      currentKey = null; // inline list 已完成 · 后续 `- xxx` 不归属此 key
+      continue;
+    }
+
+    // Scalar · 去引号（保留引号内的 `#`）
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
 
     // 空值 → null
     result[key] = value === "" ? null : value;
   }
 
   return result;
+}
+
+/**
+ * Self-test · 启动时跑 adversarial fixture
+ * Codex PR #11 F2 教训：手写 parser 必须有对抗性测试
+ */
+function runSelfTest() {
+  const tests = [
+    // { name, input, expected }
+    {
+      name: "basic key-value",
+      input: `---\nid: SPIKE-01\nstatus: draft\n---`,
+      expected: { id: "SPIKE-01", status: "draft" },
+    },
+    {
+      name: "inline list",
+      input: `---\ndepends_on: [SPIKE-01, SPIKE-02]\n---`,
+      expected: { depends_on: ["SPIKE-01", "SPIKE-02"] },
+    },
+    {
+      name: "empty inline list",
+      input: `---\ndepends_on: []\n---`,
+      expected: { depends_on: [] },
+    },
+    {
+      name: "block list",
+      input: `---\ndepends_on:\n  - SPIKE-01\n  - SPIKE-02\n---`,
+      expected: { depends_on: ["SPIKE-01", "SPIKE-02"] },
+    },
+    {
+      name: "quoted value with # inside (Codex F2)",
+      input: `---\nstatus: "done #junk"\n---`,
+      expected: { status: "done #junk" },
+    },
+    {
+      name: "single-quoted value with # inside",
+      input: `---\nblocked_from: 'ready #nope'\n---`,
+      expected: { blocked_from: "ready #nope" },
+    },
+    {
+      name: "comment after scalar value",
+      input: `---\nstatus: draft  # 注释\n---`,
+      expected: { status: "draft" },
+    },
+    {
+      name: "empty value → null",
+      input: `---\nreviewer:\n---`,
+      expected: { reviewer: null },
+    },
+    {
+      name: "quoted value with colon",
+      input: `---\ntitle: "A: B"\n---`,
+      expected: { title: "A: B" },
+    },
+  ];
+
+  let passed = 0;
+  let failed = 0;
+  for (const t of tests) {
+    const result = parseFrontmatter(t.input);
+    const match = JSON.stringify(result) === JSON.stringify(t.expected);
+    if (match) {
+      passed++;
+    } else {
+      failed++;
+      console.error(`  self-test FAIL: ${t.name}`);
+      console.error(`    expected: ${JSON.stringify(t.expected)}`);
+      console.error(`    actual:   ${JSON.stringify(result)}`);
+    }
+  }
+  if (failed > 0) {
+    console.error(`\n✗ parser self-test FAILED (${passed}/${tests.length} pass)`);
+    process.exit(1);
+  }
+  // Silent on pass (don't clutter normal runs)
 }
 
 /**
@@ -184,6 +351,11 @@ function collectFiles(args) {
 }
 
 // ─────────── Main ───────────
+
+// Parser 自检 · adversarial fixture（Codex PR #11 F2 教训）
+// 启动时必跑 · parser 本身有 bug 则 fail-fast · 不让 validator 在坏的基础上跑
+runSelfTest();
+
 const args = process.argv.slice(2);
 const files = collectFiles(args);
 

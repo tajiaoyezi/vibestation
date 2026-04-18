@@ -47,7 +47,7 @@ reviewer:
   - (A) git2 满足 MVP 性能目标（10 万 commit < 500ms）→ MVP 纯 git2，不引入 gix
   - (B) git2 不满足但 gix 满足，且性价比合理（复杂度可接受）→ MVP 引入 gix 做读路径，git2 做写路径
   - (C) 两者都不满足 → 升级为 R3 触发，需要分页加载 + 背景索引策略（扩展 Spike 到 Day 4 半天）
-- [ ] 结论写入 **ADR-004**（Phase 3 后建立，当前以 `implementation-plan.md §3.1` changelog 记录）
+- [ ] 结论写入 **ADR-007**（`docs/adr/ADR-007-git-stack.md` 已 proposed · Spike benchmark 后 proposed → accepted）
 - [ ] 若结论是 B → `CLAUDE.md` 决策表 #13 更新（"读 + gix 0.70 混用"）
 
 ## ❌ 失败信号（Fail Signals）
@@ -65,7 +65,7 @@ reviewer:
 
 - [ ] `spike-tmp/spike-03-git-benchmark/`：benchmark 代码（criterion crate 或自写 bench）
 - [ ] **`docs/spikes/SPIKE-03-report.md`** benchmark 数据表（per-task；git2 vs gix 同场景多次取 P50/P99）
-- [ ] **ADR-004 草稿**：Git 栈读路径决策
+- [ ] **ADR-007 草稿 → accepted**：Git 栈读路径决策（`docs/adr/ADR-007-git-stack.md`）
 - [ ] `CLAUDE.md` 决策表 #13 状态 PR（如走 B 路径）
 - [ ] 火焰图 × 2（git2 和 gix 各一张，便于未来优化参考）
 
@@ -92,7 +92,7 @@ reviewer:
 
 ## 🔗 相关
 
-- ADR：`docs/adr/ADR-004-git-stack.md`
+- ADR：`docs/adr/ADR-007-git-stack.md`
 - 对应 `CLAUDE.md` 决策表：**#13 Git 栈**
 - `implementation-plan.md` 章节：§附录 A D3 · §9 R3 · §3.1
 - 上游：SPIKE-02

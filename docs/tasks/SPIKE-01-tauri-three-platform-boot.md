@@ -2,8 +2,8 @@
 id: SPIKE-01
 type: spike
 title: Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）
-status: ready
-owner:
+status: in-progress
+owner: Claude Code (Sonnet 4.6)
 phase: W0-D1
 depends_on: []
 blocks: ["SPIKE-02", "SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]

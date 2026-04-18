@@ -90,10 +90,18 @@ reviewer:
 
 > ⚠️ Codex 在 PR #7 Round 1 指出：新样本归档流程（auth failures / long conversations / mixed-output failure cases）如没有强制 redaction，会成为 repo 侧 secret leakage 路径。以下为消除该漏洞的强制要求。
 
-**A.5.1 · Raw captures 隔离**
-- [ ] 原始未脱敏捕获**禁止进 repo**，路径：`~/.vibestation-spike-raw/SPIKE-06/`（`.gitignore` 已排除 `*.raw` / `spike-raw/`）
-- [ ] 仓库内 `.gitignore` 显式包含 `~/.vibestation-spike-raw/`（相对路径写入 `/tmp/` 或命名匹配，CI 检查）
-- [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`
+**A.5.1 · Raw captures 隔离**（Codex PR #10 F4 复核 · 修正假修复）
+
+> ⚠️ **原描述（PR #7）声称"`.gitignore` 已排除"但 repo 实际未加。PR #9 的 Codex 第 4 轮审查发现该矛盾 · 本次修正**：
+> - `.gitignore` 真加了 `*.raw` / `spike-raw/` / `.spike-raw/`（本 PR 同 commit 落地）
+> - `~/.vibestation-spike-raw/` 是 home 目录 · **repo worktree 外 · gitignore 本就覆盖不到** · 原描述"仓库内 .gitignore 显式包含 home 路径"技术不可行，已删
+
+- [ ] **Raw 文件命名强制约定**：所有原始未脱敏捕获**必须**以 `.raw` 结尾（如 `claude-auth-fail-01.raw`）——即使误放 worktree 内也会被拦截
+- [ ] **存储位置**（按用户习惯选 · 前者首选）：
+  - (a) `~/.vibestation-spike-raw/SPIKE-06/` · home 路径 · 天然在 repo 外（推荐）
+  - (b) worktree 内：必须放 `spike-raw/` / `.spike-raw/` 目录 或用 `.raw` 后缀 → 被 `.gitignore` 拦截
+- [ ] **防误 commit 自检**：若 `git status` 看到任何 raw file（即 `.gitignore` 规则失效）→ **立刻停止 commit**，修命名或路径再提交
+- [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`（派生文件**不得**以 `.raw` 结尾）
 
 **A.5.2 · 脱敏要求**（每个样本 commit 前完成）
 - [ ] 删除所有 **auth token / API key / JWT / session cookie**
@@ -102,10 +110,23 @@ reviewer:
 - [ ] 替换 **git remote URL** 为 `https://github.com/EXAMPLE/REPO.git` 占位
 - [ ] **仓库 URL / 组织名** 替换为匿名（除非是公开样例）
 
-**A.5.3 · 自动 secret scan**（merge 前硬阻塞）
-- [ ] commit 前**必过 `gitleaks` 扫描**：`gitleaks detect --source docs/spikes/ docs/spike-artifacts/`（零 hit 通过）
-- [ ] Phase 4 CI 加 `.github/workflows/secret-scan.yml`，对所有 PR 跑 gitleaks（SPIKE-06 merge 前先用本地运行验证）
-- [ ] 若 gitleaks 报 false positive → 更新 `.gitleaks.toml` 加精准 allow 规则（不得整体 disable 规则）
+**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex PR #10 F4 复核 · 明确现状 vs Phase 4 scope）
+
+> ⚠️ **当前 repo 状态（Phase 2）**：无 `.gitleaks.toml` / 无 `.github/workflows/secret-scan.yml` / 无 CI 自动跑 gitleaks。
+> 这两项属于 **Phase 4 基础设施** 范围（`CLAUDE.md §当前可执行动作 3`），不在本 PR / SPIKE-06 spec PR 的 scope。
+> 在 Phase 4 CI 落地前，SPIKE-06 **实施时**的 secret scan 责任落在 **实施 agent + reviewer** 身上，执行路径如下：
+
+- [ ] **SPIKE-06 实施 agent 本地必跑**：
+  ```bash
+  # 安装 gitleaks（一次性 · brew / apt / 下载 release 二选一）
+  brew install gitleaks  # or: apt install gitleaks  or download from releases
+  # merge PR 前对新 commit 的样本目录全量扫
+  gitleaks detect --source docs/spikes/SPIKE-06-report.md --source docs/spike-artifacts/SPIKE-06/
+  # 要求：零 hit 通过 · 不得忽略任一 finding
+  ```
+- [ ] **SPIKE-06 reviewer 硬要求**：PR 描述**必须贴 `gitleaks detect` 命令输出截图**（零 hit 证据），否则**硬拒绝 approve**
+- [ ] **Phase 4 落地后**（`.github/workflows/secret-scan.yml` + `.gitleaks.toml` 上线）：本条自动升级为 CI 硬阻塞（参见 Phase 4 backlog）
+- [ ] 若本地 `gitleaks` 报 false positive → 把具体 finding 写进 `.gitleaks.toml`（Phase 4 创建该文件时精准 allow；Phase 2 直接改为脱敏更严格，不先行建 `.gitleaks.toml`）
 
 **A.5.4 · 样本真实性与脱敏平衡**
 - [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）

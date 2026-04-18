@@ -91,22 +91,34 @@ reviewer:
 
 > Codex PR #10 F1 教训：仅"能检测坏库"不够——检测出损坏后用户要**能自动恢复**才算真消除 R27。损坏但不能恢复 = 用户数据丢失 = R27 命中。
 
-- [ ] **启动自检**：app 每次冷启动在读业务 DB 前必跑
-  - [ ] 自检内容：打开 DB + 读 `schema_version` + 读 critical metadata table（至少 1 行）+ 跑 table checksum（若 DB 支持）
-  - [ ] 自检通过 → 正常启动
-  - [ ] 自检失败 → 进入恢复流程（见下）
+- [ ] **Durable op-log / manifest 设计**（**always-on · Codex PR #10 F2 复核加入**）：
+  > Codex 原话：`openability + 浅 metadata` 不足以检测 silent logical loss——**结构合法但部分覆盖/截断**的 DB 可以通过 open + `schema_version` 读取但数据已丢。必须在**设计层**引入外部的 durable truth 作为对照基准。
+  - [ ] **Op-log（write-ahead log）**：每次 committed write 事务（INSERT / UPDATE / DELETE）在 commit 前同步 append 一条 `{tx_id, table, key, op, checksum, ts}` 到 `~/.vibestation/op-log/<workspace>.log`（追加写 + fsync）
+  - [ ] **Manifest**：每次事务 commit 成功后原子更新 `~/.vibestation/manifest.json`：`{schema_version, per_table: {row_count, table_checksum}, last_tx_id}`（先写 `.tmp` + rename，原子）
+  - [ ] **Op-log 保留策略**：保留到对应备份已成功创建为止（≥ 当前周期快照 + 3 份），老的滚动删除
+  - [ ] **崩溃恢复场景**：op-log 永远领先或等于 DB 的 commit 状态（事务模型保证）
+- [ ] **启动自检**（基于 op-log / manifest · 不是仅 openability）：
+  - [ ] (1) 打开 DB + 读 `schema_version`
+  - [ ] (2) **对照 manifest**：逐表比对 row_count + table_checksum
+    - row_count 缺失 → **silent data loss 报警** · 具体丢失行数 = `manifest.row_count - db.row_count`
+    - table_checksum 不一致 → **silent overwrite 报警** · 进入回滚流程
+  - [ ] (3) **对照 op-log**：对 op-log 里的最后 N 条 tx_id 做 DB sampling 校验（至少验证 100 条 · 或 op-log 全部）
+    - 若 op-log 声称已 commit 但 DB 查不到 → **silent logical loss** · 报警 + 回滚
+  - [ ] 任一 check 失败 → 进入恢复流程
 - [ ] **last-good backup 链路**：
-  - [ ] app 在每次**干净退出**时异步创建 DB 快照 `~/.vibestation/backups/auto-<ts>.backup`
+  - [ ] app 每次**干净退出**时异步创建 DB + manifest + op-log 的三件套快照 `~/.vibestation/backups/auto-<ts>.backup/`
   - [ ] 每 10min **周期性快照**（降级：崩溃场景也有近期备份）
-  - [ ] 保留最近 3 份，老的自动回收
-- [ ] **自动回滚流程**：自检失败 → 弹窗 "DB 损坏，从 `<ts>` 的备份恢复？"（给出备份时间 + 预计丢失数据范围）→ 用户确认 → 回滚 → 再跑自检 → 通过则启动，失败则提示用 export/import（B.4 路径）手动恢复
+  - [ ] 保留最近 3 份 + 1 份 "last-known-good"（每次启动自检通过后更新），老的自动回收
+- [ ] **自动回滚流程**：自检失败 → 弹窗 "DB 损坏 · 检测到 silent loss / overwrite · 从 `<ts>` 的备份恢复？"（给出备份时间 + 预计丢失数据范围 = `current - backup` 的 op-log diff）→ 用户确认 → 回滚 → 再跑自检 → 通过则启动，失败则提示用 export/import（B.4 路径）手动恢复
 - [ ] **Silent data loss 测试**（启动自检须能发现）：
-  - [ ] 写入 10 行 + flush → `kill -9` → 重启 → 自检对照 write-ahead log，若最后 N 行实际未 commit 须**报出丢失条数**，不得静默继续（用户会以为数据还在）
-  - [ ] 手动在 `.redb` 中间 byte 改 1 个 → 启动自检**必须**触发回滚流程，不得 silent "启动成功但返回错误数据"
+  - [ ] 写入 100 行 + op-log 同步 + flush → `kill -9`（模拟最后 20 行未 commit）→ 重启 → 自检对照 op-log **必须报 "silent data loss: 20 行未 commit"** 并触发回滚
+  - [ ] 手动在 `.redb` 中间 byte 改 1 个 → 启动自检 table_checksum 不匹配 → **必须**触发回滚，不得 silent "启动成功"
+  - [ ] 手动删除 `.redb` 中的某一行（不改 row_count 校验字段）→ 自检 row_count mismatch 必报警
 - [ ] **Silent overwrite 测试**（migration 场景）：
   - [ ] 启动 migration 到一半 `kill -9` → 重启后 DB 必须**原子呈现**："新 schema 完整写入" 或 "旧 schema 完整保留" 二选一
-  - [ ] **禁止** "新 schema 一半覆盖旧 schema 一半"（这会让旧版回退读失败 + 新版读数据错位，用户无感知）
-  - [ ] migration 必须走 2-phase：先写 `migrating.redb` + 成功后原子 rename，不得原地改
+  - [ ] **禁止** "新 schema 一半覆盖旧 schema 一半"（旧版回退读失败 + 新版读数据错位，用户无感知）
+  - [ ] migration 必须走 2-phase：先写 `migrating.redb` + 成功后原子 rename + manifest 原子更新，不得原地改
+  - [ ] migration 失败后启动自检对照 pre-migration manifest checksum → 必须发现不一致并回滚
 
 **B.6 · 综合结论**（基于 A + B.1-5 共同决定）
 - [ ] (A) redb 2 · A 达标 + B.1-5 全通过 → 锁定 redb，`CLAUDE.md` #14 B → A，R27 消除

@@ -89,19 +89,39 @@ reviewer:
 - [ ] 所选策略必须在代码里显式标注（常量 / enum）+ commit message 说明原因
 - [ ] 实现代码里 channel 容量是配置项（不是 hardcoded）
 
-**B.4 · 一慢拖全部测试（head-of-line blocking · Codex PR #10 F2 加入）**
+**B.4 · 一慢拖全部测试（head-of-line blocking · Codex PR #10 F2/F3 复核加入 · 前端 + 后端 + hidden-tab 三场景）**
 
-> Codex PR #10 F2 教训：共享读线程架构的核心风险是**一个慢消费者拖垮全部 Tab**。B.1 soak test 只证"总体不 OOM"，不证"per-tab 独立"。本测试是共享读线程架构锁定的硬门槛。
+> Codex PR #10 F2 教训：共享读线程架构的核心风险是**一个慢消费者拖垮全部 Tab**。
+> Codex PR #10 F3 复核：**仅测前端 render 慢不足**——IPC queue 满 / hidden-tab rAF 节流才是真实 HOL。前端通过 ≠ 后端通过，必须拆成 3 子场景分别验证。
 
-- [ ] 4 Tab 并存，全部跑 `yes`
-- [ ] **Tab 1 前端人为卡死**：xterm render 回调里 `setTimeout(..., 500)` 或等价，模拟前端 event loop 阻塞
-- [ ] 持续 3 分钟
-- [ ] **Tab 2/3/4 必须全部满足**（过一票否决）：
-  - [ ] 每 Tab 吞吐下降 ≤ 10%（对比 B.1 无慢消费者 soak 基线）
-  - [ ] 主线程阻塞时间 ≤ 16ms（60fps）
-  - [ ] 无"空白帧 / 冻结 > 100ms"现象
-- [ ] **Tab 1 行为**：允许按 B.3 策略 drop 数据（并记 metric），但**不允许**阻塞 Tab 2/3/4 的数据流
-- [ ] **对照测试**：切到"per-session 一线程"架构再跑同样测试 → 若共享读线程失败而 per-session 通过 → 触发 fallback 切换
+**B.4 共同通过门槛**（三子场景各自独立验证 · Tab 2/3/4 一票否决）：
+- 每 Tab 吞吐下降 ≤ 10%（对比 B.1 无慢消费者 soak 基线）
+- 主线程阻塞时间 ≤ 16ms（60fps）
+- 无 "冻结 > 100ms / 空白帧" 现象
+- Tab 1 允许按 B.3 策略 drop 数据（记 metric），**不允许**阻塞 Tab 2/3/4 数据流
+
+**B.4.1 · 前端 render 慢**（browser event-loop 慢场景）
+- [ ] 4 Tab 并存全部跑 `yes`
+- [ ] **Tab 1 xterm render 回调人为卡**：`setTimeout(..., 500)` 或等价 JS 阻塞
+- [ ] 持续 3 分钟，验证 Tab 2/3/4 通过共同门槛
+
+**B.4.2 · 后端 IPC queue 满**（**核心 · Codex PR #10 F3 加入** · 后端侧慢场景）
+> 共享读线程架构最易失误：JS 渲染正常，但后端 Rust → JS 的 IPC channel 在 Tab 1 receiver 堵住时，共享读线程 dispatch 能否继续 pump Tab 2/3/4。
+- [ ] 4 Tab 并存全部跑 `yes`
+- [ ] **Tab 1 JS 侧 event listener 人为停止 poll**（或 Tauri `listen` handler sleep 500ms 阻塞消费），让 Tab 1 的 bounded IPC queue 填满
+- [ ] 持续 3 分钟，验证 Tab 2/3/4 通过共同门槛
+- [ ] **关键判定**：Tab 1 IPC queue 满不得让共享读线程在 Tab 1 的 `send` 上阻塞；若阻塞 → 共享读线程停滞 → Tab 2/3/4 dispatch 停止 = HOL 触发 = 失败
+
+**B.4.3 · Hidden-tab throttle**（browser rAF 节流场景）
+> Chromium / Tauri WebView 默认把 hidden tab 的 `requestAnimationFrame` 节流到 ≈ 1Hz，xterm render 近乎停滞 → 前端 IPC 消费速率 → 0 → 后端 queue 饱和。用户切 Tab 时高频触发。
+- [ ] 4 Tab 并存全部跑 `yes`
+- [ ] **Tab 1 隐藏**（`document.hidden = true` 或等价 · 模拟切到其他 window / 其他 tab）· rAF 节流到 ≤ 1Hz
+- [ ] 持续 3 分钟，验证 Tab 2/3/4 通过共同门槛
+- [ ] Tab 1 允许大量 drop-oldest（恢复可见后可显示 "丢了 N 条" 提示）
+
+**B.4.4 · 对照：per-session 一线程架构**
+- [ ] 切到 "每 session 一线程" 架构跑 B.4.1 / B.4.2 / B.4.3 三场景
+- [ ] 共享读线程任一子场景失败 + per-session 全通过 → **强制 fallback** `CLAUDE.md` #15 切 per-session
 
 ### C. 正确性验证（当前）
 
@@ -125,8 +145,10 @@ reviewer:
 - **B.2 隐藏 tab 5 分钟 RSS 增长 > 50MB** → off-screen 处理策略缺失
 - **B.3 channel 仍是 unbounded** → **硬拒绝锁定**，即使性能看似通过
 - **B.3 共享读线程 + 策略选了 `block-producer`** → 架构自相矛盾（全局 stall 风险），**硬拒绝锁定**
-- **B.4 一慢拖全部失败**：Tab 1 慢消费时 Tab 2/3/4 任一吞吐下降 > 10% / 主线程阻塞 > 16ms → **硬拒绝共享读线程锁定**，强制切换到 per-session 一线程
-- **B.4 Tab 2/3/4 出现 "冻结 > 100ms" / 空白帧** → 同上，head-of-line blocking 确认
+- **B.4.1 前端 render 慢场景**：Tab 2/3/4 任一吞吐下降 > 10% → HOL 触发 → 强制 per-session
+- **B.4.2 后端 IPC queue 满场景**（Codex F3 复核核心）：共享读线程在 Tab 1 `send` 上阻塞 / Tab 2/3/4 dispatch 停止 → HOL 确认 → 强制 per-session
+- **B.4.3 hidden-tab throttle 场景**：Tab 1 隐藏时 Tab 2/3/4 吞吐下降 > 10% → HOL 触发 → 强制 per-session
+- **B.4 任一子场景下 Tab 2/3/4 出现 "冻结 > 100ms / 空白帧"** → head-of-line blocking 确认 → **硬拒绝共享读线程锁定**
 
 ## 🔀 Fallback 方案
 

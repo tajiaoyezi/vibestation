@@ -110,13 +110,18 @@ reviewer:
 - [ ] 替换 **git remote URL** 为 `https://github.com/EXAMPLE/REPO.git` 占位
 - [ ] **仓库 URL / 组织名** 替换为匿名（除非是公开样例）
 
-**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex PR #10 F4 复核 · 明确现状 vs Phase 4 scope）
+**A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex PR #10 F4 + R5 F2 复核 · Phase 4 PR #11 已落地）
 
-> ⚠️ **当前 repo 状态（Phase 2）**：无 `.gitleaks.toml` / 无 `.github/workflows/secret-scan.yml` / 无 CI 自动跑 gitleaks。
-> 这两项属于 **Phase 4 基础设施** 范围（`CLAUDE.md §当前可执行动作 3`），不在本 PR / SPIKE-06 spec PR 的 scope。
-> 在 Phase 4 CI 落地前，SPIKE-06 **实施时**的 secret scan 责任落在 **实施 agent + reviewer** 身上，执行路径如下：
+> ⚠️ **Phase 4 基础设施已上线（PR #11 · merge 后）**：
+> - `.github/workflows/secret-scan.yml` · gitleaks PR + push 硬阻塞
+> - 分支保护应用 `docs/BRANCH-PROTECTION.md` 后，gitleaks check 成为 required status check
+> - `.gitleaks.toml` 暂不建（无 false positive 时保持 default 规则集，Phase 2 A.5.2 脱敏要求比 gitleaks 默认更严）
+>
+> **Codex PR #10 R5 F2 复核教训**：原描述"Phase 4 scope"是空头承诺 · 本次修正后指向 PR #11 实际落地的文件路径。
 
-- [ ] **SPIKE-06 实施 agent 本地必跑**：
+**SPIKE-06 实施 agent 的硬要求**：
+
+- [ ] **本地 pre-commit 必跑**（merge 前 · 不依赖 CI）：
   ```bash
   # 安装 gitleaks（一次性 · brew / apt / 下载 release 二选一）
   brew install gitleaks  # or: apt install gitleaks  or download from releases
@@ -124,9 +129,17 @@ reviewer:
   gitleaks detect --source docs/spikes/SPIKE-06-report.md --source docs/spike-artifacts/SPIKE-06/
   # 要求：零 hit 通过 · 不得忽略任一 finding
   ```
-- [ ] **SPIKE-06 reviewer 硬要求**：PR 描述**必须贴 `gitleaks detect` 命令输出截图**（零 hit 证据），否则**硬拒绝 approve**
-- [ ] **Phase 4 落地后**（`.github/workflows/secret-scan.yml` + `.gitleaks.toml` 上线）：本条自动升级为 CI 硬阻塞（参见 Phase 4 backlog）
-- [ ] 若本地 `gitleaks` 报 false positive → 把具体 finding 写进 `.gitleaks.toml`（Phase 4 创建该文件时精准 allow；Phase 2 直接改为脱敏更严格，不先行建 `.gitleaks.toml`）
+- [ ] **Reviewer 双保险**：PR 描述**必须贴 `gitleaks detect` 命令本地输出截图**（零 hit 证据）· CI 也必须通过 `.github/workflows/secret-scan.yml`（双检查）
+- [ ] **CI 硬阻塞（PR #11 落地）**：
+  - Workflow 文件：`.github/workflows/secret-scan.yml`（gitleaks-action@v2）
+  - 触发：PR + push main · workflow_dispatch 手动
+  - 权限：`contents: read` + `pull-requests: read`（最小权限）
+  - 失败上传 SARIF report 为 artifact（14 天保留）
+  - **Required status check**：`gitleaks`（见 `docs/BRANCH-PROTECTION.md §2`，admin 应用后强制）
+- [ ] **False positive 处理**（若真实误报）：
+  - 优先：在具体 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略机制）
+  - 次选：创建 `.gitleaks.toml` 加**最小范围**精准 allow 规则 · **禁止整体 disable rule type**
+  - 不可：关闭 workflow / 强制 merge · 违反 `docs/BRANCH-PROTECTION.md` 的"禁止 bypass"原则
 
 **A.5.4 · 样本真实性与脱敏平衡**
 - [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）

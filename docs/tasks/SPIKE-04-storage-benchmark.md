@@ -91,27 +91,42 @@ reviewer:
 
 > Codex PR #10 F1 教训：仅"能检测坏库"不够——检测出损坏后用户要**能自动恢复**才算真消除 R27。损坏但不能恢复 = 用户数据丢失 = R27 命中。
 
-- [ ] **Durable op-log / manifest 设计**（**always-on · Codex PR #10 F2 复核加入**）：
-  > Codex 原话：`openability + 浅 metadata` 不足以检测 silent logical loss——**结构合法但部分覆盖/截断**的 DB 可以通过 open + `schema_version` 读取但数据已丢。必须在**设计层**引入外部的 durable truth 作为对照基准。
-  - [ ] **Op-log（write-ahead log）**：每次 committed write 事务（INSERT / UPDATE / DELETE）在 commit 前同步 append 一条 `{tx_id, table, key, op, checksum, ts}` 到 `~/.vibestation/op-log/<workspace>.log`（追加写 + fsync）
-  - [ ] **Manifest**：每次事务 commit 成功后原子更新 `~/.vibestation/manifest.json`：`{schema_version, per_table: {row_count, table_checksum}, last_tx_id}`（先写 `.tmp` + rename，原子）
+- [ ] **Durable op-log / manifest 设计**（**always-on · Codex PR #10 F2 / R5 F1 复核加入**）：
+  > Codex PR #10 F2：`openability + 浅 metadata` 不足以检测 silent logical loss——**结构合法但部分覆盖/截断**的 DB 可以通过 open + `schema_version` 读取但数据已丢。必须在**设计层**引入外部的 durable truth 作为对照基准。
+  > **Codex PR #10 R5 F1 复核（关键修正）**：op-log 如果在 DB commit **前** fsync，事务后续 abort / crash 会导致 op-log 已记录但 DB 未 commit → 启动自检误判为 silent loss → 触发不必要回滚。**op-log 必须在 DB commit 成功后再标记 `committed`**，走 2-phase 写入。
+
+  **Op-log 2-phase 写入协议**（避免误判正常 abort）：
+  - [ ] **Phase 1 · Intent 记录**（事务开始时）：append `{tx_id, status: "pending", table, key, op, checksum, ts_start}` 到 `~/.vibestation/op-log/<workspace>.log` + fsync
+  - [ ] **Phase 2 · Commit 标记**（DB 事务 commit 成功**之后**）：再 append 一条 `{tx_id, status: "committed", ts_commit}` + fsync
+  - [ ] **Phase 2 失败场景**（DB commit 失败 / abort / crash）：append `{tx_id, status: "aborted", reason, ts_abort}` · 或什么都不 append（崩溃场景）
+  - [ ] **Manifest**：每次 Phase 2 committed 后原子更新 `~/.vibestation/manifest.json`：`{schema_version, per_table: {row_count, table_checksum}, last_committed_tx_id}`（先写 `.tmp` + rename，原子）
+
+  **Op-log / DB / Manifest 三件套的语义**（用来区分 silent loss vs 正常 abort）：
+  - `pending` 但无后续 `committed` / `aborted` → **崩溃场景** · 允许（正常事务中途被 kill）
+  - `committed` 但 DB 查不到 → **真正的 silent loss** · 必须报警 + 回滚
+  - `aborted` 且 DB 查不到 → 正常 · 不报警
+  - `committed` 且 DB 查到 → 正常 · 一致
   - [ ] **Op-log 保留策略**：保留到对应备份已成功创建为止（≥ 当前周期快照 + 3 份），老的滚动删除
-  - [ ] **崩溃恢复场景**：op-log 永远领先或等于 DB 的 commit 状态（事务模型保证）
-- [ ] **启动自检**（基于 op-log / manifest · 不是仅 openability）：
+  - [ ] **崩溃恢复场景**：启动时扫 op-log 最后 N 条 pending 无 committed/aborted → 视为 crash interrupted · 不报警，交由用户感知（"上次有未完成操作"）
+
+- [ ] **启动自检**（基于 op-log / manifest · 区分 silent loss vs 正常 abort）：
   - [ ] (1) 打开 DB + 读 `schema_version`
   - [ ] (2) **对照 manifest**：逐表比对 row_count + table_checksum
     - row_count 缺失 → **silent data loss 报警** · 具体丢失行数 = `manifest.row_count - db.row_count`
     - table_checksum 不一致 → **silent overwrite 报警** · 进入回滚流程
-  - [ ] (3) **对照 op-log**：对 op-log 里的最后 N 条 tx_id 做 DB sampling 校验（至少验证 100 条 · 或 op-log 全部）
-    - 若 op-log 声称已 commit 但 DB 查不到 → **silent logical loss** · 报警 + 回滚
-  - [ ] 任一 check 失败 → 进入恢复流程
+  - [ ] (3) **对照 op-log**（仅针对 `status: committed` 的条目 · 跳过 `pending` 和 `aborted`）：对最后 N 条 committed tx_id 做 DB sampling 校验（至少 100 条 · 或 op-log 全部）
+    - 若 op-log `committed` 声称已 commit 但 DB 查不到 → **silent logical loss** · 报警 + 回滚
+    - **禁止**对 `pending` 条目做同样校验（避免误判中断事务为 loss）
+  - [ ] (4) **悬挂事务扫描**：op-log 里 `pending` 无后续 `committed/aborted` 超过 N 分钟 → 视为 crash interrupted，UI 提示"上次有 M 个未完成操作"（可选：提供 cleanup 入口）
+  - [ ] 任一 (2)(3) check 失败 → 进入恢复流程；(4) 悬挂事务**不**触发回滚
 - [ ] **last-good backup 链路**：
   - [ ] app 每次**干净退出**时异步创建 DB + manifest + op-log 的三件套快照 `~/.vibestation/backups/auto-<ts>.backup/`
   - [ ] 每 10min **周期性快照**（降级：崩溃场景也有近期备份）
   - [ ] 保留最近 3 份 + 1 份 "last-known-good"（每次启动自检通过后更新），老的自动回收
 - [ ] **自动回滚流程**：自检失败 → 弹窗 "DB 损坏 · 检测到 silent loss / overwrite · 从 `<ts>` 的备份恢复？"（给出备份时间 + 预计丢失数据范围 = `current - backup` 的 op-log diff）→ 用户确认 → 回滚 → 再跑自检 → 通过则启动，失败则提示用 export/import（B.4 路径）手动恢复
-- [ ] **Silent data loss 测试**（启动自检须能发现）：
-  - [ ] 写入 100 行 + op-log 同步 + flush → `kill -9`（模拟最后 20 行未 commit）→ 重启 → 自检对照 op-log **必须报 "silent data loss: 20 行未 commit"** 并触发回滚
+- [ ] **Silent data loss 测试**（启动自检须能发现 · 区分真 loss vs 正常 abort）：
+  - [ ] **正常 abort 场景**（不得报警）：写入 100 行事务 → 在 DB commit 之前 `kill -9` → 重启 → op-log 里该事务只有 `pending` 无 `committed` → 自检**视为 crash interrupted**（不报 silent loss · 可选 UI 提示"上次有未完成操作"）
+  - [ ] **真 silent loss 场景**（必须报警）：写入 100 行事务 → DB commit 成功 + op-log 写 `committed` + manifest 已更新 → **手动破坏 DB 删掉后 20 行**（模拟 DB 层 silent corruption）→ 重启 → 自检对照 op-log `committed` 条目找不到对应 DB 数据 → **必须报 "silent data loss: 20 行 committed 但 DB 查不到"** 并触发回滚
   - [ ] 手动在 `.redb` 中间 byte 改 1 个 → 启动自检 table_checksum 不匹配 → **必须**触发回滚，不得 silent "启动成功"
   - [ ] 手动删除 `.redb` 中的某一行（不改 row_count 校验字段）→ 自检 row_count mismatch 必报警
 - [ ] **Silent overwrite 测试**（migration 场景）：

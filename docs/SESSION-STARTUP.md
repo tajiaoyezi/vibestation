@@ -57,7 +57,7 @@
 
 动作（按 CLAUDE.md 第 5 步导游）：
   5. 三选一：
-     A. 启动 SPIKE-01 Tauri 三平台空壳（status: draft，需先走翻转 gate 升 ready）
+     A. 启动 SPIKE-01 Tauri 三平台空壳（status: ready · 直接 claim · PR #18 已翻转）
      B. 帮某个 v0.2/v0.3/v1.0 draft spec（MVP-12..20）走独立评审升 ready
      C. 提议新 ADR（按 docs/adr/_template.md · 含用户拍板 gate）
 
@@ -118,7 +118,7 @@ vibestation/
 │   ├── codex-review-and-response.md
 │   ├── tech-research.md
 │   ├── agent-onboarding-readiness-assessment.md  codex 评估稿（pre-PR-17 snapshot）
-│   ├── tasks/                    27 task spec（7 SPIKE + 20 MVP · 全 draft）
+│   ├── tasks/                    27 task spec（3 ready: SPIKE-01/02/MVP-01 · 24 draft 按需翻转）
 │   │   ├── README.md · _template.md
 │   │   ├── SPIKE-01..07-*.md
 │   │   └── MVP-01..20-*.md

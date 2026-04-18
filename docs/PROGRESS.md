@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `docs/spec-flip-spike-01-spike-02-mvp-01`（PR #18 open · 等用户 GitHub approve）| 分支切换 |
+| **Active branch** | `main`（PR #17 v2 + PR #18 已 merge · session 6 闭环）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **PR #18 review + merge**（用户在 GitHub UI approve · 走 (b) 路径变种 · 分支保护暂缓声明）→ 之后 SPIKE-01 进入 ready 池 · 启动 SPIKE-01 实施时 spike 分支即可直接 claim | session end |
-| **Blocked by** | PR #18 等用户 review · 24 个 v0.2/v0.3/v1.0 task spec 仍 draft（按需触发翻转 · 不阻塞 W0）| 阻塞变化 |
+| **Next concrete action** | **启动 SPIKE-01**（已 ready · 直接 `git checkout -b spike/SPIKE-01-...` → claim → 实施）· 单平台 mac 模式可独立完成 4-5/7 Pass Criteria，Ubuntu 部分可后续接力 | session end |
+| **Blocked by** | 无（3 个 ready task 可立即认领 · 24 个 v0.2/v0.3/v1.0 spec 仍 draft 按需触发翻转 · 不阻塞 W0）| 阻塞变化 |
 | **Missing infra** | 无（Pre-code stage 4 Phase 全交付 · onboarding 入口已对齐 · §5.4 战略章节按 YAGNI 推迟到 v0.2 kickoff）| Phase 完成时 |
 | **Required env/accounts** | GitHub CLI · Apple Developer Program（W0-D6 申请）· 三平台测试机（mac / Ubuntu Wayland / X11 · W0 全周用）| 新账号/工具时 |
 
@@ -119,7 +119,7 @@
 | 信号 | 触发 |
 |------|------|
 | ✅ Phase 1-4 Pre-code 完备 | **已达成**（2026-04-18 session 5 · 4 PR 全 merge）|
-| 🟡 Spike W0 启动 | 用户应用分支保护后 |
+| 🟡 Spike W0 启动 | **已达成**（用户表态分支保护暂缓 · 流程靠 reviewer 守门 · accepted tech debt · 见上方 §🔐 用户手动步骤）|
 | 🟡 Spike Pass | W0-D6 全过（Tauri / git2 / storage / PTY / CLI 五硬通过 + Apple 申请）|
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede |
 | 🟡 MVP 实施启动 | Spike W0 + ADR-003/005/006/007 proposed → accepted |
@@ -144,19 +144,25 @@
 
 ## Session 日志（近 4 次）
 
-### Session 6（2026-04-18 晚上-夜）· Codex 双轮评审 + PR #17 缩范围 + PR #18 ready 翻转
+### Session 6（2026-04-18 晚上-夜）· Codex 三轮评审 + PR #17 缩范围 + PR #18 ready 翻转 + 后续修复
 - **Codex round-1 评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）
-- **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10 · 已加 historical snapshot banner）
+- **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10 · 已加 historical snapshot banner + 二次复审段落）
 - **PR #17 v1（已废弃）→ v2（已 merge `68c0c21`）**：
   - v1 试图一次修全 5 项 + AGENTS 重写 + §5.4 增补 + 翻转 ready
   - Codex round-2 BLOCK：3 CRITICAL（ready 翻转绕过 gate · SESSION-STARTUP 同步未完 · §5.4 虚构内容）+ 3 HIGH + 3 MEDIUM + 2 LOW
   - v2 缩范围方案 A：撤回 §5.4 + ready 翻转 · 修全部 11 项 codex 指控 · 8 commits / 净 +118/-250
   - 拆出去：§5.4 重写 → 后来按 YAGNI 删除（§10.1 workaround 够用，v0.2 kickoff 时再补）
-  - 拆出去：ready 翻转 → PR #18（本 session 完成）
-- **PR #18 ready 翻转**（当前 · open 等 GitHub approve）：
+  - 拆出去：ready 翻转 → PR #18
+- **PR #18 ready 翻转**（已 merge `5ece9a9`）：
   - SPIKE-01 / SPIKE-02 / MVP-01 翻 status: ready
   - 走 (b) 路径变种（分支保护暂缓 · 靠 reviewer 真实 GitHub approve 替代技术强制）
-  - **关键差异 vs PR #17 v1**：reviews ≠ ∅ · 不再走"merge 间接 approve"自创路径
+  - Codex round-3 BLOCK 是流程时序问题（reviews=[] + comments=[]），认可 PR 内容
+  - **edge case 备注**：用户实际 squash merge 时直接通过对话完成 review · 没在 GitHub UI 点 Approve · GitHub metadata `reviews: []` · 技术上未达 (b) 变种 "reviews ≠ ∅" 硬要件 · 但 review 实质已通过对话完成 · accepted as session 6 advisory gate edge case · 后续 PR 应改走完整 GitHub UI approve
+- **本 session 后续修复 PR**（codex assessment 二次复审发现 3 项漂移 + 2 项已知项）：
+  - PROGRESS.md 状态字段反映 PR #18 已 merge + 内部矛盾修复（line 122 阶段切换信号表）
+  - SESSION-STARTUP.md 中段同步（SPIKE-01 status / 仓库结构 task spec 数量）
+  - docs/tasks/README.md 第 7 步加 "(b) 路径变种" 正式定义（分支保护暂缓阶段合规说明）
+  - project-status-overview-2026-04-18.md 纳入仓库（项目梳理报告归档）
 - **§5.4 战略章节决定**：按 YAGNI 推迟到 v0.2 kickoff（届时需要数据流 / IPC / 状态机的实施级细节，现在写就是过早优化；当前 4 MVP 用 §10.1 workaround）
 - **AGENTS.md 重写**：纠正 codex 自动生成版本的"Claude 名替换错乱 + 阶段过期"双 bug，改为工具无关的极简入口（路由 + 关键约束摘录），权威单文件入口仍指向 CLAUDE.md
 

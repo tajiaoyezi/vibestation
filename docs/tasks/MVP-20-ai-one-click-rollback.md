@@ -5,7 +5,7 @@ title: AI 一键回滚（session 级 revert）
 status: draft
 owner:
 phase: v1.0
-depends_on: ["MVP-19"]
+depends_on: ["MVP-19", "MVP-16"]
 blocks: []
 blocked_by: []
 blocked_from:
@@ -19,7 +19,7 @@ reviewer:
 # MVP-20: AI 一键回滚（session 级 revert）
 
 > **状态**：`draft`（**v1.0 vision**，README / landing 完全不宣传 · 占位 spec）
-> **依赖**：MVP-19（session ↔ commit 绑定已就绪）
+> **依赖**：MVP-19（session ↔ commit 绑定）+ MVP-16（rebase / merge / cherry-pick 冲突解决器 · 回滚冲突场景复用）
 > **战略依据**：[`implementation-plan.md §10.1 砍到 v1.0`](../implementation-plan.md) · [`§5.3.6`](../implementation-plan.md)
 
 ---

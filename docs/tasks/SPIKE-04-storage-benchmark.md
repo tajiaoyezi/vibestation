@@ -236,7 +236,7 @@ Git2 写（C）：
 
 - ADR：`docs/adr/ADR-005-local-storage.md`
 - 对应 `CLAUDE.md` 决策表：**#14 本地存储**
-- `implementation-plan.md` 章节：§附录 A D4 · §9 R27 · §3.2 · §512（redb/rusqlite benchmark 扩展说明）
+- `implementation-plan.md` 章节：§附录 A D4 · §9 R27 · §3.2 · §5.2（持久化分类 · redb/rusqlite 范围说明）
 - 上游：SPIKE-02
 - 下游：MVP 存储层 spec（MVP-0X，后续 PR）
 

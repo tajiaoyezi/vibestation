@@ -66,7 +66,7 @@
 - [x] `.github/PULL_REQUEST_TEMPLATE.md`（强制 Implemented by / Reviewed by / 翻转 gate / 自审四问）
 - [x] `.github/dependabot.yml`（cargo + npm + github-actions 周更）
 - [x] `.github/workflows/ci.yml` · skeleton（markdown-lint active · rust/frontend 占位）
-- [x] **`.github/workflows/secret-scan.yml`** · gitleaks + `gitleaks-bypass-guard`（防内联 `# gitleaks:allow` 绕过）
+- [x] **`.github/workflows/secret-scan.yml`** · gitleaks + `gitleaks-bypass-guard`（防内联 bypass marker 绕过 · 详见 SPIKE-06 §A.5.3）
 - [x] **`.github/workflows/task-spec-validator.yml`** · frontmatter schema 校验 · 无 paths filter（防 required-check pending）
 - [x] **`scripts/validate-task-spec.mjs`** · 224 行 · 自写 parser + 9 条 adversarial self-test + 7 类 schema 规则
 - [x] **`docs/BRANCH-PROTECTION.md`** · admin 应用 main 保护的完整 checklist

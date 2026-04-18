@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `docs/phase-1-revision-v4-simplified` | 分支切换 |
-| **Latest commit** | `3d5169b` · `chore: initialize Vibestation repository with planning artifacts` | 每次 commit |
-| **Worktree status** | **dirty**（Phase 1 v4 simplified 修订未 commit）| 每次 commit |
-| **Unpushed branches** | `docs/phase-1-revision-v4-simplified`（未 push）| push 后 |
-| **Next concrete action** | v4 过审 → commit + push + PR → 进 Phase 2（`docs/tasks/` 框架）| session end |
-| **Blocked by** | 等用户 review Phase 1 v4 简化结果 | 阻塞变化 |
+| **Active branch** | `main`（PR #1 已 merge）| 分支切换 |
+| **Latest commit** | `cb552e8` · `Merge pull request #1 from tajiaoyezi/docs/phase-1-revision-v4-simplified` | 每次 commit |
+| **Worktree status** | **clean**（Phase 1 定稿，v4 simplified 已合入 main）| 每次 commit |
+| **Unpushed branches** | 无 | push 后 |
+| **Next concrete action** | **启动 Phase 2**：`docs/tasks/` 框架（schema + _template + README 索引）+ Spike 6 task spec + MVP 前 10 详细 spec | session end |
+| **Blocked by** | 无 | 阻塞变化 |
 | **Missing infra** | `docs/tasks/` · `docs/adr/` · `docs/session-history/` · `CONTRIBUTING.md` · `CHANGELOG.md` · `.github/` · `CODE_OF_CONDUCT.md`（Phase 2-4 待建）| Phase 完成时 |
 | **Required env/accounts** | GitHub CLI 已登录 `tajiaoyezi` · 远端 `origin` 跟踪 `main` | 新账号/工具时 |
 
@@ -23,9 +23,10 @@
 
 ## 📍 当前位置
 
-**阶段**：**Pre-code · 文档升级 Phase 1 v4 simplified**（Codex 三轮评审后大幅简化，砍过度设计，保留普世 Git 最佳实践）
+**阶段**：**Pre-code · Phase 1 已完成 ✅**（v4 simplified 已合入 main via PR #1）· **Phase 2 未启动**
 **日期**：2026-04-18（session 4）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
+**Phase 1 PR**：[#1 docs: Phase 1 文档升级（v4 simplified）](https://github.com/tajiaoyezi/vibestation/pull/1) · merged `cb552e8`
 
 ## ✅ 已完成（累计）
 
@@ -50,15 +51,16 @@
 - [x] Phase 1 v1（CLAUDE.md + SESSION-STARTUP + PROGRESS 初稿）
 - [x] **Codex 评审 Phase 1 三轮**（v1 → v2 → v3，累计修 21 个 HIGH）
 - [x] **Phase 1 v4 simplified**（session 4）：**承认过度设计，砍掉多 agent 治理重型抽象**，回归 Git 普世最佳实践 + 自审四问
+- [x] **PR #1 合入 main**（`a375682` → `cb552e8` merge commit，2026-04-18T05:14Z）——**首次兑现"feature 分支 + PR"规则**
 
 ## 🔜 下一步
 
-1. **用户 review v4 简化**
-2. commit + push + PR（在 feature 分支 `docs/phase-1-revision-v4-simplified` 上做，兑现 Pre-code 规则）
-3. merge 后进 **Phase 2**：`docs/tasks/` 框架 + Spike 6 spec + MVP 10 详细 spec
-4. Phase 3：ADR + CONTRIBUTING + CHANGELOG + SPIKE-REPORT + session-history
-5. Phase 4：`.github/` + CI + CoC + dependabot
-6. **Spike Week 0 启动**（Day 1 Tauri 骨架）
+1. **Phase 2 启动**：`docs/tasks/` 框架（schema + `_template.md` + README 索引）
+2. Phase 2 · Spike 6 个 task spec（SPIKE-01 Tauri scaffold / SPIKE-02 Wayland Pass/Fail / SPIKE-03 PTY / SPIKE-04 git2 / SPIKE-05 Claude CLI / SPIKE-06 storage benchmark）
+3. Phase 2 · MVP 前 10 个详细 spec（MVP-01..10）+ 后 10 个占位 spec
+4. Phase 3：ADR × 10（对应 CLAUDE.md 锁定表 A 栏 11 条 + B 栏 4 条）+ CONTRIBUTING + CHANGELOG + SPIKE-REPORT 模板 + `docs/session-history/`
+5. Phase 4：`.github/` Issue/PR 模板 + CI workflow + CODE_OF_CONDUCT + dependabot
+6. **Spike Week 0 Day 1**：Tauri 2 + SolidJS + Cargo workspace 骨架（Phase 1-4 全部完成后）
 
 ## ⚠️ 当前卡点 / 注意事项
 
@@ -72,7 +74,7 @@
 
 | 信号 | 触发 |
 |------|------|
-| 🟢 Phase 1 v4 过审 | 用户 review 通过 |
+| ✅ Phase 1 v4 过审 + 合入 main | 已达成（PR #1 merged `cb552e8` · 2026-04-18）|
 | 🟡 Phase 2-4 完成 | 所有 `(planned)` 路径落地 |
 | 🟡 Spike W0 启动 | Phase 1-4 全部完成 |
 | 🟡 Spike Pass | Day 6 报告通过（Tauri/redb/git2/PTY 四项硬通过）|

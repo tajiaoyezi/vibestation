@@ -10,13 +10,13 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（Phase 1-4 全部 merged）| 分支切换 |
-| **Latest commit** | `a157e93` · `docs(tasks): MVP-11..20 占位 spec (#10)` | 每次 commit |
-| **Worktree status** | **clean**（Phase 1-4 Pre-code stage 全部 merged · 2026-04-18 session 5）| 每次 commit |
-| **Unpushed branches** | 无 | push 后 |
-| **Next concrete action** | **Spike Week 0 Day 1 启动**：实施 [SPIKE-01 Tauri 三平台空壳启动](./tasks/SPIKE-01-tauri-three-platform-boot.md)（需用户先应用 main 分支保护 · 见 [BRANCH-PROTECTION.md](./BRANCH-PROTECTION.md)）| session end |
-| **Blocked by** | 无（Pre-code 全备 · Spike W0 可启动）| 阻塞变化 |
-| **Missing infra** | 无（Pre-code stage 4 Phase 全交付）| Phase 完成时 |
+| **Active branch** | `docs/onboarding-cleanup-and-section-5-4`（待合入 main）| 分支切换 |
+| **Latest commit** | `eaabf04` · `chore(ci)(deps): bump actions/setup-node from 4 to 6 (#15)` | 每次 commit |
+| **Worktree status** | **dirty**（onboarding 清理 + §5.4 v2.1 增补 + 3 task 翻转 ready · 待 PR）| 每次 commit |
+| **Unpushed branches** | `docs/onboarding-cleanup-and-section-5-4`（未 push） | push 后 |
+| **Next concrete action** | **认领 SPIKE-01**（已翻转 `status: ready`）：实施 [SPIKE-01 Tauri 三平台空壳启动](./tasks/SPIKE-01-tauri-three-platform-boot.md) · 主分支保护用户暂缓（流程靠 reviewer 守门） | session end |
+| **Blocked by** | 无（Pre-code 全备 · 3 个 task 已 ready · Spike W0 可立即认领） | 阻塞变化 |
+| **Missing infra** | 无（Pre-code stage 4 Phase 全交付 + onboarding 入口已对齐 + §5.4 已增补） | Phase 完成时 |
 | **Required env/accounts** | GitHub CLI · Apple Developer Program（W0-D6 申请）· 三平台测试机（mac / Ubuntu Wayland / X11 · W0 全周用）| 新账号/工具时 |
 
 ---
@@ -137,6 +137,15 @@
 ---
 
 ## Session 日志（近 4 次）
+
+### Session 6（2026-04-18 晚上-夜）· Codex review 应对 + §5.4 增补 + 首批 ready
+- **Codex 第 8 轮独立评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）
+- **AGENTS.md 首次重写**：纠正 codex 自动生成版本的"Claude 名替换错乱 + 阶段过期"双 bug，改为工具无关的极简入口（路由 + 关键约束摘录），权威单文件入口仍指向 CLAUDE.md
+- **同步入口文档阶段表述**：CLAUDE.md / SESSION-STARTUP.md / README.md 三处统一改为"Pre-code Phase 1-4 全交付 · Spike W0 可启动"
+- **§5.4 Git 操作模型补建**（v2.1 增补 · implementation-plan.md 末尾追加）：填补 MVP-11/12/13/16 战略依据空缺；含操作分层 / IPC 命令 / 凭据管理 / Rail Graph 数据模型 / 状态机 / 错误分类 7 个子节
+- **修 SPIKE-04 §512 笔误** → §5.2（持久化分类）
+- **首批 task 翻转 ready**（spec PR + Arbiter approve）：SPIKE-01 / SPIKE-02 / MVP-01 三个，新 agent 现在可直接认领
+- **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10）
 
 ### Session 5（2026-04-18 下午-晚上）· Pre-code stage 完备
 - **4 个 PR 全 merge 到 main**（Phase 1-4 完整交付）

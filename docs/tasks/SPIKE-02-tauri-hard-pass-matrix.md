@@ -2,7 +2,7 @@
 id: SPIKE-02
 type: spike
 title: Tauri 硬通过矩阵 + Electron fallback 验证
-status: draft
+status: ready
 owner:
 phase: W0-D2
 depends_on: ["SPIKE-01"]
@@ -10,12 +10,12 @@ blocks: ["SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D2
 risk_ref: R12
-reviewer:
+reviewer: User (Arbiter)
 ---
 
 # SPIKE-02: Tauri 硬通过矩阵 + Electron fallback 验证
 
-> **状态**：`draft`
+> **状态**：`ready`（2026-04-18 翻转 · Arbiter approve · spec PR `docs/onboarding-cleanup-and-section-5-4`）
 > **依赖**：SPIKE-01（空壳启动通过）/ **阻塞**：SPIKE-03..06（桌面框架锁定后才能做 git / storage / PTY / CLI 验证）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D2`](../implementation-plan.md)
 

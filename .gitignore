@@ -99,3 +99,4 @@ spike-tmp/
 flamegraph.svg
 # 本地终端配置扫描缓存
 .vs-profile-cache/
+.omx/

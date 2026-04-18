@@ -2,7 +2,7 @@
 id: MVP-01
 type: mvp
 title: Tauri 应用骨架 + 启动流程 + 基础崩溃恢复
-status: draft
+status: ready
 owner:
 phase: W1-W2
 depends_on: ["SPIKE-02"]
@@ -12,12 +12,13 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §3.1 · §3.2
 risk_ref:
-reviewer:
+reviewer: User (Arbiter · GitHub PR approve)
 ---
 
 # MVP-01: Tauri 应用骨架 + 启动流程
 
-> **状态**：`draft` → spec 独立评审后翻转 `ready`（待用户在 GitHub 上正式 approve · 走 docs/tasks/README.md 第 7 步 (a)/(b) gate）
+> **状态**：`ready`（spec PR `docs/spec-flip-spike-01-spike-02-mvp-01` · 走 docs/tasks/README.md 第 7 步 (b) 路径变种 · 分支保护暂缓 · 用户在 GitHub UI 正式 approve 后 merge）
+> ⚠️ 实施前提：SPIKE-02 必须先 done（桌面框架已锁定 · 决定 Tauri 还是 Electron fallback）
 > **依赖**：SPIKE-02（桌面框架已锁定）/ **阻塞**：MVP-02..04 · MVP-10
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) MVP B 折中方案 · §3.1 架构 · §3.2 Cargo workspace
 

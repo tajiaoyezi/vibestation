@@ -37,7 +37,17 @@ reviewer:
 
 ## ✅ 通过标准（Pass Criteria）
 
-### A. CLI 实机测试（主线）
+> ⚠️ **Codex PR #3 Round 1 Finding 3 教训**：本 Spike 只能得出"CLI 能在 PTY 里运行"的结论，**不能**得出"协议足够清楚可指导实现"的结论——后者需要独立的 parser-oriented spike（SPIKE-07，v1.0 前做）。**R1 警告不得下调**。
+
+本 Spike 结论严格拆分为两个独立判据：
+
+### 结论 A · "CLI 可在 PTY 运行"（本 Spike 验证 · 可消除"进程级"阻塞风险）
+
+### 结论 B · "协议足够清楚可指导实现"（**本 Spike 不验证** · R1 保留）
+
+---
+
+### A.1 · CLI 实机测试（主线）
 
 - [ ] **Claude CLI 在 PTY 里正常运行**：
   - [ ] 启动 + 登录流程可完成
@@ -45,16 +55,36 @@ reviewer:
   - [ ] 流式输出不卡顿（对应 SPIKE-05 验证的 xterm 渲染能力）
   - [ ] `Ctrl+C` 能正确中断
 - [ ] **Codex CLI 在 PTY 里正常运行**（相同判据）
-- [ ] **输出样本录制**（JSON-RPC / plain text / ANSI 控制字符）：
-  - [ ] Claude CLI 样本 ≥ 3 个场景（启动 / 对话 / 错误）
-  - [ ] Codex CLI 样本 ≥ 3 个场景（同上）
-- [ ] **协议初探报告**：
-  - [ ] Claude CLI 输出结构（stream / block / JSON-line / ANSI）
-  - [ ] Codex CLI 输出结构
-  - [ ] 关键差异点（如 token 分隔、role 标识、error format）
-  - [ ] 结论：MVP 能否做到"两 CLI 统一抽象"？如否，v1.0 AI-Aware 要分开实现
 - [ ] **macOS PATH 空问题验证**：Tauri 启动的子进程能读到用户 `$PATH`（`fix-path-env` crate 或等价方案）
-- [ ] 结果写入 **`docs/spikes/SPIKE-06-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录）
+
+### A.2 · 输出样本录制（失败路径覆盖 · Codex 加入）
+
+> Round 1 教训：仅录启动/对话/错误 3 个 happy path 样本不够。必须覆盖会真正打爆实现的失败路径。
+
+**每个 CLI 必须录制以下样本**（Claude 和 Codex 各一套）：
+
+- [ ] Happy path：启动 / 简单对话 / 普通错误
+- [ ] **中断后的残帧**：对话进行中 `Ctrl+C`，录剩余半帧输出
+- [ ] **认证失败**：故意用错误 token，录 auth fail 输出
+- [ ] **网络错误**：断网场景（拔线 / 防火墙拦截），录 network error 输出
+- [ ] **长流式输出**：让 CLI 生成 10k+ token 响应，录流式完整片段
+- [ ] **混合 ANSI / 结构化**：颜色 ANSI + JSON 嵌入同一输出（测解析器要应付的真实情况）
+
+每种场景录制**至少 3 次**（覆盖平台差异：mac/linux），**合计样本 ≥ 36 条**（2 CLI × 6 场景 × 3 次）。
+
+### A.3 · 结构观察报告（描述性 · 不作为协议结论）
+
+- [ ] Claude CLI 输出结构描述（stream / block / JSON-line / ANSI）
+- [ ] Codex CLI 输出结构描述
+- [ ] 关键差异点粗略描述（token 分隔、role 标识、error format）
+- [ ] 样本归档到 `docs/spikes/SPIKE-06-report.md` + `spike-artifacts/SPIKE-06/` 供 SPIKE-07 使用
+
+> ⚠️ **禁止在本报告里写"协议已消除 R1"类表述**。最多只能写"已录制样本，协议特征化待 SPIKE-07"。
+
+### A.4 · 结果归档
+
+- [ ] 样本全部写入 **`docs/spikes/SPIKE-06-report.md`**（per-task；Phase 3 建立 `docs/spikes/` 目录）
+- [ ] 录屏 / 样本文件归档到 `docs/spike-artifacts/SPIKE-06/`（Phase 3 建立）
 
 ### B. Apple Developer Program（副线）
 
@@ -63,23 +93,39 @@ reviewer:
 - [ ] 保留申请提交日期与预计审核完成日期
 - [ ] **不阻塞其他 Spike** —— 审核期间可继续 MVP 开发，签证前不发布 macOS 公测
 
+### C. 新开 SPIKE-07 · Parser-Oriented Spike（Codex 加入）
+
+本 Spike **不做**协议解析验证。解锁条件：
+
+- [ ] 新建 `SPIKE-07-cli-protocol-parser.md` task spec（status: draft），作为 SPIKE-06 的下游，指向 v1.0 AI-Aware 前执行
+- [ ] SPIKE-07 Acceptance 必须包含：
+  - [ ] 基于 SPIKE-06 录制的 36+ 样本做可回放 fixture
+  - [ ] 实现原型 parser，对每个样本做解析断言
+  - [ ] 覆盖中断/认证/网络/流式/混合 5 类失败路径的解析正确性
+  - [ ] 输出结论："两 CLI 能否统一抽象"有可信答案
+
 ## ❌ 失败信号（Fail Signals）
 
-CLI 主线：
+CLI 主线（A）：
 
 - Claude CLI / Codex CLI 在 PTY 里**无法启动**（缺 tty / 环境变量 / auth 路径问题）→ 调查阻塞点
 - 输出乱码（ANSI 解析失败 / 编码问题）→ 调查 xterm 配置
-- **两 CLI 输出差异巨大，无法抽象统一** → v1.0 AI-Aware 设计需要分开实现（本 Spike 不阻塞 MVP，只是记录到 v1.0 风险）
+- 样本覆盖不全（6 场景任一缺失或 < 3 次） → **不允许**声明 R1 已初探
 
-macOS Dev Program：
+macOS Dev Program（B）：
 
 - Apple 拒绝申请 → 调查原因（通常是账号信息问题），升级为 Arbiter 仲裁
 
 ## 🔀 Fallback 方案
 
-**CLI 通过** → MVP 可以"作为 PTY 里的普通程序"跑 Claude/Codex，协议解析推到 v1.0
-**CLI 部分失败（仅一个能跑）** → MVP 优先支持能跑的那个，另一个推到 v0.2
-**CLI 双失败** → 仅提供多 Tab 终端，不标榜 AI CLI 集成（README 措辞需修改）
+**CLI 通过（A.1 + A.2 + A.3）** → 消除"进程级阻塞"风险；**R1 保留**（待 SPIKE-07 解决）
+**CLI 部分失败（仅一个能跑）** → MVP 优先支持能跑的那个，另一个推到 v0.2；R1 保留
+**CLI 双失败** → 仅提供多 Tab 终端，不标榜 AI CLI 集成（README 措辞需修改）；R1 保留
+
+**R1 不下调规则**（Codex 加入）：
+- 本 Spike 不允许在任何产出文档里声明"R1 已消除"或"协议已清楚"
+- `CLAUDE.md` 的"⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证"**保留为"未经深度协议验证"**（即使改措辞也不能摘除警告）
+- R1 降级授权只能通过 SPIKE-07 的 ADR 完成
 
 ## 📦 产出（Deliverables）
 

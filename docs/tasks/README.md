@@ -123,12 +123,21 @@ draft ────────► ready ─────────────�
 | [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | draft | 1d | SPIKE-02 | — |
 | [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | draft | 1d | SPIKE-05 | R1 |
 
-### MVP
+### MVP（v0.1 范围 · B 折中方案）
 
-| ID | 标题 | 状态 | 估时 |
-|----|------|------|------|
-| MVP-01..10 | 详细 spec | 下一 PR | — |
-| MVP-11..20 | 占位 spec（最小骨架）| 下下 PR | — |
+| ID | 标题 | 状态 | 估时 | 依赖 |
+|----|------|------|------|------|
+| [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | draft | 5d | SPIKE-02 |
+| [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | draft | 4d | MVP-01 |
+| [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| draft | 4d | MVP-01/02 |
+| [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| draft | 8d | MVP-03 · SPIKE-05/06 |
+| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| draft | 4d | MVP-04 |
+| [MVP-06](./MVP-06-config-import.md) | 配置导入（Ghostty + iTerm2 + Alacritty）| draft | 3d | MVP-04 |
+| [MVP-07](./MVP-07-git-log-readonly.md) | Git Log 只读视图 + Commit 详情 | draft | 5d | MVP-02/03 · SPIKE-03 |
+| [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | draft | 5d | MVP-07 |
+| [MVP-09](./MVP-09-stage-unstage-commit.md) | Stage/Unstage + Commit 操作（git2 写）| draft | 4d | MVP-08 · SPIKE-04 |
+| [MVP-10](./MVP-10-settings-telemetry-packaging.md) | 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）| draft | 5d | MVP-01..09 全部 |
+| MVP-11..20 | 占位 spec（最小骨架）| 待下一 PR | — | — |
 
 ### BUG / FEAT
 

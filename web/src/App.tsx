@@ -338,7 +338,14 @@ const VibestationMarkSmall: Component = () => (
         <stop offset="100%" stop-color="oklch(0.58 0.2 260)" />
       </linearGradient>
     </defs>
-    <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#m-grad-small)" />
+    <rect
+      x="4"
+      y="4"
+      width="56"
+      height="56"
+      rx="14"
+      fill="url(#m-grad-small)"
+    />
     <g
       fill="none"
       stroke="white"

@@ -50,9 +50,9 @@ jobs:
 
   # ────────────── Rust 构建与测试（MVP-01 Phase A 启用）──────────────
   rust-build:
-    name: Rust · cargo clippy + fmt + test
+    name: Rust · clippy + fmt + test + Tauri build smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,6 +89,28 @@ jobs:
 
       - name: cargo test
         run: cargo test --workspace
+
+      # ─── Tauri build smoke（Codex adversarial review finding #2）───
+      # 验证 tauri.conf.json 的 beforeBuildCommand + frontendDist 路径确实能跑
+      # --no-bundle 跳过 dmg/appimage 打包（避免 macOS signing / AppImage tooling）
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          echo "pnpm: $(pnpm --version)"
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Tauri build smoke (--debug --no-bundle)
+        # 会连带跑 beforeBuildCommand: pnpm --filter @vibestation/web build
+        # 验证 frontendDist 路径 + pnpm workspace filter + tauri.conf.json 对齐
+        run: pnpm tauri:build:smoke
 
   # ────────────── Frontend 构建与测试（MVP-01 Phase A 启用）──────────────
   frontend-build:
@@ -131,6 +153,11 @@ jobs:
 
       - name: pnpm typecheck
         run: pnpm typecheck
+
+      # Codex adversarial review finding #2：验证 web 能真的 bundle
+      # （pnpm tauri build smoke 在 rust-build job 再跑一次 end-to-end · 此处快路径先拦截前端打包 bug）
+      - name: pnpm build (web bundle smoke)
+        run: pnpm --filter @vibestation/web build
 
   # ────────────── 占位 placeholder（pre-code 状态指示器）──────────────
   pre-code-status:

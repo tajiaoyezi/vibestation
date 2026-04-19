@@ -117,7 +117,6 @@ vibestation/
 │   ├── implementation-plan.md    v2 战略计划（14 章 + 附录）
 │   ├── codex-review-and-response.md
 │   ├── tech-research.md
-│   ├── agent-onboarding-readiness-assessment.md  codex 评估稿（pre-PR-17 snapshot）
 │   ├── tasks/                    27 task spec（3 ready: SPIKE-01/02/MVP-01 · 24 draft 按需翻转）
 │   │   ├── README.md · _template.md
 │   │   ├── SPIKE-01..07-*.md

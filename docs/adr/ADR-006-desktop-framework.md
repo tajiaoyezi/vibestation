@@ -1,9 +1,9 @@
-# ADR-006: 桌面框架 = Tauri 2（默认）· Electron 28+（fallback）· pending SPIKE-02
+# ADR-006: 桌面框架 = Tauri 2（accepted · macOS 强 PASS · Ubuntu pending）
 
-**状态**：**proposed**（pending [SPIKE-02](../tasks/SPIKE-02-tauri-hard-pass-matrix.md) 通过后升级为 accepted）
-**日期**：2026-04-18（Phase 1 默认选 · Phase 3 ADR 建立）
-**决策者**：项目发起人 · 多 agent 评审
-**对应 `CLAUDE.md` 决策表**：#12（B 档 · **CRITICAL** · Spike 硬通过后锁定）
+**状态**：**accepted**（2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B 待环境补验证 · 不阻塞锁定）
+**日期**：2026-04-18（proposed · Phase 3 ADR 建立）· 2026-04-19（accepted · session 10 末 SPIKE-01/02 Phase A macOS 全过）
+**决策者**：项目发起人 · 多 agent 评审 · User (Arbiter · dialogue approve "Issue 3：b" · session 10 末)
+**对应 `CLAUDE.md` 决策表**：A 栏 #19（session 10 末 B 档 #12 升级落地 · accepted with macOS-only caveat）
 **对应 Spike**：[SPIKE-02](../tasks/SPIKE-02-tauri-hard-pass-matrix.md)
 
 ---
@@ -80,11 +80,41 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
 
 ## 相关
 
-- `CLAUDE.md` 决策表：#12
+- `CLAUDE.md` 决策表：A 栏 #19（session 10 末升级）· 原 B 栏 #12 移除
 - Spike：[SPIKE-01 Tauri 2 三平台空壳启动](../tasks/SPIKE-01-tauri-three-platform-boot.md)· [SPIKE-02 Tauri 硬通过矩阵](../tasks/SPIKE-02-tauri-hard-pass-matrix.md)
 - 相关 ADR：ADR-004（前端栈 · 依赖桌面框架选型）
+- 协作流程：PR #50（session 10 末 · H-2 (c) 过渡末班车）
+
+---
+
+## Ubuntu Phase B caveat（accepted 条件下的 pending 标注）
+
+本 ADR 在 macOS Phase A 强证据下提前升级 accepted · 但 Ubuntu Phase B 仍待环境补验证 · 属于 **accepted with caveat** 模式：
+
+- **已通过的决策依据**（macOS Phase A · 2026-04-18/19）：
+  - SPIKE-01 冷启动 10x median **202ms**（目标 < 2s · 余量 10×）
+  - SPIKE-02 10× 稳定性 **10/10** · median 212ms · bundle .app 10MB / .dmg 4MB（目标 < 30MB · 余量 7.5×）
+  - Clipboard / FS plugin + 中文 IME 全过
+- **Ubuntu Phase B 触发 fallback 的条件**：
+  - Ubuntu 24 Wayland 冷启动 > 3s · 或 WebKitGTK 白屏 · 或 IME 完全不工作
+  - 以上 3 条任一触发 · 走原 fallback 路径（切 Electron 28+ · 回溯本 ADR 为 superseded）
+- **Ubuntu Phase B 非 blocker**：
+  - macOS 强信号足以主导决策 · 开发阶段优先
+  - Ubuntu 环境就绪后补测 · 结果回填 SPIKE-01/02 Phase B report
+  - 若 Ubuntu 通过 → caveat 移除 · ADR 标注完整 3 平台过
+
+## Arbiter 拍板记录（H-2 (c) 过渡模式 audit trail）
+
+本 PR (#50) 属于 `CLAUDE.md` 线 127 升级前最后一批 dialogue + proxy merge PR（"末班车"）· 按 H-2 (c) 过渡模式 · Arbiter approve 留痕通过 PR comment + 本段 audit trail：
+
+- **Arbiter (User · `tajiaoyezi@gmail.com`)** · 2026-04-19 session 10 末
+- dialogue approve 原文："1. Issue 3 ：b · 2. H-2 ：c"
+- 主 agent 在 dialogue 中给出的完整 scope（含本 ADR 升级 + CLAUDE.md 决策表改动 + 线 127 升级）
+- Arbiter 后续回复 "合" 作为 merge 授权（若 PR merge 时此 comment 存在）
+- 协作规则升级生效后（CLAUDE.md 线 127 v2）· 未来 A 栏改动**不再接受** dialogue approve · 必须 GitHub PR UI `Approve` + `gh pr review --approve`
 
 ---
 
 **修订历史**：
 - 2026-04-18 · 初版 · Claude Code · status: proposed · SPIKE-02 全通过后改 accepted
+- 2026-04-19 · accepted · session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B 待 · Arbiter dialogue approve "Issue 3：b"· 走 H-2 (c) 过渡模式（PR #50）

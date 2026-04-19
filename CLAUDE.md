@@ -64,12 +64,11 @@
 | 14 | 本地存储 = **`rusqlite` 0.31+ + r2d2_sqlite**（SPIKE-04 benchmark · 2026-04-19 accepted · redb 2.6.3 B.2 坏库检测 FAIL · supersede · SPIKE-04.5 B.1-5 全过 · A.3 方案(a) MVP 接受 220ms）| [ADR-005](./docs/adr/ADR-005-local-storage.md) · [SPIKE-04-report](./docs/spikes/SPIKE-04-report.md) · [SPIKE-04.5-report](./docs/spikes/SPIKE-04.5-report.md) |
 | 15 | PTY 方案 = **`portable-pty` + 共享读线程 + bounded mpsc + `drop-oldest`**（SPIKE-05 HOL/boundedness PASS · SPIKE-05.5 证明 visible throughput 瓶颈不在 reader）| [ADR-003](./docs/adr/ADR-003-pty-architecture.md) · [SPIKE-05-report](./docs/spikes/SPIKE-05-report.md) · [SPIKE-05.5-report](./docs/spikes/SPIKE-05.5-report.md) |
 | 18 | Runtime 证据路径 = **`docs/runtime-evidence/<task-id>/`**（MVP / feature · 进 git · Spike 走独立 4 样齐全归档）| [ADR-011](./docs/adr/ADR-011-runtime-evidence-location.md) · [`.claude/rules/runtime-evidence-location.md`](./.claude/rules/runtime-evidence-location.md) |
+| 19 | 桌面框架 = **Tauri 2**（2026-04-19 session 10 末 · **macOS Phase A 强 PASS**：冷启动 202ms · 10/10 稳定 · bundle 10MB/4MB · IME + plugin 全过 · **Ubuntu Phase B 待环境补测** · 不阻塞锁定 · fallback = Electron 28+）| [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md) |
 
 ### B. 默认已选 + Spike 后最终锁定
 
-| # | 决策 | 默认 | 锁定节点 | Fallback |
-|---|------|------|---------|---------|
-| 12 | 桌面框架 | **Tauri 2** | Spike W0 Day 2 硬通过 | **Electron 28+** |
+> **当前空** · session 10 末 Tauri 2（原 #12）macOS Phase A 强 PASS 后升级到 A 栏 #19（ADR-006 accepted with Ubuntu caveat）· B 栏保留 header 作未来类似"默认 + Spike 后锁定"决策的载体。
 
 ### C. 时间锁定，结果开放
 
@@ -124,7 +123,14 @@ gh pr create
 - ❌ **禁止对外文案提及** `AI-Aware Pane` / `Mission Control` / `AI session aware`（v1.0 vision）
 - ❌ **禁止硬编码** API Key / 密码 / Token / 个人邮箱 / 生产域名。用 `.env.local`
 - ❌ **禁止跳过 CI 必过项**：`cargo clippy -D warnings` / `cargo fmt --check` / `pnpm lint` / `pnpm typecheck`
-- ⚠️ **改锁定表 A 栏前必须**：(1) 新开 `docs/adr/ADR-NNN-*.md`（Phase 3 后存在）；(2) 独立评审通过（不同 agent 实例 + 用户）；(3) 同步 `CLAUDE.md` + `implementation-plan.md`
+- ⚠️ **改锁定表 A 栏前必须**（v2 · 2026-04-19 session 10 末升级 · 由 H-2 codex review 发现流程漏洞触发）：
+  1. 新开 `docs/adr/ADR-NNN-*.md`（Phase 3 后存在）· 走 proposed → accepted 两 PR 翻转流程
+  2. 独立评审通过（不同 agent 实例 + 用户）· **reviewer approve 必须在 GitHub PR UI 留痕**：
+     - `gh pr review <N> --approve` 或 GitHub UI **Approve** 按钮
+     - **不接受**：dialogue approve / PR body checkbox / 口头授权
+     - Arbiter (User) approve 同理 · 必须走 GitHub UI
+  3. 同步 `CLAUDE.md` + `implementation-plan.md`（二者都改 · 否则 codex / 未来 agent 会读到自相矛盾）
+  4. **过渡条款**：session 10 末规则升级前已 merge 的 2 个 PR（PR #45 ADR-011 + 决策表 #18 · PR #50 ADR-006 + 决策表 #19）按老流程（dialogue + proxy merge）· 走 "**过渡末班车**" 模式：完整 audit trail 在 ADR 正文 + PR comment 留痕 · 本条款仅追溯生效于这 2 个 PR · 未来（PR #51+）一律走 v2 · 无例外
 - ⚠️ **Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证**：不得据此写生产代码
 
 ---

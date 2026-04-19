@@ -60,13 +60,13 @@
 | 9 | Tool Windows 默认状态 = **Primary Sidebar 展开 · Secondary + Bottom 收起**（与原型 `design/directions/1-calm-studio.html` `DEFAULT_STATE` 一致）| 原型 JS |
 | 10 | Telemetry = **默认关闭 + 首次启动弹 opt-in**（匿名 crash + 版本号 · GDPR/CCPA 合规）| `implementation-plan.md` §5.1 · R30 |
 | 11 | Landing page 栈 = **Astro + 自建动效** | `implementation-plan.md` §12 |
+| 13 | Git 栈 = **写 `git2 0.20` · 读 `gix 0.70` 混用**（SPIKE-03 benchmark · 2026-04-19 accepted · B → A）| [ADR-007](./docs/adr/ADR-007-git-stack.md) · [SPIKE-03-report](./docs/spikes/SPIKE-03-report.md) |
 
 ### B. 默认已选 + Spike 后最终锁定
 
 | # | 决策 | 默认 | 锁定节点 | Fallback |
 |---|------|------|---------|---------|
 | 12 | 桌面框架 | **Tauri 2** | Spike W0 Day 2 硬通过 | **Electron 28+** |
-| 13 | Git 栈（写）| **git2 0.20** | Spike W0 Day 4 benchmark | 读慢 → **gix 0.70** 混用 |
 | 14 | 本地存储 | **redb 2** | Spike W0 Day 6 benchmark | 性能/稳定不足 → **rusqlite** |
 | 15 | PTY 方案 | **portable-pty + 单读线程 + mpsc** | Spike W0 Day 3 验证 | 多 Tab 瓶颈 → 一 session 一线程 |
 

@@ -75,10 +75,10 @@ spec 的 `Acceptance` 所有 checkbox **必须** 在 PR body 逐项：
 | 任务类型 | Runtime 证据要求 |
 |---|---|
 | **Spike**（decision-grade benchmark） | 按 `.claude/rules/spike-delivery-checklist.md` "4 样齐全"（report + code + raw + cold backup）· report 数字必须 raw 可溯源 |
-| **MVP**（产品功能） | 至少 3 张截图或 1 段 30s 录屏 · 覆盖核心 golden path + 关键边界 · 放 `spike-tmp/img/<task-id>/` 或 PR comment |
+| **MVP**（产品功能） | 至少 3 张截图或 1 段 30s 录屏 · 覆盖核心 golden path + 关键边界 · 放 `docs/runtime-evidence/<task-id>/`（**进 git** · 见 [ADR-011](../../docs/adr/ADR-011-runtime-evidence-location.md)） |
 | **Docs / chore**（纯文档） | CI 通过即可 · 无 runtime 要求 |
 
-关键：**CI 绿 ≠ runtime 过**（见 `~/.claude/rules/15-runtime-verification-gate.md`）· GUI / IPC 类代码必须有 runtime 证据。
+关键：**CI 绿 ≠ runtime 过**（见 `~/.claude/rules/15-runtime-verification-gate.md` · 项目级落地见 `.claude/rules/runtime-evidence-location.md`）· GUI / IPC 类代码必须有 runtime 证据。
 
 ### 2.4 · 独立 worktree · 不得在主 working tree 开 agent 任务分支
 

@@ -4,7 +4,7 @@
 //! 存储：rusqlite via r2d2 连接池 · SPIKE-04.5 B.1-5 全过。
 
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use vibestation_core::{WorkspaceMetadata, WorkspaceStore};
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -22,9 +22,17 @@ fn greet() -> String {
     )
 }
 
+/// Initialize the workspace database connection pool.
+///
+/// **安全**：DB 路径由 backend 自取 `app_local_data_dir()` · 不接受 frontend 传参。
+/// 防止恶意 frontend 代码通过 path traversal 写入任意目录（H1 修复 · 主 agent review · session 10）。
 #[tauri::command]
-fn workspace_init(state: State<'_, AppState>, db_dir: String) -> Result<String, String> {
-    let db_path = std::path::PathBuf::from(&db_dir).join("vibestation.db");
+fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, String> {
+    let dir = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|e| format!("cannot resolve app_local_data_dir: {e}"))?;
+    let db_path = dir.join("vibestation.db");
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);

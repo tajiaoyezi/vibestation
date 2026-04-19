@@ -2,7 +2,6 @@ import { createSignal, onMount, Show, For, type Component } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-dialog";
-import { appDataDir } from "@tauri-apps/api/path";
 import "./styles.css";
 
 interface WorkspaceMetadata {
@@ -52,8 +51,9 @@ export const App: Component = () => {
     }
 
     try {
-      const dir = await appDataDir();
-      await invoke("workspace_init", { dbDir: dir });
+      // H1 修复：DB 路径由 backend 自取 app_local_data_dir() · 不传 frontend 参数
+      // 防 path traversal（review session 10 主 agent）
+      await invoke("workspace_init");
       setDbReady(true);
       await refreshWorkspaces();
     } catch (err) {
@@ -322,15 +322,23 @@ const VibestationMark: Component = () => (
 );
 
 const VibestationMarkSmall: Component = () => (
+  // M3 修复：xmlns 修正 2002→2000 + 内联 defs 用独立 id "m-grad-small"
+  // 防 sidebar small mark 因 welcome page 不在 DOM 时 gradient 引用失效（review session 10 主 agent）
   <svg
-    xmlns="http://www.w3.org/2002/svg"
+    xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 64 64"
     width="20"
     height="20"
     role="img"
     aria-label="Vibestation mark"
   >
-    <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#m-grad)" />
+    <defs>
+      <linearGradient id="m-grad-small" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="oklch(0.72 0.16 240)" />
+        <stop offset="100%" stop-color="oklch(0.58 0.2 260)" />
+      </linearGradient>
+    </defs>
+    <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#m-grad-small)" />
     <g
       fill="none"
       stroke="white"

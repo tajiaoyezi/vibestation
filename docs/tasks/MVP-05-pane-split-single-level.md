@@ -47,7 +47,7 @@ reviewer:
   - **Solo**：单 Pane 全占
   - **AI + Runner**：右分屏 50/50（左 AI CLI · 右 runner/shell）
 - 分隔条拖拽调整比例，双击复位到默认比例（50/50）
-- 比例持久化到 redb per-Tab
+- 比例持久化到 rusqlite per-Tab
 - 每个 Pane 独立 PTY（复用 MVP-04 PTY 架构）
 - 当前聚焦 Pane 高亮边框
 

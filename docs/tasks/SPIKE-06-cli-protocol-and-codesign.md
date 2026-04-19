@@ -2,10 +2,10 @@
 id: SPIKE-06
 type: spike
 title: Claude CLI / Codex CLI 实机 + macOS Developer Program 申请
-status: draft
+status: ready
 owner:
 phase: W0-D6
-depends_on: ["SPIKE-05", "phase-4-infra-landing"]
+depends_on: ["SPIKE-05"]
 blocks: []
 blocked_by: []
 blocked_from:
@@ -17,17 +17,16 @@ reviewer:
 ---
 
 <!--
-  depends_on 包含外部资源 "phase-4-infra-landing"：Codex PR #10 R6 F2 教训 ·
-  SPIKE-06 §A.5.3 的 CI 硬阻塞依赖 .github/workflows/secret-scan.yml +
-  docs/BRANCH-PROTECTION.md · 这两个文件在 PR #11（Phase 4）落地 · 未 merge
-  前 SPIKE-06 实施进度应卡在 `status: blocked` / blocked_by: ["phase-4-infra-landing"]
-  / blocked_from: ready（待 ready 后用）。PR #11 merge 后从 depends_on 移除此条。
+  Revision 2026-04-19：phase-4-infra-landing 依赖已满足（PR #11 merged 于 2026-04-18 ·
+  .github/workflows/secret-scan.yml + docs/BRANCH-PROTECTION.md 均在 main）· 从 depends_on
+  移除该条 · status 由 draft 翻转到 ready。本 spec 下方"情况 A / 情况 B" 段落保留作历史
+  参考 · 实施时按"情况 A"（gitleaks CI 硬阻塞已上线）执行。
 -->
 
 # SPIKE-06: Claude CLI / Codex CLI 实机 + macOS Dev Program
 
-> **状态**：`draft`
-> **依赖**：SPIKE-05（PTY 架构已验证）· `phase-4-infra-landing`（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 在 main · 来自 PR #11）
+> **状态**：`ready`（2026-04-19 draft → ready · phase-4-infra-landing 依赖已 PR #11 满足）
+> **依赖**：SPIKE-05（PTY 架构已验证 · done）· phase-4-infra-landing 已满足（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 均在 main · PR #11 merged）
 > **战略依据**：[`implementation-plan.md §附录 A D6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
 
 ---

@@ -48,7 +48,7 @@ reviewer:
   - Shell 选择
   - 常用快捷键（仅非冲突的）
 - 不覆盖 Vibestation 已有快捷键（冲突时保留 Vibestation 原值 + 提示）
-- 导入结果写入 redb `app_settings`
+- 导入结果写入 rusqlite `app_settings`
 
 **Don't**：
 - Windows Terminal / Warp / Kitty 导入（v0.2+）

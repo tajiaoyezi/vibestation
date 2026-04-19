@@ -17,7 +17,7 @@ reviewer: Claude Code (Opus 4.7 · session 10 · Arbiter Option C · 2026-04-19)
 
 # MVP-02: Workspace 管理 + 项目识别
 
-> **状态**：`draft` → spec 独立评审后 `ready`
+> **状态**：`done`（OpenCode 实施 PR #40 · Arbiter Claude Code Opus 4.7 · session 10 · Option C 2026-04-19 · H2 camelCase fix + FU-1 截图 PR #47）
 > **依赖**：MVP-01（Tauri 骨架）/ **阻塞**：MVP-03（Tool Windows 显示 workspace 列表）· MVP-04（Tab 属于 workspace）· MVP-07（Git Log 读 workspace 下 repo）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md)
 

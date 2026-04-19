@@ -10,7 +10,7 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（session 10 终极末 · PR #37-#47 共 11 个全 merged · HEAD `4f14c8f` MVP-02 H2 IPC camelCase fix + FU 系列 4/4 全关闭 · 无 open PR · 无 worktree 残留 · 无 stale ref · 无 dev orphan）| 分支切换 |
+| **Active branch** | `main`（session 10 终极末 · 12 PR 全 merged · FU 系列 4/4 全关闭 · MVP-02 H2 camelCase fix + ADR-011 accepted · CLAUDE.md 决策表 #18 · 无 open PR · 无 worktree 残留 · 无 stale ref · **HEAD 见 `git log`**）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
@@ -221,7 +221,7 @@
 | v2 实施计划（14 章 + 附录）| `docs/implementation-plan.md` |
 | 7 个 Spike spec（W0 + v1.0-pre）| `docs/tasks/SPIKE-0[1-7]-*.md` |
 | 20 个 MVP spec（v0.1 详细 + v0.2+ 占位）| `docs/tasks/MVP-[01-20]-*.md` |
-| 10 个 ADR（6 accepted + 4 proposed）| `docs/adr/ADR-0[01-10]-*.md` |
+| 11 个 ADR（10 accepted + 1 proposed）| `docs/adr/ADR-0[01-11]-*.md` |
 | Agent 入口 · 决策表 · 自审四问 · 翻转 gate | `CLAUDE.md` |
 | 人类启动手册 | `docs/SESSION-STARTUP.md` |
 | 贡献指南 · 含用户拍板 gate | `CONTRIBUTING.md` |

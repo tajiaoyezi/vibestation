@@ -15,7 +15,7 @@ reviewer: User (Arbiter · GitHub PR approve)
 
 # SPIKE-01: Tauri 2 三平台空壳启动
 
-> **状态**：`ready`（spec PR `docs/spec-flip-spike-01-spike-02-mvp-01` · 走 docs/tasks/README.md 第 7 步 (b) 路径变种 · 分支保护暂缓 · 用户在 GitHub UI 正式 approve 后 merge）
+> **状态**：`in-progress`（macOS Phase A PR #28 PASS · Ubuntu Phase C 待 Linux 环境 · 关联 MVP-01 PR #28/#33）
 > **依赖**：— / **阻塞**：SPIKE-02..06 全部（Tauri 是所有后续 Spike 的载体）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D1`](../implementation-plan.md)
 

@@ -3,7 +3,7 @@ id: MVP-01
 type: mvp
 title: Tauri 应用骨架 + 启动流程 + 基础崩溃恢复
 status: ready
-owner:
+owner: Claude Code (Sonnet 4.6 · Phase A PR #28 · Phase B PR #33 · macOS 交付完成 · Phase C Ubuntu 待环境)
 phase: W1-W2
 depends_on: ["SPIKE-02"]
 blocks: ["MVP-02", "MVP-03", "MVP-04", "MVP-10"]

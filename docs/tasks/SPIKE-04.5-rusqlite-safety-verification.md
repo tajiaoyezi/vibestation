@@ -21,7 +21,7 @@ reviewer: Claude Code (Sonnet 4.6 · 主 agent)
 
 # SPIKE-04.5: rusqlite 数据安全全链路验证
 
-> **状态**：`ready`（2026-04-19 由 [SPIKE-04](./SPIKE-04-storage-benchmark.md) 交接 · SPIKE-04 结论 (B) 锁 rusqlite 后需补完整 B.1-5 on rusqlite · 才能真正 close R27）
+> **状态**：`done`（2026-04-19 · OpenCode v2 accepted · B.1-5 on rusqlite 全过 · A.3 Arbiter 方案(a) MVP 接受 220ms · R27 全面 close）
 > **依赖**：SPIKE-04（已 done · 证明 redb 2.6.3 B.2 FAIL · rusqlite A 性能通过）
 > **阻塞**：MVP-02 workspace metadata · MVP-06 config import · MVP-10 settings · MVP-19 session-commit 绑定（所有 rusqlite 持久化相关 MVP）
 > **相关 ADR**：[ADR-005 accepted](../adr/ADR-005-local-storage.md)（结论已锁 rusqlite · 本 Spike 补应用侧安全实测）

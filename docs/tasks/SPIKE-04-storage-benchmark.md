@@ -2,22 +2,35 @@
 id: SPIKE-04
 type: spike
 title: redb 2 vs rusqlite benchmark + git2 写 commit 打通
-status: draft
-owner:
+status: done
+owner: OpenCode agent
 phase: W0-D4
-depends_on: ["SPIKE-02"]
-blocks: []
+depends_on: ["SPIKE-01"]
+blocks: ["SPIKE-04.5"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D4 · §9 R27 · §3.2
 risk_ref: R27
-reviewer:
+reviewer: User (Arbiter · GitHub PR approve)
 ---
 
 # SPIKE-04: redb 2 vs rusqlite benchmark + git2 写 commit
 
-> **状态**：`draft`
-> **依赖**：SPIKE-02（桌面框架已锁定）
+> **状态**：`done`（2026-04-19 · OpenCode agent 2 次交付 · v1 被 Claude Code review BLOCK · v2 补做 accept · 结论 (B) 锁 rusqlite）
+> **依赖**：SPIKE-01（Rust toolchain 可用 · 2026-04-19 用户决策放宽：原 `SPIKE-02` → `SPIKE-01` · 理由：bench + safety test 不依赖 Tauri 容器）
+> **阻塞**：[SPIKE-04.5 · 新建](./SPIKE-04.5-rusqlite-safety-verification.md)（rusqlite 上补 B.1-B.5 · 真正 close R27）
+> **报告**：[`docs/spikes/SPIKE-04-report.md`](../spikes/SPIKE-04-report.md)
 > **战略依据**：[`implementation-plan.md §附录 A D4`](../implementation-plan.md) · [`§9 R27`](../implementation-plan.md) · [`§3.2`](../implementation-plan.md)
+
+## 📌 结论（本 Spike 执行结果）
+
+**选择 (B) · 锁定 rusqlite**：
+- §A 性能：redb 和 rusqlite 均通过基本性能阈值
+- §B 数据安全：redb 2.6.3 **B.2 坏库检测 FAIL**（文件中间 512 bytes overwrite · silent 读出可能错误数据）
+- 按 spec §B.6：B.1-5 任一失败 → R27 未消除 → 锁 rusqlite
+
+决策表 #14 从 B 档 → A 档 · 但锁定 **rusqlite**（不是 redb）· 见 [ADR-005](../adr/ADR-005-local-storage.md)。
+
+**后续 SPIKE-04.5** 需在 rusqlite 上补完 B.1-B.5 · 才算真 close R27。
 
 ---
 

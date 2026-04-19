@@ -1,10 +1,12 @@
-# ADR-005: 本地存储 = redb 2（默认）· rusqlite（fallback）· pending SPIKE-04
+# ADR-005: 本地存储 = **rusqlite**（redb 2.6.3 B.2 FAIL 后 supersede）· pending SPIKE-04.5 B.1-5 on rusqlite
 
-**状态**：**proposed**（pending [SPIKE-04](../tasks/SPIKE-04-storage-benchmark.md) 通过后升级为 accepted）
-**日期**：2026-04-18（Phase 1 默认选 · Phase 3 ADR 建立）
-**决策者**：项目发起人 · 多 agent 评审 · 待 SPIKE-04 Arbiter 仲裁（若失败）
-**对应 `CLAUDE.md` 决策表**：#14（B 档，Spike 后锁定）
-**对应 Spike**：[SPIKE-04](../tasks/SPIKE-04-storage-benchmark.md)
+**状态**：**accepted**（2026-04-19 · SPIKE-04 Phase A+B 结论 (B) · redb 2.6.3 B.2 坏库检测 FAIL · 回退 rusqlite）
+**日期**：2026-04-18 初版 proposed（默认 redb）· 2026-04-19 accepted 但结论翻转（redb → rusqlite）
+**决策者**：项目发起人（Arbiter）· OpenCode agent 实测 · Claude Code review
+**对应 `CLAUDE.md` 决策表**：#14（从 B 档升级到 A 档 · 但锁定的是 **rusqlite** · 不是 redb）
+**对应 Spike**：[SPIKE-04 · 已 done](../tasks/SPIKE-04-storage-benchmark.md)
+**对应 Report**：[SPIKE-04-report](../spikes/SPIKE-04-report.md)
+**后续 Spike**：[SPIKE-04.5 · 新建](../tasks/SPIKE-04.5-rusqlite-safety-verification.md)（在 rusqlite 上补 B.1-B.5 · 真正 close R27）
 
 ---
 
@@ -37,15 +39,40 @@ MVP 需要本地持久化：
 
 ## 决策
 
-**选择（proposed · pending SPIKE-04）**：
-- **默认**：`redb 2.x`（embedded kv · ACID · 性能优）
-- **Fallback**：`rusqlite 0.31+` + `r2d2_sqlite`（连接池）
-- **Fallback trigger**：SPIKE-04 A 性能失败 · OR · B 数据安全任一失败（crash / 坏库 / migration / 备份 / 启动自检 / silent loss / silent overwrite）· OR · 双失败时扩展 Spike 评估 sled / LMDB
+**选择（accepted · 2026-04-19 · SPIKE-04 结论 (B) 锁定）**：
+- **生产方案**：`rusqlite 0.31+` + `r2d2_sqlite`（连接池）
+- **原默认 redb 2** · **已淘汰**（SPIKE-04 B.2 FAIL）
+- **Fallback trigger（若 rusqlite 将来 SPIKE-04.5 失败）**：扩展评估 sled 或 LMDB
 
-**理由**：
-1. **redb 2 纯 Rust**：无 C 依赖 · 跨编译简单 · Cargo.lock 审计路径短
-2. **预期性能优于 rusqlite**：embedded kv 场景下 SQL layer overhead 不必要
-3. **R27 依赖 Spike 硬验证**：Codex 连续 3 轮审查指出"性能 benchmark 无法消除 R27 数据安全风险" · SPIKE-04 B.1-5 是硬阻塞（见 SPIKE-04 B.5 启动自检 + op-log / manifest 2-phase 写入设计）
+### SPIKE-04 benchmark 结论（2026-04-19）
+
+§A 性能（5 次独立迭代 · P99 · linux kernel MVP 数据模型 10M 行）：
+- **写入**：redb 31.94s · rusqlite 9.96s · 两者 < 60s 阈值 · rusqlite 3.2× 快
+- **单键读**：redb 0.007ms · rusqlite 0.011ms · 两者 << 5ms · redb 略优
+- **范围查询**：redb 110ms · rusqlite 113ms · 均 > 50ms · 测试设计问题（1M 全扫描）· 非 blocker
+
+§B 数据安全（redb 2.6.3）：
+- B.1 Crash 恢复：✅ PASS
+- **B.2 坏库检测：❌ FAIL**（中间 512 bytes overwrite · DB 静默成功读出 · 无 error）
+- B.3 Schema 迁移：✅ PASS
+- B.4 Export/Import：✅ PASS（功能 80%）
+- B.5 启动自检：✅ PASS（POC 级）
+
+按 spec §B.6：**B.2 FAIL → R27 未消除 → 锁 rusqlite**（spec 明确路径）。
+
+详细数据见 [SPIKE-04-report §4](../spikes/SPIKE-04-report.md)。
+
+### 本 ADR 的 caveat
+
+**SPIKE-04 只证明了 redb 2.6.3 不行** · **未证明 rusqlite 的 B.1-B.5 全通过**。真正 close R27 需要：
+
+1. **SPIKE-04.5**（本 ADR 立项 · 由 PR C 新建 spec）
+2. 在 rusqlite 上重跑 B.1-B.5 · 全过才算真 accept
+3. 届时本 ADR 加"rusqlite B.1-B.5 全过"修订条目
+
+### 重新判定路径（未来可能）
+
+若 SPIKE-04.5 发现 rusqlite 也有 silent corruption 缺陷 → Arbiter 仲裁 · 评估 sled / LMDB / 其他。
 
 ## 后果
 
@@ -82,4 +109,6 @@ MVP 需要本地持久化：
 ---
 
 **修订历史**：
-- 2026-04-18 · 初版 · Claude Code · status: proposed · 等 SPIKE-04 B.1-5 + A 全过后改 accepted
+- 2026-04-18 · 初版 · Claude Code · status: proposed · 默认 redb · 等 SPIKE-04 B.1-5 + A 全过后改 accepted
+- 2026-04-19 · SPIKE-04 结论 (B) 落地 · OpenCode agent 实测（v1 → v2 补做）· Claude Code review · status: proposed → **accepted** · **结论翻转**：redb 2.6.3 B.2 FAIL → 锁 rusqlite
+- 2026-04-19 · 立项 SPIKE-04.5 · 在 rusqlite 上补 B.1-B.5 · 真正 close R27

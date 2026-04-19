@@ -212,12 +212,12 @@ macOS .dmg:  4 MB      ✅ (目标 < 30MB · 7.5× 余量)
    - FS：点写 · terminal `cat ~/.vibestation-spike-02-test.txt` 验证 · 点读
    - IME 中文：fcitx5 切中文 · 输入 "你好世界" · 录屏
    - **IME 日文：SKIPPED**（用户 2026-04-19 决策全平台降级 · 见主 report §4.5）· 你也不需要测
-   
+
    录屏存本地 spike-artifacts/SPIKE-02/ubuntu-{x11,wayland}-{clipboard,fs,ime-zh}.mp4（不入 repo · 后续整理归档 · **日文录屏不需要**）
 
 5. 返回格式：
    直接填到 docs/spikes/SPIKE-02-report.md 第 5 节 "Phase B Ubuntu 数据"（新增段落）· 格式：
-   
+
    ### X11 会话
    - 10x 稳定性：XX/10 · median YY ms · raw: [...]
    - Clipboard smoke: PASS/FAIL + 说明
@@ -225,7 +225,7 @@ macOS .dmg:  4 MB      ✅ (目标 < 30MB · 7.5× 余量)
    - IME 中文: PASS/FAIL + 录屏文件名
    - IME 日文: PASS/FAIL + 录屏文件名
    - Bundle deb: XX MB · AppImage: YY MB
-   
+
    ### Wayland 会话
    （同上）
 

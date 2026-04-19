@@ -1,7 +1,7 @@
 # SPIKE-04.5 · rusqlite 数据安全全链路验证报告
 
 > **Task spec**：[`docs/tasks/SPIKE-04.5-rusqlite-safety-verification.md`](../tasks/SPIKE-04.5-rusqlite-safety-verification.md)
-> **结论**：**(B partial) · B.1-5 全过 · A.3 性能 FAIL (> 50ms) · R27(silent data corruption)全面 close · A.3 性能待 Arbiter 决策**
+> **结论**：**(B partial) · B.1-5 全过 · A.3 性能 FAIL (> 50ms) · R27(silent data corruption)全面 close · A.3 方案(a) MVP 接受 220ms（Arbiter 2026-04-19）**
 > **实施者**：OpenCode agent（2 次交付 · v1 被 review BLOCK · v2 补做 4 CRITICAL 后 accept）
 > **Review**：Claude Code (Sonnet 4.6)
 > **前置 Spike**：[SPIKE-04](./SPIKE-04-report.md)（redb B.2 FAIL → 锁 rusqlite）
@@ -27,15 +27,14 @@
 - (A) 性能达标 + B.1-5 全过 → R27 truly closed · **未触发**（A.3 FAIL）
 - **(B partial) B.1-5 全过 · A.3 性能 FAIL · R27(silent data corruption)全面 close · A.3 性能单独处理** · **本次结论**
 - R27 数据安全部分：**全面 close**（B.2 坏库检测 · silent data return 已消除）
-- A.3 性能未达 spec 阈值：**交 Arbiter 决策**
+- A.3 性能未达 spec 阈值：**Arbiter 选定方案 (a) MVP 接受 220ms**（2026-04-19）
 
-### A.3 FAIL 可行方案
+### A.3 决策结果
 
-1. **(a) MVP 接受 220ms**：100 行 UI 加载延迟在用户可接受范围 (< 300ms)
-2. **(b) 加复合 index** `ON snapshots(workspace_id, profile_id, snapshot_id DESC)`：预计 P99 < 50ms
-3. **(c) Scope 降级**：从"最新 100 行"改为"任意 100 行"：预计 P99 < 50ms
-
-建议 Arbiter 选 (a) 或 (b) · 暂不阻塞 MVP。
+**Arbiter 选定方案 (a) MVP 接受 220ms**（2026-04-19）· 理由：
+- 100 行 UI 加载延迟 220ms < 300ms 人类可接受范围
+- 不动代码 · MVP 不阻塞
+- 方案 (b) 复合 index `(workspace_id, profile_id, snapshot_id DESC)` 留作 MVP-02 性能优化项
 
 ---
 

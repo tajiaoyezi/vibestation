@@ -48,7 +48,7 @@ Dispatch prompt 结构必须包含**独立的硬约束段** · 格式如下：
 
 ## 2 · 默认硬约束清单（所有 dispatch 必含）
 
-除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 7 条默认是硬约束：
+除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 8 条默认是硬约束：
 
 ### 2.1 · 禁止自行 accept decision-grade 结论
 
@@ -140,6 +140,35 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 
 若任务需要碰这些 · 必须在 dispatch prompt 里**明确授权**并**列出具体文件**。
 
+### 2.8 · 子进程清理 · 任务结束前必须 kill 所有启动的后台进程
+
+外部 agent 在任务过程中启动的任何后台进程（`pnpm tauri:dev` · Vite dev server · PTY · Python 自动化脚本 · 自建 daemon · `cargo run` 后台 build 等）· **必须** 在任务结束前显式 kill · 不得残留到 main agent 后续操作。
+
+**强制做法**（二选一）：
+
+```bash
+# (a) 推荐 · trap 自动 cleanup
+cleanup() {
+  pkill -f "tauri dev" 2>/dev/null || true
+  pkill -f "vite" 2>/dev/null || true
+  # ...列出所有本 task 启动的进程特征
+}
+trap cleanup EXIT INT TERM
+# ... 任务主逻辑 ...
+
+# (b) 任务末尾手动 kill + 用 lsof/ps 验证
+pkill -f "tauri dev"
+sleep 2
+lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ clean"
+```
+
+**禁止**：
+- 任务结束不 kill · 让 main agent 自己遇到 "port in use" 再排查（rule 13 踩坑）
+- 只 kill 父进程 · 子进程 orphan（用 `pkill -f <name>` 按模式 kill · 或 process group）
+- 假设 session 结束会自动清理 · 实际 detached 进程会留到 4+ 小时
+
+**事件**：2026-04-19 · MVP-02 · OpenCode 跑 `pnpm tauri:dev` 截图后没 cleanup · Vite/pnpm 进程 orphan 4 小时占 port 1420 · main agent 后续 session 启动 dev 失败 · 用户报错排查才定位到是 OpenCode 残留（PID 4920/4953/5060 · 另含 Codex spike-05-pty 19648）。
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板
@@ -157,7 +186,7 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 
 ## 🔴 本 task 的硬约束
 
-默认 7 条（见 `.claude/rules/dispatch-prompt-template.md` §2）：
+默认 8 条（见 `.claude/rules/dispatch-prompt-template.md` §2）：
 - [ ] 2.1 · 禁止自行 accept decision-grade
 - [ ] 2.2 · Acceptance 全覆盖
 - [ ] 2.3 · Runtime 证据必交
@@ -165,6 +194,7 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 - [ ] 2.5 · Commit trailer 身份
 - [ ] 2.6 · 分支命名规范
 - [ ] 2.7 · 不碰 decision files
+- [ ] 2.8 · 子进程清理（kill 所有启动的 dev server / 脚本）
 
 本 task 额外硬约束：
 - [ ] <task-specific · 例 "benchmark 必跑 3 方案 × 3 次"· 或 "rusqlite schema 必须通过 PRAGMA user_version" 等>
@@ -217,7 +247,7 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-估时 <X>d · 完工开 PR · 主 agent 按 spec §Acceptance 逐条 review + 硬约束 7 条 check · 违反任一不得 merge。
+估时 <X>d · 完工开 PR · 主 agent 按 spec §Acceptance 逐条 review + 硬约束 8 条 check · 违反任一不得 merge。
 
 GO 🚀
 \`\`\`
@@ -228,7 +258,7 @@ GO 🚀
 
 1. 复制上面 ``` 内容 · 整段发给 <Agent>
 2. Agent 应建独立 worktree · commit · push · 开 PR
-3. PR 开出后我按硬约束 7 条 + spec Acceptance 做 review
+3. PR 开出后我按硬约束 8 条 + spec Acceptance 做 review
 ```
 
 ---
@@ -236,7 +266,7 @@ GO 🚀
 ## 4 · 参考实现
 
 已有参考实现：
-- `spike-tmp/dispatch/MVP-02-opencode-prompt.md`（2026-04-19 · MVP 层级 · 第一个应用 7 条硬约束 + 禁止清单的完整模板）
+- `spike-tmp/dispatch/MVP-02-opencode-prompt.md`（2026-04-19 · MVP 层级 · 第一个应用 7 条硬约束 + 禁止清单的完整模板 · 2.8 于 session 10 后增补）
 - `spike-tmp/dispatch/SPIKE-05.5-codex-prompt.md`（2026-04-19 · 旧版 · 未含硬约束段 · 作为"重构前对照"参考）
 - `spike-tmp/dispatch/SPIKE-04.5-a3-opencode-prompt.md`（2026-04-19 · 旧版 · 第一次踩"自行 accept"坑的反面教材）
 
@@ -249,7 +279,11 @@ GO 🚀
 - 每发现外部 agent 绕过**建议级**条款 → 把该条款升级为**硬约束**
 - 每发现外部 agent 绕过**硬约束**条款 → 增加 CI 硬阻塞（如 gitleaks / required-status-check）替代 trust-based 约束
 
-目前 7 条硬约束是"记忆新鲜期"（2026-04-19 session 9 末）产物 · 反映 OpenCode 两次违规的直接教训。未来若 Codex / 其他 agent 触发新的协作 failure mode · 本规则追加新条款。
+目前 8 条硬约束来自实际事件：
+- 2.1-2.7（session 9 末初版）· 反映 OpenCode SPIKE-04.5/MVP-02 的 2 次违规教训
+- 2.8（session 10 末增补）· 反映 MVP-02 运行时 OpenCode 未 kill Vite/pnpm 子进程 · 残留 4 小时占 port 1420 的教训
+
+未来若 Codex / 其他 agent 触发新的协作 failure mode · 本规则追加新条款。
 
 ---
 
@@ -257,8 +291,8 @@ GO 🚀
 
 - **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/*"）· 所以未来 agent 修本规则需明确授权 ✅
 - **反向场景**：规则不遵守 → 第三次违规 → 触发 CI 硬阻塞升级路径（见 §5）✅
-- **边界适用性**：适用所有 dispatch（Spike / MVP / chore）· chore 可豁免 2.3（明示在 prompt）✅
-- **YAGNI**：7 条都来自真实事件 / 真实风险 · 无投机条款 ✅
+- **边界适用性**：适用所有 dispatch（Spike / MVP / chore）· chore 可豁免 2.3（明示在 prompt）· 2.8 适用所有启动后台进程的 task · 纯文档 task 不触发 ✅
+- **YAGNI**：8 条都来自真实事件 / 真实风险 · 无投机条款 ✅
 
 ---
 

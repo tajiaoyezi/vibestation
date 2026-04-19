@@ -1,0 +1,2 @@
+corruption_test: got_error=true, error_code=None, msg=Execute returned results - did you mean to call query?
+redb_comparison: redb silent FAIL vs rusqlite PASS

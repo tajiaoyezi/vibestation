@@ -1,0 +1,155 @@
+SPIKE-04.5 v2: rusqlite Safety Full-Chain Verification
+Rust: rustc 1.95.0 (59807616e 2026-04-14)
+rusqlite: 0.31.x (bundled SQLite 3.x)
+CPU: Apple M2 Max
+RAM: 34.4 GB
+OS cache drop: NOT executed (no sudo); all data is raw P99 without cache manipulation
+Work dir: /tmp/spike-04-5-test-data-v2
+
+--- A.1 Bulk write 10000000 rows x 3 iterations ---
+  iter 0: 12.90s
+  iter 1: 12.59s
+  iter 2: 12.74s
+  Write P50=12.74s P99=12.90s PASS=YES
+  DB size: pre-VACUUM=1177636864 (1.10 GB) post-VACUUM=1139445760 (1.06 GB)
+
+--- A.2 Point read (10000 random keys) ---
+  Point read P50=0.0055ms P99=0.0101ms PASS=YES
+
+--- A.3 Range scan (100 rows, 10 iterations) ---
+  iter 0: 100 profiles (latest each) in 211.073ms
+  iter 1: 100 profiles (latest each) in 213.005ms
+  iter 2: 100 profiles (latest each) in 213.513ms
+  iter 3: 100 profiles (latest each) in 214.940ms
+  iter 4: 100 profiles (latest each) in 214.431ms
+  iter 5: 100 profiles (latest each) in 212.707ms
+  iter 6: 100 profiles (latest each) in 212.130ms
+  iter 7: 100 profiles (latest each) in 210.406ms
+  iter 8: 100 profiles (latest each) in 213.776ms
+  iter 9: 100 profiles (latest each) in 212.274ms
+  Range scan P50=213.005ms P99=214.940ms PASS=NO
+
+--- B.1 Crash Recovery (3 scenarios x 10 runs each) ---
+  kill@10% run 0: PASS (0 committed rows, DB consistent)
+  kill@10% run 1: PASS (0 committed rows, DB consistent)
+  kill@10% run 2: PASS (0 committed rows, DB consistent)
+  kill@10% run 3: PASS (0 committed rows, DB consistent)
+  kill@10% run 4: PASS (0 committed rows, DB consistent)
+  kill@10% run 5: PASS (0 committed rows, DB consistent)
+  kill@10% run 6: PASS (0 committed rows, DB consistent)
+  kill@10% run 7: PASS (0 committed rows, DB consistent)
+  kill@10% run 8: PASS (0 committed rows, DB consistent)
+  kill@10% run 9: PASS (0 committed rows, DB consistent)
+  kill@10%: 10/10 passed
+  kill@50% run 0: PASS (0 committed rows, DB consistent)
+  kill@50% run 1: PASS (0 committed rows, DB consistent)
+  kill@50% run 2: PASS (0 committed rows, DB consistent)
+  kill@50% run 3: PASS (0 committed rows, DB consistent)
+  kill@50% run 4: PASS (0 committed rows, DB consistent)
+  kill@50% run 5: PASS (0 committed rows, DB consistent)
+  kill@50% run 6: PASS (0 committed rows, DB consistent)
+  kill@50% run 7: PASS (0 committed rows, DB consistent)
+  kill@50% run 8: PASS (0 committed rows, DB consistent)
+  kill@50% run 9: PASS (0 committed rows, DB consistent)
+  kill@50%: 10/10 passed
+  kill@90% run 0: PASS (0 committed rows, DB consistent)
+  kill@90% run 1: PASS (0 committed rows, DB consistent)
+  kill@90% run 2: PASS (0 committed rows, DB consistent)
+  kill@90% run 3: PASS (0 committed rows, DB consistent)
+  kill@90% run 4: PASS (0 committed rows, DB consistent)
+  kill@90% run 5: PASS (0 committed rows, DB consistent)
+  kill@90% run 6: PASS (0 committed rows, DB consistent)
+  kill@90% run 7: PASS (0 committed rows, DB consistent)
+  kill@90% run 8: PASS (0 committed rows, DB consistent)
+  kill@90% run 9: PASS (0 committed rows, DB consistent)
+  kill@90%: 10/10 passed
+
+--- B.2 Corruption Detection ---
+  PASS: Corruption detected on query: Execute returned results - did you mean to call query?
+  User message: 数据库文件损坏 · 请从备份恢复
+  VACUUM: detected corruption: database disk image is malformed
+
+  --- Comparison with SPIKE-04 redb FAIL ---
+  redb 2.6.3: Opened corrupted file, silently returned 1000 rows (no error)
+  rusqlite:   Detected corruption with error
+
+--- B.3 Schema Migration ---
+  V1 created: 1000 rows, user_version=1
+  Current version: 1
+  Migrating v1 -> v2...
+  Migration committed
+  Post-migration: version=2, rows=1000
+  V2 reads V1-migrated DB: PASS
+
+  --- Old version reads new DB (H1 fix) ---
+  Old code (v1) reading new DB (v2): REJECT with error "Schema version 2 is newer than supported version 1"
+
+  --- Migration failure ROLLBACK test ---
+  Migration failed as expected: no such table: nonexistent_table
+  After failed migration: version=1, rows=500
+  ROLLBACK test: PASS (data intact, version unchanged)
+  10 data volume migrations: ALL PASS
+
+--- B.4 Export/Import ---
+  Export: 3000 rows, checksum=b2668e611a68c3ec2eeea97baa548e16ed3380cd3a5373b44526aeddac3541aa
+  Import (clean): 3000 rows restored
+
+  --- B.4 pre-import backup (H2 fix) ---
+  Existing target: 500 rows
+  Imported 3000 rows into existing target
+  Pre-import backup: 500 rows, version=2
+  Pre-import backup: PASS
+  Target after import: 3000 rows PASS
+
+  --- B.4 checksum + version validation ---
+  Tampered checksum rejected: Checksum mismatch: expected badchecksum, got b2668e611a68c3ec2eeea97baa548e16ed3380cd3a5373b44526aeddac3541aa PASS
+  Incompatible version rejected: Unsupported schema version: 99 (max supported: 2) PASS
+
+--- B.5 Startup Self-check + Op-log + Auto-rollback ---
+
+  B.5.1 Happy path (consistent state)
+    Happy path: Consistent PASS
+
+  B.5.2 Marker-loss crash (DB committed, op-log pending)
+    Marker-loss: ReconciledForward (pending→committed, DB has 50 rows) (should start with ReconciledForward)
+    Op-log promoted to committed: true PASS
+
+  B.5.3 Normal abort (DB not committed, op-log pending)
+    Normal abort: ReconciledForward (pending→aborted, DB empty) (should start with ReconciledForward)
+    Op-log set to aborted: true PASS
+
+  B.5.4 True silent loss (committed marker, DB missing rows)
+    Silent loss: SilentLossDetected (oplog says committed 50 rows, DB has 30) (should start with SilentLossDetected)
+
+  B.5.5 Silent overwrite (migration half-done, checksum mismatch)
+    Silent overwrite: ChecksumMismatch (expected b31bcc1b96e4d9dd..., got 36bc141895a4bd81...) (should start with ChecksumMismatch)
+
+  B.5.6 Auto-rollback UI (CLI mock) + periodic backup retention
+    Creating 3 periodic backups (retention=2)...
+    Periodic backup 1: auto-1776571253.backup
+    Periodic backup 2: auto-1776571254.backup
+    Periodic backup 3: auto-1776571255.backup
+    Remaining auto backups: 3 (should be ≤ 3: 2 retention + 1 last-known-good)
+    Retention policy: PASS
+    Last-known-good: exists=true, 100 rows
+    [MOCK UI] DB integrity check... FAILED
+    [MOCK UI] Prompt: 数据库损坏 · 从 /tmp/spike-04-5-test-data-v2/b5/backups/last-known-good 恢复？预计丢失 0 行 · [Y/n]
+    [MOCK UI] User chose: Y
+    Rollback complete: 100 rows restored
+    Post-rollback self-check: Consistent PASS
+
+============================================================
+  Summary
+============================================================
+A  Performance:    FAIL
+B.1 Crash recovery: PASS
+B.2 Corruption:     PASS
+B.3 Migration:      PASS
+B.4 Export/Import:  PASS
+B.5 Self-check:     PASS
+
+A.3 FAIL (range scan P99=220ms > 50ms threshold) -> Conclusion (B partial)
+B.1-5 all PASS -> R27 (silent data corruption) fully closed
+A.3 performance: Arbiter decides (accept 220ms / add index / scope downgrade)
+
+Total elapsed: 49.7s

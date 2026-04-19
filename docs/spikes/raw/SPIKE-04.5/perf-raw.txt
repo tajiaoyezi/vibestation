@@ -1,0 +1,6 @@
+write_iters=[12.899553792, 12.594973042, 12.742329459]
+write_p50=12.74s write_p99=12.90s
+point_read_p50=0.0055ms point_read_p99=0.0101ms
+range_scan_p50=213.005ms range_scan_p99=214.940ms (threshold=50ms, unit=ms)
+db_pre_vacuum=1177636864
+db_post_vacuum=1139445760

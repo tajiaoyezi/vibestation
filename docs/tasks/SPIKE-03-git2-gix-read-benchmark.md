@@ -2,21 +2,22 @@
 id: SPIKE-03
 type: spike
 title: git2 读 log + gix 对比 benchmark（linux kernel）
-status: draft
-owner:
+status: done
+owner: OpenCode agent
 phase: W0-D3
-depends_on: ["SPIKE-02"]
+depends_on: ["SPIKE-01"]
 blocks: []
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D3 · §9 R3
 risk_ref: R3
-reviewer:
+reviewer: User (Arbiter · GitHub PR approve)
 ---
 
 # SPIKE-03: git2 读 log + gix 对比 benchmark
 
-> **状态**：`draft`
-> **依赖**：SPIKE-02（桌面框架已锁定）
+> **状态**：`done`（2026-04-19 · OpenCode agent 实测 · Claude Code review · User approve · 结论 (B) 读切 gix）
+> **依赖**：SPIKE-01（Rust toolchain 可用 · 2026-04-19 用户决策放宽：原 `SPIKE-02` → `SPIKE-01` · 理由：bench 纯 CLI · 不依赖 Tauri 容器）
+> **报告**：[`docs/spikes/SPIKE-03-report.md`](../spikes/SPIKE-03-report.md)
 > **战略依据**：[`implementation-plan.md §附录 A D3`](../implementation-plan.md) · [`§9 R3`](../implementation-plan.md)
 
 ---

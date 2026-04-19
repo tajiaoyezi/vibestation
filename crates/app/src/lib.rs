@@ -18,7 +18,6 @@ fn greet() -> String {
 /// 若 Tauri 初始化失败（窗口 / 插件加载异常）则 panic · 由 Tauri 默认错误处理上浮。
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");

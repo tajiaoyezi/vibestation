@@ -83,7 +83,7 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
 - `CLAUDE.md` 决策表：A 栏 #19（session 10 末升级）· 原 B 栏 #12 移除
 - Spike：[SPIKE-01 Tauri 2 三平台空壳启动](../tasks/SPIKE-01-tauri-three-platform-boot.md)· [SPIKE-02 Tauri 硬通过矩阵](../tasks/SPIKE-02-tauri-hard-pass-matrix.md)
 - 相关 ADR：ADR-004（前端栈 · 依赖桌面框架选型）
-- 协作流程：PR #50（session 10 末 · H-2 (c) 过渡末班车）
+- 协作流程：PR #50（session 10 末 · CLAUDE.md 线 127 v2-D first follower · 单人项目 audit trail 模式）
 
 ---
 
@@ -103,18 +103,32 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
   - Ubuntu 环境就绪后补测 · 结果回填 SPIKE-01/02 Phase B report
   - 若 Ubuntu 通过 → caveat 移除 · ADR 标注完整 3 平台过
 
-## Arbiter 拍板记录（H-2 (c) 过渡模式 audit trail）
+## Arbiter 拍板记录（v2-D first follower · audit trail）
 
-本 PR (#50) 属于 `CLAUDE.md` 线 127 升级前最后一批 dialogue + proxy merge PR（"末班车"）· 按 H-2 (c) 过渡模式 · Arbiter approve 留痕通过 PR comment + 本段 audit trail：
+本 PR (#50) 是 `CLAUDE.md` 线 127 v2-D 升级的**第一个 follower** · 按 v2-D §2 (a) 标准记录 audit trail：
 
-- **Arbiter (User · `tajiaoyezi@gmail.com`)** · 2026-04-19 session 10 末
-- dialogue approve 原文："1. Issue 3 ：b · 2. H-2 ：c"
-- 主 agent 在 dialogue 中给出的完整 scope（含本 ADR 升级 + CLAUDE.md 决策表改动 + 线 127 升级）
-- Arbiter 后续回复 "合" 作为 merge 授权（若 PR merge 时此 comment 存在）
-- 协作规则升级生效后（CLAUDE.md 线 127 v2）· 未来 A 栏改动**不再接受** dialogue approve · 必须 GitHub PR UI `Approve` + `gh pr review --approve`
+**Implemented by**：Claude Code (Opus 4.7 · session 10 终极末)
+**Reviewed by**：Claude Code (Opus 4.7 · 内部 self-review · 单人项目限制 · 未来加入第二 admin 后切 v2-strict GitHub UI approve)
+**Arbiter approve**：tajiaoyezi · 2026-04-19 · dialogue 原文："1. Issue 3 ：b · 2. H-2 ：c"
+
+完整 dialogue context：
+- 主 agent 在 dialogue 给出 Issue 3（ADR-006 升级 b 选项）+ H-2 (c) 完整 scope
+- 本 ADR 升级 + CLAUDE.md 决策表 #19 + 线 127 v2 升级一同打包 PR #50
+- 用户发现 v2 在单人项目不可执行 → v2 修订为 v2-D（承认单人现实 + 未来升级触发）
+- Arbiter 后续 dialogue "选择方案 D"（用户明确批准 v2-D）
+
+完整 dialogue trail post-merge 补到 PR comment（v2-D §2 (b) 要求）。
+
+## v2-D 单人项目模式说明
+
+本项目当前是 GitHub 单 admin 模式（`tajiaoyezi`）· agent (Claude Code / Codex / OpenCode) 无 GitHub 账号 · 私有仓库 + 非 GitHub Pro 导致 branch protection 不可用。在此约束下：
+
+- **GitHub UI Approve 按钮不可用**：GitHub 不允许 self-approve own PR · 单人项目无第二 admin
+- **替代 audit trail**：PR body Arbiter signature trailer + post-merge `gh pr comment` dialogue trail
+- **未来自动升级触发**：加入第二真合作者 / 仓库变 public / 升级 GitHub Pro · v2-D → v2-strict 自动生效（GitHub UI approve 取代 PR body trailer）
 
 ---
 
 **修订历史**：
 - 2026-04-18 · 初版 · Claude Code · status: proposed · SPIKE-02 全通过后改 accepted
-- 2026-04-19 · accepted · session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B 待 · Arbiter dialogue approve "Issue 3：b"· 走 H-2 (c) 过渡模式（PR #50）
+- 2026-04-19 · accepted · session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B 待 · Arbiter dialogue approve "Issue 3：b"· CLAUDE.md 线 127 v2-D 第一个 follower（用户发现 v2 单人项目不可执行 → 修订 v2-D）· 完整 audit trail 见上方 § Arbiter 拍板记录

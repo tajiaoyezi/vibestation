@@ -1,17 +1,44 @@
 "$schema" = "../gen/schemas/default_permissions.json"
 
-# Vibestation app 级 permission 定义 · Phase A 最小集
-# Tauri v2 ACL：自定义 #[tauri::command] 必须显式 grant permission ·
+# Vibestation app 级 permission 定义
+# Tauri v2 ACL：自定义 #[tauri::command] 必须显式 grant permission
 # capability 里 reference identifier 后 frontend 才能 invoke。
 #
 # 参考：https://v2.tauri.app/security/permissions/
 # Codex adversarial review round 2 · finding #1 修复。
+# MVP-02 新增 workspace_* 系列 command permissions。
 
 [[permission]]
 identifier = "allow-greet"
-description = """
-允许前端调用 `greet` 命令 · 返回 Vibestation core 版本信息。
-用于 MVP-01 Phase A 欢迎页 IPC 联通性自检 · 未来 MVP-02 workspace 切入后可能
-replace 为更精准的 `allow-app-version` 或同类 permission。
-"""
+description = "允许前端调用 `greet` 命令 · 返回版本信息 · MVP-01 Phase A 欢迎页 IPC 自检"
 commands.allow = ["greet"]
+
+[[permission]]
+identifier = "allow-workspace-init"
+description = "允许前端初始化数据库连接池 · workspace 功能前置命令"
+commands.allow = ["workspace_init"]
+
+[[permission]]
+identifier = "allow-workspace-list"
+description = "允许前端列出所有 workspace 元数据"
+commands.allow = ["workspace_list"]
+
+[[permission]]
+identifier = "allow-workspace-create"
+description = "允许前端创建新 workspace（选择目录 + 名称 + 自动识别 git）"
+commands.allow = ["workspace_create"]
+
+[[permission]]
+identifier = "allow-workspace-open"
+description = "允许前端打开 workspace（更新 last_opened 时间戳）"
+commands.allow = ["workspace_open"]
+
+[[permission]]
+identifier = "allow-workspace-delete"
+description = "允许前端永久删除 workspace（需前端二次确认）"
+commands.allow = ["workspace_delete"]
+
+[[permission]]
+identifier = "allow-workspace-exists"
+description = "允许前端检查某路径是否已有 workspace（防重复添加）"
+commands.allow = ["workspace_exists"]

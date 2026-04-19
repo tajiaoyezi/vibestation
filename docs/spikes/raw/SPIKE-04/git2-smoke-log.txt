@@ -1,0 +1,31 @@
+=== SPIKE-04 git2 Write Smoke Test Log ===
+Date: 2026-04-19
+Hardware: Apple M2 Max / 34.4GB RAM / SSD
+Rust: 1.95.0
+git2: 0.20.4 (libgit2 1.9.2)
+
+--- Run ---
+
+commit hash: bbaee4da71589eff32498337f201f7bed3db72de
+author: SPIKE-04 <spike@vibestation.test>
+committer: SPIKE-04 <spike@vibestation.test>
+message: test: 中文 commit 测试 🎉
+message_len: 31 bytes
+tree: b32729298984f325d0514c971107231d966656df
+parents: 0
+utf8_valid: true
+has_chinese: true
+has_emoji: true
+
+--- git2 verification log ---
+commit bbaee4da71589eff32498337f201f7bed3db72de
+Author: SPIKE-04 <spike@vibestation.test>
+
+    test: 中文 commit 测试 🎉
+
+PASS init temp repo: OK
+PASS add + commit: OK, hash = bbaee4da71589eff32498337f201f7bed3db72de
+PASS UTF-8 commit message: OK · 31 bytes · Chinese chars preserved · Emoji preserved
+PASS author/committer: SPIKE-04 <spike@vibestation.test>
+
+=== ALL CHECKS PASSED ===

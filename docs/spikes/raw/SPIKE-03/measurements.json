@@ -1,0 +1,532 @@
+{
+  "repo_path": "/tmp/linux-kernel",
+  "cold_samples": 3,
+  "warm_samples": 10,
+  "count_all_cold_samples": 1,
+  "count_all_warm_samples": 1,
+  "purge_command": null,
+  "runs": [
+    {
+      "engine": "git2",
+      "scenario": "log100",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 20603.770125,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23094.268958,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23261.637333,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log100",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 19226.267791000002,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 24051.875708,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 20345.879917000002,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 24964.237792,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 22065.736792,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 22063.156458,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23621.440083,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23652.806291,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23469.392333,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        },
+        {
+          "duration_ms": 23956.258708,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log1000",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 18771.490959000002,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 17513.6125,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 17174.336667,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log1000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 18125.128624999998,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 19579.654875,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 19927.267583999997,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 20918.214875,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 21108.710584,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 17035.509208,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 16992.038334,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 16941.687625,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 16978.021667,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        },
+        {
+          "duration_ms": 16992.21125,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log10000",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 16707.669292,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 17118.018791000002,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 17190.118792,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log10000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 21199.415083,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 22814.888791,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 31536.302375,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 28660.860834000003,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 29874.148625,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 32483.802875,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 33483.773875,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 31018.489667,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 32233.705208000003,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        },
+        {
+          "duration_ms": 28785.388167,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "count-all",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 26445.365958,
+          "visited": 1441214,
+          "checksum": 2231163149984817112
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "count-all",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 28872.064708,
+          "visited": 1441214,
+          "checksum": 2231163149984817112
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log100",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 15.425208,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 10.741541,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 10.664584,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log100",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 11.623292000000001,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.040167,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.693333,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 12.6515,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.155040999999999,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 9.241375,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.364208000000001,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 10.270707999999999,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.041625,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        },
+        {
+          "duration_ms": 11.318916,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log1000",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 43.659875,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 45.327208,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 46.618624999999994,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log1000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 54.716375,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 56.455458,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 61.618667,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 97.78791700000001,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 113.84375,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 77.49479099999999,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 68.51825000000001,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 64.609375,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 59.417625,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        },
+        {
+          "duration_ms": 57.070584000000004,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log10000",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 398.795875,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 310.71549999999996,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 296.58187499999997,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log10000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 300.738541,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 301.223542,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 268.627875,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 241.613833,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 733.717958,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 282.232416,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 267.694917,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 189.049375,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 200.5385,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        },
+        {
+          "duration_ms": 533.863625,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "count-all",
+      "mode": "cold",
+      "samples": [
+        {
+          "duration_ms": 18082.781959,
+          "visited": 1441214,
+          "checksum": 2256431569781195564
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "count-all",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 12840.381959,
+          "visited": 1441214,
+          "checksum": 2256431569781195564
+        }
+      ]
+    }
+  ]
+}

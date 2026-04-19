@@ -1,0 +1,17 @@
+{
+  "resizeResult": "40 100\n",
+  "beforeStats": {
+    "pid": 22871,
+    "rssKb": 115440,
+    "fdCount": 14,
+    "sessionCount": 0,
+    "readerThreadAlive": true
+  },
+  "afterStats": {
+    "pid": 22871,
+    "rssKb": 119296,
+    "fdCount": 14,
+    "sessionCount": 0,
+    "readerThreadAlive": true
+  }
+}

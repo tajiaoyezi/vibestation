@@ -1,0 +1,25 @@
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `pnpm build`
+
+> spike-05-pty@0.1.0 build /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty
+> vite build
+
+vite v6.4.2 building for production...
+transforming...
+✓ 23 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.43 kB │ gzip:  0.31 kB
+dist/assets/index-DxrTE7Je.css    7.77 kB │ gzip:  2.87 kB
+dist/assets/index-C8IcqvQ0.js   325.32 kB │ gzip: 85.33 kB
+✓ built in 572ms
+   Compiling spike-05-pty v0.1.0 (/Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.78s
+       Built application at: /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri/target/debug/spike-05-pty
+    Bundling spike-05-pty.app (/Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri/target/debug/bundle/macos/spike-05-pty.app)
+    Bundling spike-05-pty_0.1.0_aarch64.dmg (/Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri/target/debug/bundle/dmg/spike-05-pty_0.1.0_aarch64.dmg)
+     Running bundle_dmg.sh
+    Finished 2 bundles at:
+        /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri/target/debug/bundle/macos/spike-05-pty.app
+        /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/spike-tmp/spike-05-pty/src-tauri/target/debug/bundle/dmg/spike-05-pty_0.1.0_aarch64.dmg
+

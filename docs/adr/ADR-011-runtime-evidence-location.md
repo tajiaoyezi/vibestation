@@ -1,9 +1,9 @@
 # ADR-011: MVP / Feature runtime 证据存储位置标准化
 
-**状态**：proposed
-**日期**：2026-04-19
-**决策者**：Claude Code (Opus 4.7 · session 10 末 · 提议) · <独立评审者 · 待> · User (Arbiter · 待拍板)
-**对应 `CLAUDE.md` 决策表**：新增 · 暂未进表（本 ADR accepted 后补）
+**状态**：accepted
+**日期**：2026-04-19（proposed） · 2026-04-19（accepted · session 10 末）
+**决策者**：Claude Code (Opus 4.7 · session 10 末 · 提议) · User (Arbiter · 拍板选项 A · "按你的推荐来")
+**对应 `CLAUDE.md` 决策表**：A 栏 #18（本 PR 新增）
 **对应 Spike / MVP**：[MVP-02](../tasks/MVP-02-workspace-management.md)（触发本 ADR 的事件源）
 
 ---
@@ -52,7 +52,7 @@
 
 ## 决策（Decision Outcome）
 
-**提议选择**：**选项 A · `docs/runtime-evidence/<task-id>/`**（等 Arbiter 拍板）
+**最终选择**：**选项 A · `docs/runtime-evidence/<task-id>/`**（Arbiter 已拍板 · 2026-04-19 session 10 末）
 
 **理由**：
 
@@ -92,16 +92,16 @@
 - **R2** · binary 进 git 导致 `git log --all` 变慢（文件对 git object db 开销）· 阈值大约 100 MB · 当前方案到 v1.0 仍远低于阈值
 - **Fallback**：若 repo 体积确实爆（v2.0 后）· 引入 Git LFS 或迁移到 `C` 方案 · 迁移成本评估 YAGNI 当前阶段
 
-## 实施项（Implementation Checklist）
+## 实施项（Implementation Checklist · 已落地）
 
-ADR accepted 后 · 需同步更新以下：
+ADR accepted 后 · 已同步更新以下（本 PR 完成 ✅）：
 
-- [ ] **dispatch-prompt-template §2.3**：把 `spike-tmp/img/<task-id>/` 改为 `docs/runtime-evidence/<task-id>/`
-- [ ] **.claude/rules/15-runtime-verification-gate.md**：明确引用 ADR-011 的路径约定
-- [ ] **PR_TEMPLATE 或 checklist**：增 "runtime 证据在 `docs/runtime-evidence/<task-id>/`？"（若有此 template）
-- [ ] **清理 `spike-tmp/img/`**（OpenCode 早期 52 KB 残留 · 可删除或 git mv 到 runtime-evidence 下）
-- [ ] **MVP-02 PR #40 已交付的 `docs/runtime-evidence/mvp-02/`**：不动 · 即是本 ADR 的 reference 样例
-- [ ] **MVP-03+ dispatch prompt**：按新路径分发
+- [x] **dispatch-prompt-template §2.3**：把 `spike-tmp/img/<task-id>/` 改为 `docs/runtime-evidence/<task-id>/` · 加 ADR-011 引用
+- [x] **`.claude/rules/runtime-evidence-location.md`** · 新建项目级规则文件 · 引用本 ADR + 全局 `~/.claude/rules/15-runtime-verification-gate.md`（不直接修改全局 rule · 留待用户自决是否同步）
+- [x] **`CLAUDE.md` 决策表 A 栏**：新增 #18 row · 锁定 runtime evidence 路径 = `docs/runtime-evidence/<task-id>/`
+- [x] **清理 `spike-tmp/img/`** · OpenCode 早期 52 KB 残留 · 已 `rm -rf`（gitignored 目录 · 不在本 PR diff · 但 PR body 注明）
+- [x] **MVP-02 `docs/runtime-evidence/mvp-02/`**：保留不动 · 作为本 ADR 的 reference 样例
+- [x] **MVP-03+ dispatch prompt**：按新路径 `docs/runtime-evidence/<task-id>/` 分发（dispatch prompt template 已更新 · 后续 dispatch 自动遵循）
 
 ## 与 `implementation-plan.md` 的映射
 
@@ -120,17 +120,14 @@ ADR accepted 后 · 需同步更新以下：
 
 ---
 
-## 关于状态 `proposed` 的 reviewer gate
+## Reviewer gate 历史（已闭合）
 
 - 主 agent（Claude Code Opus 4.7）是**提议者** · 不能自行 accept
-- 必须 **Arbiter (User) 在 PR comment / dialogue 明确批准**才能 proposed → accepted
-- Accept 后 · 同步更新：
-  - 本 ADR 状态改为 `accepted`
-  - `CLAUDE.md` 决策表 A 栏（永久锁定）加入新 row
-  - 执行上方 "实施项" 6 步
-  - 归档 PR merge commit hash 到 `修订历史`
+- ✅ Arbiter (User) 在 dialogue 明确批准选项 A · 时间 2026-04-19 session 10 末
+- ✅ Accept 后已同步：本 ADR 状态 accepted · CLAUDE.md A 栏 #18 新 row · 实施项 6 步 · 翻转 PR 走 (a) 路径（本 PR）
 
 ---
 
 **修订历史**：
-- 2026-04-19 · 初版 · Claude Code (Opus 4.7 · session 10 末 · FU-2 draft · 提议选项 A)
+- 2026-04-19 · 初版 · Claude Code (Opus 4.7 · session 10 末 · FU-2 draft · 提议选项 A) · PR #44 merged commit `025371d`
+- 2026-04-19 · accepted · User 拍板选项 A（"按你的推荐来"）· 翻转 PR · 同步实施 6 步

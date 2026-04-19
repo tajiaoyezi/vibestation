@@ -1,0 +1,11 @@
+{
+  "user_version": 2,
+  "per_table": {
+    "snapshots": {
+      "row_count": 100,
+      "sha256_checksum": "5ffde8cb033ef157ef55fec33347abb12cce029a7cf819dc87677ec7c6b8deef"
+    }
+  },
+  "last_committed_tx_id": "63906b90-1398-454e-bbc3-8194f33fbeef",
+  "export_timestamp": 1776571253
+}

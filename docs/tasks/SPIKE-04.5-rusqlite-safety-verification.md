@@ -2,16 +2,22 @@
 id: SPIKE-04.5
 type: spike
 title: rusqlite 数据安全全链路验证（B.1-5 on rusqlite · 真正 close R27）
-status: ready
-owner:
+status: done
+owner: OpenCode agent (v2 accepted · v1 BLOCKED)
 phase: W0-D4.5
 depends_on: ["SPIKE-04"]
 blocks: ["MVP-02", "MVP-06", "MVP-10", "MVP-19"]
 estimate: 1-1.5d
 plan_ref: implementation-plan.md §附录 A D4 · §9 R27 · §3.2
 risk_ref: R27
-reviewer:
+reviewer: Claude Code (Sonnet 4.6 · 主 agent)
 ---
+
+> 📌 **执行结论**（2026-04-19 · done）：
+> - **R27 数据安全全面 close**：B.1 crash · B.2 SQLITE_CORRUPT · B.3 user_version + H1 assert + ROLLBACK · B.4 pre-import backup + per_table manifest · B.5 per-tx_id op-log + reconcile forward + retention + auto-rollback UI · 全部通过
+> - **A.3 范围查询 FAIL**：P99 215ms > 50ms 阈值 · 三方案待 Arbiter 决策（见 [`docs/adr/ADR-005-local-storage.md`](../adr/ADR-005-local-storage.md) 修订历史）
+> - **v1→v2 追溯**：v1 被 Claude 主 agent BLOCK 4 CRITICAL（A.3 阈值单位 bug / A.2 同类 / Manifest 缺字段 / 代码未拆分）· v2 全部修复后 accept
+> - **交付归档**（"4 样齐全"）：report [`docs/spikes/SPIKE-04.5-report.md`](../spikes/SPIKE-04.5-report.md) · 源码 [`docs/spikes/code/SPIKE-04.5/`](../spikes/code/SPIKE-04.5/) · raw [`docs/spikes/raw/SPIKE-04.5/`](../spikes/raw/SPIKE-04.5/) · 冷备 `spike-tmp/archive/SPIKE-04.5/{v1,v2}.tar.gz`
 
 # SPIKE-04.5: rusqlite 数据安全全链路验证
 

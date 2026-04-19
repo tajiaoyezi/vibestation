@@ -1,0 +1,162 @@
+{
+  "strategy": "shared-reader",
+  "plan": {
+    "name": "interactive-tui",
+    "title": "A · synthetic TUI 10s",
+    "durationMs": 10000,
+    "queueCapacity": 128,
+    "sampleEveryMs": 1000,
+    "sessions": [
+      {
+        "label": "tui",
+        "command": "while true; do clear; date '+tick %H:%M:%S'; ps -A -o pid,pcpu,pmem,comm | head -n 12; sleep 0.2; done",
+        "pollEveryMs": 100,
+        "hiddenPollEveryMs": 100,
+        "renderDelayMs": 0,
+        "renderWhenHidden": true
+      }
+    ],
+    "initialActiveIndex": 0,
+    "notes": [
+      "宿主机无 htop，使用 5Hz synthetic TUI 替代。"
+    ]
+  },
+  "durationMs": 10000,
+  "totals": {
+    "totalReadBytes": 20350,
+    "totalDrainedBytes": 20350,
+    "totalDroppedBytes": 0,
+    "peakRssKb": 117264
+  },
+  "sessions": [
+    {
+      "id": "session-01",
+      "label": "tui",
+      "command": "while true; do clear; date '+tick %H:%M:%S'; ps -A -o pid,pcpu,pmem,comm | head -n 12; sleep 0.2; done",
+      "active": true,
+      "pollEveryMs": 100,
+      "hiddenPollEveryMs": 100,
+      "renderDelayMs": 0,
+      "renderWhenHidden": true,
+      "queueDepth": 0,
+      "queuedBytes": 0,
+      "avgQueueDepth": 2.1646090534979425,
+      "maxQueueDepth": 10,
+      "totalReadBytes": 20350,
+      "totalDrainedBytes": 20350,
+      "droppedChunks": 0,
+      "droppedBytes": 0,
+      "preview": "<headless>",
+      "exitStatus": null,
+      "readerStrategy": "shared-reader",
+      "readCalls": 151,
+      "avgReadBytes": 134.7682119205298,
+      "avgReadSyscallUs": 6.847980132450331,
+      "avgEnqueueUs": 3.876403973509934,
+      "invokeP50Ms": 1,
+      "invokeP99Ms": 346
+    }
+  ],
+  "processSamples": [
+    {
+      "pid": 56388,
+      "rssKb": 116816,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 0
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117248,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 1007
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117248,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 2009
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117248,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 3011
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117264,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 4011
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117104,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 5013
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117072,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 6015
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117072,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 7016
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117072,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 8018
+    },
+    {
+      "pid": 56388,
+      "rssKb": 117088,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 9020
+    }
+  ]
+}

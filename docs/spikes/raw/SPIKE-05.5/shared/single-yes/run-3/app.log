@@ -1,0 +1,1 @@
+[SPIKE-05.5] app pid=46813 scenario=Some("single-yes") strategy=shared-reader

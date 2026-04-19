@@ -1,0 +1,1 @@
+[SPIKE-05.5] app pid=58491 scenario=Some("interactive-tui") strategy=shared-reader

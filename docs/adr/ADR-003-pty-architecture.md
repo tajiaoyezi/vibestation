@@ -1,10 +1,10 @@
-# ADR-003: PTY 架构 = portable-pty + 共享读线程 + mpsc（pending SPIKE-05.5）
+# ADR-003: PTY 架构 = portable-pty + 共享读线程 + bounded mpsc
 
-**状态**：**proposed**（SPIKE-05 已完成 HOL / boundedness 验证，但 visible throughput 未过门槛；pending [SPIKE-05.5](../tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) 后再决定是否 accepted）
+**状态**：**accepted**（2026-04-19 · SPIKE-05.5 证明 visible throughput 瓶颈不在 shared-reader）
 **日期**：2026-04-18（Phase 1 默认选 · Phase 3 ADR 建立）
 **决策者**：项目发起人 · 多 agent 评审 · 待 SPIKE-05 Arbiter 仲裁（若失败）
-**对应 `CLAUDE.md` 决策表**：#15（B 档，Spike 后锁定）
-**对应 Spike**：[SPIKE-05](../tasks/SPIKE-05-pty-multi-tab.md)
+**对应 `CLAUDE.md` 决策表**：#15（A 档，2026-04-19 锁定）
+**对应 Spike**：[SPIKE-05](../tasks/SPIKE-05-pty-multi-tab.md) · [SPIKE-05.5](../tasks/SPIKE-05.5-pty-visible-throughput-fallback.md)
 
 ---
 
@@ -44,7 +44,7 @@
 
 ## 决策
 
-**选择（proposed · pending SPIKE-05.5）**：
+**选择（accepted）**：
 - **PTY 库**：`portable-pty 0.8+`
 - **读取架构**：**B · 共享读线程 + mpsc bounded channel**（drop-oldest / drop-newest 策略二选一，**禁止 block-producer**）
 - **Fallback**：若 SPIKE-05 的 B.4 一慢拖全部测试失败 → 切到 **A · 每 session 一线程**
@@ -72,7 +72,7 @@
 - **SPIKE-05 任一 HOL 子场景失败** → 切 per-session（fallback 明确）
 - **portable-pty 平台 bug**（如 macOS 特殊 PTY 行为）→ 调查修复 · 或换 `pty-process`（成本：不大）
 
-## SPIKE-05 结果摘要（2026-04-19）
+## SPIKE-05 / SPIKE-05.5 结果摘要（2026-04-19）
 
 SPIKE-05 已把“共享读线程会不会 HOL / OOM”这个问题基本回答清楚：
 
@@ -84,7 +84,13 @@ SPIKE-05 已把“共享读线程会不会 HOL / OOM”这个问题基本回答�
 
 > shared-reader 在隔离性 / boundedness 上是可行的，但还不能证明它能满足 Vibestation 的“可见吞吐”要求。
 
-下一步应由 [`SPIKE-05.5`](../tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) 对比 **shared-reader vs per-session reader**，确认 visible throughput 的真实瓶颈后，再决定本 ADR 是否接受或 fallback。
+SPIKE-05.5 已完成对比，并给出关键结论：
+
+- per-session 在 4 Tab 场景提升了 read-path（p50 **43.48 → 61.47 MB/s**）
+- 但 UI drain 没有随之提升（shared p50 **14.58 MB/s**，per-session p50 **12.86 MB/s**）
+- 两种策略的 invoke latency p50 都约 **22ms**，说明 visible throughput 的热点在 **Tauri invoke / JS drain / xterm**，不是 shared-reader
+
+因此，本 ADR 现在可以接受：**PTY reader 架构已经锁定为 shared-reader + bounded queue + drop-oldest**。后续 visible throughput 优化转入 IPC / frontend 路径，而不是再重新讨论 reader strategy。
 
 ## 与 `implementation-plan.md` 的映射
 
@@ -101,4 +107,5 @@ SPIKE-05 已把“共享读线程会不会 HOL / OOM”这个问题基本回答�
 
 **修订历史**：
 - 2026-04-18 · 初版 · Claude Code · status: proposed · 等 SPIKE-05 后续验证
-- 2026-04-19 · 补记 SPIKE-05 结果 · HOL / boundedness pass，visible throughput fail · 继续保持 proposed，等待 SPIKE-05.5
+- 2026-04-19 · 补记 SPIKE-05 结果 · HOL / boundedness pass，visible throughput fail · 等 SPIKE-05.5
+- 2026-04-19 · SPIKE-05.5 完成后改为 accepted · shared-reader 锁定，后续优化点转向 invoke / JS / xterm

@@ -1,0 +1,12 @@
+elapsed_ms,pid,rss_kb,fd_count,session_count,reader_thread_alive,reader_threads,reader_strategy
+0,49039,117664,22,4,true,1,shared-reader
+1081,49039,118464,22,4,true,1,shared-reader
+2082,49039,118496,22,4,true,1,shared-reader
+3083,49039,118528,22,4,true,1,shared-reader
+4083,49039,118544,22,4,true,1,shared-reader
+5083,49039,118304,22,4,true,1,shared-reader
+6085,49039,118336,22,4,true,1,shared-reader
+7087,49039,118352,22,4,true,1,shared-reader
+8091,49039,118352,22,4,true,1,shared-reader
+9095,49039,118400,22,4,true,1,shared-reader
+10100,49039,118288,21,4,true,1,shared-reader

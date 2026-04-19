@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（本 PR 合入后 · Codex Track 2 仍在 `/private/tmp/vibestation-spike-05.5` worktree · OpenCode Track 3 已交付 PR #34 merged）| 分支切换 |
+| **Active branch** | `main`（PR #39 SPIKE-05.5 合入后 · OpenCode Track 3 PR #34 已 merged · OpenCode MVP-02 在 `/private/tmp/mvp-02-work` worktree · 远端 `584bb3b` 未开 PR）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **等 Codex SPIKE-05.5 PR**（Track 2 visible throughput 对照 · Codex worktree 已有本地 commit）· A.3 已 Arbiter 选定方案(a) 220ms（PR #34 merged · 2026-04-19）· MVP-01 Phase A+B 已交付（PR #28 · #33）| session end |
-| **Blocked by** | Codex SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· MVP-01 Phase C（依赖 MVP-02 workspace + Ubuntu）| 阻塞变化 |
+| **Next concrete action** | **Codex SPIKE-05.5 done**（PR #39 待 merge · ADR-003 accepted · CLAUDE.md #15 B→A 锁 shared-reader · 后续 invoke/JS/xterm 优化转独立 task）· A.3 已 Arbiter 选定方案(a) 220ms（PR #34 merged · 2026-04-19）· MVP-01 Phase A+B 已交付（PR #28 · #33）| session end |
+| **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· MVP-01 Phase C（依赖 MVP-02 workspace + Ubuntu）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
 
@@ -39,7 +39,7 @@
 - **PR #19**（session 6 · codex 二次复审漂移）
 - **PR #17/#18**（session 6 · onboarding + spec 翻转）
 - **PR #1-12**（sessions 3-5 · Phase 1-4 pre-code 全交付）
-- **三路并行中 · 待 PR 开出**：Codex SPIKE-05.5（visible throughput）· OpenCode SPIKE-04.5 §A.3（3 方案对照）
+- **三路并行进展**：Codex SPIKE-05.5 已开 PR #39（待 merge · 含 4 样齐全 + raw 137 文件 + 论证完整）· OpenCode SPIKE-04.5 §A.3 PR #34 merged · OpenCode MVP-02 远端 `584bb3b` 未开 PR（build CI 全过 · 待 runtime 验证）
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -143,7 +143,7 @@
 4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 merged）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
 5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · ✅ **全 done（PR #29 主体 merged · PR #34 A.3 决策 merged）** · B.1-5 全过 · R27 真 close · A.3 P99=215ms · **Arbiter 选定方案(a) MVP 接受 220ms**（2026-04-19 · 方案(b) 复合索引留 MVP-02 一起加）
 6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done（PR #30 merged）** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
-7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **Track 2 进行中**（Codex 在 `/private/tmp/vibestation-spike-05.5` worktree 开工 · 已有本地 commit `7a5b582`）
+7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · ✅ **done（PR #39 待 merge）** · 结论：shared-reader 不是瓶颈 · per-session UI drain 反而略低（4 Tab 12.86 vs 14.58 MB/s）· 瓶颈在 invoke RTT 22ms / JS / xterm · ADR-003 accepted · CLAUDE.md #15 B → A
 8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key · 依赖 Apple Dev Program 审核）
 
 ### 🧑‍🎨 **MVP-01 Phase A + B 已交付**（session 8-9 · 首个能启动 + 视觉一致骨架）

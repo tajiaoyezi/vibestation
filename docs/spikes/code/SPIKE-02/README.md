@@ -2,7 +2,7 @@
 
 对应 report：[`docs/spikes/SPIKE-02-report.md`](../../SPIKE-02-report.md)
 对应 spec：[`docs/tasks/SPIKE-02-tauri-hard-pass-matrix.md`](../../../tasks/SPIKE-02-tauri-hard-pass-matrix.md)
-对应决策：[`CLAUDE.md` 决策表 #12（桌面框架 = Tauri 2 · SPIKE-02 是 SPIKE-01 之后的硬通过验证）](../../../../CLAUDE.md)
+对应决策：[`CLAUDE.md` 决策表 A 栏 #19（桌面框架 = Tauri 2 · accepted with Ubuntu caveat · session 10 末升级 · 原 B 栏 #12 · SPIKE-02 是 SPIKE-01 之后的硬通过验证）](../../../../CLAUDE.md) · [ADR-006](../../../adr/ADR-006-desktop-framework.md)
 
 ## 来源
 

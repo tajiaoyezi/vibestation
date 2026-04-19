@@ -57,9 +57,9 @@ any of：
 ## 🔀 Fallback 方案
 
 **通过** → Day 2 继续 Tauri 硬通过矩阵（SPIKE-02）
-**失败** → Day 2 启动 **Electron 28+ fallback spike**（1 天），通过则锁定 Electron 并：
-- 更新 `CLAUDE.md` 决策表 #12 从 B 栏移入 A 栏
-- 开 `docs/adr/ADR-002-desktop-framework.md`（Phase 3 后）记录 supersede
+**历史设计（session 10 末前 · 已被 macOS Phase A 强证据超越）**：失败 → Day 2 启动 **Electron 28+ fallback spike**（1 天），通过则锁定 Electron 并：
+- ~~更新 `CLAUDE.md` 决策表 #12 从 B 栏移入 A 栏~~（session 10 末已升级 · 见 A 栏 #19）
+- 若 Ubuntu Phase B 失败 → 新开 ADR 记录 [ADR-006](../adr/ADR-006-desktop-framework.md) supersede · Electron 成为新默认
 - `implementation-plan.md §3.1` 全章回退为 Electron
 
 ## 📦 产出（Deliverables）
@@ -93,8 +93,8 @@ any of：
 
 ## 🔗 相关
 
-- ADR：`docs/adr/ADR-002-desktop-framework.md`（Phase 3 后建立，记录 Tauri 决策）
-- 对应 `CLAUDE.md` 决策表：**#12 桌面框架**
+- ADR：[`docs/adr/ADR-006-desktop-framework.md`](../adr/ADR-006-desktop-framework.md)（accepted with Ubuntu caveat @ 2026-04-19 · session 10 末升级）
+- 对应 `CLAUDE.md` 决策表：**A 栏 #19 桌面框架 = Tauri 2**（原 B 栏 #12 session 10 末升级）
 - `implementation-plan.md` 章节：§3.1.1（硬通过判据表）· §附录 A D1 · §9 R12
 - 下游：SPIKE-02（硬通过矩阵完整验收）
 

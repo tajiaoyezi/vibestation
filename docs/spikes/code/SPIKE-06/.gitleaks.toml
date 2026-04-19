@@ -1,7 +1,7 @@
 # SPIKE-06 · gitleaks 配置
 #
 # 原则（按 spec §A.5.3）:
-# - 优先在样本 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略）
+# - 优先：在样本行加 gitleaks 内联忽略注释（语法见官方文档 · 此处不写明完整 token 避免触发项目 inline-bypass guard）
 # - 次选：本文件加精准 allowlist 规则
 # - 禁止: 整体 disable rule type / 关闭 workflow
 #

@@ -10,11 +10,11 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（session 10 末 · PR #37/#38/#39/#40 全 merged · HEAD `15649bc` MVP-02 just landed · OpenCode + Codex worktree 已 idle · merged branch 可清）| 分支切换 |
+| **Active branch** | `main`（session 10 真收尾 · PR #37-#45 共 9 个全 merged · HEAD `67d4373` ADR-011 accepted + FU 系列 3/4 关闭 · 无 open PR · 无 worktree 残留）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Session 11 · SPIKE-06 PR 2**（36 样本录制 · `brew install gitleaks asciinema` 前置 · 基于 PR #38 harness 扩展 10 scenarios · 1-2d）· 跟进 FU-1（截图 3 重做）· FU-2（`docs/runtime-evidence/` 路径 ADR）· FU-3（dispatch prompt 加 cleanup subprocess 硬约束）· MVP-03（Tool Windows · MVP-02 解阻塞）| session end |
+| **Next concrete action** | **Session 11 · SPIKE-06 PR 2**（36 样本录制 · `brew install gitleaks asciinema` 前置 · 基于 PR #38 harness 扩展 10 scenarios · 1-2d）· **FU-1**（截图 3 重做 · 唯一剩余 · 需用户手动跑 dev 截图 modal）· **MVP-03**（Tool Windows · MVP-02 解阻塞）| session end |
 | **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
@@ -27,6 +27,11 @@
 **日期**：2026-04-19（session 10 末）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（近 20 个按时间倒序）**：
+- **PR #45 `67d4373`**（session 10 真末 · **FU-2 翻转 + 6 步实施**）· ADR-011 proposed→accepted · dispatch prompt §2.3 路径改 · 新建 `.claude/rules/runtime-evidence-location.md` · CLAUDE.md 决策表 #18 新 row · 清 `spike-tmp/img/` 残留
+- **PR #44 `025371d`**（session 10 真末 · **FU-2 draft**）· ADR-011 proposed · 3 选项对比 + 推荐选项 A · Arbiter dialogue approved
+- **PR #43 `307f075`**（session 10 真末 · **FU-4 rule 13 欠账修复**）· SPIKE-01/02 源码归档进 repo（80 文件 / ~1 MB 纯源码 / 从冷备 2 GB 剥离）
+- **PR #42 `d329b4a`**（session 10 真末 · **FU-3 硬约束升级**）· dispatch prompt §2.8 子进程清理 · 8 条硬约束（原 7 → 8）
+- **PR #41 `b76f647`**（session 10 中 · **PROGRESS sync 1**）· 4 PR 全 merged + MVP-02 落地 + reviewer-led 模式建立
 - **PR #40 `15649bc`**（session 10 · **MVP-02 done**）· Workspace CRUD + git auto-detect + multi-workspace UI · 23 unit tests · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转
 - **PR #39 `51f2cb3`**（session 10 · **SPIKE-05.5 done**）· Codex shared-reader vs per-session 对照 · 200 files · ADR-003 accepted · CLAUDE.md #15 B→A · reviewer-led rebase
 - **PR #38 `4d8156d`**（session 10 · **SPIKE-06 §A harness**）· CLI record + redact + gitleaks pipeline · 2 smoke (claude/codex --version) · 36 样本留 PR 2
@@ -165,7 +170,7 @@
 - **测试覆盖**：23 unit tests（19 workspace + 4 db migration · 含 UTF-8 / spaces / duplicate / nonexistent / git parent detection / idempotent migration）
 - **Reviewer fix**：H1 path traversal（workspace_init 改 backend 自取 `app_local_data_dir()`）+ M3 SVG bug（VibestationMarkSmall xmlns + 内联 gradient）+ spec done 翻转走 (a) 路径
 - **Explicit skip 推 MVP-04**：§C `workspace.close` IPC + opened/closed session 状态建模 · §D `app_state` table（"打开列表 + 顺序"持久化）· 与 Tab 管理一起做避免分裂改动
-- **Follow-up**：FU-1 截图 3 重做 · FU-2 `docs/runtime-evidence/` 路径 ADR · FU-3 dispatch prompt 加 cleanup subprocess 硬约束
+- **Follow-up 收尾**：FU-2 ✅ 关闭（PR #44 + #45 · ADR-011 accepted + 6 步实施）· FU-3 ✅ 关闭（PR #42 · dispatch prompt §2.8 升级）· FU-4 ✅ 关闭（PR #43 · SPIKE-01/02 归档）· FU-1 仍留下次（截图 3 重做 · 需用户手动）
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。
 
@@ -179,9 +184,10 @@
 - **SPIKE-04.5 ✅ 全 done** · R27 数据安全 close · A.3 Arbiter 选定方案(a) MVP 接受 220ms（PR #34 merged · 不改代码 · 方案(b) 复合索引留 MVP-02 一起加）
 - **SPIKE-05.5 ✅ done** · ADR-003 accepted · CLAUDE.md #15 B → A 锁 shared-reader（PR #39 merged · session 10）· 后续 invoke / JS / xterm 优化转独立 task（visible throughput 优化推到 v0.2 / v0.3）
 - **MVP-02 ✅ done · workspace 管理已交付**（PR #40 merged · session 10 · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转）· §C close + §D opened 列表 explicit skip 推 MVP-04
-- **FU-1 截图 3 重做**（LOW）· OpenCode 自动化截图 mouse_click 时序问题导致截图 3 claim ≠ reality · 不影响 MVP-02 功能
-- **FU-2 `docs/runtime-evidence/` 路径 ADR**（MEDIUM · 影响所有未来 MVP）· OpenCode 自创目录存 1.35MB binary · 是否标准化待 Arbiter 拍板
-- **FU-3 dispatch prompt 加 cleanup subprocess 硬约束**（LOW）· OpenCode 跑完 `tauri:dev` 截图后 Vite/pnpm 进程没 kill · 残留 4 小时占 port 1420 · 后续 dispatch 加 trap/cleanup
+- **FU-1 截图 3 重做**（LOW · 唯一剩余）· OpenCode 自动化截图 mouse_click 时序问题导致截图 3 claim ≠ reality · 不影响 MVP-02 功能 · 需用户手动跑 `pnpm tauri:dev` + hover delete 截 modal
+- **FU-2 ✅ 关闭**（PR #44 + #45 · session 10 真末 · Arbiter 选项 A 选定 · ADR-011 accepted · runtime 证据路径锁 `docs/runtime-evidence/<task-id>/` · 进 git · CLAUDE.md 决策表 #18 新 row · 新项目规则 `.claude/rules/runtime-evidence-location.md` R1-R5 硬规则落地）
+- **FU-3 ✅ 关闭**（PR #42 · session 10 真末 · dispatch prompt §2.8 子进程清理硬约束 · 默认硬约束 7→8 · trap/pkill 两种做法）
+- **FU-4 ✅ 关闭**（PR #43 · session 10 真末 · rule 13 历史欠账修复 · SPIKE-01/02 源码归档进 `docs/spikes/code/SPIKE-0[12]/` · 释放 2 GB 冷备）
 - **多 agent 共享 working tree 风险已规避**：Codex + OpenCode 已各自建 `git worktree` 独立工作（session 9 Phase B 开工时发现 shared-tree 冲突苗头后立即修正）· 未来 dispatch prompt 必须明确要求 worktree / /tmp 隔离
 - **OpenCode Track 3 程序瑕疵事后补档**：PR #34 未按 dispatch spec 跑 benchmark · 直接自己标 "Arbiter 选定方案(a)"· Arbiter 事后 comment 确认方案(a) 判断合理 · 决策成立 · 下次 dispatch prompt 加 "外部 agent 不得自行 accept decision-grade 结论" + benchmark 强制要求
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
@@ -269,6 +275,22 @@
 - `68269e5` H1 + M3 fix
 - `a11bc66` prettier auto-fix
 - `058b2bb` spec done 翻转
+
+**Session 10 真收尾 · FU 系列关闭 3/4**（2026-04-19 晚 · 连续 5 PR merge）：
+
+- **PR #41** (b76f647) · PROGRESS sync 1（4 PR merged 初版记录 + FU-1/2/3 发掘）
+- **PR #42** (d329b4a) · **FU-3 关闭** · dispatch prompt §2.8 子进程清理硬约束 · 7 → 8 条默认硬约束 · trap/pkill 推荐做法 · 事件记录 OpenCode Vite/pnpm orphan 4 小时
+- **PR #43** (307f075) · **FU-4 关闭** · SPIKE-01/02 源码归档进 `docs/spikes/code/SPIKE-0[12]/`（80 文件 / ~1 MB 纯源码）· 修复 rule 13 session 7 历史欠账 · raw/ README 标注 "嵌入式 raw 不伪造重跑" · 释放 2 GB `spike-tmp/spike-0[12]-tauri/` 冷备
+- **PR #44** (025371d) · **FU-2 draft · ADR-011 proposed** · 3 选项对比 (A: `docs/runtime-evidence/` / B: `spike-tmp/img/` / C: PR comment) · 推荐 A · Arbiter dialogue 拍板 "按你的推荐来"
+- **PR #45** (67d4373) · **FU-2 翻转 · ADR-011 accepted + 6 步实施** · dispatch prompt §2.3 路径改 · 新建 `.claude/rules/runtime-evidence-location.md`（161 行 · R1-R5 硬规则）· CLAUDE.md 决策表 A 栏 #18 新 row · 清 `spike-tmp/img/` 52 KB 残留 · 未改全局 rule 15（跨项目 · 项目级规则引用之）
+
+**FU 系列终局**：
+- FU-1 ⏸ 留 session 11（唯一剩余 · 需用户手动跑 `pnpm tauri:dev` + 截 MVP-02 delete modal）
+- FU-2/3/4 ✅ 全关闭
+- ADR 编号 001-011 · 决策表 A 栏 15+1=16 条永久锁定（#1-15 + #18）
+- rule 13 session 7 历史欠账彻底清零 · 所有 Spike 归档都在 git
+
+**Session 10 产出量**：9 个 PR merged（#37-#45）· 3000+ 行代码 / 文档变动 · 三路并行协作 + reviewer-led fix + FU 系列收尾全部完成 · repo 体积净减（冷备释放 2 GB · 归档进 git 仅 +1 MB）
 
 ---
 

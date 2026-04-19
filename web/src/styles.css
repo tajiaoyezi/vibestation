@@ -1,0 +1,93 @@
+/*
+ * MVP-01 Phase A · 最小样式
+ * UI 精装（Calm Studio token 继承）延到 Phase B
+ */
+
+:root {
+  --vs-bg: #0f1114;
+  --vs-fg: #e8eaed;
+  --vs-muted: #8a8f98;
+  --vs-accent: #6a8fff;
+  --vs-border: #1e2228;
+  --vs-font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--vs-font);
+  background-color: var(--vs-bg);
+  color: var(--vs-fg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.vs-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.vs-welcome {
+  text-align: center;
+  max-width: 480px;
+}
+
+.vs-title {
+  font-size: 2.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.vs-subtitle {
+  color: var(--vs-muted);
+  font-size: 0.9rem;
+  margin: 0 0 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.vs-cta {
+  appearance: none;
+  border: 1px solid var(--vs-border);
+  background-color: transparent;
+  color: var(--vs-fg);
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.vs-cta:hover,
+.vs-cta:focus-visible {
+  background-color: rgba(106, 143, 255, 0.08);
+  border-color: var(--vs-accent);
+  outline: none;
+}
+
+.vs-cta:focus-visible {
+  box-shadow: 0 0 0 2px rgba(106, 143, 255, 0.4);
+}
+
+.vs-phase-note {
+  margin-top: 2rem;
+  color: var(--vs-muted);
+  font-size: 0.75rem;
+  opacity: 0.6;
+}

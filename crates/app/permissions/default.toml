@@ -1,0 +1,17 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# Vibestation app 级 permission 定义 · Phase A 最小集
+# Tauri v2 ACL：自定义 #[tauri::command] 必须显式 grant permission ·
+# capability 里 reference identifier 后 frontend 才能 invoke。
+#
+# 参考：https://v2.tauri.app/security/permissions/
+# Codex adversarial review round 2 · finding #1 修复。
+
+[[permission]]
+identifier = "allow-greet"
+description = """
+允许前端调用 `greet` 命令 · 返回 Vibestation core 版本信息。
+用于 MVP-01 Phase A 欢迎页 IPC 联通性自检 · 未来 MVP-02 workspace 切入后可能
+replace 为更精准的 `allow-app-version` 或同类 permission。
+"""
+commands.allow = ["greet"]

@@ -107,7 +107,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: "20"
-          cache: "pnpm"
+          # 故意不用 cache: pnpm · setup-node 的 pnpm cache 机制可能调用 runner 默认
+          # 旧版 pnpm · 与项目锁定的 9.15.9 冲突 · 导致 ERR_PNPM_BROKEN_LOCKFILE。
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

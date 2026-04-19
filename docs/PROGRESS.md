@@ -10,11 +10,11 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（session 10 真收尾 · PR #37-#45 共 9 个全 merged · HEAD `67d4373` ADR-011 accepted + FU 系列 3/4 关闭 · 无 open PR · 无 worktree 残留）| 分支切换 |
+| **Active branch** | `main`（session 10 终极末 · PR #37-#47 共 11 个全 merged · HEAD `4f14c8f` MVP-02 H2 IPC camelCase fix + FU 系列 4/4 全关闭 · 无 open PR · 无 worktree 残留 · 无 stale ref · 无 dev orphan）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Session 11 · SPIKE-06 PR 2**（36 样本录制 · `brew install gitleaks asciinema` 前置 · 基于 PR #38 harness 扩展 10 scenarios · 1-2d）· **FU-1**（截图 3 重做 · 唯一剩余 · 需用户手动跑 dev 截图 modal）· **MVP-03**（Tool Windows · MVP-02 解阻塞）| session end |
+| **Next concrete action** | **Session 11 三选**（按价值排序 · 无前置阻塞）：(1) **MVP-03 Tool Windows** · MVP-02 解阻塞 · Calm Studio token 已有 · 推荐 (2) **SPIKE-06 PR 2** · 36 样本录制 · 前置 `brew install gitleaks asciinema` · 1-2d (3) **E2E 测试 spike** · H2 bug 暴露 CI 盲区 · 投 Playwright 预防类似 regression | session end |
 | **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
@@ -27,6 +27,8 @@
 **日期**：2026-04-19（session 10 末）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（近 20 个按时间倒序）**：
+- **PR #47 `4f14c8f`**（session 10 终极末 · **H2 + FU-1 闭环**）· IPC 字段命名 camelCase mismatch 修复（5 字段 16 处）· runtime 验证 Delete + Git badge + dark mode 全过 · 截图 3 重做（44.7 KB · ADR-011 R1 落位）· FU-1 关闭
+- **PR #46 `fb503ef`**（session 10 真末 · **PROGRESS sync 2**）· 反映 FU-2/3/4 全关闭 · session 10 日志加后半段 5 PR 子段
 - **PR #45 `67d4373`**（session 10 真末 · **FU-2 翻转 + 6 步实施**）· ADR-011 proposed→accepted · dispatch prompt §2.3 路径改 · 新建 `.claude/rules/runtime-evidence-location.md` · CLAUDE.md 决策表 #18 新 row · 清 `spike-tmp/img/` 残留
 - **PR #44 `025371d`**（session 10 真末 · **FU-2 draft**）· ADR-011 proposed · 3 选项对比 + 推荐选项 A · Arbiter dialogue approved
 - **PR #43 `307f075`**（session 10 真末 · **FU-4 rule 13 欠账修复**）· SPIKE-01/02 源码归档进 repo（80 文件 / ~1 MB 纯源码 / 从冷备 2 GB 剥离）
@@ -184,10 +186,11 @@
 - **SPIKE-04.5 ✅ 全 done** · R27 数据安全 close · A.3 Arbiter 选定方案(a) MVP 接受 220ms（PR #34 merged · 不改代码 · 方案(b) 复合索引留 MVP-02 一起加）
 - **SPIKE-05.5 ✅ done** · ADR-003 accepted · CLAUDE.md #15 B → A 锁 shared-reader（PR #39 merged · session 10）· 后续 invoke / JS / xterm 优化转独立 task（visible throughput 优化推到 v0.2 / v0.3）
 - **MVP-02 ✅ done · workspace 管理已交付**（PR #40 merged · session 10 · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转）· §C close + §D opened 列表 explicit skip 推 MVP-04
-- **FU-1 截图 3 重做**（LOW · 唯一剩余）· OpenCode 自动化截图 mouse_click 时序问题导致截图 3 claim ≠ reality · 不影响 MVP-02 功能 · 需用户手动跑 `pnpm tauri:dev` + hover delete 截 modal
+- **FU-1 ✅ 关闭**（PR #47 · session 10 终极末 · 用户手动重截 modal · 同时是 H2 fix 后的 runtime 证据 · 44.7 KB · 远低于 ADR-011 R4 推荐）
 - **FU-2 ✅ 关闭**（PR #44 + #45 · session 10 真末 · Arbiter 选项 A 选定 · ADR-011 accepted · runtime 证据路径锁 `docs/runtime-evidence/<task-id>/` · 进 git · CLAUDE.md 决策表 #18 新 row · 新项目规则 `.claude/rules/runtime-evidence-location.md` R1-R5 硬规则落地）
 - **FU-3 ✅ 关闭**（PR #42 · session 10 真末 · dispatch prompt §2.8 子进程清理硬约束 · 默认硬约束 7→8 · trap/pkill 两种做法）
 - **FU-4 ✅ 关闭**（PR #43 · session 10 真末 · rule 13 历史欠账修复 · SPIKE-01/02 源码归档进 `docs/spikes/code/SPIKE-0[12]/` · 释放 2 GB 冷备）
+- **H2 IPC camelCase mismatch ✅ 修复**（PR #47 · session 10 终极末 · MVP-02 runtime bug · CI 全绿但点 Delete 报 missing key id · 根因：Rust `#[serde(rename_all = "camelCase")]` 输出 `workspaceId` · 但 TS interface 误声明 `workspace_id` · 全 5 字段 16 处替换为 camelCase · runtime 用户验证 Delete + Git badge + dark mode 全过 · **rule 15 "CI 绿 ≠ runtime 过" 活教材** · 暴露 E2E 测试缺口 · session 11 候选 spike）
 - **多 agent 共享 working tree 风险已规避**：Codex + OpenCode 已各自建 `git worktree` 独立工作（session 9 Phase B 开工时发现 shared-tree 冲突苗头后立即修正）· 未来 dispatch prompt 必须明确要求 worktree / /tmp 隔离
 - **OpenCode Track 3 程序瑕疵事后补档**：PR #34 未按 dispatch spec 跑 benchmark · 直接自己标 "Arbiter 选定方案(a)"· Arbiter 事后 comment 确认方案(a) 判断合理 · 决策成立 · 下次 dispatch prompt 加 "外部 agent 不得自行 accept decision-grade 结论" + benchmark 强制要求
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
@@ -291,6 +294,17 @@
 - rule 13 session 7 历史欠账彻底清零 · 所有 Spike 归档都在 git
 
 **Session 10 产出量**：9 个 PR merged（#37-#45）· 3000+ 行代码 / 文档变动 · 三路并行协作 + reviewer-led fix + FU 系列收尾全部完成 · repo 体积净减（冷备释放 2 GB · 归档进 git 仅 +1 MB）
+
+**Session 10 终极末 · H2 暴露 + FU-1 闭环**（2026-04-19 晚 · PR #46 + #47 · 真零 backlog）：
+
+- **PR #46** (fb503ef) · PROGRESS sync 2 · 反映 FU-2/3/4 关闭
+- 用户启动 `pnpm tauri:dev` 测 Delete · 报 "missing required key id" · **暴露 H2 bug**
+- 根因定位：`crates/core/src/workspace.rs` Rust `#[serde(rename_all = "camelCase")]` 输出 camelCase JSON · 但 `web/src/App.tsx` interface 误声明 snake_case · runtime 字段访问全 undefined · Delete / Git badge / open / 高亮全 broken
+- CI 没 catch 原因：23 个 cargo 单测只覆盖 Rust 端 · `tsc --noEmit` 编译过但 TS 不 runtime check JSON · `pnpm build` Vite 静态 bundle 不触发 IPC · **缺 E2E 测试**
+- **PR #47** (4f14c8f) · H2 fix（5 字段 16 处 snake_case → camelCase · prettier auto-fix）+ FU-1 截图重做（用户手动 · 同时是 H2 fix 后的 runtime 证据 · dark mode + 2 处 Git badge + Delete 真 work · 44.7 KB）
+- **rule 15 "CI 绿 ≠ runtime 过" 活教材**：H2 bug 完整暴露 CI 盲区 · 强化 session 11 投 E2E spike 的决策依据
+
+**Session 10 总产出**：**11 个 PR merged**（#37-#47）· FU 系列 4/4 全关闭 · 真零 backlog · 真零文档 lag · session 11 起手最佳状态
 
 ---
 

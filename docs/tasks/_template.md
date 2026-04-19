@@ -73,10 +73,24 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 
 ## 📦 产出（Deliverables）
 
-- [ ] benchmark 数据表（**`docs/spikes/<id>-report.md`**，per-task 文件；Phase 3 建立 `docs/spikes/` 目录）
-- [ ] 录屏 / 截图（`docs/spike-artifacts/<id>/`，Phase 3 建立该目录）
-- [ ] ADR 草稿或补丁（`docs/adr/ADR-XXX-<slug>.md`，Phase 3 建立）
-- [ ] 代码 proof-of-concept（`spike-tmp/<id>/`，`.gitignore` 已排除；仅作者本地工作区，**不可作为其他 task 的依赖源**）
+> **强制**：4 样齐全 · accept 前主 agent 必须逐项归档完成。详细规则见 [`.claude/rules/spike-delivery-checklist.md`](../../.claude/rules/spike-delivery-checklist.md)。
+>
+> 原则：**accept 动作和归档动作是原子的**。`/tmp` 产出的代码 / raw 在 review 通过瞬间必须迁到 repo · 不允许跨 session 遗留。
+
+- [ ] **(1) 决策文档**：`docs/spikes/<id>-report.md`（必进 git · 含结论 + 数据 + raw 索引）
+- [ ] **(2) 实测源码**：`docs/spikes/code/<id>/`（必进 git · 含 `src/` + `Cargo.toml` + `Cargo.lock` + `README.md`）
+  - Cargo.lock 进 git（版本冻结 · 保证可复现 · `.gitignore` 已加白名单 `!docs/spikes/code/**/Cargo.lock`）
+  - README.md 必含：来源 agent / 产出时间 / 复现命令 / report 数据溯源
+- [ ] **(3) Raw 数据**：`docs/spikes/raw/<id>/`（必进 git · JSON / log / txt + README 索引）
+  - Report 里每个具体数字必须能在此溯源
+- [ ] **(4) 冷备**：`spike-tmp/archive/<id>/`（gitignored · 本地保留 · 含 target/ build 产物 + 大测试文件 + v1 失败版本）
+- [ ] **(5) 录屏 / 截图**（仅需 UI / IME 类 Spike）：`spike-artifacts/<id>/`（gitignored · 不入 repo）
+- [ ] **(6) ADR**（仅有决策锁定的 Spike）：`docs/adr/ADR-XXX-<slug>.md` 新建或从 proposed → accepted
+
+**独立评审必查项**（Arbiter / reviewer 对照 PR Test Plan 逐项 verify · 不通过即 block merge）：
+- [ ] 4 样物料（1-4）全部在各自目录
+- [ ] clone repo 后 `cd docs/spikes/code/<id> && cargo build` 能复现
+- [ ] Report 所有数字可在 raw 文件溯源
 
 ## 🛠 依赖资源（Resources Needed）
 

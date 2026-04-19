@@ -67,14 +67,14 @@ reviewer:
 - [ ] Commit ↔ session 关联关系正确率 ≥ 95%（按时间窗口 + diff 签名双重校验）
 - [ ] 用户可一键解绑（解除错误关联）
 - [ ] Session 详情视图的原始对话**已脱敏**（auth token / PII 必过 gitleaks）
-- [ ] 数据持久化到 redb · migration 安全（参考 SPIKE-04 B.3）
+- [ ] 数据持久化到 rusqlite · migration 安全（参考 SPIKE-04 B.3）
 
 ## 🧪 测试策略
 
 | 层次 | 范围 | 覆盖路径 |
 |------|------|---------|
 | 单元 | session 边界识别纯函数 | `cargo test` |
-| 集成 | IPC + redb 存储 round-trip | `cargo test --features integration` |
+| 集成 | IPC + rusqlite 存储 round-trip | `cargo test --features integration` |
 | E2E | Playwright 模拟完整 session + 3 commit 流程 | Playwright |
 
 ## 💾 数据模型变更

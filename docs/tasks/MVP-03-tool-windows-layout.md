@@ -43,7 +43,7 @@ reviewer:
 - Secondary Sidebar 占位（Git Log 由 MVP-07 接管）
 - Bottom Panel 占位（Git Status 由 MVP-08 接管）
 - 每个 Tool Window 独立 toggle（快捷键 + 图标）
-- 尺寸调整：拖拽边界 resize，比例持久化到 redb
+- 尺寸调整：拖拽边界 resize，比例持久化到 rusqlite
 - 主题切换：跟随 OS / 手动 light / dark / auto（继承原型 CSS 变量）
 
 **Don't**：
@@ -69,7 +69,7 @@ reviewer:
 ### B. 默认状态（锁定 #9）
 
 - [ ] 首次打开 workspace：Primary 展开 · Right Activity Strip 细条可见 · Secondary 收起 · Bottom 收起
-- [ ] 状态持久化到 redb per-workspace（同 workspace 下次打开保持上次状态）
+- [ ] 状态持久化到 rusqlite per-workspace（同 workspace 下次打开保持上次状态）
 
 ### C. Toggle 控制
 
@@ -88,7 +88,7 @@ reviewer:
 
 - [ ] 设置项：light / dark / auto（跟随 OS）
 - [ ] 切换主题 CSS 变量立即生效，无闪烁
-- [ ] 主题选择持久化到 redb（应用级别，不是 per-workspace）
+- [ ] 主题选择持久化到 rusqlite（应用级别，不是 per-workspace）
 
 ### F. a11y
 

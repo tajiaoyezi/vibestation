@@ -98,7 +98,7 @@ reviewer: User (Arbiter · GitHub PR approve)
 
 ### E. 基础崩溃恢复
 
-- [ ] 应用退出时，通过 Tauri IPC 把"打开的 workspace 列表"写入本地存储（redb 或 JSON fallback）
+- [ ] 应用退出时，通过 Tauri IPC 把"打开的 workspace 列表"写入本地存储（rusqlite · ADR-005 锁定）
 - [ ] 应用启动时，读取存储的状态：
   - 无状态 → 显示欢迎页
   - 有状态 → 恢复上次打开的 workspace 列表（但 workspace 内容由 MVP-02 填充）
@@ -133,7 +133,7 @@ reviewer: User (Arbiter · GitHub PR approve)
 
 ## 💾 数据模型变更
 
-**首次建立 `state.db`（redb 或 rusqlite，取决于 SPIKE-04）**：
+**首次建立 `state.db`（rusqlite · SPIKE-04 + SPIKE-04.5 全链路 accept · ADR-005 A 栏锁定）**：
 
 - Table `workspaces`：
   - key: `workspace_id: String`（UUID v4）

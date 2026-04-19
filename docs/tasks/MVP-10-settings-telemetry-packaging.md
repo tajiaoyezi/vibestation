@@ -48,7 +48,7 @@ reviewer:
   - 收集什么（匿名 crash + 版本号 + OS type 三项，无 IP、无个人内容、无仓库路径）
   - 不收集什么（强调）
   - 接受 / 拒绝 按钮（等宽）+ "Learn more" 链接到 privacy policy
-- 用户决策持久化到 redb `app_settings`
+- 用户决策持久化到 rusqlite `app_settings`
 - 打包发布：
   - macOS 公证（notarization）+ stapling
   - Linux AppImage + sha256 + GPG 签名（可选）
@@ -79,13 +79,13 @@ reviewer:
 - [ ] 菜单 / 快捷键 `⌘,` 打开设置
 - [ ] 4 个分组：外观 / 终端 / Git / 隐私
 - [ ] 所有改动实时生效（无需重启）
-- [ ] 持久化到 redb `app_settings`
+- [ ] 持久化到 rusqlite `app_settings`
 
 ### B. Telemetry opt-in 对话框
 
-- [ ] 首次启动（redb 无 telemetry 决策）弹对话框，阻塞欢迎页
+- [ ] 首次启动（rusqlite 无 telemetry 决策）弹对话框，阻塞欢迎页
 - [ ] 对话框列出：收集项 + 不收集项 + 可改设置（设置 → 隐私）
-- [ ] 用户选择后写入 redb `telemetry_opt_in: bool`
+- [ ] 用户选择后写入 rusqlite `telemetry_opt_in: bool`
 - [ ] 再次启动不再弹（decision persisted）
 - [ ] 设置里改 toggle 立即生效
 
@@ -130,7 +130,7 @@ reviewer:
 | 层次 | 范围 |
 |------|------|
 | 单元 | Telemetry payload 脱敏 + 设置持久化 |
-| 集成 | 设置变更 → redb 写入 → 重启恢复 |
+| 集成 | 设置变更 → rusqlite 写入 → 重启恢复 |
 | E2E | 完整首次启动流程（包括 Telemetry 对话框）|
 | 手动 QA | 三平台打包验证 + notarization 实机测试 |
 

@@ -1,0 +1,201 @@
+SPIKE-04 Phase A+B: Storage Benchmark + Data Safety + git2 Write Smoke
+Total rows: 10000000 (10.0M)
+Schema: key=12B, value=72B, row=84B
+
+============================================================
+  §Hardware & Environment
+============================================================
+Rust toolchain: rustc 1.95.0 (59807616e 2026-04-14)
+CPU: Apple M2 Max
+RAM: 34.4 GB
+OS cache drop: NOT executed (no sudo available); all data is raw P99 without cache manipulation
+Temp dir: /var/folders/bh/mr3q2jh15z10gtqhjbxml_qw0000gn/T/.tmp3RjLTH
+
+============================================================
+  §A redb 2 Benchmark (5 iterations)
+============================================================
+
+--- redb: Bulk write 10000000 rows x 5 iterations ---
+  iter 0: 31.94s (313084 rows/s)
+  iter 1: 31.57s (316774 rows/s)
+  iter 2: 31.34s (319057 rows/s)
+  iter 3: 31.03s (322229 rows/s)
+  iter 4: 30.64s (326373 rows/s)
+  P50=31.34s P99=31.94s Mean=31.30s Std=0.45s CV=1.4%
+redb DB file size: 2156408832 bytes (2.01 GB)
+
+--- redb: Point read (10000 random keys) ---
+  P50=0.0034ms P99=0.0070ms Mean=0.0035ms Std=0.0015ms
+
+--- redb: Range scan (each workspace once, fresh txn) ---
+  ws=0: 1000000 rows in 95.782ms
+  ws=1: 1000000 rows in 110.067ms
+  ws=2: 1000000 rows in 106.882ms
+  ws=3: 1000000 rows in 107.978ms
+  ws=4: 1000000 rows in 108.366ms
+  ws=5: 1000000 rows in 109.485ms
+  ws=6: 1000000 rows in 103.578ms
+  ws=7: 1000000 rows in 102.725ms
+  ws=8: 1000000 rows in 103.237ms
+  ws=9: 1000000 rows in 107.114ms
+  P50=107.114ms P99=110.067ms Mean=105.521ms Std=4.081ms
+
+============================================================
+  §A rusqlite Benchmark (5 iterations)
+============================================================
+
+--- rusqlite: Bulk write 10000000 rows x 5 iterations ---
+  iter 0: 9.96s (1004020 rows/s)
+  iter 1: 8.51s (1175129 rows/s)
+  iter 2: 8.56s (1167704 rows/s)
+  iter 3: 8.53s (1172021 rows/s)
+  iter 4: 8.46s (1181787 rows/s)
+  P50=8.53s P99=9.96s Mean=8.81s Std=0.58s CV=6.6%
+rusqlite DB file size: 1040728064 bytes (992.52 MB)
+
+--- rusqlite: Point read (10000 random keys) ---
+  P50=0.0053ms P99=0.0107ms Mean=0.0056ms Std=0.0022ms
+
+--- rusqlite: Range scan (each workspace once, fresh conn) ---
+  ws=0: fetched 1000000 rows in 100.901ms
+  ws=1: fetched 1000000 rows in 102.218ms
+  ws=2: fetched 1000000 rows in 102.652ms
+  ws=3: fetched 1000000 rows in 101.911ms
+  ws=4: fetched 1000000 rows in 102.290ms
+  ws=5: fetched 1000000 rows in 112.572ms
+  ws=6: fetched 1000000 rows in 107.971ms
+  ws=7: fetched 1000000 rows in 100.250ms
+  ws=8: fetched 1000000 rows in 101.168ms
+  ws=9: fetched 1000000 rows in 100.899ms
+  P50=102.218ms P99=112.572ms Mean=103.283ms Std=3.711ms
+
+============================================================
+  §A Results Comparison
+============================================================
+
+| Scenario | Engine | P50 | P99 | Mean | Std | Pass? |
+|---|---|---|---|---|---|---|
+| Bulk write 10M | redb | 31342.382ms | 31940.346ms | 31304.917ms | 445.061ms | PASS (P99<60s) |
+| Bulk write 10M | rusqlite | 8532.273ms | 9959.959ms | 8805.503ms | 578.185ms | PASS (P99<60s) |
+| Point read | redb | 0.003ms | 0.007ms | 0.003ms | 0.002ms | PASS (P99<5ms) |
+| Point read | rusqlite | 0.005ms | 0.011ms | 0.006ms | 0.002ms | PASS (P99<5ms) |
+| Range scan | redb | 107.114ms | 110.067ms | 105.521ms | 4.081ms | FAIL (P99<50ms) |
+| Range scan | rusqlite | 102.218ms | 112.572ms | 103.283ms | 3.711ms | FAIL (P99<50ms) |
+
+| Engine | DB size (raw) | DB size (formatted) |
+|---|---|---|
+| redb | 2156408832 bytes | 2.01 GB |
+| rusqlite | 1040728064 bytes | 992.52 MB |
+
+============================================================
+  §B Data Safety Tests
+============================================================
+
+===== B Data Safety Tests =====
+
+
+--- B.1 Crash/Power-loss Recovery ---
+    Uncommitted write at 10%: DB opens, found 0 committed rows (expected 0)
+  B.1 kill at 10%: PASS
+    Uncommitted write at 50%: DB opens, found 0 committed rows (expected 0)
+  B.1 kill at 50%: PASS
+    Uncommitted write at 90%: DB opens, found 0 committed rows (expected 0)
+  B.1 kill at 90%: PASS
+
+--- B.2 Corruption Detection ---
+  Original DB size: 3686400 bytes
+  WARN: DB opened after corruption, 1000 rows readable
+  B.2 result: FAIL (corrupted DB should not be readable)
+
+--- B.3 Schema Migration ---
+  Current schema version: 1
+  Migrating v1 -> v2...
+  Migration committed
+  Post-migration version: 2, rows: 1000
+  V2 reads V1-migrated DB: PASS
+  10 data volume migrations: ALL PASS
+  Old version reads new DB: version gate prevents mis-interpretation (no crash)
+
+--- B.4 Export/Import ---
+  Export: 3000 rows, checksum=d17184ffb01ee4b4
+  Import: 3000 rows restored
+  Verified: 3000 rows in imported DB
+  Specific key (1,5,50): value_len=72 PASS=true
+
+--- B.5 Startup Self-check + Op-log 2-phase ---
+
+  B.5.1 Happy path (normal startup, all consistent)
+    Result: "Consistent"
+
+  B.5.2 Marker-loss crash (DB committed but op-log PENDING)
+    Reconcile: op-log PENDING (50 rows), DB has 50 rows - promoting to COMMITTED
+    Result: ReconciledForward
+    Op-log phase after reconcile: 2 (expected 2=COMMITTED)
+
+  B.5.3 Silent loss detection (COMMITTED marker but fewer DB rows)
+    SILENT LOSS: op-log says 50 committed, DB has 30 rows
+    Result: SilentLossDetected (op-log says 50, DB has 30)
+
+===== B Summary =====
+B.1 Crash recovery:      PASS
+B.2 Corruption detect:   FAIL
+B.3 Schema migration:    PASS
+B.4 Export/import:        PASS
+B.5 Startup self-check:  PASS
+
+Some B tests FAILED - see details above
+
+============================================================
+  §C git2 Write Smoke Test
+============================================================
+commit hash: bbaee4da71589eff32498337f201f7bed3db72de
+author: SPIKE-04 <spike@vibestation.test>
+committer: SPIKE-04 <spike@vibestation.test>
+message: test: 中文 commit 测试 🎉
+message_len: 31 bytes
+tree: b32729298984f325d0514c971107231d966656df
+parents: 0
+utf8_valid: true
+has_chinese: true
+has_emoji: true
+
+--- git2 verification log ---
+commit bbaee4da71589eff32498337f201f7bed3db72de
+Author: SPIKE-04 <spike@vibestation.test>
+
+    test: 中文 commit 测试 🎉
+
+PASS init temp repo: OK
+PASS add + commit: OK, hash = bbaee4da71589eff32498337f201f7bed3db72de
+PASS UTF-8 commit message: OK
+   git log output:
+commit hash: bbaee4da71589eff32498337f201f7bed3db72de
+author: SPIKE-04 <spike@vibestation.test>
+committer: SPIKE-04 <spike@vibestation.test>
+message: test: 中文 commit 测试 🎉
+message_len: 31 bytes
+tree: b32729298984f325d0514c971107231d966656df
+parents: 0
+utf8_valid: true
+has_chinese: true
+has_emoji: true
+
+--- git2 verification log ---
+commit bbaee4da71589eff32498337f201f7bed3db72de
+Author: SPIKE-04 <spike@vibestation.test>
+
+    test: 中文 commit 测试 🎉
+
+PASS author/committer: SPIKE-04 <spike@vibestation.test>
+
+============================================================
+  Verification Checklist (§A)
+============================================================
+- [x] redb 1000万行写入 P99 < 60s (actual: 31.94s)
+- [x] redb 单键读 P99 < 5ms (actual: 0.0070ms)
+- [ ] redb 范围查询 P99 < 50ms (actual: 110.067ms)
+- [x] rusqlite 同场景数据齐全
+- [x] 方差 < 50% 写入=1.4% 读取=43.9% 范围=3.9%
+- [x] git2 中文 commit 无乱码
+
+Done. See §B output above for data safety results.

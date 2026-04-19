@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "prettier --check \"src/**/*.{ts,tsx,css}\" \"index.html\"",
     "typecheck": "tsc --noEmit",

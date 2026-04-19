@@ -1,10 +1,11 @@
-# ADR-007: Git 栈 = git2 0.20（写）· gix 0.70（读优化）· pending SPIKE-03
+# ADR-007: Git 栈 = git2 0.20（写）· gix 0.70（读）· accepted
 
-**状态**：**proposed**（pending [SPIKE-03](../tasks/SPIKE-03-git2-gix-read-benchmark.md) benchmark 后决定）
-**日期**：2026-04-18（Phase 1 默认选 · Phase 3 ADR 建立）
-**决策者**：项目发起人 · 多 agent 评审
-**对应 `CLAUDE.md` 决策表**：#13（B 档，Spike 后锁定）
-**对应 Spike**：[SPIKE-03](../tasks/SPIKE-03-git2-gix-read-benchmark.md)
+**状态**：**accepted**（2026-04-19 · SPIKE-03 benchmark 通过）
+**日期**：2026-04-18 初版 proposed · 2026-04-19 accepted
+**决策者**：项目发起人（Arbiter）· OpenCode agent 实测 · Claude Code review
+**对应 `CLAUDE.md` 决策表**：#13（已从 B 档升级到 A 档）
+**对应 Spike**：[SPIKE-03 · 已 done](../tasks/SPIKE-03-git2-gix-read-benchmark.md)
+**对应 Report**：[SPIKE-03-report](../spikes/SPIKE-03-report.md)
 
 ---
 
@@ -36,16 +37,21 @@ Rust 两个主流 Git 库：
 
 ## 决策
 
-**选择（proposed · pending SPIKE-03 benchmark）**：
-- **写路径**：`git2 0.20`（commit / stage / add / push / rebase）
-- **读路径**：
-  - **默认**：`git2` 读 · 简单心智模型
-  - **Fallback / 升级**：若 SPIKE-03 证明 git2 在 10 万 commit 场景下 > 500ms · 切 `gix 0.70` 读优化
+**选择（accepted · SPIKE-03 benchmark 2026-04-19 已落地）**：
+- **写路径**：`git2 0.20`（commit / stage / add / push / rebase）· 保留
+- **读路径**：`gix 0.70` **混用**（log / walk / object read · 满足 MVP < 500ms 性能目标）
 
-**SPIKE-03 benchmark 判据**：linux kernel 仓库（~1M commits）
-- git2 读 log 首屏 < 500ms · 保留 git2 单用
-- git2 超 500ms · 验证 gix 能否达标 · 若能 → 混用（B 档升级为 A 档）
-- gix 也超 → Arbiter 仲裁（可能上分页 · 或改视觉降低渲染压力）
+### SPIKE-03 benchmark 结论（linux kernel 1,441,214 commits · warm P99）
+
+| 场景 | git2 | gix | spec 阈值 | git2 | gix |
+|---|---:|---:|---|---|---|
+| log -100（首屏） | 24964 ms | **12.65 ms** | < 200ms | ❌ 124× 超 | ✅ 16× 余量 |
+| log -1000 | 21108 ms | **113.84 ms** | < 1s | ❌ 21× 超 | ✅ 8.8× 余量 |
+| log -10000 | 33483 ms | **733.72 ms** | < 5s | ❌ 6.7× 超 | ✅ 6.8× 余量 |
+
+详细数据见 [SPIKE-03-report §4](../spikes/SPIKE-03-report.md)。
+
+**gix 全场景通过 · git2 全场景不通过**——触发 spec §路径 (B)：读路径切 gix · 写路径保留 git2。
 
 ## 后果
 
@@ -82,3 +88,4 @@ Rust 两个主流 Git 库：
 
 **修订历史**：
 - 2026-04-18 · 初版 · Claude Code · status: proposed · SPIKE-03 benchmark 后决定单用 git2 / 混用
+- 2026-04-19 · SPIKE-03 benchmark 落地 · OpenCode agent 实测 + Claude Code review · status: proposed → **accepted** · 结论：写 git2 · 读 gix 混用（spec §路径 (B)）

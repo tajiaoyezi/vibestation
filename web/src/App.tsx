@@ -5,13 +5,13 @@ import { open } from "@tauri-apps/plugin-dialog";
 import "./styles.css";
 
 interface WorkspaceMetadata {
-  workspace_id: string;
+  workspaceId: string;
   name: string;
   path: string;
-  has_git: boolean;
-  repo_root: string | null;
-  created_at: number;
-  last_opened: number;
+  hasGit: boolean;
+  repoRoot: string | null;
+  createdAt: number;
+  lastOpened: number;
 }
 
 type IpcState =
@@ -110,9 +110,7 @@ export const App: Component = () => {
   const handleOpenWorkspace = async (id: string) => {
     try {
       const ws = await invoke<WorkspaceMetadata>("workspace_open", { id });
-      setWorkspaces((prev) =>
-        prev.map((w) => (w.workspace_id === id ? ws : w)),
-      );
+      setWorkspaces((prev) => prev.map((w) => (w.workspaceId === id ? ws : w)));
       setCurrentView({ kind: "workspace", ws });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -122,11 +120,11 @@ export const App: Component = () => {
   const handleDeleteWorkspace = async (id: string) => {
     try {
       await invoke("workspace_delete", { id });
-      setWorkspaces((prev) => prev.filter((w) => w.workspace_id !== id));
+      setWorkspaces((prev) => prev.filter((w) => w.workspaceId !== id));
       setDeleteConfirm(null);
       const view = currentView();
-      if (view.kind === "workspace" && view.ws.workspace_id === id) {
-        const remaining = workspaces().filter((w) => w.workspace_id !== id);
+      if (view.kind === "workspace" && view.ws.workspaceId === id) {
+        const remaining = workspaces().filter((w) => w.workspaceId !== id);
         setCurrentView(
           remaining.length > 0
             ? { kind: "workspace", ws: remaining[0] }
@@ -167,12 +165,12 @@ export const App: Component = () => {
                 classList={{
                   "vs-ws-item": true,
                   "vs-ws-item-active":
-                    activeWorkspace()?.workspace_id === ws.workspace_id,
+                    activeWorkspace()?.workspaceId === ws.workspaceId,
                 }}
-                onClick={() => handleOpenWorkspace(ws.workspace_id)}
+                onClick={() => handleOpenWorkspace(ws.workspaceId)}
               >
                 <span class="vs-ws-name">{ws.name}</span>
-                <Show when={ws.has_git}>
+                <Show when={ws.hasGit}>
                   <span class="vs-git-badge" aria-label="Git repository">
                     Git
                   </span>
@@ -183,7 +181,7 @@ export const App: Component = () => {
                   aria-label={`Delete ${ws.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setDeleteConfirm(ws.workspace_id);
+                    setDeleteConfirm(ws.workspaceId);
                   }}
                 >
                   ×
@@ -230,11 +228,11 @@ export const App: Component = () => {
             <p class="vs-ws-path" title={activeWorkspace()?.path ?? ""}>
               {activeWorkspace()?.path}
             </p>
-            <Show when={activeWorkspace()?.has_git}>
+            <Show when={activeWorkspace()?.hasGit}>
               <p class="vs-ws-git-info">
                 <span class="vs-git-badge">Git</span>
                 <span class="vs-ws-repo-root">
-                  {activeWorkspace()?.repo_root}
+                  {activeWorkspace()?.repoRoot}
                 </span>
               </p>
             </Show>

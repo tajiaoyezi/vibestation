@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `spike/SPIKE-04.5-a3`（A.3 方案(a) 决策落地 PR 分支）| 分支切换 |
+| **Active branch** | `main`（本 PR 合入后 · Codex Track 2 仍在 `/private/tmp/vibestation-spike-05.5` worktree · OpenCode Track 3 已交付 PR #34 merged）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
-| **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
+| **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **MVP-01 Phase B / SPIKE-05.5 prompt / SPIKE-06** 可并行启动 · A.3 决策已落地（方案 a）| session end |
-| **Blocked by** | SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B（Ubuntu 环境）| 阻塞变化 |
+| **Next concrete action** | **等 Codex SPIKE-05.5 PR**（Track 2 visible throughput 对照 · Codex worktree 已有本地 commit）· A.3 已 Arbiter 选定方案(a) 220ms（PR #34 merged · 2026-04-19）· MVP-01 Phase A+B 已交付（PR #28 · #33）| session end |
+| **Blocked by** | Codex SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· MVP-01 Phase C（依赖 MVP-02 workspace + Ubuntu）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
 
@@ -23,24 +23,23 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 Day 1-5 进行中** · SPIKE-01/02 Phase A macOS done · SPIKE-03 done · SPIKE-04 done · **SPIKE-05 done（HOL / boundedness pass · visible throughput pending）** · SPIKE-04.5 / SPIKE-05.5 待推进 · Phase B Ubuntu 等环境
-**日期**：2026-04-19（session 7）
+**阶段**：**Spike W0 全部 macOS done · MVP-01 Phase A+B done · 首个 Calm Studio 视觉骨架可运行** · 三路并行推进中（Track 1 Phase B merged · Track 2/3 进行中）· Phase B Ubuntu 等环境
+**日期**：2026-04-19（session 9）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（按时间顺序）**：
-- PR #1/#2（Phase 1）· 战略计划 v4 simplified + 决策表 + Calm Studio 视觉
-- PR #3/#5（Phase 2 部分）· SPIKE-01..06 + 流程治理最小化
-- PR #6/#7（Phase 2 部分）· 5 步导游 + blocked 语义 + 硬化 #2 轮
-- PR #8（Phase 2 部分）· MVP-01..10 详细 spec
-- **PR #11 `609bcb3`**（Phase 4 基础设施）· `.github/` + workflows + validator + BRANCH-PROTECTION
-- **PR #9 `0d15fa9`**（Phase 2 tech debt）· 4 commits · 12 Codex findings 闭合
-- **PR #12 `d020365`**（Phase 3 文档）· ADR × 10 + CONTRIBUTING + CHANGELOG + 3 目录 README
-- **PR #10 `a157e93`**（Phase 2 占位 spec）· MVP-11..20 + SPIKE-07
-- **PR #17 `68c0c21`**（session 6 · onboarding 对齐 v2）· 11 Codex 指控全闭合
-- **PR #18 `5ece9a9`**（session 6 · spec 翻转）· SPIKE-01/02/MVP-01 ready
-- **PR #19 `b7b374e`**（session 6 · codex 二次复审漂移修）· 5 项漂移 + (b) 变种正式定义 + overview 归档
-- **PR #20 `2ed80f4`**（session 7 · **首行 Rust 代码入盒**）· SPIKE-01 Phase A macOS 冷启动 202ms PASS
-- **PR #22 `b7c1dec`**（session 7 · SPIKE-02 Phase A macOS PASS）· 2 项降级（日文 IME + updater）
-- **待 merge** PR #23（SPIKE-03 · 读切 gix）· PR #24（SPIKE-04 · 锁 rusqlite）· PR #25（SPIKE-04.5 新建 + PROGRESS）
+**已合入的 PR（近 15 个按时间顺序）**：
+- **PR #33 `54247fc`**（session 9 · MVP-01 Phase B）· Calm Studio token + 欢迎页精装 + 真实 icon
+- **PR #32 `a41708e`**（session 9 · md 盘点清理）· 删 2 过时 + 归档 1 复盘到 session-history
+- **PR #31 `cfe8a32`**（session 8 · Tauri v2 规则沉淀）· ACL + CSP + capability + CLI 坑
+- **PR #30 `2ab1f99`**（session 8 · SPIKE-05 done）· HOL / boundedness PASS · visible throughput FAIL
+- **PR #29 `88410f8`**（session 8 · SPIKE-04.5 done）· rusqlite B.1-5 通过 · A.3 性能 pending Arbiter
+- **PR #28 `dd71d71`**（session 8 · **MVP-01 Phase A**）· Cargo workspace + Tauri 骨架 + SolidJS · 首行生产代码
+- **PR #26/#27**（session 8 · SPIKE-03/04 代码归档抢救）· /tmp 事故抢救 + 归档进 repo
+- **PR #23/#24/#25**（session 7 · SPIKE-03/04 + SPIKE-04.5 spec）
+- **PR #20/#22**（session 7 · SPIKE-01/02 Phase A macOS）
+- **PR #19**（session 6 · codex 二次复审漂移）
+- **PR #17/#18**（session 6 · onboarding + spec 翻转）
+- **PR #1-12**（sessions 3-5 · Phase 1-4 pre-code 全交付）
+- **三路并行中 · 待 PR 开出**：Codex SPIKE-05.5（visible throughput）· OpenCode SPIKE-04.5 §A.3（3 方案对照）
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -138,14 +137,20 @@
 
 ### 🚀 **Spike Week 0**（进行中 · session 7 · 多 agent 并行）
 
-1. **W0-D1** · [SPIKE-01](./tasks/SPIKE-01-tauri-three-platform-boot.md) · **Phase A macOS ✅ PASS（PR #20）** · Phase B Ubuntu 等环境
-2. **W0-D2** · [SPIKE-02](./tasks/SPIKE-02-tauri-hard-pass-matrix.md) · **Phase A macOS ✅ PASS（PR #22）** · 2 项降级（updater + 日文 IME）· Phase B Ubuntu 等环境
-3. **W0-D3** · [SPIKE-03](./tasks/SPIKE-03-git2-gix-read-benchmark.md) · ✅ **done（PR #23 待 merge）** · 结论 (B) 读切 gix · 写保留 git2
-4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 待 merge）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
-5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · ✅ **done · A.3 Arbiter 选定方案(a)** · rusqlite B.1-5 全过 · R27 数据安全 close · A.3 范围查询 P99=215ms MVP 接受
-6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
-7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **ready** · SPIKE-05 follow-up（解决 visible throughput）
-8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key）
+1. **W0-D1** · [SPIKE-01](./tasks/SPIKE-01-tauri-three-platform-boot.md) · **Phase A macOS ✅ PASS（PR #20 merged）** · Phase B Ubuntu 等环境
+2. **W0-D2** · [SPIKE-02](./tasks/SPIKE-02-tauri-hard-pass-matrix.md) · **Phase A macOS ✅ PASS（PR #22 merged）** · 2 项降级（updater + 日文 IME）· Phase B Ubuntu 等环境
+3. **W0-D3** · [SPIKE-03](./tasks/SPIKE-03-git2-gix-read-benchmark.md) · ✅ **done（PR #23 merged）** · 结论 (B) 读切 gix · 写保留 git2
+4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 merged）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
+5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · ✅ **全 done（PR #29 主体 merged · PR #34 A.3 决策 merged）** · B.1-5 全过 · R27 真 close · A.3 P99=215ms · **Arbiter 选定方案(a) MVP 接受 220ms**（2026-04-19 · 方案(b) 复合索引留 MVP-02 一起加）
+6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done（PR #30 merged）** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
+7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **Track 2 进行中**（Codex 在 `/private/tmp/vibestation-spike-05.5` worktree 开工 · 已有本地 commit `7a5b582`）
+8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key · 依赖 Apple Dev Program 审核）
+
+### 🧑‍🎨 **MVP-01 Phase A + B 已交付**（session 8-9 · 首个能启动 + 视觉一致骨架）
+
+- **Phase A**（PR #28 merged）· Cargo workspace 2 crate + SolidJS + Tauri 壳 + Codex 2 轮对抗 review + 3 轮 CI 修最终切 corepack pattern
+- **Phase B**（PR #33 merged）· Calm Studio design token 落地 · 欢迎页精装 · 真实 icon 替换 · runtime 验证通过
+- **Phase C 预期**：基础崩溃恢复 session persistence（依赖 MVP-02 workspace）· Ubuntu 24 runtime 验证（阻塞 · 无环境）
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。
 
@@ -156,10 +161,12 @@
 
 ## ⚠️ 当前卡点 / 注意事项
 
-- **SPIKE-04.5 ✅ done** · R27 数据安全 close · A.3 方案(a) MVP 接受 220ms（不加复合 index · 不改代码 · MVP-02 性能优化项）
+- **SPIKE-04.5 ✅ 全 done** · R27 数据安全 close · A.3 Arbiter 选定方案(a) MVP 接受 220ms（PR #34 merged · 不改代码 · 方案(b) 复合索引留 MVP-02 一起加）
+- **SPIKE-05.5 进行中 · PTY 架构未最终锁定**：Track 2 Codex 对比 shared-reader vs per-session visible throughput · 出结论后 ADR-003 accept · CLAUDE.md #15 可翻 A（或继续 B）
+- **多 agent 共享 working tree 风险已规避**：Codex + OpenCode 已各自建 `git worktree` 独立工作（session 9 Phase B 开工时发现 shared-tree 冲突苗头后立即修正）· 未来 dispatch prompt 必须明确要求 worktree / /tmp 隔离
+- **OpenCode Track 3 程序瑕疵事后补档**：PR #34 未按 dispatch spec 跑 benchmark · 直接自己标 "Arbiter 选定方案(a)"· Arbiter 事后 comment 确认方案(a) 判断合理 · 决策成立 · 下次 dispatch prompt 加 "外部 agent 不得自行 accept decision-grade 结论" + benchmark 强制要求
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
-- **Ubuntu 24 环境缺失**（SPIKE-01/02 Phase B 前置）· 阻塞 SPIKE-01/02 full done · 继而阻塞 SPIKE-06 cross-platform 结论
-- **SPIKE-05 结论尚未锁定到 ADR-003**：HOL + boundedness 已过，但 visible throughput 仍需 SPIKE-05.5 对照 shared-reader vs per-session
+- **Ubuntu 24 环境缺失**（SPIKE-01/02 Phase B 前置）· 阻塞 SPIKE-01/02 full done · ADR-006 桌面框架 · SPIKE-06 cross-platform · MVP-01 Phase C Ubuntu runtime 验证
 - **分支保护已显式暂缓**（用户表态 · 单人 + Codex review 模式下不致命 · 升级触发条件见上方 §🔐 用户手动步骤）
 - **R1 Claude/Codex CLI 协议**：SPIKE-06 样本录制 · R1 降级须经 SPIKE-07 parser 验证 + ADR-011
 - **R12 CRITICAL Tauri Wayland**：macOS Phase A 强信号 · Wayland 风险仍在（SPIKE-01/02 Phase B 兜底）
@@ -196,6 +203,70 @@
 ---
 
 ## Session 日志（近 5 次）
+
+### Session 9（2026-04-19 下午 - 晚）· 三路并行分配 · MVP-01 Phase B 视觉骨架 + md 盘点
+
+**跨越里程碑**：Phase A "能启动骨架" → Phase B "视觉一致骨架" · 三路并行协作模式稳定落地（独立 worktree 隔离）。
+
+**Track 1 · MVP-01 Phase B**（主 agent · PR #33 merged）
+- Calm Studio design token 从原型 HTML 抽到 `web/src/styles.css`（oklch 色板 + radii + spacing + motion curves 严格同值）
+- 欢迎页精装：内联 SVG Logo（蓝紫渐变 mark）+ H1 + tagline + 版本胶囊（runtime `getVersion()` · 绿点状态）+ designed CTA + IPC 诊断行
+- a11y：aria 齐全 · 键盘可达 · `prefers-reduced-motion` / `prefers-color-scheme` 自适应
+- 真实 icon：`tauri icon` 从 `design/logos/mark.svg` 派生 macOS icns / Windows ico / PNG 全套 · 剥 iOS/Android（MVP 不在范围）
+- Runtime 验证 5/5 通过（用户截图 @ `spike-tmp/img/`）· light mode editorial 风格干净 · 无 template look
+- 19 files · +324 / -63
+
+**md 盘点清理**（主 agent · PR #32 merged）
+- 101 md 盘点后删 2 个过时文档 + 归档 1 复盘到 session-history（首次有实质内容）
+- `docs/agent-onboarding-readiness-assessment.md`（自标 HISTORICAL · pre-PR-17）
+- `docs/project-status-overview-2026-04-18.md`（日期快照 · 滚动状态由本文件承接）
+- `retrospective-spike-交付代码丢失风险复盘.md` → `session-history/2026-04-19-spike-code-loss-retrospective.md`（中文 → kebab-case）
+- PROGRESS + SESSION-STARTUP 入站引用同步清理 · grep 确认 0 dangling
+
+**Track 2/3 dispatch**（Codex + OpenCode · 均已启动）
+- Track 2 Codex SPIKE-05.5 · 在 `/private/tmp/vibestation-spike-05.5` worktree · 本地已有 commit `7a5b582`
+- Track 3 OpenCode SPIKE-04.5 §A.3 · 在 `/private/tmp/spike-04.5-a3-work` worktree · 待 PR
+- 设计亮点：**Track 3 用 3 方案对照 benchmark 替代 Arbiter 盲拍板**（数据驱动决策）
+
+**事故与修复 · shared working tree 冲突苗头**
+- Phase B 开工时发现 HEAD 被从 feat/mvp-01-phase-b-ui-polish 切到 OpenCode 新建的 spike/SPIKE-04.5-a3
+- 原因：OpenCode 和主 agent 共享同一 working tree · 它 `git checkout -b` 影响了主 agent 的分支上下文
+- 处理：按 rule 13 铁律 · `git stash -u` 保全 · 切回 feat 分支 · `git stash pop` 恢复（不用 `git checkout --`）
+- 纠正：用户通知 OpenCode / Codex 切换到独立 worktree（`/private/tmp/...`）· 冲突自动化解
+- 沉淀：下次 dispatch prompt 应显式要求"独立 worktree 或 /tmp 隔离"
+
+### Session 8（2026-04-19 上午 - 下午）· SPIKE 全收口 + MVP-01 Phase A 首行生产代码
+
+**跨越里程碑**：Pre-code 真正结束 · 首行生产代码入盒（Cargo workspace + Tauri + SolidJS）· SPIKE-04/05 全部 done 归档。
+
+**SPIKE-03/04 代码抢救归档**（主 agent · PR #26/#27 merged）
+- 事故：发现 SPIKE-03/04 实测代码**仅存在于 /tmp** · macOS 默认 3 天清理 · 决策依据险些永久丢失
+- 抢救：从 /tmp 副本归档到 `docs/spikes/code/SPIKE-0{3,4}/` + `docs/spikes/raw/SPIKE-0{3,4}/` · 含 Cargo.lock（白名单 gitignore）
+- 根因：Phase 3 归档规则只约束 report · 未强制源码持久化
+- 沉淀到全局规则 `~/.claude/rules/13-cross-agent-delivery.md` + 项目规则 `.claude/rules/spike-delivery-checklist.md`
+
+**SPIKE-04.5 v1 BLOCK + v2 accept**（OpenCode + 主 agent review · PR #29 merged）
+- v1 被 review 挂出 4 CRITICAL：A.2/A.3 单位错（< 50s 而非 50ms · SUMMARY 洗白）· manifest 非原子（缺 per_table + tx_id）· 1054 行 main.rs 违反 < 300 行
+- v2 补做：阈值 / 单位修正 · manifest 加 per_table + last_committed_tx_id + `.tmp+rename` 原子写 · 5 独立业务模块（main.rs 927 行 orchestration · 独立模块各 28-92 行）
+- 结论 B.1-5 全过 · R27 真 close · A.3 P99=215ms FAIL · ADR-005 revision "A.3 pending Arbiter"
+
+**SPIKE-05 Codex 一发入魂**（Codex + 主 agent review · PR #30 merged）
+- shared-reader + bounded queue + drop-oldest · HOL / boundedness PASS
+- Visible throughput FAIL：单 Tab 8.34 MB/s < 20 · 4 Tab 16.38 MB/s < 40
+- 结论：**不要** CLAUDE.md #15 从 B 翻 A · 瓶颈在 IPC / xterm drain · 建议 SPIKE-05.5 follow-up
+
+**MVP-01 Phase A · 首行生产代码**（主 agent + Codex 2 轮 adversarial review · PR #28 merged）
+- Cargo workspace 2 crate（app + core）· SolidJS + Vite + TypeScript strict · Tauri 2 壳
+- Codex round-1 发现：CSP null 不安全 · 缺 CI build smoke · 多余 opener permission · Cargo.lock 未进 git
+- Codex round-2 发现：ACL 未定义 `allow-greet` permission（runtime deny `invoke("greet")`）· core:default 覆盖过大
+- 3 轮 CI 修最终切 corepack pattern（pnpm/action-setup@v6 在 Ubuntu runner 有 fallback bug）
+- Runtime 验证：用户本地 `pnpm tauri:dev` 确认 "Vibestation core online · v0.1.0" 显示正常
+
+**4 条教训沉淀到 rules**
+1. 跨 agent 交付代码必须持久化到 repo（全局 `13-cross-agent-delivery.md`）
+2. pnpm CI 走 corepack（全局 `14-ci-pnpm-pattern.md`）
+3. CI build smoke ≠ runtime smoke（全局 `15-runtime-verification-gate.md`）
+4. Tauri v2 ACL + CSP + capability 坑（项目 `tauri-v2-patterns.md`）
 
 ### Session 7（2026-04-18 夜 - 2026-04-19）· Spike W0 多 agent 并行 · 首行代码 + 4 Spike + 1 新 Spike
 

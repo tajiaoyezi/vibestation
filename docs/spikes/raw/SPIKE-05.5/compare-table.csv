@@ -1,0 +1,5 @@
+scenario,strategy,read_p50_mb_s,read_p99_mb_s,drain_p50_mb_s,drain_p99_mb_s,invoke_p50_ms,invoke_p99_ms,reader_threads
+single-yes,shared-reader,32.14,45.04,7.79,8.77,8.00,15.00,1
+single-yes,per-session-reader,24.70,25.47,8.42,8.80,8.00,180.00,1
+four-yes,shared-reader,43.48,52.32,14.58,14.73,22.00,345.00,1
+four-yes,per-session-reader,61.47,61.49,12.86,14.93,22.00,499.00,4

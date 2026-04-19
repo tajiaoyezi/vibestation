@@ -1,0 +1,1 @@
+[SPIKE-05.5] app pid=65907 scenario=Some("single-yes") strategy=per-session-reader

@@ -6,7 +6,7 @@
 **对应 `CLAUDE.md` 决策表**：#14（从 B 档升级到 A 档 · 锁 **rusqlite**）
 **对应 Spike**：[SPIKE-04 · done](../tasks/SPIKE-04-storage-benchmark.md)（redb vs rusqlite 选型）· [SPIKE-04.5 · done](../tasks/SPIKE-04.5-rusqlite-safety-verification.md)（rusqlite 安全全链路）
 **对应 Report**：[SPIKE-04-report](../spikes/SPIKE-04-report.md)（redb B.2 silent FAIL）· [SPIKE-04.5-report](../spikes/SPIKE-04.5-report.md)（rusqlite B.1-5 全过 · A.3 FAIL）
-**待 Arbiter 决策**：SPIKE-04.5 §A.3 range scan P99=215ms（> 50ms 阈值 4.3×）· 三方案 (a) MVP 接受 (b) 加复合 index (c) scope 降级
+**A.3 已决策**：Arbiter 选定 **(a) MVP 接受 220ms**（2026-04-19）· 理由：100 行 UI 加载延迟 < 300ms 人类可接受范围 · 不动代码 · 如 MVP 后需优化可加复合 index `(workspace_id, profile_id, snapshot_id DESC)`（方案 b · MVP-02 一起做性价比高）
 
 ---
 
@@ -112,4 +112,5 @@ MVP 需要本地持久化：
 - 2026-04-18 · 初版 · Claude Code · status: proposed · 默认 redb · 等 SPIKE-04 B.1-5 + A 全过后改 accepted
 - 2026-04-19 · SPIKE-04 结论 (B) 落地 · OpenCode agent 实测（v1 → v2 补做）· Claude Code review · status: proposed → **accepted** · **结论翻转**：redb 2.6.3 B.2 FAIL → 锁 rusqlite
 - 2026-04-19 · 立项 SPIKE-04.5 · 在 rusqlite 上补 B.1-B.5 · 真正 close R27
-- **2026-04-19 · SPIKE-04.5 完成**（OpenCode v1 被 BLOCK 4 CRITICAL · v2 补做后 accept）· rusqlite B.1-5 实测全过（§B.2 SQLITE_CORRUPT · §B.3 `PRAGMA user_version` + H1 old-version assert · §B.4 pre-import backup + per_table manifest 原子写入 · §B.5 per-tx_id op-log + reconcile forward + retention + auto-rollback UI）· **R27 数据安全全面 close** · §A.3 范围查询 P99=215ms FAIL（> 50ms 阈值 4.3×）· 三方案待 Arbiter 决策：(a) MVP 接受 220ms 延迟 / (b) 加复合 index `(workspace_id, profile_id, snapshot_id DESC)` / (c) scope 降级"最新 100 行"→"任意 100 行"。建议 (a) 或 (b) · 暂不阻塞 MVP-02/06/10/19
+- **2026-04-19 · SPIKE-04.5 完成**（OpenCode v1 被 BLOCK 4 CRITICAL · v2 补做后 accept）· rusqlite B.1-5 实测全过（§B.2 SQLITE_CORRUPT · §B.3 `PRAGMA user_version` + H1 old-version assert · §B.4 pre-import backup + per_table manifest 原子写入 · §B.5 per-tx_id op-log + reconcile forward + retention + auto-rollback UI）· **R27 数据安全全面 close** · §A.3 范围查询 P99=215ms FAIL（> 50ms 阈值 4.3×）
+- **2026-04-19 · A.3 Arbiter 决策**：选定 **(a) MVP 接受 220ms** · 理由：100 行 UI 加载延迟 < 300ms 人类可接受范围 · 不动代码 · 方案 (b) 复合 index 留作 MVP-02 性能优化项

@@ -15,7 +15,7 @@ reviewer: Claude Code (Sonnet 4.6 · 主 agent)
 
 > 📌 **执行结论**（2026-04-19 · done）：
 > - **R27 数据安全全面 close**：B.1 crash · B.2 SQLITE_CORRUPT · B.3 user_version + H1 assert + ROLLBACK · B.4 pre-import backup + per_table manifest · B.5 per-tx_id op-log + reconcile forward + retention + auto-rollback UI · 全部通过
-> - **A.3 范围查询 FAIL**：P99 215ms > 50ms 阈值 · 三方案待 Arbiter 决策（见 [`docs/adr/ADR-005-local-storage.md`](../adr/ADR-005-local-storage.md) 修订历史）
+> - **A.3 范围查询 FAIL → Arbiter 选定方案(a)**：P99 215ms > 50ms 阈值 · MVP 接受 220ms（< 300ms 人类可接受 · 不动代码 · 复合 index 留 MVP-02 性能优化项）
 > - **v1→v2 追溯**：v1 被 Claude 主 agent BLOCK 4 CRITICAL（A.3 阈值单位 bug / A.2 同类 / Manifest 缺字段 / 代码未拆分）· v2 全部修复后 accept
 > - **交付归档**（"4 样齐全"）：report [`docs/spikes/SPIKE-04.5-report.md`](../spikes/SPIKE-04.5-report.md) · 源码 [`docs/spikes/code/SPIKE-04.5/`](../spikes/code/SPIKE-04.5/) · raw [`docs/spikes/raw/SPIKE-04.5/`](../spikes/raw/SPIKE-04.5/) · 冷备 `spike-tmp/archive/SPIKE-04.5/{v1,v2}.tar.gz`
 

@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `spike/SPIKE-05-done`（SPIKE-05 交付 / 元数据恢复 PR 分支）| 分支切换 |
+| **Active branch** | `spike/SPIKE-04.5-a3`（A.3 方案(a) 决策落地 PR 分支）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **SPIKE-05.5 ready 待启动**（visible throughput + per-session fallback 对照）· 并行：SPIKE-04.5 rusqlite B.1-5 · SPIKE-01/02 Phase B Ubuntu 等环境 | session end |
-| **Blocked by** | SPIKE-04.5（R27 真实 close）· SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B（Ubuntu 环境）| 阻塞变化 |
+| **Next concrete action** | **MVP-01 Phase B / SPIKE-05.5 prompt / SPIKE-06** 可并行启动 · A.3 决策已落地（方案 a）| session end |
+| **Blocked by** | SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B（Ubuntu 环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
 
@@ -142,7 +142,7 @@
 2. **W0-D2** · [SPIKE-02](./tasks/SPIKE-02-tauri-hard-pass-matrix.md) · **Phase A macOS ✅ PASS（PR #22）** · 2 项降级（updater + 日文 IME）· Phase B Ubuntu 等环境
 3. **W0-D3** · [SPIKE-03](./tasks/SPIKE-03-git2-gix-read-benchmark.md) · ✅ **done（PR #23 待 merge）** · 结论 (B) 读切 gix · 写保留 git2
 4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 待 merge）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
-5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · 🟡 **ready · 待下发 opencode（PR #25 待 merge · session 7 新建）** · rusqlite B.1-5 on rusqlite · 真 close R27
+5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · ✅ **done · A.3 Arbiter 选定方案(a)** · rusqlite B.1-5 全过 · R27 数据安全 close · A.3 范围查询 P99=215ms MVP 接受
 6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
 7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **ready** · SPIKE-05 follow-up（解决 visible throughput）
 8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key）
@@ -156,7 +156,7 @@
 
 ## ⚠️ 当前卡点 / 注意事项
 
-- **SPIKE-04.5 必做 · R27 真实未 close**：SPIKE-04 只证明 redb 不行 · rusqlite 的 B.1-5 待实测 · 不补完不能声称"存储层安全 ready for MVP"
+- **SPIKE-04.5 ✅ done** · R27 数据安全 close · A.3 方案(a) MVP 接受 220ms（不加复合 index · 不改代码 · MVP-02 性能优化项）
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
 - **Ubuntu 24 环境缺失**（SPIKE-01/02 Phase B 前置）· 阻塞 SPIKE-01/02 full done · 继而阻塞 SPIKE-06 cross-platform 结论
 - **SPIKE-05 结论尚未锁定到 ADR-003**：HOL + boundedness 已过，但 visible throughput 仍需 SPIKE-05.5 对照 shared-reader vs per-session

@@ -110,12 +110,12 @@ ADR accepted 后 · 已同步更新以下（本 PR 完成 ✅）：
 
 ## 相关（Links）
 
-- `CLAUDE.md` 决策表：待补（accepted 后加入 A 栏）
+- `CLAUDE.md` 决策表 A 栏 #18（PR #45 session 10 落地）
 - 触发事件：[PR #40 `15649bc`](https://github.com/tajiaoyezi/vibestation/pull/40)（MVP-02 · OpenCode 自创 `docs/runtime-evidence/`）
 - 关联规则：
   - [`.claude/rules/15-runtime-verification-gate.md`](../../.claude/rules/15-runtime-verification-gate.md)
   - [`.claude/rules/dispatch-prompt-template.md` §2.3](../../.claude/rules/dispatch-prompt-template.md)
-  - [`~/.claude/rules/13-cross-agent-delivery.md`](~/.claude/rules/13-cross-agent-delivery.md)
+  - `~/.claude/rules/13-cross-agent-delivery.md`（全局规则 · 不在本 repo）
 - Session 10 协作记录：FU-2 归档（session save file 标注）
 
 ---

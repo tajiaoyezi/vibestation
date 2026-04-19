@@ -48,16 +48,24 @@ jobs:
           fi
           echo "✓ No obvious broken anchor links"
 
-  # ────────────── Rust 构建与测试（Spike W0 后填充）──────────────
+  # ────────────── Rust 构建与测试（MVP-01 Phase A 启用）──────────────
   rust-build:
-    name: Rust · cargo check (placeholder)
+    name: Rust · cargo clippy + fmt + test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    # pre-code 阶段跳过 · Spike W0 后改为 true
-    if: false
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install system deps (Tauri on Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -82,16 +90,19 @@ jobs:
       - name: cargo test
         run: cargo test --workspace
 
-  # ────────────── Frontend 构建与测试（Spike W0 后填充）──────────────
+  # ────────────── Frontend 构建与测试（MVP-01 Phase A 启用）──────────────
   frontend-build:
-    name: Frontend · pnpm lint/typecheck (placeholder)
+    name: Frontend · pnpm lint + typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # pre-code 阶段跳过 · Spike W0 后改为 true
-    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -99,15 +110,10 @@ jobs:
           node-version: "20"
           cache: "pnpm"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 9
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: pnpm lint
+      - name: pnpm lint (prettier check)
         run: pnpm lint
 
       - name: pnpm typecheck
@@ -121,10 +127,10 @@ jobs:
     steps:
       - name: Status
         run: |
-          echo "📌 Phase 4 CI skeleton (pre-code stage)"
+          echo "📌 MVP-01 Phase A · CI active"
           echo "   · markdown-lint: active"
-          echo "   · rust-build: disabled (enable after Spike W0)"
-          echo "   · frontend-build: disabled (enable after Spike W0)"
+          echo "   · rust-build: active（cargo clippy + fmt + test）"
+          echo "   · frontend-build: active（pnpm lint + typecheck）"
           echo "   · secret-scan: active (see .github/workflows/secret-scan.yml)"
           echo "   · task-spec-validator: active (see .github/workflows/task-spec-validator.yml)"
           echo ""

@@ -1,0 +1,12 @@
+[package]
+name = "vibestation-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Vibestation 业务核心逻辑（纯 Rust · 无 Tauri 依赖）"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

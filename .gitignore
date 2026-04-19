@@ -35,6 +35,10 @@ pnpm-debug.log*
 src-tauri/target/
 src-tauri/gen/
 src-tauri/WixTools/
+# MVP-01 实际 Tauri app 位于 crates/app/（CLAUDE.md 决策表 #5 · 2 crate workspace）
+crates/app/target/
+crates/app/gen/
+crates/app/WixTools/
 *.app
 *.dmg
 *.AppImage

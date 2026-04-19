@@ -14,7 +14,7 @@
 | [ADR-003](./ADR-003-pty-architecture.md) | PTY 架构 = portable-pty + 共享读线程 + mpsc | **accepted** | #15 | [SPIKE-05.5](../spikes/SPIKE-05.5-report.md) accepted @ 2026-04-19 |
 | [ADR-004](./ADR-004-frontend-stack.md) | 前端栈 = SolidJS + TypeScript + Vite + xterm.js | **accepted** | #6 | 锁定 @ Phase 1 |
 | [ADR-005](./ADR-005-local-storage.md) | 本地存储 = rusqlite（redb 因坏库检测 FAIL superseded）| **accepted** | #14 | [SPIKE-04.5](../spikes/SPIKE-04.5-report.md) accepted @ 2026-04-19 |
-| [ADR-006](./ADR-006-desktop-framework.md) | 桌面框架 = Tauri 2（fallback: Electron 28+）| **proposed** | #12 | Pending [SPIKE-02](../tasks/SPIKE-02-tauri-hard-pass-matrix.md) |
+| [ADR-006](./ADR-006-desktop-framework.md) | 桌面框架 = Tauri 2（fallback: Electron 28+ · Ubuntu Phase B pending caveat） | **accepted** | A 栏 #19 | macOS Phase A 强 PASS · SPIKE-01/02 Ubuntu 待环境 · 不阻塞锁定 · PR #50 @ 2026-04-19 |
 | [ADR-007](./ADR-007-git-stack.md) | Git 栈 = git2 0.20（写）+ gix 0.70（读优化）| **accepted** | #13 | [SPIKE-03](../spikes/SPIKE-03-report.md) accepted @ 2026-04-19 |
 | [ADR-008](./ADR-008-diff-renderer-custom.md) | Diff 渲染 = 自建（非 Monaco）| **accepted** | #7 | 锁定 @ Phase 1 |
 | [ADR-009](./ADR-009-ai-aware-v1-vision.md) | AI-Aware Pane 联动 = v1.0 vision（对外不宣传）| **accepted** | #3 | 锁定 @ Phase 1 |
@@ -110,12 +110,13 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ## 📊 ADR 覆盖范围（Codex PR #12 review F1 复核精确描述 · Session 10 accepted 扩充）
 
-**已 ADR 化（11 条 · 10 accepted + 1 proposed）**：
-- A 档 · 10 条 accepted：
+**已 ADR 化（11 条 · 11 accepted · 0 proposed · session 10 末 ADR-006 升级后全 accepted）**：
+- A 档 · 11 条 accepted：
   - Phase 1 锁定 6 条：`#1` License · `#2` MVP 范围 · `#3` AI-Aware v1.0 vision · `#5` Cargo workspace · `#6` 前端栈 · `#7` Diff 自建
   - Session 8-10 Spike 通过 3 条：`#13` Git 栈（SPIKE-03 @ 2026-04-19）· `#14` 本地存储 rusqlite（SPIKE-04.5 @ 2026-04-19）· `#15` PTY 方案（SPIKE-05.5 @ 2026-04-19）
   - Session 10 FU-2 新增 1 条：`#18` Runtime evidence 路径锁（PR #44/#45 @ 2026-04-19）
-- B 档 · 1 条 proposed：`#12` 桌面框架（pending SPIKE-02 三平台全过 · macOS Phase A/B 已过 · Ubuntu Phase C 待环境）
+  - Session 10 末 B→A 升级 1 条：`#19` 桌面框架 Tauri 2（macOS Phase A 强 PASS · Ubuntu Phase B pending caveat · PR #50 @ 2026-04-19）
+- B 档 · 当前空（原 #12 桌面框架 session 10 末升级到 A 栏 #19 · B 栏 header 保留作未来类似决策载体）
 
 **A 档未 ADR 化**（5 条 · 已在其他文档锁定 · 需要改变决策时才补 ADR）：
 - `#4` Calm Studio 视觉方向 → 锁定 @ `design/directions/1-calm-studio.html`
@@ -130,4 +131,4 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ---
 
-**本目录 Phase 3 建立（2026-04-18）· 当前 11 个 ADR（10 accepted + 1 proposed）· 覆盖范围如上精确描述。**
+**本目录 Phase 3 建立（2026-04-18）· 当前 11 个 ADR（11 accepted · 0 proposed · session 10 末全收敛）· 覆盖范围如上精确描述。**

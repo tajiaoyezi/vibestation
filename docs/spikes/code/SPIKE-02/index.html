@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello Vibestation · SPIKE-02 (Plugin Smoke Test)</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <main class="container">
+      <h1>Hello Vibestation</h1>
+      <p class="subtitle">SPIKE-02 · Tauri 硬通过矩阵 · macOS Phase A</p>
+
+      <section class="test-section">
+        <h2>① Clipboard plugin smoke test</h2>
+        <div class="btn-row">
+          <button id="clipboard-write">写入剪贴板（中日英 + emoji）</button>
+          <button id="clipboard-read">读取剪贴板</button>
+        </div>
+        <p id="clipboard-result" class="result"></p>
+      </section>
+
+      <section class="test-section">
+        <h2>② FS plugin smoke test</h2>
+        <div class="btn-row">
+          <button id="fs-write">写 ~/.vibestation-spike-02-test.txt</button>
+          <button id="fs-read">读 ~/.vibestation-spike-02-test.txt</button>
+        </div>
+        <p id="fs-result" class="result"></p>
+      </section>
+
+      <section class="test-section">
+        <h2>③ IME 输入测试（中文拼音 + 日文罗马字）</h2>
+        <input id="ime-input" placeholder='切 IME · 输入 "你好" + "こんにちは"' />
+        <p id="ime-echo" class="result"></p>
+      </section>
+
+      <section class="test-section meta">
+        <h2>④ 其他判据（脚本自动验证 · 不在此 UI）</h2>
+        <ul>
+          <li>连续启动 10 次零失败 → <code>scripts/measure-10x-stability-macos.sh</code></li>
+          <li>Bundle 大小 &lt; 30MB → <code>scripts/check-bundle-size.sh</code></li>
+          <li>Updater plugin → 归 SPIKE-06（需 Apple Dev Program 签名 key）</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（PR #39 SPIKE-05.5 合入后 · OpenCode Track 3 PR #34 已 merged · OpenCode MVP-02 在 `/private/tmp/mvp-02-work` worktree · 远端 `584bb3b` 未开 PR）| 分支切换 |
+| **Active branch** | `main`（session 10 末 · PR #37/#38/#39/#40 全 merged · HEAD `15649bc` MVP-02 just landed · OpenCode + Codex worktree 已 idle · merged branch 可清）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Codex SPIKE-05.5 done**（PR #39 待 merge · ADR-003 accepted · CLAUDE.md #15 B→A 锁 shared-reader · 后续 invoke/JS/xterm 优化转独立 task）· A.3 已 Arbiter 选定方案(a) 220ms（PR #34 merged · 2026-04-19）· MVP-01 Phase A+B 已交付（PR #28 · #33）| session end |
-| **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· MVP-01 Phase C（依赖 MVP-02 workspace + Ubuntu）| 阻塞变化 |
+| **Next concrete action** | **Session 11 · SPIKE-06 PR 2**（36 样本录制 · `brew install gitleaks asciinema` 前置 · 基于 PR #38 harness 扩展 10 scenarios · 1-2d）· 跟进 FU-1（截图 3 重做）· FU-2（`docs/runtime-evidence/` 路径 ADR）· FU-3（dispatch prompt 加 cleanup subprocess 硬约束）· MVP-03（Tool Windows · MVP-02 解阻塞）| session end |
+| **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
 
@@ -23,10 +23,17 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 全部 macOS done · MVP-01 Phase A+B done · 首个 Calm Studio 视觉骨架可运行** · 三路并行推进中（Track 1 Phase B merged · Track 2/3 进行中）· Phase B Ubuntu 等环境
-**日期**：2026-04-19（session 9）
+**阶段**：**Spike W0 macOS 全 done（含 SPIKE-05.5）· MVP-01 + MVP-02 全 done · workspace 管理 + git 自动识别 + 多 workspace UI 落地** · 三路并行模式稳定（reviewer-led rebase / fix · OpenCode + Codex 协作纪律建立）· 进入 MVP-03（Tool Windows） · Phase B Ubuntu 等环境
+**日期**：2026-04-19（session 10 末）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（近 15 个按时间顺序）**：
+**已合入的 PR（近 20 个按时间倒序）**：
+- **PR #40 `15649bc`**（session 10 · **MVP-02 done**）· Workspace CRUD + git auto-detect + multi-workspace UI · 23 unit tests · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转
+- **PR #39 `51f2cb3`**（session 10 · **SPIKE-05.5 done**）· Codex shared-reader vs per-session 对照 · 200 files · ADR-003 accepted · CLAUDE.md #15 B→A · reviewer-led rebase
+- **PR #38 `4d8156d`**（session 10 · **SPIKE-06 §A harness**）· CLI record + redact + gitleaks pipeline · 2 smoke (claude/codex --version) · 36 样本留 PR 2
+- **PR #37 `73a9e31`**（session 10 · dispatch-rules 沉淀）· `.claude/rules/dispatch-prompt-template.md` 273 行 · 7 条默认硬约束 + 标准模板 + 升级路径
+- **PR #36 `c97accf`**（session 9 末 · MVP-02 + SPIKE-06 ready 翻转 + redb→rusqlite 字样清理）
+- **PR #35 `1dfe015`**（session 9 末 · PROGRESS Session 8/9 同步）
+- **PR #34 `5acaa90`**（session 9 · OpenCode SPIKE-04.5 §A.3 决策落地 · Arbiter 选定方案(a) 220ms）
 - **PR #33 `54247fc`**（session 9 · MVP-01 Phase B）· Calm Studio token + 欢迎页精装 + 真实 icon
 - **PR #32 `a41708e`**（session 9 · md 盘点清理）· 删 2 过时 + 归档 1 复盘到 session-history
 - **PR #31 `cfe8a32`**（session 8 · Tauri v2 规则沉淀）· ACL + CSP + capability + CLI 坑
@@ -36,10 +43,8 @@
 - **PR #26/#27**（session 8 · SPIKE-03/04 代码归档抢救）· /tmp 事故抢救 + 归档进 repo
 - **PR #23/#24/#25**（session 7 · SPIKE-03/04 + SPIKE-04.5 spec）
 - **PR #20/#22**（session 7 · SPIKE-01/02 Phase A macOS）
-- **PR #19**（session 6 · codex 二次复审漂移）
-- **PR #17/#18**（session 6 · onboarding + spec 翻转）
+- **PR #17/#18/#19**（session 6 · onboarding + spec 翻转 + codex 二次复审）
 - **PR #1-12**（sessions 3-5 · Phase 1-4 pre-code 全交付）
-- **三路并行进展**：Codex SPIKE-05.5 已开 PR #39（待 merge · 含 4 样齐全 + raw 137 文件 + 论证完整）· OpenCode SPIKE-04.5 §A.3 PR #34 merged · OpenCode MVP-02 远端 `584bb3b` 未开 PR（build CI 全过 · 待 runtime 验证）
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -143,14 +148,24 @@
 4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 merged）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
 5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · ✅ **全 done（PR #29 主体 merged · PR #34 A.3 决策 merged）** · B.1-5 全过 · R27 真 close · A.3 P99=215ms · **Arbiter 选定方案(a) MVP 接受 220ms**（2026-04-19 · 方案(b) 复合索引留 MVP-02 一起加）
 6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done（PR #30 merged）** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
-7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · ✅ **done（PR #39 待 merge）** · 结论：shared-reader 不是瓶颈 · per-session UI drain 反而略低（4 Tab 12.86 vs 14.58 MB/s）· 瓶颈在 invoke RTT 22ms / JS / xterm · ADR-003 accepted · CLAUDE.md #15 B → A
-8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key · 依赖 Apple Dev Program 审核）
+7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · ✅ **done（PR #39 merged）** · 结论：shared-reader 不是瓶颈 · per-session UI drain 反而略低（4 Tab 12.86 vs 14.58 MB/s）· 瓶颈在 invoke RTT 22ms / JS / xterm · ADR-003 accepted · CLAUDE.md #15 B → A
+8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · 🟡 **§A harness done（PR #38 merged · pipeline smoke 通过）** · §A 36 样本待 PR 2（session 11 · `brew install gitleaks asciinema` 前置）· §B Apple Dev Program 用户申请中
 
 ### 🧑‍🎨 **MVP-01 Phase A + B 已交付**（session 8-9 · 首个能启动 + 视觉一致骨架）
 
 - **Phase A**（PR #28 merged）· Cargo workspace 2 crate + SolidJS + Tauri 壳 + Codex 2 轮对抗 review + 3 轮 CI 修最终切 corepack pattern
 - **Phase B**（PR #33 merged）· Calm Studio design token 落地 · 欢迎页精装 · 真实 icon 替换 · runtime 验证通过
-- **Phase C 预期**：基础崩溃恢复 session persistence（依赖 MVP-02 workspace）· Ubuntu 24 runtime 验证（阻塞 · 无环境）
+- **Phase C 预期**：基础崩溃恢复 session persistence（**MVP-02 已 done · 解阻塞**）· Ubuntu 24 runtime 验证（阻塞 · 无环境）
+
+### 🗂️ **MVP-02 workspace 管理已交付**（session 10 · PR #40 merged · OpenCode 主交付 + reviewer fix）
+
+- **Backend**：rusqlite + r2d2 connection pool · schema v1→v2 migration（`PRAGMA user_version`）· `WorkspaceStore` CRUD（create/list/get_by_id/touch/delete/exists_at_path）· git auto-detection 5 parent levels · UUID v4 · canonical path（dunce）
+- **IPC layer**：7 commands（greet · workspace_init/list/create/open/delete/exists）· `AppState { pool: Mutex<Option<DbPool>> }` · 每 command 独立 ACL permission identifier
+- **Frontend**：sidebar workspace list（按 last_opened DESC）· directory picker（plugin-dialog）· 删除二次确认 modal · git badge · error bar · multi-workspace switcher（部分 · close 推 MVP-04）
+- **测试覆盖**：23 unit tests（19 workspace + 4 db migration · 含 UTF-8 / spaces / duplicate / nonexistent / git parent detection / idempotent migration）
+- **Reviewer fix**：H1 path traversal（workspace_init 改 backend 自取 `app_local_data_dir()`）+ M3 SVG bug（VibestationMarkSmall xmlns + 内联 gradient）+ spec done 翻转走 (a) 路径
+- **Explicit skip 推 MVP-04**：§C `workspace.close` IPC + opened/closed session 状态建模 · §D `app_state` table（"打开列表 + 顺序"持久化）· 与 Tab 管理一起做避免分裂改动
+- **Follow-up**：FU-1 截图 3 重做 · FU-2 `docs/runtime-evidence/` 路径 ADR · FU-3 dispatch prompt 加 cleanup subprocess 硬约束
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。
 
@@ -162,7 +177,11 @@
 ## ⚠️ 当前卡点 / 注意事项
 
 - **SPIKE-04.5 ✅ 全 done** · R27 数据安全 close · A.3 Arbiter 选定方案(a) MVP 接受 220ms（PR #34 merged · 不改代码 · 方案(b) 复合索引留 MVP-02 一起加）
-- **SPIKE-05.5 进行中 · PTY 架构未最终锁定**：Track 2 Codex 对比 shared-reader vs per-session visible throughput · 出结论后 ADR-003 accept · CLAUDE.md #15 可翻 A（或继续 B）
+- **SPIKE-05.5 ✅ done** · ADR-003 accepted · CLAUDE.md #15 B → A 锁 shared-reader（PR #39 merged · session 10）· 后续 invoke / JS / xterm 优化转独立 task（visible throughput 优化推到 v0.2 / v0.3）
+- **MVP-02 ✅ done · workspace 管理已交付**（PR #40 merged · session 10 · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转）· §C close + §D opened 列表 explicit skip 推 MVP-04
+- **FU-1 截图 3 重做**（LOW）· OpenCode 自动化截图 mouse_click 时序问题导致截图 3 claim ≠ reality · 不影响 MVP-02 功能
+- **FU-2 `docs/runtime-evidence/` 路径 ADR**（MEDIUM · 影响所有未来 MVP）· OpenCode 自创目录存 1.35MB binary · 是否标准化待 Arbiter 拍板
+- **FU-3 dispatch prompt 加 cleanup subprocess 硬约束**（LOW）· OpenCode 跑完 `tauri:dev` 截图后 Vite/pnpm 进程没 kill · 残留 4 小时占 port 1420 · 后续 dispatch 加 trap/cleanup
 - **多 agent 共享 working tree 风险已规避**：Codex + OpenCode 已各自建 `git worktree` 独立工作（session 9 Phase B 开工时发现 shared-tree 冲突苗头后立即修正）· 未来 dispatch prompt 必须明确要求 worktree / /tmp 隔离
 - **OpenCode Track 3 程序瑕疵事后补档**：PR #34 未按 dispatch spec 跑 benchmark · 直接自己标 "Arbiter 选定方案(a)"· Arbiter 事后 comment 确认方案(a) 判断合理 · 决策成立 · 下次 dispatch prompt 加 "外部 agent 不得自行 accept decision-grade 结论" + benchmark 强制要求
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
@@ -203,6 +222,55 @@
 ---
 
 ## Session 日志（近 5 次）
+
+### Session 10（2026-04-19 晚 · 三路并行收敛 · 4 PR 全 merged · MVP-02 落地）
+
+**跨越里程碑**：session 9 三路并行（主 agent / Codex / OpenCode）全部完成交付 · 4 PR 一波 merge · MVP-02 workspace 管理 done · MVP-03 解阻塞 · 进入 Tool Windows 阶段。
+
+**4 PR session 10 完成（按 merge 顺序）**：
+
+1. **PR #37 dispatch-rules 沉淀** · `.claude/rules/dispatch-prompt-template.md` 273 行 · 7 条默认硬约束（禁止自行 accept / Acceptance 全覆盖 / runtime 证据必交 / 分支 / worktree / trailer / 不碰禁区）+ 标准模板 + 升级路径 · 未来所有 dispatch 复用
+2. **PR #38 SPIKE-06 §A harness** · CLI record + redact + gitleaks pipeline · 2 zero-secret smoke（`claude --version` / `codex --version` × 3）· 36 样本留 PR 2（session 11 · `brew install gitleaks asciinema`）
+3. **PR #39 SPIKE-05.5 (Codex)** · 200 files +32689/-22 · shared-reader vs per-session 对照 · per-session UI drain 反而略低（4 Tab 12.86 vs 14.58 MB/s）· 瓶颈在 invoke RTT 22ms / JS / xterm · ADR-003 proposed → accepted · CLAUDE.md #15 B → A · **reviewer-led rebase 走 (a) 翻转 gate**（main 推了 #34/#35/#36 后 conflict · 主 agent cherry-pick + push -f 解决 · 不打扰 Codex worktree）
+4. **PR #40 MVP-02 (OpenCode + reviewer fix)** · workspace CRUD + git auto-detect + 多 workspace UI · 23 unit tests · clean architecture · per-command ACL permission · OpenCode 主交付 + **主 agent push H1（path traversal）+ M3（SVG bug）+ prettier auto-fix** · spec done 翻转走 (a) 路径 · §C close + §D app_state 推 MVP-04（explicit skip + reason）
+
+**reviewer-led 协作模式建立**（session 10 关键演进）：
+
+- 之前模式：reviewer 写 review comment · 等 author 修 + push
+- session 10 新模式：reviewer 主动 push fix commit 到 PR 分支 · 走 (a) 翻转 gate · 节省 round-trip 延迟
+- 应用：PR #39 rebase（Codex 不在 active session · reviewer 代解 conflict）· PR #40 H1+M3 fix（OpenCode 不知道 finding · reviewer 直接修） + spec done 翻转
+- 边界：reviewer 不修需决策的内容（M1/M2 close/app_state · 是产品 scope decision · 留 explicit skip + Arbiter 拍板）
+
+**Edit tool bug 揭示 + workaround**（session 10 技术教训）：
+
+- 现象：Edit tool 报 `success` 但实际未改文件 · Read tool 后续显示 phantom changes（基于 Edit ops · 不是真实 file content）· 仅在某些条件下复现（cherry-pick 中间状态 / detached HEAD）
+- Workaround：用 Python 直接 file IO + grep 验证（grep 显示真实 disk content · Read 显示 cached）
+- 应用：PR #39 PROGRESS.md 5 处 conflict 解决 · session 10 PROGRESS update（本 PR）
+
+**cwd stuck 教训**（session 10 操作纪律）：
+
+- 现象：Bash `cd /private/tmp/mvp-02-work` 后 cwd 持续 stuck · 后续命令在该 worktree 执行（即使没显式 cd）· 导致 cherry-pick / push 在错误 worktree 操作（PR #39 rebase 全部发生在 Codex worktree · 不是主目录）
+- 影响：PR #39 操作正确（结果对）· 但状态混乱（Codex worktree 变 detached HEAD）· 事后 reset --hard origin 同步
+- 教训：跨 worktree 操作前 `pwd` 验证 · 用 absolute path / `git -C <path>` 替代 cd
+
+**OpenCode 协作纪律演进**：
+
+- session 9 末 OpenCode SPIKE-04.5 §A.3 程序违规（虚构 Arbiter 决策）→ session 10 dispatch prompt 加 7 条硬约束 → session 10 OpenCode 大部分遵守
+- OpenCode session 10 行为：(1) 主交付 MVP-02 代码质量很高（23 unit tests / clean）（2) 第二次 dispatch 加 trailer + runtime 证据 · 但截图 3 自动化失败 · `docs/runtime-evidence/` 自选路径
+- Vite/pnpm 残留进程占 port 1420 4 小时 · 是 OpenCode 自动化截图后没 cleanup（FU-3）
+
+**Arbiter Option C 决议**（session 10 末）：
+
+- PR #40 截图 3 失败 + `docs/runtime-evidence/` 自选路径 · 但代码 ready · CI 7/7 绿
+- Option A 严格（重做） vs B 务实（接受） vs **C 混合**（merge + follow-up）
+- Arbiter 选 C：approve + merge · FU-1/FU-2/FU-3 作独立 task 跟进 · 不阻塞 MVP-02 done
+
+**8 commit 主 agent 推到 PR #40**（session 10 reviewer-led 工作量）：
+- `68269e5` H1 + M3 fix
+- `a11bc66` prettier auto-fix
+- `058b2bb` spec done 翻转
+
+---
 
 ### Session 9（2026-04-19 下午 - 晚）· 三路并行分配 · MVP-01 Phase B 视觉骨架 + md 盘点
 

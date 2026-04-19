@@ -1,0 +1,162 @@
+{
+  "strategy": "shared-reader",
+  "plan": {
+    "name": "single-yes",
+    "title": "A · 单 Tab yes 10s",
+    "durationMs": 10000,
+    "queueCapacity": 256,
+    "sampleEveryMs": 1000,
+    "sessions": [
+      {
+        "label": "tab-1",
+        "command": "yes tab-1",
+        "pollEveryMs": 4,
+        "hiddenPollEveryMs": 4,
+        "renderDelayMs": 0,
+        "renderWhenHidden": true
+      }
+    ],
+    "initialActiveIndex": 0,
+    "notes": [
+      "shared-reader vs per-session-reader 对照基线。"
+    ]
+  },
+  "durationMs": 10000,
+  "totals": {
+    "totalReadBytes": 336970631,
+    "totalDrainedBytes": 71177984,
+    "totalDroppedBytes": 265662258,
+    "peakRssKb": 117456
+  },
+  "sessions": [
+    {
+      "id": "session-01",
+      "label": "tab-1",
+      "command": "yes tab-1",
+      "active": true,
+      "pollEveryMs": 4,
+      "hiddenPollEveryMs": 4,
+      "renderDelayMs": 0,
+      "renderWhenHidden": true,
+      "queueDepth": 128,
+      "queuedBytes": 130389,
+      "avgQueueDepth": 241.94738107690551,
+      "maxQueueDepth": 256,
+      "totalReadBytes": 336970631,
+      "totalDrainedBytes": 71177984,
+      "droppedChunks": 261732,
+      "droppedBytes": 265662258,
+      "preview": "<headless>",
+      "exitStatus": null,
+      "readerStrategy": "shared-reader",
+      "readCalls": 332001,
+      "avgReadBytes": 1014.9687229857741,
+      "avgReadSyscallUs": 5.850929452019723,
+      "avgEnqueueUs": 0.8622391619302351,
+      "invokeP50Ms": 8,
+      "invokeP99Ms": 15.000000000000455
+    }
+  ],
+  "processSamples": [
+    {
+      "pid": 46813,
+      "rssKb": 116320,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 0
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117360,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 1317
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117392,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 2319
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117456,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 3320
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117456,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 4320
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117376,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 5326
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117280,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 6330
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117280,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 7330
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117280,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 8332
+    },
+    {
+      "pid": 46813,
+      "rssKb": 117280,
+      "fdCount": 16,
+      "sessionCount": 1,
+      "readerThreadAlive": true,
+      "readerThreads": 1,
+      "readerStrategy": "shared-reader",
+      "elapsedMs": 9334
+    }
+  ]
+}

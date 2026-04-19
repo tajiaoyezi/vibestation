@@ -1,0 +1,11 @@
+elapsed_ms,pid,rss_kb,fd_count,session_count,reader_thread_alive,reader_threads,reader_strategy
+0,63983,115072,15,1,true,1,per-session-reader
+1013,63983,117328,15,1,true,1,per-session-reader
+2009,63983,117392,15,1,true,1,per-session-reader
+3012,63983,117440,15,1,true,1,per-session-reader
+4013,63983,117440,15,1,true,1,per-session-reader
+5013,63983,117328,15,1,true,1,per-session-reader
+6015,63983,117200,15,1,true,1,per-session-reader
+7021,63983,117200,15,1,true,1,per-session-reader
+8023,63983,117200,15,1,true,1,per-session-reader
+9024,63983,117200,15,1,true,1,per-session-reader

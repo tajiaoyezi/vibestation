@@ -2,7 +2,7 @@
 id: SPIKE-05.5
 type: spike
 title: PTY visible throughput + per-session fallback 对照
-status: in-progress
+status: done
 owner: Codex CLI
 phase: W0-D5.5
 depends_on: ["SPIKE-05"]
@@ -10,14 +10,22 @@ blocks: ["SPIKE-06"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D5 · §3.1
 risk_ref:
-reviewer:
+reviewer: User (Arbiter · GitHub PR approve)
 ---
 
 # SPIKE-05.5: PTY visible throughput + per-session fallback 对照
 
-> **状态**：`in-progress`
+> **状态**：`done`（2026-04-19 · shared-reader vs per-session 对照完成 · 结论：visible throughput 瓶颈不在 shared-reader）
 > **依赖**：SPIKE-05（shared-reader HOL / boundedness 已有基线） / **阻塞**：SPIKE-06（CLI 实机依赖可接受的可见吞吐）
+> **报告**：[`docs/spikes/SPIKE-05.5-report.md`](../spikes/SPIKE-05.5-report.md)
 > **战略依据**：[`implementation-plan.md §附录 A D5`](../implementation-plan.md)
+
+## 📌 执行结论（本 Spike 实测结果）
+
+- ✅ **shared-reader 不是 visible throughput 瓶颈**：per-session 在 4 Tab 场景把 read-path p50 从 **43.48 → 61.47 MB/s** 拉高，但 UI drain p50 没有更好（反而 **14.58 → 12.86 MB/s**）。
+- ✅ **瓶颈已定位到 invoke / JS / xterm 链路**：两种 reader 策略在 4 Tab 下的 invoke latency p50 都约 **22ms**，远高于 4ms polling cadence。
+- ✅ **per-session 对照版已实现并跑完 3 次**：单 Tab / 4 Tab / synthetic TUI 全量 raw 已归档。
+- ✅ **建议翻 A**：锁定 `portable-pty + 共享读线程 + bounded queue + drop-oldest`；不要把 per-session 作为默认降级。
 
 ---
 

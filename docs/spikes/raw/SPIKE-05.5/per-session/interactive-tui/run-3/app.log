@@ -1,0 +1,1 @@
+[SPIKE-05.5] app pid=79238 scenario=Some("interactive-tui") strategy=per-session-reader

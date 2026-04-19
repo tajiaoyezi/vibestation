@@ -1,0 +1,11 @@
+elapsed_ms,session_id,queue_depth,queued_bytes,avg_queue_depth,max_queue_depth,total_read_bytes,total_drained_bytes,dropped_chunks,dropped_bytes
+1,session-01,0,0,0.0000,0,0,0,0,0
+1121,session-01,0,0,1.2222,6,825,825,0,0
+2121,session-01,0,0,2.1509,10,4070,4070,0,0
+3122,session-01,0,0,2.6000,11,5698,5698,0,0
+4123,session-01,0,0,2.6847,11,8140,8140,0,0
+5124,session-01,0,0,2.9662,11,10582,10582,0,0
+6125,session-01,0,0,2.7640,11,11396,11396,0,0
+7125,session-01,0,0,2.7101,11,12210,12210,0,0
+8126,session-01,0,0,2.6563,11,13838,13838,0,0
+9127,session-01,0,0,2.7788,13,16280,16280,0,0

@@ -2,8 +2,8 @@
 id: SPIKE-02
 type: spike
 title: Tauri 硬通过矩阵 + Electron fallback 验证
-status: ready
-owner:
+status: in-progress
+owner: Claude Code (Sonnet 4.6)
 phase: W0-D2
 depends_on: ["SPIKE-01"]
 blocks: ["SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]

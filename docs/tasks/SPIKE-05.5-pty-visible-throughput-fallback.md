@@ -47,8 +47,8 @@ reviewer:
 
 ## 🔀 Fallback 方案
 
-**shared-reader visible throughput 达标** → 可重新评估把 `CLAUDE.md` #15 从 B → A  
-**仅 per-session 达标** → 推荐 fallback 到 per-session  
+**shared-reader visible throughput 达标** → 可重新评估把 `CLAUDE.md` #15 从 B → A
+**仅 per-session 达标** → 推荐 fallback 到 per-session
 **两者都不达标** → 说明瓶颈在 IPC / xterm / batching，继续留在 B 档并开实现优化 task
 
 ## 📦 产出（Deliverables）

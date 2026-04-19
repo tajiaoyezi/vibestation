@@ -144,7 +144,7 @@
 4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 待 merge）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
 5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · 🟡 **ready · 待下发 opencode（PR #25 待 merge · session 7 新建）** · rusqlite B.1-5 on rusqlite · 真 close R27
 6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
-7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **ready** · SPIKE-05 follow-up（解决 visible throughput） 
+7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **ready** · SPIKE-05 follow-up（解决 visible throughput）
 8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key）
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。

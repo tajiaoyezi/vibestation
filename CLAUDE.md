@@ -64,12 +64,11 @@
 | 14 | 本地存储 = **`rusqlite` 0.31+ + r2d2_sqlite**（SPIKE-04 benchmark · 2026-04-19 accepted · redb 2.6.3 B.2 坏库检测 FAIL · supersede · SPIKE-04.5 B.1-5 全过 · A.3 方案(a) MVP 接受 220ms）| [ADR-005](./docs/adr/ADR-005-local-storage.md) · [SPIKE-04-report](./docs/spikes/SPIKE-04-report.md) · [SPIKE-04.5-report](./docs/spikes/SPIKE-04.5-report.md) |
 | 15 | PTY 方案 = **`portable-pty` + 共享读线程 + bounded mpsc + `drop-oldest`**（SPIKE-05 HOL/boundedness PASS · SPIKE-05.5 证明 visible throughput 瓶颈不在 reader）| [ADR-003](./docs/adr/ADR-003-pty-architecture.md) · [SPIKE-05-report](./docs/spikes/SPIKE-05-report.md) · [SPIKE-05.5-report](./docs/spikes/SPIKE-05.5-report.md) |
 | 18 | Runtime 证据路径 = **`docs/runtime-evidence/<task-id>/`**（MVP / feature · 进 git · Spike 走独立 4 样齐全归档）| [ADR-011](./docs/adr/ADR-011-runtime-evidence-location.md) · [`.claude/rules/runtime-evidence-location.md`](./.claude/rules/runtime-evidence-location.md) |
+| 19 | 桌面框架 = **Tauri 2**（2026-04-19 session 10 末 · **macOS Phase A 强 PASS**：冷启动 202ms · 10/10 稳定 · bundle 10MB/4MB · IME + plugin 全过 · **Ubuntu Phase B 待环境补测** · 不阻塞锁定 · fallback = Electron 28+）| [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md) |
 
 ### B. 默认已选 + Spike 后最终锁定
 
-| # | 决策 | 默认 | 锁定节点 | Fallback |
-|---|------|------|---------|---------|
-| 12 | 桌面框架 | **Tauri 2** | Spike W0 Day 2 硬通过 | **Electron 28+** |
+> **当前空** · session 10 末 Tauri 2（原 #12）macOS Phase A 强 PASS 后升级到 A 栏 #19（ADR-006 accepted with Ubuntu caveat）· B 栏保留 header 作未来类似"默认 + Spike 后锁定"决策的载体。
 
 ### C. 时间锁定，结果开放
 
@@ -124,7 +123,18 @@ gh pr create
 - ❌ **禁止对外文案提及** `AI-Aware Pane` / `Mission Control` / `AI session aware`（v1.0 vision）
 - ❌ **禁止硬编码** API Key / 密码 / Token / 个人邮箱 / 生产域名。用 `.env.local`
 - ❌ **禁止跳过 CI 必过项**：`cargo clippy -D warnings` / `cargo fmt --check` / `pnpm lint` / `pnpm typecheck`
-- ⚠️ **改锁定表 A 栏前必须**：(1) 新开 `docs/adr/ADR-NNN-*.md`（Phase 3 后存在）；(2) 独立评审通过（不同 agent 实例 + 用户）；(3) 同步 `CLAUDE.md` + `implementation-plan.md`
+- ⚠️ **改锁定表 A 栏前必须**（v2-D · 2026-04-19 session 10 末升级 · 由 H-2 codex review + 用户发现 v2 在单人项目不可执行后修订）：
+  1. 新开 `docs/adr/ADR-NNN-*.md`（Phase 3 后存在）· 走 proposed → accepted 两 PR 翻转流程
+  2. 独立评审通过（不同 agent 实例 + Arbiter）· **当前单人项目模式**（GitHub 单 admin · agent 无 GitHub 账号 · branch protection 因私有仓+非 Pro 不可用）· approve 留痕规则：
+     - **现状（单人项目）必须**：(a) PR body 含 `Implemented by: <agent-id>` + `Reviewed by: <reviewer-agent-id>` + Arbiter signature trailer：`Arbiter approve: tajiaoyezi · YYYY-MM-DD · "<dialogue 原文摘要>"` (b) merge 后 24h 内 `gh pr comment <N>` 完整 dialogue trail（包含 Arbiter approve 时间戳 + 原文）
+     - **不接受**：仅"dialogue 一句话" 不写 PR body / 不补 PR comment 的 audit trail · 这等同于无 audit
+     - **GitHub UI Approve 按钮**：单人项目 GitHub 不允许 self-approve own PR · 故当前不可用 · 未来触发条件见 §3
+  3. **未来升级触发**（v2-D → v2-strict 自动激活）：当满足以下任一 · v2-strict 立即生效（不需要再开 ADR · 自动升级）：
+     - 项目加入第二位拥有 push 权限的 GitHub 真合作者（非 alt account · 非 fork-only contributor）
+     - 仓库变 public 或升级 GitHub Pro · branch protection 可用并已开启 require approval from latest commit
+     - v2-strict 含义：(2) 改为 "reviewer approve 必须在 GitHub PR UI 留痕（`gh pr review --approve` 或 Approve 按钮）· 不再接受 PR body trailer + comment 模式"
+  4. 同步 `CLAUDE.md` + `implementation-plan.md`（二者都改 · 否则 codex / 未来 agent 会读到自相矛盾）
+  5. **过渡 audit trail 补档**：session 10 末规则升级前已 merge 的 PR #45（ADR-011 + 决策表 #18）按 §2 (a) 标准追溯补 PR comment（H-2 (c) 原方案）· PR #50（本次升级 PR · ADR-006 + 决策表 #19）即 v2-D 第一个 follower · 流程一开始就走 §2 (a) · 不再有"过渡末班车"概念
 - ⚠️ **Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证**：不得据此写生产代码
 
 ---

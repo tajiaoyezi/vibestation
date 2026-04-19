@@ -221,7 +221,7 @@
 | v2 实施计划（14 章 + 附录）| `docs/implementation-plan.md` |
 | 7 个 Spike spec（W0 + v1.0-pre）| `docs/tasks/SPIKE-0[1-7]-*.md` |
 | 20 个 MVP spec（v0.1 详细 + v0.2+ 占位）| `docs/tasks/MVP-[01-20]-*.md` |
-| 11 个 ADR（10 accepted + 1 proposed）| `docs/adr/ADR-0[01-11]-*.md` |
+| 11 个 ADR（11 accepted · 0 proposed · session 10 末 ADR-006 升级后全收敛）| `docs/adr/ADR-0[01-11]-*.md` |
 | Agent 入口 · 决策表 · 自审四问 · 翻转 gate | `CLAUDE.md` |
 | 人类启动手册 | `docs/SESSION-STARTUP.md` |
 | 贡献指南 · 含用户拍板 gate | `CONTRIBUTING.md` |

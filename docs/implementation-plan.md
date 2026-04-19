@@ -108,16 +108,28 @@
 
 | 层 | 决策 | 锁定状态 | 备选 / fallback |
 |----|------|----------|------------------|
-| 桌面框架 | **Tauri 2** | **默认选用**，Spike Week 0 Day 1-2 硬通过后锁定 | Electron 28+（Spike 失败切回）|
+| 桌面框架 | **Tauri 2** | **锁定**（2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B pending caveat · ADR-006 accepted · CLAUDE.md A 栏 #19） | Electron 28+（Ubuntu Phase B 任一硬指标失败切回）|
 | 前端 | SolidJS + TypeScript + Vite | 锁定 | - |
 | 终端渲染 | xterm.js 5.5 | 锁定 | alacritty_terminal（v1.x 评估）|
-| PTY | portable-pty | 锁定 | - |
+| PTY | portable-pty + 共享读线程 + mpsc + drop-oldest | **锁定**（2026-04-19 session 10 · SPIKE-05/05.5 · ADR-003 accepted · CLAUDE.md A 栏 #15） | - |
 | Git 写 | git2 (vendored libgit2) | 锁定 | - |
-| Git 读 | **默认 git2**；Spike Day 3 benchmark 后若 gix 有显著增益再引入 gix | 未锁定 | 纯 git2 保底 |
-| 持久化 | **默认 redb**；Spike 后用真实数据量 benchmark 对比 rusqlite 再锁 | 未锁定 | rusqlite 保底 |
+| Git 读 | **gix 0.70**（读切 gix · 写保留 git2 · gix log -100 warm P99 比 git2 快 1973×） | **锁定**（2026-04-19 session 10 · SPIKE-03 · ADR-007 accepted · CLAUDE.md A 栏 #13） | 纯 git2 保底 |
+| 持久化 | **rusqlite 0.31+ + r2d2_sqlite**（redb 2.6.3 B.2 坏库检测 FAIL superseded） | **锁定**（2026-04-19 session 10 · SPIKE-04 + 04.5 · ADR-005 accepted · CLAUDE.md A 栏 #14） | - |
 | CSS | 原生 CSS + oklch token | 锁定 | - |
 | 构建 | Cargo workspace + pnpm | 锁定 | - |
 | 许可证 | **Apache 2.0** | 锁定 | - |
+
+#### 3.1.0 §3.1 changelog（session 10 末 · 2026-04-19）
+
+Session 10 Spike W0 macOS 全过后 · §3.1 表格 6 处锁定状态更新：
+
+- **Tauri 2 桌面框架**：`默认选用` → `锁定 with caveat`（macOS Phase A 强 PASS · Ubuntu Phase B pending · ADR-006 accepted · PR #50）
+- **PTY**：补 `共享读线程 + mpsc + drop-oldest` · `锁定`（ADR-003 accepted · SPIKE-05/05.5）
+- **Git 读**：`默认 git2` → `gix 0.70`· `锁定`（ADR-007 accepted · SPIKE-03 · gix 1973× 快）
+- **持久化**：`默认 redb` → `rusqlite 0.31+`· `锁定`（ADR-005 accepted · SPIKE-04 · redb B.2 坏库检测 FAIL superseded）
+- **新增 ADR-011**：Runtime evidence 路径 = `docs/runtime-evidence/<task-id>/`（PR #44/#45 · CLAUDE.md A 栏 #18）
+
+所有 Session 10 Spike accepted 的 ADR 均已同步 `CLAUDE.md` A 栏 + `docs/adr/README.md` 索引。未来新 Spike 通过后 · 三处一起更新是新规矩（CLAUDE.md 线 127 v2 要求）。
 
 #### 3.1.1 Tauri Spike 硬通过判据（Week 0 Day 1-2）
 

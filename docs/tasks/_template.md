@@ -140,13 +140,13 @@ evaluator 按此逐项对照 diff：
 | 层次 | 范围 | 覆盖路径 |
 |------|------|---------|
 | 单元 | `core/` Rust 逻辑 | `cargo test` |
-| 集成 | IPC + redb 交互 | `cargo test --features integration` |
+| 集成 | IPC + rusqlite 交互 | `cargo test --features integration` |
 | E2E | 用户流程 | Tauri webdriver + Playwright |
 | 视觉回归 | Calm Studio 主视觉 | Playwright screenshot diff |
 
 ## 💾 数据模型变更（如有）
 
-- redb table：`<name>`，key: `<type>`，value: `<type>`
+- rusqlite table：`<name>`，key: `<type>`，value: `<type>`
 - 迁移策略：backward-compat / break with migration script
 
 ---

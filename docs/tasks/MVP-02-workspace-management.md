@@ -2,7 +2,7 @@
 id: MVP-02
 type: mvp
 title: Workspace 管理 + 项目识别 + 多 workspace 并存
-status: draft
+status: ready
 owner:
 phase: W2-W3
 depends_on: ["MVP-01"]
@@ -39,13 +39,13 @@ reviewer:
 ## 🎨 功能范围（Scope）
 
 **Do**：
-- 创建 workspace：选择本地目录（系统文件对话框）→ 输入 workspace 名称（默认取目录名）→ 保存到 redb
+- 创建 workspace：选择本地目录（系统文件对话框）→ 输入 workspace 名称（默认取目录名）→ 保存到 rusqlite
 - 自动识别 git 仓库：目录含 `.git` → 标记为 `has_git: true` 并记录 repo root 路径
 - Workspace 列表：显示所有已创建的 workspace（名称 + 路径 + git 标记）
 - 打开 workspace：选中后进入 workspace 主视图（空白占位，MVP-03 接管布局）
 - 多 workspace 并存：可以同时打开多个 workspace，通过 Tab 或 sidebar 切换
 - 关闭 workspace：仅从当前 session 关闭，不删除记录
-- 删除 workspace：永久从 redb 移除（需二次确认对话框）
+- 删除 workspace：永久从 rusqlite 移除（需二次确认对话框）
 
 **Don't**（推后或不做）：
 - Workspace 分组 / 标签（v0.2+）
@@ -66,7 +66,7 @@ reviewer:
 - [ ] 从欢迎页或已有 workspace 的菜单触发"Create workspace"
 - [ ] 打开系统文件对话框（`tauri-plugin-dialog`），限制为"选择目录"
 - [ ] 目录选中后：自动填充 workspace 名称为目录名（可编辑）
-- [ ] 确认创建 → workspace 写入 redb `workspaces` table
+- [ ] 确认创建 → workspace 写入 rusqlite `workspaces` table
 - [ ] UUID v4 作为 `workspace_id`（由 core crate 生成）
 - [ ] 创建后立即打开该 workspace
 
@@ -87,15 +87,15 @@ reviewer:
 
 ### D. 持久化
 
-- [ ] 所有 workspace 元数据写入 redb `workspaces` table（schema 见下方）
+- [ ] 所有 workspace 元数据写入 rusqlite `workspaces` table（schema 见下方）
 - [ ] 应用退出 → 重启后，打开的 workspace 列表 + 顺序恢复（继承 MVP-01 崩溃恢复机制）
-- [ ] 已关闭但未删除的 workspace 仍在 redb 里，欢迎页可以"打开最近 workspace"
+- [ ] 已关闭但未删除的 workspace 仍在 rusqlite 里，欢迎页可以"打开最近 workspace"
 
 ### E. 删除 workspace
 
 - [ ] Workspace 菜单 → "Delete workspace"
 - [ ] 二次确认对话框："确定删除 X？（文件不会删，仅从 Vibestation 移除）"
-- [ ] 确认后从 redb 移除
+- [ ] 确认后从 rusqlite 移除
 - [ ] 若是最后一个 workspace → 回到欢迎页
 
 ### F. 边界情况
@@ -109,7 +109,7 @@ reviewer:
 | 层次 | 范围 | 覆盖路径 |
 |------|------|---------|
 | 单元（core）| workspace 元数据 CRUD + git 识别逻辑 | `cargo test -p vibestation-core workspace` |
-| 集成 | redb 读写 + Tauri IPC 对话框 | `cargo test --features integration` |
+| 集成 | rusqlite 读写 + Tauri IPC 对话框 | `cargo test --features integration` |
 | E2E | 完整流程：创建 → 打开 → 切换 → 删除 | Playwright 脚本 |
 | 手动 QA | 中文路径 / 无权限目录 / 网络盘 | §8.3 QA 清单 |
 

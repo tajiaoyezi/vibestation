@@ -2,8 +2,8 @@
 id: MVP-02
 type: mvp
 title: Workspace 管理 + 项目识别 + 多 workspace 并存
-status: ready
-owner:
+status: done
+owner: OpenCode
 phase: W2-W3
 depends_on: ["MVP-01"]
 blocks: ["MVP-03", "MVP-04", "MVP-07"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1 · §3.1
 risk_ref:
-reviewer:
+reviewer: Claude Code (Opus 4.7 · session 10 · Arbiter Option C · 2026-04-19)
 ---
 
 # MVP-02: Workspace 管理 + 项目识别

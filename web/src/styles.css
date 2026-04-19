@@ -258,6 +258,7 @@ body,
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.02em;
+  grid-column: 1 / -1;
 }
 
 .vs-diag-ok {
@@ -266,4 +267,320 @@ body,
 
 .vs-diag-error {
   color: var(--danger);
+}
+
+/* === MVP-02 Layout: sidebar + main === */
+
+.vs-root {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: 1fr auto;
+  min-height: 100vh;
+}
+
+.vs-sidebar {
+  grid-row: 1;
+  grid-column: 1;
+  background: var(--bg-1);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.vs-sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.vs-sidebar-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vs-btn-icon {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--text-1);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-6);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.vs-btn-icon:hover {
+  background: oklch(0.78 0.13 230 / 0.22);
+  transform: translateY(-1px);
+}
+
+.vs-btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vs-ws-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2) 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.vs-ws-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-ws-item:hover {
+  background: var(--bg-2);
+}
+
+.vs-ws-item-active {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+
+.vs-ws-name {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-ws-delete {
+  appearance: none;
+  border: none;
+  background: none;
+  color: var(--text-4);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  border-radius: var(--r-4);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.vs-ws-item:hover .vs-ws-delete {
+  opacity: 1;
+}
+
+.vs-ws-delete:hover {
+  color: var(--danger);
+  background: oklch(0.72 0.19 25 / 0.12);
+}
+
+.vs-git-badge {
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: var(--r-4);
+  padding: 0 var(--space-1);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+.vs-empty-hint {
+  padding: var(--space-4) var(--space-3);
+  color: var(--text-4);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* === Main content area === */
+
+.vs-main {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.vs-welcome {
+  align-self: center;
+  justify-self: center;
+  max-width: 520px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  margin: auto;
+  padding: var(--space-7) var(--space-6);
+}
+
+/* === Workspace view === */
+
+.vs-workspace-view {
+  padding: var(--space-6);
+}
+
+.vs-ws-heading {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  color: var(--text-1);
+}
+
+.vs-ws-path {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-3);
+  margin: 0 0 var(--space-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.vs-ws-git-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+}
+
+.vs-ws-repo-root {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.vs-ws-placeholder {
+  color: var(--text-4);
+  font-size: 0.8125rem;
+  margin: var(--space-6) 0 0;
+}
+
+/* === Error bar === */
+
+.vs-error-bar {
+  position: fixed;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  background: oklch(0.72 0.19 25 / 0.15);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-8);
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  z-index: 100;
+}
+
+.vs-error-dismiss {
+  appearance: none;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 var(--space-1);
+}
+
+/* === Delete confirmation modal === */
+
+.vs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.vs-modal {
+  background: var(--bg-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-8);
+  padding: var(--space-6);
+  max-width: 400px;
+  width: 90%;
+}
+
+.vs-modal h3 {
+  margin: 0 0 var(--space-3);
+  font-size: 1rem;
+  color: var(--text-1);
+}
+
+.vs-modal p {
+  margin: 0 0 var(--space-5);
+  color: var(--text-2);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.vs-modal-actions {
+  display: flex;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+
+.vs-btn-danger {
+  appearance: none;
+  border: 1px solid var(--danger);
+  background: oklch(0.72 0.19 25 / 0.15);
+  color: var(--danger);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-btn-danger:hover {
+  background: oklch(0.72 0.19 25 / 0.25);
+}
+
+.vs-btn-secondary {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-btn-secondary:hover {
+  background: var(--bg-3);
 }

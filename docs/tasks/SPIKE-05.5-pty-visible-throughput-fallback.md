@@ -2,8 +2,8 @@
 id: SPIKE-05.5
 type: spike
 title: PTY visible throughput + per-session fallback 对照
-status: ready
-owner:
+status: in-progress
+owner: Codex CLI
 phase: W0-D5.5
 depends_on: ["SPIKE-05"]
 blocks: ["SPIKE-06"]
@@ -15,7 +15,7 @@ reviewer:
 
 # SPIKE-05.5: PTY visible throughput + per-session fallback 对照
 
-> **状态**：`ready`
+> **状态**：`in-progress`
 > **依赖**：SPIKE-05（shared-reader HOL / boundedness 已有基线） / **阻塞**：SPIKE-06（CLI 实机依赖可接受的可见吞吐）
 > **战略依据**：[`implementation-plan.md §附录 A D5`](../implementation-plan.md)
 

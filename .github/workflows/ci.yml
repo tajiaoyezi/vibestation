@@ -99,16 +99,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-        # 版本从 package.json 的 packageManager 字段读取（精确 pnpm@9.15.9 · 版本冻结）
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: "20"
-          # 故意不用 cache: pnpm · setup-node 的 pnpm cache 机制可能调用 runner 默认
-          # 旧版 pnpm · 与项目锁定的 9.15.9 冲突 · 导致 ERR_PNPM_BROKEN_LOCKFILE。
+
+      - name: Enable pnpm 9.15.9 via corepack
+        # Node 内建 corepack · 显式 activate pnpm@9.15.9（和 package.json
+        # packageManager 字段完全一致 · 避免 pnpm/action-setup@v6 版本识别歧义
+        # 历史：v6 在 runner 上实测会 fallback 到 runner 预装旧版本 pnpm ·
+        # 把 lockfileVersion: '9.0' 解析成 broken（expected a single document）。
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          echo "pnpm version: $(pnpm --version)"
+          echo "node version: $(node --version)"
 
       - name: Cache pnpm store
         uses: actions/cache@v5

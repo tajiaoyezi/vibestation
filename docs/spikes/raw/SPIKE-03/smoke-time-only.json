@@ -1,0 +1,142 @@
+{
+  "repo_path": "/tmp/linux-kernel",
+  "cold_samples": 0,
+  "warm_samples": 1,
+  "count_all_cold_samples": 0,
+  "count_all_warm_samples": 0,
+  "purge_command": null,
+  "runs": [
+    {
+      "engine": "git2",
+      "scenario": "log100",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "git2",
+      "scenario": "log100",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 22866.908083,
+          "visited": 100,
+          "checksum": 8941918764469754561
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log1000",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "git2",
+      "scenario": "log1000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 18158.398417,
+          "visited": 1000,
+          "checksum": 1818727283729052649
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "log10000",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "git2",
+      "scenario": "log10000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 19732.084874999997,
+          "visited": 10000,
+          "checksum": 12072867512429203828
+        }
+      ]
+    },
+    {
+      "engine": "git2",
+      "scenario": "count-all",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "git2",
+      "scenario": "count-all",
+      "mode": "warm",
+      "samples": []
+    },
+    {
+      "engine": "gix",
+      "scenario": "log100",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "gix",
+      "scenario": "log100",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 12.399208,
+          "visited": 100,
+          "checksum": 3558916982103386694
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log1000",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "gix",
+      "scenario": "log1000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 33.688458,
+          "visited": 1000,
+          "checksum": 424675672921892546
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "log10000",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "gix",
+      "scenario": "log10000",
+      "mode": "warm",
+      "samples": [
+        {
+          "duration_ms": 241.72650000000002,
+          "visited": 10000,
+          "checksum": 14946133349410658478
+        }
+      ]
+    },
+    {
+      "engine": "gix",
+      "scenario": "count-all",
+      "mode": "cold",
+      "samples": []
+    },
+    {
+      "engine": "gix",
+      "scenario": "count-all",
+      "mode": "warm",
+      "samples": []
+    }
+  ]
+}

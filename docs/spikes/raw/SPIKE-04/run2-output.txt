@@ -1,0 +1,145 @@
+    Finished `release` profile [optimized] target(s) in 0.11s
+     Running `target/release/spike-04-storage-bench`
+SPIKE-04 Phase A: Storage Benchmark + git2 Write Smoke
+Total rows: 10000000 (10.0M)
+Schema: key=12B, value=72B, row=84B
+
+============================================================
+  Hardware & Environment
+============================================================
+Rust toolchain: rustc 1.95.0 (59807616e 2026-04-14)
+CPU: Apple M2 Max
+RAM: 34.4 GB
+Temp dir: /var/folders/bh/mr3q2jh15z10gtqhjbxml_qw0000gn/T/.tmpwlNWEn
+sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+sudo: a password is required
+[macOS] Attempting purge... failed (non-zero exit)
+
+============================================================
+  redb 2 Benchmark
+============================================================
+
+--- redb: Bulk write 10000000 rows ---
+Writing 10000000 rows in single transaction...
+  workspace 0: 1877.23ms (1000000 rows)
+Total write time: 32.69s
+Throughput: 305872 rows/s
+redb DB file size: 2156408832 bytes (2.01 GB)
+
+--- redb: Point read (10000 random keys) ---
+
+--- redb: Range scan (1 workspace × 100 profiles) ---
+  Range scan workspace 5: 1000000 rows in 94.324ms
+  Range scan workspace 5: 1000000 rows in 44.870ms
+  Range scan workspace 5: 1000000 rows in 41.304ms
+  Range scan workspace 5: 1000000 rows in 42.189ms
+  Range scan workspace 5: 1000000 rows in 41.652ms
+  Range scan workspace 5: 1000000 rows in 42.387ms
+  Range scan workspace 5: 1000000 rows in 47.039ms
+  Range scan workspace 5: 1000000 rows in 41.800ms
+  Range scan workspace 5: 1000000 rows in 46.902ms
+  Range scan workspace 5: 1000000 rows in 47.664ms
+sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+sudo: a password is required
+[macOS] Attempting purge... failed (non-zero exit)
+
+============================================================
+  rusqlite Benchmark
+============================================================
+
+--- rusqlite: Bulk write 10000000 rows ---
+Writing 10000000 rows with WAL + synchronous=FULL...
+  workspace 0 / 10 written...
+  workspace 3 / 10 written...
+  workspace 6 / 10 written...
+  workspace 9 / 10 written...
+Total write time: 9.12s
+Throughput: 1096911 rows/s
+rusqlite DB file size: 1040728064 bytes (992.52 MB)
+
+--- rusqlite: Point read (10000 random keys) ---
+
+--- rusqlite: Range scan (1 workspace × 100 profiles) ---
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 118.644ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 115.092ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 116.923ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 118.046ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 119.673ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 117.859ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 117.967ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 115.294ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 116.433ms
+  Range scan workspace 5: fetched 1000000 rows (count=1000000) in 115.418ms
+
+============================================================
+  Results Comparison
+============================================================
+
+| Scenario | Engine | P50 | P99 | Mean | Std | Pass? |
+|---|---|---|---|---|---|---|
+| Bulk write 10M | redb | 32693.403ms | 32693.403ms | 32693.403ms | 0.000ms | ✅ (P99<60s) |
+| Bulk write 10M | rusqlite | 9116.509ms | 9116.509ms | 9116.509ms | 0.000ms | ✅ (P99<60s) |
+| Point read | redb | 0.004ms | 0.009ms | 0.004ms | 0.002ms | ✅ (P99<5ms) |
+| Point read | rusqlite | 0.005ms | 0.011ms | 0.005ms | 0.002ms | ✅ (P99<5ms) |
+| Range scan | redb | 44.870ms | 94.324ms | 49.013ms | 15.286ms | ❌ (P99<50ms) |
+| Range scan | rusqlite | 117.859ms | 119.673ms | 117.135ms | 1.477ms | ❌ (P99<50ms) |
+
+| Engine | DB size (raw) | DB size (formatted) |
+|---|---|---|
+| redb | 2156408832 bytes | 2.01 GB |
+| rusqlite | 1040728064 bytes | 992.52 MB |
+
+============================================================
+  git2 Write Smoke Test
+============================================================
+commit hash: bbaee4da71589eff32498337f201f7bed3db72de
+author: SPIKE-04 <spike@vibestation.test>
+committer: SPIKE-04 <spike@vibestation.test>
+message: test: 中文 commit 测试 🎉
+message_len: 31 bytes
+tree: b32729298984f325d0514c971107231d966656df
+parents: 0
+utf8_valid: true
+has_chinese: true
+has_emoji: true
+
+--- git2 verification log ---
+commit bbaee4da71589eff32498337f201f7bed3db72de
+Author: SPIKE-04 <spike@vibestation.test>
+
+    test: 中文 commit 测试 🎉
+
+✅ init temp repo: OK
+✅ add + commit: OK · hash = bbaee4da71589eff32498337f201f7bed3db72de
+✅ UTF-8 commit message: OK
+   git log output:
+commit hash: bbaee4da71589eff32498337f201f7bed3db72de
+author: SPIKE-04 <spike@vibestation.test>
+committer: SPIKE-04 <spike@vibestation.test>
+message: test: 中文 commit 测试 🎉
+message_len: 31 bytes
+tree: b32729298984f325d0514c971107231d966656df
+parents: 0
+utf8_valid: true
+has_chinese: true
+has_emoji: true
+
+--- git2 verification log ---
+commit bbaee4da71589eff32498337f201f7bed3db72de
+Author: SPIKE-04 <spike@vibestation.test>
+
+    test: 中文 commit 测试 🎉
+
+✅ author/committer: SPIKE-04 <spike@vibestation.test>
+
+============================================================
+  Verification Checklist
+============================================================
+- [x] redb 1000 万行写入 P99 < 60s (actual: 32.69s)
+- [x] redb 单键读 P99 < 5ms (actual: 0.009ms)
+- [ ] redb 范围查询 P99 < 50ms (actual: 94.324ms)
+- [x] rusqlite 同场景数据齐全
+- [ ] 方差 < 50% (需多次运行确认)
+- [ ] git2 中文 commit 无乱码
+
+Benchmark complete.

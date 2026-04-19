@@ -253,7 +253,7 @@
 
 ### Session 6（2026-04-18 晚上-夜）· Codex 三轮评审 + PR #17 缩范围 + PR #18 ready 翻转 + 后续修复
 - **Codex round-1 评审**：作为新接手 agent 视角评估 onboarding 就绪度（7/10），命中 5 项问题（入口文档过期 / `§5.4` 断链 / `§512` 笔误 / `ready=0` 流程阻塞 / 分支保护未应用）
-- **新增 onboarding 评估文档**：`docs/agent-onboarding-readiness-assessment.md`（codex 重写 · 7/10 · 已加 historical snapshot banner + 二次复审段落）
+- **新增 onboarding 评估文档**：codex 重写 · 7/10 · 已加 historical snapshot banner + 二次复审段落（文档已于 2026-04-19 随 md 盘点清理删除 · 根本原因与改进已被 PR #17/#18 吸收）
 - **PR #17 v1（已废弃）→ v2（已 merge `68c0c21`）**：
   - v1 试图一次修全 5 项 + AGENTS 重写 + §5.4 增补 + 翻转 ready
   - Codex round-2 BLOCK：3 CRITICAL（ready 翻转绕过 gate · SESSION-STARTUP 同步未完 · §5.4 虚构内容）+ 3 HIGH + 3 MEDIUM + 2 LOW
@@ -269,7 +269,7 @@
   - PROGRESS.md 状态字段反映 PR #18 已 merge + 内部矛盾修复（line 122 阶段切换信号表）
   - SESSION-STARTUP.md 中段同步（SPIKE-01 status / 仓库结构 task spec 数量）
   - docs/tasks/README.md 第 7 步加 "(b) 路径变种" 正式定义（分支保护暂缓阶段合规说明）
-  - project-status-overview-2026-04-18.md 纳入仓库（项目梳理报告归档）
+  - 2026-04-18 项目梳理快照纳入仓库（已于 2026-04-19 随 md 盘点清理删除 · 滚动状态由本 PROGRESS.md 承接）
 - **§5.4 战略章节决定**：按 YAGNI 推迟到 v0.2 kickoff（届时需要数据流 / IPC / 状态机的实施级细节，现在写就是过早优化；当前 4 MVP 用 §10.1 workaround）
 - **AGENTS.md 重写**：纠正 codex 自动生成版本的"Claude 名替换错乱 + 阶段过期"双 bug，改为工具无关的极简入口（路由 + 关键约束摘录），权威单文件入口仍指向 CLAUDE.md
 

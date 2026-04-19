@@ -1,0 +1,12 @@
+# SPIKE-06 · gitleaks 配置
+#
+# 原则（按 spec §A.5.3）:
+# - 优先在样本 commit 行加 `# gitleaks:allow` 注释（gitleaks 原生忽略）
+# - 次选：本文件加精准 allowlist 规则
+# - 禁止: 整体 disable rule type / 关闭 workflow
+#
+# 本 PR 1 (harness 起手) 无 false positive · 本文件保留空 extend
+# PR 2 按需补 allowlist（例：EXAMPLE/REPO 占位符若被误判）
+
+[extend]
+useDefault = true

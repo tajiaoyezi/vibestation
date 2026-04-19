@@ -36,21 +36,34 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
 
 ## 决策
 
-**选择（proposed · pending SPIKE-02）**：
-- **默认**：`Tauri 2`（最新稳定 2.x）
-- **Fallback**：`Electron 28+`（SPIKE-02 硬通过矩阵任一失败则切换）
+**已选（accepted · 2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B pending caveat）**：
+- **锁定**：`Tauri 2`（最新稳定 2.x · macOS 路径生产可用）
+- **Caveat**：Ubuntu Phase B（Wayland + X11）待环境补验证 · 不阻塞 macOS 开发
+- **Fallback**：`Electron 28+`（仅 Ubuntu Phase B 任一硬指标失败时触发 supersede 本 ADR）
 
-**SPIKE-02 硬通过矩阵**（必须全过才锁定 Tauri 2）：
-- [ ] mac / Ubuntu Wayland / Ubuntu X11 三平台冷启动全过目标
-- [ ] IME（中文 / 日文）三平台正常
-- [ ] `tauri-plugin-clipboard` / `fs` / `updater` 3 个 plugin smoke test 通过
-- [ ] Tauri WebView 主线程阻塞 ≤ 16ms（60fps · 多 Tab `yes` 压测）
-- 任一失败 → fallback Electron 28+
+### 已通过的决策依据（macOS Phase A · 2026-04-18/19）
+
+详见 § Ubuntu Phase B caveat 段落（本 ADR 下方）的"已通过的决策依据"列表。
+
+### Ubuntu Phase B 触发 fallback 的条件（supersede 门槛）
+
+详见 § Ubuntu Phase B caveat 段落（本 ADR 下方）的"Ubuntu Phase B 触发 fallback 的条件"列表。
+
+### 原始 gate（历史前提 · 已被 macOS Phase A 强证据超越）
+
+session 10 末升级 accepted 之前 · 原本设计的锁定 gate 是 **"SPIKE-02 三平台硬通过矩阵全过"**：
+- ~~mac / Ubuntu Wayland / Ubuntu X11 三平台冷启动全过目标~~
+- ~~IME（中文 / 日文）三平台正常~~
+- ~~`tauri-plugin-clipboard` / `fs` / `updater` 3 个 plugin smoke test 通过~~
+- ~~Tauri WebView 主线程阻塞 ≤ 16ms~~
+
+session 10 末决策：macOS Phase A 已覆盖冷启动 / IME 中文 / plugin clipboard+fs / bundle 四大维度 · 强信号足够主导决策 · Ubuntu Phase B 降级为 caveat（不阻塞锁定 · 失败触发 supersede）· updater 推到 SPIKE-06（Apple Dev key 依赖 · 独立 track）· 日文 IME 用户决策全平台 skip。
 
 **理由**：
 1. **包体 / 冷启动 / 内存**：三项 Tauri 2 显著优于 Electron · 用户体验直接受益
 2. **Rust 后端原生集成**：IPC 与业务 Rust crate 无缝
-3. **风险前置**：R12（Tauri 桌面框架 CRITICAL）被 SPIKE-02 硬验证消除 · fallback Electron 成熟稳妥
+3. **风险前置**：R12（Tauri 桌面框架 CRITICAL）被 SPIKE-01/02 Phase A macOS 强证据大幅降级 · Ubuntu Phase B caveat 保留兜底
+4. **Fallback 路径清晰**：Electron 是业界标准 · 若 Ubuntu Phase B 栽了 · 切换是"加 60MB 包 + 追 1-2 周工期"而非架构 rewrite
 
 ## 后果
 
@@ -108,7 +121,7 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
 本 PR (#50) 是 `CLAUDE.md` 线 127 v2-D 升级的**第一个 follower** · 按 v2-D §2 (a) 标准记录 audit trail：
 
 **Implemented by**：Claude Code (Opus 4.7 · session 10 终极末)
-**Reviewed by**：Claude Code (Opus 4.7 · 内部 self-review · 单人项目限制 · 未来加入第二 admin 后切 v2-strict GitHub UI approve)
+**Reviewed by**：Claude Code (Opus 4.7 · **self-review** · 单人项目模式 · 按 CLAUDE.md 线 127 v2-D §2 定义 · 非"独立评审" · 未来触发 v2-strict 后升级为 reviewer ≠ implementer)
 **Arbiter approve**：tajiaoyezi · 2026-04-19 · dialogue 原文："1. Issue 3 ：b · 2. H-2 ：c"
 
 完整 dialogue context：

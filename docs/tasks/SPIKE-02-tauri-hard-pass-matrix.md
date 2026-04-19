@@ -29,7 +29,7 @@ reviewer: User (Arbiter · GitHub PR approve)
 
 - SPIKE-01 只做了"启动 + 渲染 + IME 初测"3 项基础验收
 - §3.1.1 还有"10 次零失败、剪贴板、bundle 大小、plugin smoke test"4 项判据未验
-- **W0 结束前必须锁定桌面框架**（`CLAUDE.md` 决策表 #12 从 B 栏 → A 栏），否则 W1 MVP 开发无法启动
+- **桌面框架已锁定**（session 10 末 · macOS Phase A 强 PASS · `CLAUDE.md` 决策表 A 栏 #19 · ADR-006 accepted with Ubuntu caveat）· Phase B Ubuntu 待环境补验证（不阻塞 W1 MVP · 失败则 supersede 切 Electron）
 - 对应 `implementation-plan.md §9 R12`：CRITICAL 风险消除最后一关
 
 ---
@@ -80,8 +80,8 @@ Electron 路径：
 - [ ] 三平台 30 次启动日志汇总（csv / markdown 表）
 - [ ] IME 录屏 × 6（3 平台 × 2 语种）
 - [ ] Bundle 产物体积截图
-- [ ] **ADR-006 草稿**：桌面框架锁定依据（Tauri 或 Electron · `docs/adr/ADR-006-desktop-framework.md` 已 proposed · Spike 通过后 proposed → accepted）
-- [ ] **`CLAUDE.md` 更新 PR**：决策表 #12 B → A
+- [x] **ADR-006**：桌面框架锁定 · accepted with Ubuntu caveat（PR #50 @ 2026-04-19 session 10 末）
+- [x] **`CLAUDE.md` 更新**：决策表 B 栏 #12 升级到 A 栏 #19（PR #50 @ 2026-04-19）
 
 ## 🛠 依赖资源（Resources Needed）
 
@@ -106,8 +106,8 @@ Electron 路径：
 
 ## 🔗 相关
 
-- ADR：`docs/adr/ADR-006-desktop-framework.md`
-- 对应 `CLAUDE.md` 决策表：**#12 桌面框架**（Day 2 结束后移入 A 栏）
+- ADR：[`docs/adr/ADR-006-desktop-framework.md`](../adr/ADR-006-desktop-framework.md)（accepted with Ubuntu caveat @ 2026-04-19 · session 10 末升级）
+- 对应 `CLAUDE.md` 决策表：**A 栏 #19 桌面框架 = Tauri 2**（原 B 栏 #12 session 10 末升级）
 - `implementation-plan.md` 章节：§3.1.1 · §附录 A D1-D2 · §9 R12
 - 上游：SPIKE-01
 - 下游：SPIKE-03..06

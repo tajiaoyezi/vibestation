@@ -213,7 +213,7 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 🔴 硬约束（违反即 BLOCK PR merge · 不是建议）
 
-<从上面 7 条 + task-specific 翻译成 prompt 语言 · 简洁列出>
+<从上面 8 条 + task-specific 翻译成 prompt 语言 · 简洁列出>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

@@ -2,22 +2,32 @@
 id: SPIKE-05
 type: spike
 title: portable-pty 单读线程 + mpsc + xterm 4-Tab 压测
-status: draft
-owner:
+status: done
+owner: Codex CLI
 phase: W0-D5
 depends_on: ["SPIKE-02"]
 blocks: ["SPIKE-06"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D5 · §3.1
 risk_ref:
-reviewer:
+reviewer: User (Arbiter · GitHub PR approve)
 ---
 
 # SPIKE-05: portable-pty + xterm 多 Tab 压测
 
-> **状态**：`draft`
+> **状态**：`done`（2026-04-19 · Codex CLI 实测 · HOL / boundedness 通过，但 visible throughput 未过门槛）
 > **依赖**：SPIKE-02（桌面框架已锁定）/ **阻塞**：SPIKE-06（Claude CLI 实机要跑在 PTY 里）
+> **报告**：[`docs/spikes/SPIKE-05-report.md`](../spikes/SPIKE-05-report.md)
+> **源码总结**：[`docs/spikes/code/SPIKE-05/SUMMARY.md`](../spikes/code/SPIKE-05/SUMMARY.md)
+> **关联 ADR**：[`ADR-003`](../adr/ADR-003-pty-architecture.md)
 > **战略依据**：[`implementation-plan.md §附录 A D5`](../implementation-plan.md)
+
+## 📌 执行结论（本 Spike 实测结果）
+
+- ✅ **HOL / boundedness 通过**：B.1 / B.2 / B.3 / B.4.1 / B.4.2 / B.4.3 都拿到有效证据，未复现 shared-reader head-of-line blocking。
+- ✅ **内存有界**：10 分钟 soak 与 hidden-tab 场景 RSS 增长都 < 1 MB，bounded queue + drop-oldest 生效。
+- ❌ **visible throughput 未过门槛**：单 Tab UI drain 中位约 **8.34 MB/s**，4 Tab 总 UI drain 中位约 **16.38 MB/s**，低于 spec 的 20 / 40 MB/s。
+- ⚠️ **决策表 #15 暂不锁定**：ADR-003 继续保持 `proposed`，follow-up 见 [`SPIKE-05.5`](./SPIKE-05.5-pty-visible-throughput-fallback.md)。
 
 ---
 

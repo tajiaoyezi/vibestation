@@ -1,6 +1,6 @@
-# ADR-003: PTY 架构 = portable-pty + 共享读线程 + mpsc（pending SPIKE-05）
+# ADR-003: PTY 架构 = portable-pty + 共享读线程 + mpsc（pending SPIKE-05.5）
 
-**状态**：**proposed**（pending [SPIKE-05](../tasks/SPIKE-05-pty-multi-tab.md) 通过后升级为 accepted）
+**状态**：**proposed**（SPIKE-05 已完成 HOL / boundedness 验证，但 visible throughput 未过门槛；pending [SPIKE-05.5](../tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) 后再决定是否 accepted）
 **日期**：2026-04-18（Phase 1 默认选 · Phase 3 ADR 建立）
 **决策者**：项目发起人 · 多 agent 评审 · 待 SPIKE-05 Arbiter 仲裁（若失败）
 **对应 `CLAUDE.md` 决策表**：#15（B 档，Spike 后锁定）
@@ -44,7 +44,7 @@
 
 ## 决策
 
-**选择（proposed · pending SPIKE-05）**：
+**选择（proposed · pending SPIKE-05.5）**：
 - **PTY 库**：`portable-pty 0.8+`
 - **读取架构**：**B · 共享读线程 + mpsc bounded channel**（drop-oldest / drop-newest 策略二选一，**禁止 block-producer**）
 - **Fallback**：若 SPIKE-05 的 B.4 一慢拖全部测试失败 → 切到 **A · 每 session 一线程**
@@ -72,6 +72,20 @@
 - **SPIKE-05 任一 HOL 子场景失败** → 切 per-session（fallback 明确）
 - **portable-pty 平台 bug**（如 macOS 特殊 PTY 行为）→ 调查修复 · 或换 `pty-process`（成本：不大）
 
+## SPIKE-05 结果摘要（2026-04-19）
+
+SPIKE-05 已把“共享读线程会不会 HOL / OOM”这个问题基本回答清楚：
+
+- ✅ **HOL 未复现**：B.4.1 / B.4.2 / B.4.3 都没有把 Tab 2/3/4 拖挂。
+- ✅ **bounded queue 生效**：10 分钟 soak / hidden-tab 场景 RSS 增长都 < 1 MB，队列深度始终封顶在 256。
+- ❌ **visible throughput 未过门槛**：单 Tab UI drain 中位约 8.34 MB/s、4 Tab 总 UI drain 中位约 16.38 MB/s，低于 spec 的 20 / 40 MB/s。
+
+因此，SPIKE-05 不能把本 ADR 提升为 `accepted`。当前更合理的解读是：
+
+> shared-reader 在隔离性 / boundedness 上是可行的，但还不能证明它能满足 Vibestation 的“可见吞吐”要求。
+
+下一步应由 [`SPIKE-05.5`](../tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) 对比 **shared-reader vs per-session reader**，确认 visible throughput 的真实瓶颈后，再决定本 ADR 是否接受或 fallback。
+
 ## 与 `implementation-plan.md` 的映射
 
 - 对应章节：§3.1（技术栈选型）· §附录 A D5（Spike 计划）
@@ -86,4 +100,5 @@
 ---
 
 **修订历史**：
-- 2026-04-18 · 初版 · Claude Code · status: proposed · 等 SPIKE-05 通过后改为 accepted
+- 2026-04-18 · 初版 · Claude Code · status: proposed · 等 SPIKE-05 后续验证
+- 2026-04-19 · 补记 SPIKE-05 结果 · HOL / boundedness pass，visible throughput fail · 继续保持 proposed，等待 SPIKE-05.5

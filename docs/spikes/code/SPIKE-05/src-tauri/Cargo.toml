@@ -1,0 +1,22 @@
+[package]
+name = "spike-05-pty"
+version = "0.1.0"
+description = "SPIKE-05 · portable-pty + xterm multi-tab benchmark harness"
+authors = ["Vibestation Project"]
+edition = "2021"
+
+[lib]
+name = "spike_05_pty_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+libc = "0.2"
+mio = { version = "1", features = ["os-ext", "os-poll"] }
+portable-pty = "0.9"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+

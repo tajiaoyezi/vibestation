@@ -10,12 +10,12 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（PR #22 merged · SPIKE-02 Phase A done · PR #23/#24/#25 待 merge）| 分支切换 |
+| **Active branch** | `spike/SPIKE-05-done`（SPIKE-05 交付 / 元数据恢复 PR 分支）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status`（不在此处硬编码）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **SPIKE-04.5 下发给 opencode**（rusqlite B.1-5 实测 · 真 close R27）· 并行：SPIKE-01/02 Phase B Ubuntu 等环境 · SPIKE-05/06 按需推进 | session end |
-| **Blocked by** | SPIKE-04.5（R27 真实 close）· SPIKE-01/02 Phase B（Ubuntu 环境）| 阻塞变化 |
+| **Next concrete action** | **SPIKE-05.5 ready 待启动**（visible throughput + per-session fallback 对照）· 并行：SPIKE-04.5 rusqlite B.1-5 · SPIKE-01/02 Phase B Ubuntu 等环境 | session end |
+| **Blocked by** | SPIKE-04.5（R27 真实 close）· SPIKE-05.5（PTY visible throughput 真正锁定）· SPIKE-01/02 Phase B（Ubuntu 环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
 
@@ -23,7 +23,7 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 Day 1-4 进行中** · SPIKE-01/02 Phase A macOS done · SPIKE-03 done · SPIKE-04 done · SPIKE-04.5 ready 待下发 · Phase B Ubuntu 等环境
+**阶段**：**Spike W0 Day 1-5 进行中** · SPIKE-01/02 Phase A macOS done · SPIKE-03 done · SPIKE-04 done · **SPIKE-05 done（HOL / boundedness pass · visible throughput pending）** · SPIKE-04.5 / SPIKE-05.5 待推进 · Phase B Ubuntu 等环境
 **日期**：2026-04-19（session 7）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（按时间顺序）**：
@@ -143,8 +143,9 @@
 3. **W0-D3** · [SPIKE-03](./tasks/SPIKE-03-git2-gix-read-benchmark.md) · ✅ **done（PR #23 待 merge）** · 结论 (B) 读切 gix · 写保留 git2
 4. **W0-D4** · [SPIKE-04](./tasks/SPIKE-04-storage-benchmark.md) · ✅ **done（PR #24 待 merge）** · 结论 (B) 锁 rusqlite（redb 2.6.3 B.2 FAIL）
 5. **W0-D4.5** · [SPIKE-04.5](./tasks/SPIKE-04.5-rusqlite-safety-verification.md) · 🟡 **ready · 待下发 opencode（PR #25 待 merge · session 7 新建）** · rusqlite B.1-5 on rusqlite · 真 close R27
-6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · draft · 按需推进（B.4 三子场景 HOL）
-7. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key）
+6. **W0-D5** · [SPIKE-05 portable-pty 多 Tab 压测](./tasks/SPIKE-05-pty-multi-tab.md) · ✅ **done** · shared-reader **HOL / boundedness pass** · **visible throughput fail**（ADR-003 继续 proposed）
+7. **W0-D5.5** · [SPIKE-05.5 PTY visible throughput + per-session fallback 对照](./tasks/SPIKE-05.5-pty-visible-throughput-fallback.md) · 🟡 **ready** · SPIKE-05 follow-up（解决 visible throughput） 
+8. **W0-D6** · [SPIKE-06 Claude/Codex CLI + Apple Dev Program](./tasks/SPIKE-06-cli-protocol-and-codesign.md) · draft · 按需推进（R1 + updater 签名 key）
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。
 
@@ -157,7 +158,8 @@
 
 - **SPIKE-04.5 必做 · R27 真实未 close**：SPIKE-04 只证明 redb 不行 · rusqlite 的 B.1-5 待实测 · 不补完不能声称"存储层安全 ready for MVP"
 - **MVP spec 中 `redb` 字样历史**（MVP-01/02/03/05/06/10/19 · 共 7 个）：暂不改 spec 正文（YAGNI）· 实施时以 ADR-005（rusqlite）为准 · 届时 PR 触发 API-level 改动
-- **Ubuntu 24 环境缺失**（SPIKE-01/02 Phase B 前置）· 阻塞 SPIKE-01/02 full done · 继而阻塞 SPIKE-05/06
+- **Ubuntu 24 环境缺失**（SPIKE-01/02 Phase B 前置）· 阻塞 SPIKE-01/02 full done · 继而阻塞 SPIKE-06 cross-platform 结论
+- **SPIKE-05 结论尚未锁定到 ADR-003**：HOL + boundedness 已过，但 visible throughput 仍需 SPIKE-05.5 对照 shared-reader vs per-session
 - **分支保护已显式暂缓**（用户表态 · 单人 + Codex review 模式下不致命 · 升级触发条件见上方 §🔐 用户手动步骤）
 - **R1 Claude/Codex CLI 协议**：SPIKE-06 样本录制 · R1 降级须经 SPIKE-07 parser 验证 + ADR-011
 - **R12 CRITICAL Tauri Wayland**：macOS Phase A 强信号 · Wayland 风险仍在（SPIKE-01/02 Phase B 兜底）
@@ -170,8 +172,8 @@
 |------|------|
 | ✅ Phase 1-4 Pre-code 完备 | **已达成**（2026-04-18 session 5 · 4 PR 全 merge）|
 | ✅ Spike W0 启动 | **已达成**（session 7 · 首行 Rust 代码 · SPIKE-01 Phase A PASS）|
-| 🟡 Spike W0 部分完成 | session 7 进行中：SPIKE-01/02 Phase A macOS done · SPIKE-03/04 done · SPIKE-04.5 待开工 · SPIKE-05/06 按需 |
-| 🟡 Spike Pass（全 done） | SPIKE-01/02 Phase B Ubuntu + SPIKE-04.5 + SPIKE-05/06 全过 + Apple 申请 |
+| 🟡 Spike W0 部分完成 | session 7 进行中：SPIKE-01/02 Phase A macOS done · SPIKE-03/04/05 done · SPIKE-04.5 / SPIKE-05.5 待推进 · SPIKE-06 按需 |
+| 🟡 Spike Pass（全 done） | SPIKE-01/02 Phase B Ubuntu + SPIKE-04.5 + SPIKE-05.5 + SPIKE-06 全过 + Apple 申请 |
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede |
 | 🟡 MVP 实施启动 | Spike W0 + ADR-003/005/006/007 proposed → accepted |
 | 🎯 v0.1 GA | MVP-01..10 全过 §10.1 + §10.6 终端正确性矩阵 + §10.3 跨平台 |

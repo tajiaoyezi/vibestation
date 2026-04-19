@@ -158,7 +158,7 @@ reviewer: User (Arbiter · GitHub PR approve)
 
 ## 🔗 相关
 
-- 对应 `CLAUDE.md` 决策表：**#5 Cargo workspace 2 crate**（A 栏）· **#6 前端栈 SolidJS**（A 栏）· **#12 桌面框架**（B 栏 → SPIKE-02 锁定）
+- 对应 `CLAUDE.md` 决策表：**#5 Cargo workspace 2 crate**（A 栏）· **#6 前端栈 SolidJS**（A 栏）· **#19 桌面框架 Tauri 2**（A 栏 · session 10 末升级 · 原 B 栏 #12 · ADR-006 accepted with Ubuntu caveat）
 - `implementation-plan.md` 章节：§10.1 MVP 范围 · §3.1 架构 · §3.2 Cargo workspace · §10.2 性能
 - 上游：SPIKE-02（Tauri 硬通过矩阵）
 - 下游：MVP-02..04 · MVP-10

@@ -19,7 +19,7 @@
 | 5 | Clipboard plugin smoke test | ✅ 写 / 读 / 跨 app Cmd+V 三路径 | — Phase B | — Phase B |
 | 5 | FS plugin smoke test | ✅ 写 / 读 / terminal cat 验证 | — Phase B | — Phase B |
 | 5 | Updater plugin smoke test | ⚠️ **归 SPIKE-06**（需 Apple Dev Program 签名 key） | — | — |
-| 6 | ADR-006 草稿 + 决策表 #12 | Phase A macOS 强信号支持 "conditional accepted" · 等 Phase B 三平台全过才翻正式 accepted | — | — |
+| 6 | ADR-006 · 决策表 #19 | Phase A macOS 强信号支持升级 · session 10 末 ADR-006 已 **accepted with Ubuntu caveat** · CLAUDE.md 决策表 B 栏 #12 升级到 A 栏 #19（PR #50 @ 2026-04-19）· Ubuntu Phase B 待环境补测（不阻塞锁定 · 失败触发 supersede） | — Phase B | — Phase B |
 
 **Phase A 整体判定**：✅ **PASS（有 1 项降级 · 见下）**
 - Tauri 2 + 2 plugin 在 macOS 全维度通过（启动 / 稳定性 / 渲染 / clipboard / fs / 中文 IME / bundle size）

@@ -1,0 +1,21 @@
+[package]
+name = "vibestation-app"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Vibestation Tauri 2 启动层（app crate · MVP-01 Phase A）"
+
+[lib]
+name = "vibestation_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde.workspace = true
+serde_json.workspace = true
+vibestation-core = { path = "../core" }

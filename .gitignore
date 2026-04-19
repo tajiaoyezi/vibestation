@@ -14,9 +14,9 @@ Desktop.ini
 
 # ────────────── Rust / Cargo ──────────────
 target/
-Cargo.lock
-# 例外：Spike benchmark 归档需冻结依赖版本 · 保证决策可复现
-!docs/spikes/code/**/Cargo.lock
+# Cargo.lock 进 git：Vibestation 是 binary application（非 library）· Rust 官方
+# 建议 binary crate 提交 lockfile · 保证依赖树跨 clone / 跨 CI run 完全一致。
+# Spike benchmark 归档同样需要冻结依赖（docs/spikes/code/**/Cargo.lock 也进 git）。
 **/*.rs.bk
 *.pdb
 
@@ -31,10 +31,20 @@ yarn-error.log*
 pnpm-debug.log*
 .pnpm-store/
 
+# TypeScript 增量 build 产物（本地 tsc -b 历史残留）
+web/tsconfig.tsbuildinfo
+# tsc 误 emit 的 JSX（防 noEmit 配置被意外改回 · 新 build 配置 tsc --noEmit）
+web/src/**/*.jsx
+web/src/**/*.js
+
 # ────────────── Tauri ──────────────
 src-tauri/target/
 src-tauri/gen/
 src-tauri/WixTools/
+# MVP-01 实际 Tauri app 位于 crates/app/（CLAUDE.md 决策表 #5 · 2 crate workspace）
+crates/app/target/
+crates/app/gen/
+crates/app/WixTools/
 *.app
 *.dmg
 *.AppImage

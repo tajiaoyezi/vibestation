@@ -1,0 +1,29 @@
+{
+  "name": "vibestation",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Vibestation · 多 Tab 终端 + JetBrains 级 Git 工作台（Tauri 2 · Apache 2.0）",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tajiaoyezi/vibestation.git"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @vibestation/web dev",
+    "build": "pnpm --filter @vibestation/web build",
+    "tauri:dev": "tauri dev --config crates/app/tauri.conf.json",
+    "tauri:build": "tauri build --config crates/app/tauri.conf.json",
+    "tauri:build:smoke": "tauri build --config crates/app/tauri.conf.json --debug --no-bundle",
+    "lint": "pnpm --filter @vibestation/web lint",
+    "typecheck": "pnpm --filter @vibestation/web typecheck",
+    "format:check": "pnpm --filter @vibestation/web format:check"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

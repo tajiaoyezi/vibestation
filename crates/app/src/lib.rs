@@ -53,7 +53,7 @@ fn workspace_create(
 fn workspace_open(state: State<'_, AppState>, id: String) -> Result<WorkspaceMetadata, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
-    WorkspaceStore::touch(pool, &id)?;
+    WorkspaceStore::touch(pool, &id).map_err(|e| e.to_string())?;
     WorkspaceStore::get_by_id(pool, &id).map_err(|e| e.to_string())
 }
 

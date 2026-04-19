@@ -3,7 +3,7 @@
 //! 本 crate 包含与 UI / 桌面框架无关的业务核心：workspace 管理、git 操作、PTY、AI-aware
 //! pane 联动（v1.0 vision）等。保持纯 Rust · 可独立 `cargo test` · 不依赖 Tauri。
 
-mod db;
+pub mod db;
 pub mod workspace;
 
 pub use workspace::{WorkspaceMetadata, WorkspaceStore};

@@ -2,7 +2,7 @@
 id: MVP-07
 type: mvp
 title: Git Log 只读视图 + Commit 详情
-status: draft
+status: ready
 owner:
 phase: W8-W9
 depends_on: ["MVP-02", "MVP-03", "SPIKE-03"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §10.2（10 万 commit < 500ms）
 risk_ref: R3
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-07: Git Log 只读视图

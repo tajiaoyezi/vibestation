@@ -105,6 +105,11 @@ user-data/
 bun.lockb
 
 # ────────────── Vibestation 特定 ──────────────
+# ts-rs `#[ts(export)]` 在 `cargo test` 下会向 crate root 的 `bindings/` 写一份副本
+# （primary 输出由 `crates/app/build.rs` 控制 · 写到 `web/src/bindings/`）。
+# crate root 的副本仅供本地调试 · 不入 repo。
+crates/*/bindings/
+
 # 本地 Spike / 实验目录
 spike-tmp/
 # Spike 录屏 / 截图 / 大文件产物（本地归档 · 不入 repo · 走 LFS 或外部存储）

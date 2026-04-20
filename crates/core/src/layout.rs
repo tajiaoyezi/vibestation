@@ -1,7 +1,10 @@
 use crate::db::{DbError, DbPool};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Tool Windows 布局状态 · IPC contract source of truth（详见 WorkspaceMetadata doc）。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct LayoutState {
     pub primary_open: bool,

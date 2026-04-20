@@ -6,9 +6,16 @@
 use crate::db::{DbError, DbPool};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use ts_rs::TS;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Workspace metadata · IPC contract source of truth.
+///
+/// 前端类型由 ts-rs 自动生成到 `web/src/bindings/WorkspaceMetadata.ts`（见
+/// `crates/app/build.rs`）· 禁止手写 TypeScript 对偶 interface · 避免 H2 类
+/// camelCase / snake_case drift 事故（见 `docs/spikes/SPIKE-08-report.md §A`）。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceMetadata {
     pub workspace_id: String,
@@ -16,7 +23,12 @@ pub struct WorkspaceMetadata {
     pub path: String,
     pub has_git: bool,
     pub repo_root: Option<String>,
+    /// Unix timestamp (seconds)· 映射为 TS `number` 而非默认 `bigint`：unix 时间戳
+    /// 秒数在可预见未来（~year 285476）都 < 2^53 · 用 `number` 前端 Date/sort 零改动。
+    #[ts(type = "number")]
     pub created_at: i64,
+    /// 同 `created_at`。
+    #[ts(type = "number")]
     pub last_opened: i64,
 }
 

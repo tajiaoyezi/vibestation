@@ -2,7 +2,7 @@
 id: MVP-09
 type: mvp
 title: Stage/Unstage + Commit 操作（git2 写）
-status: draft
+status: ready
 owner:
 phase: W10-W11
 depends_on: ["MVP-08", "SPIKE-04"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1
 risk_ref:
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-09: Stage/Unstage + Commit 操作

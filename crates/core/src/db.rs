@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 2;
+const CURRENT_SCHEMA_VERSION: u32 = 3;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -66,6 +66,9 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
     if user_version < 2 {
         migrate_v2(conn)?;
     }
+    if user_version < 3 {
+        migrate_v3(conn)?;
+    }
 
     Ok(())
 }
@@ -96,6 +99,22 @@ fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
     )
     .map_err(|e| DbError::Migration {
         version: 2,
+        reason: e.to_string(),
+    })?;
+    Ok(())
+}
+
+fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "ALTER TABLE workspaces ADD COLUMN layout_state TEXT;
+         CREATE TABLE IF NOT EXISTS app_settings (
+             key   TEXT PRIMARY KEY,
+             value TEXT NOT NULL
+         );
+         PRAGMA user_version = 3;",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 3,
         reason: e.to_string(),
     })?;
     Ok(())
@@ -189,6 +208,37 @@ mod tests {
             )
             .unwrap();
         assert!(has_repo_root);
+
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v3_migration_adds_layout_and_settings() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v3test.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+
+        let has_layout_state: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM pragma_table_info('workspaces') WHERE name='layout_state'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(has_layout_state);
+
+        let has_settings: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='app_settings'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(has_settings);
 
         drop(conn);
         drop(dir);

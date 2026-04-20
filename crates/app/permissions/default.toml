@@ -42,3 +42,23 @@ commands.allow = ["workspace_delete"]
 identifier = "allow-workspace-exists"
 description = "允许前端检查某路径是否已有 workspace（防重复添加）"
 commands.allow = ["workspace_exists"]
+
+[[permission]]
+identifier = "allow-layout-save"
+description = "允许前端保存 Tool Windows 布局状态（per-workspace）"
+commands.allow = ["layout_save"]
+
+[[permission]]
+identifier = "allow-layout-load"
+description = "允许前端加载 Tool Windows 布局状态（DEFAULT_STATE fallback）"
+commands.allow = ["layout_load"]
+
+[[permission]]
+identifier = "allow-theme-get"
+description = "允许前端读取当前主题设置（auto / light / dark）"
+commands.allow = ["theme_get"]
+
+[[permission]]
+identifier = "allow-theme-set"
+description = "允许前端设置主题（light / dark / auto · 应用级持久化）"
+commands.allow = ["theme_set"]

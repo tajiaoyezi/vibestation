@@ -2,7 +2,7 @@
 id: MVP-03
 type: mvp
 title: Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）
-status: draft
+status: ready
 owner:
 phase: W3-W4
 depends_on: ["MVP-01", "MVP-02"]
@@ -12,12 +12,12 @@ blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1 · §5（UI 架构）
 risk_ref:
-reviewer:
+reviewer: Claude Code (self-review · advisory gate · 单人项目 v2-D · tasks/README.md §原则 7)
 ---
 
 # MVP-03: Tool Windows 布局
 
-> **状态**：`draft`
+> **状态**：`ready`（2026-04-20 · MVP-02 done 解阻塞 · self-review 通过 · 可被认领）
 > **依赖**：MVP-01 · MVP-02 / **阻塞**：MVP-04（Tab 显示区域）· MVP-05（Pane 嵌入主区）· MVP-07（Git Log → Secondary Sidebar）
 
 ---

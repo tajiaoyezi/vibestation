@@ -6,10 +6,14 @@
 pub mod app_settings;
 pub mod db;
 pub mod layout;
+pub mod tabs;
 pub mod workspace;
 
 pub use app_settings::AppSettingsStore;
 pub use layout::{LayoutState, LayoutStore};
+pub use tabs::{
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+};
 pub use workspace::{WorkspaceMetadata, WorkspaceStore};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

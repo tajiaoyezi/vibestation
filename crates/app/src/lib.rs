@@ -6,7 +6,8 @@
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 use vibestation_core::{
-    AppSettingsStore, LayoutState, LayoutStore, WorkspaceMetadata, WorkspaceStore,
+    AppSettingsStore, LayoutState, LayoutStore, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -117,6 +118,49 @@ fn theme_set(state: State<'_, AppState>, theme: String) -> Result<(), String> {
     AppSettingsStore::set(pool, "theme", &theme).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn tab_list(state: State<'_, AppState>, workspace_id: String) -> Result<TabListResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let tabs = TabsDao::list_by_workspace(pool, &workspace_id).map_err(|e| e.to_string())?;
+    Ok(TabListResponse { tabs })
+}
+
+#[tauri::command]
+fn tab_create(state: State<'_, AppState>, req: TabCreateRequest) -> Result<TabState, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    TabsDao::create(pool, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_close(state: State<'_, AppState>, req: TabCloseRequest) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    TabsDao::delete(pool, &req.tab_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_rename(state: State<'_, AppState>, req: TabRenameRequest) -> Result<TabState, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    TabsDao::rename(pool, &req.tab_id, &req.name).map_err(|e| e.to_string())?;
+    TabsDao::get(pool, &req.tab_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_scrollback_fetch(
+    state: State<'_, AppState>,
+    tab_id: String,
+    offset: u32,
+    limit: u32,
+) -> Result<Vec<String>, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    TabsDao::scrollback_fetch(pool, &tab_id, offset as usize, limit as usize)
+        .map_err(|e| e.to_string())
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -139,6 +183,11 @@ pub fn run() {
             layout_load,
             theme_get,
             theme_set,
+            tab_list,
+            tab_create,
+            tab_close,
+            tab_rename,
+            tab_scrollback_fetch,
         ])
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");

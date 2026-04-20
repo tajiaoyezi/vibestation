@@ -20,6 +20,7 @@ chrono = "0.4"
 thiserror = "2"
 dunce = "1"
 tempfile = "3"
+ts-rs = "12"
 
 [profile.release]
 opt-level = 3

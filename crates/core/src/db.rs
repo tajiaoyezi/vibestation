@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 3;
+const CURRENT_SCHEMA_VERSION: u32 = 4;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -68,6 +68,9 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
     }
     if user_version < 3 {
         migrate_v3(conn)?;
+    }
+    if user_version < 4 {
+        migrate_v4(conn)?;
     }
 
     Ok(())
@@ -115,6 +118,19 @@ fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
     )
     .map_err(|e| DbError::Migration {
         version: 3,
+        reason: e.to_string(),
+    })?;
+    Ok(())
+}
+
+fn migrate_v4(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_workspaces_last_opened
+            ON workspaces(last_opened DESC);
+         PRAGMA user_version = 4;",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 4,
         reason: e.to_string(),
     })?;
     Ok(())
@@ -255,6 +271,80 @@ mod tests {
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
         drop(conn);
         drop(pool);
+        drop(dir);
+    }
+
+    #[test]
+    fn v4_migration_creates_index() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v4test.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+
+        let index_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name='idx_workspaces_last_opened'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            index_exists,
+            "idx_workspaces_last_opened should exist after v4 migration"
+        );
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 4);
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v4_index_creation_is_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v4idemtest.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+
+        conn.execute("DROP INDEX idx_workspaces_last_opened", [])
+            .unwrap();
+        let index_dropped: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name='idx_workspaces_last_opened'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(!index_dropped, "index should be gone after DROP");
+
+        conn.execute(
+            "CREATE INDEX idx_workspaces_last_opened ON workspaces(last_opened DESC)",
+            [],
+        )
+        .unwrap();
+        let index_recreated: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name='idx_workspaces_last_opened'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(index_recreated, "index should exist after re-CREATE");
+
+        migrate_v4(&conn).unwrap();
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 4, "re-running v4 migration should be idempotent");
+        drop(conn);
         drop(dir);
     }
 }

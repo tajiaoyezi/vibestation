@@ -1,0 +1,2 @@
+can not find binary WebKitWebDriver in the PATH. This is currently required.You can also pass a custom path with --native-driver
+CannotFindBinaryPath

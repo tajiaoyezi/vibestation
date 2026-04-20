@@ -1,0 +1,7 @@
+[tauri-driver] failed SessionNotCreatedError: Failed to connect to browser: Failed to execute child process “/home/runner/work/vibestation/vibestation/docs/spikes/code/SPIKE-08/src-tauri/target/debug/spike-08-contract-runtime” (No such file or directory)
+    at Object.throwDecodedError (/home/runner/work/vibestation/vibestation/docs/spikes/code/SPIKE-08/node_modules/.pnpm/selenium-webdriver@4.43.0/node_modules/selenium-webdriver/lib/error.js:523:15)
+    at parseHttpResponse (/home/runner/work/vibestation/vibestation/docs/spikes/code/SPIKE-08/node_modules/.pnpm/selenium-webdriver@4.43.0/node_modules/selenium-webdriver/lib/http.js:526:13)
+    at Executor.execute (/home/runner/work/vibestation/vibestation/docs/spikes/code/SPIKE-08/node_modules/.pnpm/selenium-webdriver@4.43.0/node_modules/selenium-webdriver/lib/http.js:458:28)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  remoteStacktrace: ''
+}

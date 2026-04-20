@@ -1,0 +1,283 @@
+:root {
+  color: #f5f7fb;
+  background:
+    radial-gradient(circle at top left, rgba(89, 164, 255, 0.28), transparent 32%),
+    radial-gradient(circle at top right, rgba(43, 208, 160, 0.22), transparent 28%),
+    linear-gradient(160deg, #0b1020, #11192d 42%, #0f1728 100%);
+  font-family:
+    "SF Pro Display",
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: transparent;
+  color: #f5f7fb;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.shell {
+  width: min(1120px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 56px 0 72px;
+}
+
+.hero {
+  margin-bottom: 28px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #84d1ff;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 0.96;
+}
+
+.lede {
+  width: min(720px, 100%);
+  margin: 14px 0 0;
+  color: rgba(235, 240, 255, 0.78);
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.panel {
+  margin-top: 18px;
+  padding: 22px;
+  border: 1px solid rgba(170, 190, 255, 0.18);
+  border-radius: 24px;
+  background: rgba(12, 17, 31, 0.72);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(18px);
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.panel-copy {
+  margin: 6px 0 0;
+  color: rgba(232, 239, 255, 0.72);
+}
+
+.workspace-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field span {
+  color: rgba(222, 232, 255, 0.76);
+  font-size: 14px;
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  border: 1px solid rgba(170, 190, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(17, 24, 41, 0.85);
+  color: #f7f9ff;
+  padding: 14px 16px;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.primary-button,
+.ghost-button,
+.danger-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease,
+    background 140ms ease;
+}
+
+.primary-button:hover,
+.ghost-button:hover,
+.danger-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button {
+  align-self: end;
+  background: linear-gradient(135deg, #84d1ff, #4ef0c5);
+  color: #071221;
+  font-weight: 700;
+}
+
+.ghost-button {
+  background: rgba(137, 174, 255, 0.14);
+  color: #eef3ff;
+}
+
+.danger-button {
+  background: rgba(255, 108, 108, 0.14);
+  color: #ffd6d6;
+}
+
+.count-pill,
+.status-pill,
+.error-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+
+.count-pill,
+.status-pill {
+  background: rgba(132, 209, 255, 0.12);
+  color: #d8eeff;
+}
+
+.error-pill {
+  background: rgba(255, 113, 113, 0.18);
+  color: #ffd6d6;
+}
+
+.workspace-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workspace-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(20, 28, 49, 0.88);
+  border: 1px solid rgba(159, 185, 255, 0.14);
+}
+
+.workspace-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.workspace-meta,
+.workspace-note {
+  margin: 6px 0 0;
+  color: rgba(233, 240, 255, 0.7);
+}
+
+.empty-state {
+  padding: 28px;
+  border-radius: 18px;
+  background: rgba(20, 28, 49, 0.82);
+  color: rgba(239, 244, 255, 0.82);
+}
+
+.empty-state strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 20px;
+}
+
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 10, 21, 0.55);
+  backdrop-filter: blur(16px);
+}
+
+.modal-card {
+  width: min(440px, 100%);
+  padding: 24px;
+  border-radius: 24px;
+  background: #131c31;
+  border: 1px solid rgba(180, 198, 255, 0.18);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+}
+
+.modal-card h3 {
+  margin: 0;
+}
+
+.modal-card p {
+  margin: 12px 0 0;
+  color: rgba(236, 242, 255, 0.74);
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    width: min(100vw - 28px, 100%);
+    padding-top: 36px;
+  }
+
+  .workspace-form {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

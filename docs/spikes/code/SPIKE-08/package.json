@@ -1,0 +1,35 @@
+{
+  "name": "spike-08-contract-runtime",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:tauri": "pnpm contract:generate && pnpm dev",
+    "build:web": "tsc --noEmit && vite build",
+    "build": "pnpm contract:generate && pnpm build:web",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "contract:generate": "cargo build --manifest-path src-tauri/Cargo.toml",
+    "contract:check": "pnpm contract:generate && git diff --exit-code -- src/bindings",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:dev:e2e": "tauri dev --features e2e-testing",
+    "tauri:build:smoke": "tauri build --debug --no-bundle",
+    "e2e:tauri": "playwright test e2e/tests/tauri.spec.ts --config e2e/playwright.config.ts --project=tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "solid-js": "^1.9.9"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@srsholmes/tauri-playwright": "^0.2.2",
+    "@tauri-apps/cli": "^2",
+    "playwright": "^1.55.0",
+    "selenium-webdriver": "^4.34.0",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "vite-plugin-solid": "^2.11.0"
+  }
+}

@@ -1,0 +1,25 @@
+[package]
+name = "spike-08-contract-runtime"
+version = "0.1.0"
+description = "SPIKE-08 · IPC contract + runtime defense harness"
+authors = ["Vibestation Project"]
+edition = "2021"
+
+[lib]
+name = "spike_08_contract_runtime_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[features]
+e2e-testing = ["dep:tauri-plugin-playwright"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+ts-rs = "12.0.1"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-playwright = { version = "0.2.2", optional = true }
+ts-rs = "12.0.1"

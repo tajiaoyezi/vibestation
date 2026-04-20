@@ -2,8 +2,8 @@
 id: MVP-03
 type: mvp
 title: Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）
-status: ready
-owner:
+status: done
+owner: OpenCode
 phase: W3-W4
 depends_on: ["MVP-01", "MVP-02"]
 blocks: ["MVP-04", "MVP-05", "MVP-07"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1 · §5（UI 架构）
 risk_ref:
-reviewer: Claude Code (self-review · advisory gate · 单人项目 v2-D · tasks/README.md §原则 7)
+reviewer: Claude Code (cross-agent review · OpenCode implementer · 单人项目 v2-D · OpenCode 漏 claim commit · reviewer 补 owner · 2026-04-20)
 ---
 
 # MVP-03: Tool Windows 布局

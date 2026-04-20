@@ -2,7 +2,7 @@
 id: MVP-04
 type: mvp
 title: 多 Tab 终端（PTY + xterm.js + Shell/CLI 兼容）
-status: draft
+status: ready
 owner:
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 8d
 plan_ref: implementation-plan.md §10.1 · §10.6（终端正确性矩阵）· §附录 A D5
 risk_ref:
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-04: 多 Tab 终端

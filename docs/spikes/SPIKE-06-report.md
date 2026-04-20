@@ -1,11 +1,16 @@
 # SPIKE-06 · Phase A Report（PR 2 完整样本归档 · 2026-04-20）
 
-> **Task spec**：[`docs/tasks/SPIKE-06-cli-protocol-and-codesign.md`](../tasks/SPIKE-06-cli-protocol-and-codesign.md) · status: ready  
-> **阶段结论**：**§A 完成交付 · 36 条样本已录制 / 脱敏 / 扫描归档 · R1 保留**  
-> **PR 1**：Claude Code 交付 harness + smoke  
-> **PR 2**：Codex CLI 交付 36 条实机样本归档（包含 **Codex CLI self-record**，潜在利益冲突需 reviewer 明示知晓）  
-> **Review**：待主 agent + Arbiter 复核  
-> **phase-4-infra-landing 依赖已满足**：PR #11 merged @ 2026-04-18  
+> **Task spec**：[`docs/tasks/SPIKE-06-cli-protocol-and-codesign.md`](../tasks/SPIKE-06-cli-protocol-and-codesign.md) · status: ready
+
+> **阶段结论**：**§A 完成交付 · 36 条样本已录制 / 脱敏 / 扫描归档 · R1 保留**
+
+> **PR 1**：Claude Code 交付 harness + smoke
+
+> **PR 2**：Codex CLI 交付 36 条实机样本归档（包含 **Codex CLI self-record**，潜在利益冲突需 reviewer 明示知晓）
+
+> **Review**：待主 agent + Arbiter 复核
+
+> **phase-4-infra-landing 依赖已满足**：PR #11 merged @ 2026-04-18
 
 ---
 

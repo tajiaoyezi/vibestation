@@ -126,6 +126,7 @@ draft ────────► ready ─────────────�
 | [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | draft | 1d | SPIKE-02 | — |
 | [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | draft | 1d | SPIKE-05 · phase-4-infra-landing | R1 |
 | [SPIKE-07](./SPIKE-07-cli-protocol-parser.md) | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）| draft | 3d | SPIKE-06 | R1 |
+| [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md) | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化）| draft | 2d | MVP-02 | — |
 
 ### MVP（v0.1 范围 · B 折中方案）
 

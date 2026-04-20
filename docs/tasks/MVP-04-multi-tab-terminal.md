@@ -65,47 +65,50 @@ reviewer:
 ### A. Tab 基础
 
 - [ ] 新 workspace 打开默认创建 1 个 Tab（运行默认 shell）
-- [ ] `⌘T` 新建 Tab → 新 PTY 进程 + 新 xterm 实例
-- [ ] `⌘W` 关 Tab（最后一个 Tab 关闭 → 询问"关闭 workspace?"）
-- [ ] 双击 Tab 标题 → 重命名输入框
-- [ ] Tab 切换 100ms 内完成（对齐 `§10.2` 性能目标）
+- [ ] `⌘T` 新建 Tab → 新 PTY 进程 + 新 xterm 实例（`ps` 或 Activity Monitor 可观察到新进程）
+- [ ] `⌘W` 关 Tab → PTY 进程被 SIGKILL / SIGTERM 清理；最后一个 Tab 关闭 → 弹出确认对话框"关闭 workspace？"
+- [ ] 双击 Tab 标题 → 进入重命名输入框，回车确认，Esc 取消
+- [ ] Tab 切换延迟 < 100ms（Chrome DevTools Performance 面板或 Playwright 采样 5 次取 median）
 
 ### B. PTY 正确性
 
-- [ ] 每 Tab 独立 PTY（不共享）
-- [ ] Shell 启动：macOS zsh / Linux bash（从设置读取）
-- [ ] 环境变量：继承 user shell env（`fix-path-env` 解决 macOS GUI app PATH 问题）
-- [ ] 信号传递：Ctrl+C 中断、Ctrl+D EOF、Ctrl+Z 暂停
-- [ ] resize：窗口尺寸变化 → PTY SIGWINCH，`htop` / `vim` 即时重排
+- [ ] 每 Tab 独立 PTY（不共享）：同时运行 `echo $$` 两 Tab 输出不同 PID
+- [ ] Shell 启动：macOS 默认 zsh / Linux 默认 bash（从设置表 `app_settings` 的 `"default_shell"` 键读取）
+- [ ] 环境变量 PATH：与系统 Terminal.app / GNOME Terminal 启动同 shell 时的 PATH 一致（±1 个路径项容差；`fix-path-env` 解决 macOS GUI app PATH 问题）
+- [ ] 信号传递：
+  - Ctrl+C：运行 `sleep 30` 后按 Ctrl+C → 进程终止（`ps` 确认 PID 消失）
+  - Ctrl+D：空 prompt 按 Ctrl+D → shell 发送 EOF 退出
+  - Ctrl+Z：运行 `sleep 30` 后按 Ctrl+Z → 进程暂停（`jobs` 显示 `Stopped`）
+- [ ] resize：窗口尺寸变化 → PTY SIGWINCH 传达，`htop` / `vim` 即时重排（肉眼可见 1s 内重排，无需手动 `:redraw!`）
 
 ### C. 程序兼容矩阵（`§10.6`）
 
-- [ ] zsh 交互：Tab 补全、历史、ANSI 颜色
-- [ ] vim：基础编辑 + `/`搜索 + `:wq` 保存退出
-- [ ] htop：UI 渲染正常（5Hz+ 刷新）
-- [ ] yes：10s 连续输出不卡顿、不丢帧（对齐 SPIKE-05 A.1 但 MVP 场景）
-- [ ] tmux：基础 session 创建 + 切 window
-- [ ] Claude CLI：启动 + 登录 + 对话（SPIKE-06 已验）
-- [ ] Codex CLI：启动 + 登录 + 对话（SPIKE-06 已验）
+- [ ] zsh 交互：Tab 键触发路径补全（输入 `ls /u` + Tab → 补全为 `/usr/` 或候选列表）；上下箭头触发历史；`echo $TERM` 输出 `xterm-256color`
+- [ ] vim：基础编辑（`i` 插入、`Esc`、`:wq` 保存退出）；`/` 搜索高亮；方向键正常（不输出 `^[[A` 乱码）
+- [ ] htop：UI 渲染正常，刷新率 ≥ 5Hz（肉眼感知流畅，无撕裂）
+- [ ] yes：10s 连续输出，终端滚动流畅（肉眼无卡滞），单 Tab 吞吐 ≥ 20MB/s（`yes | pv > /dev/null` 测）
+- [ ] tmux：基础 session 创建（`tmux new -s test`）+ window 切换（`Ctrl+B n` / `Ctrl+B p`）正常
+- [ ] Claude CLI：启动 `claude` → 登录流程（如有）→ 单轮对话输入/输出正常（SPIKE-06 §A 已验 smoke）
+- [ ] Codex CLI：启动 `codex` → 登录流程（如有）→ 单轮对话输入/输出正常（SPIKE-06 §A 已验 smoke）
 
 ### D. 粘贴保护
 
-- [ ] 粘贴内容含换行（多行命令）→ 弹出确认对话框
-- [ ] 对话框显示将要粘贴的前 5 行预览
-- [ ] 可选"不再提示本 session"
+- [ ] 粘贴内容含换行符（≥1 个 `\n`）→ 弹出确认对话框
+- [ ] 对话框显示将要粘贴的前 5 行预览（每行最多 80 字符，超长截断加 `…`）
+- [ ] 对话框提供"不再提示本 session"复选框：勾选后同 session 再次粘贴多行不再弹窗，关闭 workspace 后重置
 
 ### E. 性能（对齐 `§10.2`）
 
-- [ ] 10 Tab 并存，总内存 < 500MB（Activity Monitor 测）
-- [ ] 切 Tab 延迟 < 50ms（Playwright 记录）
-- [ ] 单 Tab 吞吐 ≥ 20MB/s（`yes | pv` 测）
-- [ ] 主线程阻塞 ≤ 16ms（60FPS 达标）
+- [ ] 10 Tab 并存，总 RSS < 500MB（Activity Monitor / `ps` 采样，xterm 实例 + PTY 进程合计）
+- [ ] 切 Tab 延迟 < 50ms（Chrome DevTools Performance 面板或 Playwright `performance.now()` 差值，5 次采样取 median）
+- [ ] 单 Tab 吞吐 ≥ 20MB/s（`yes | pv > /dev/null` 连续 10s，取平均吞吐量）
+- [ ] 主线程阻塞 ≤ 16ms（Chrome DevTools Performance 面板记录 xterm 渲染帧，单帧 JS 执行 ≤ 16ms，60FPS 达标）
 
 ### F. 错误处理
 
-- [ ] Shell 进程异常退出 → Tab 显示"Process exited (code X). Press Enter to restart"
-- [ ] PTY open 失败 → 明确报错，不崩溃
-- [ ] xterm renderer fallback：webgl → canvas → dom（逐级降级）
+- [ ] Shell 进程异常退出（非零 exit code 或 signal）→ Tab 内显示 `"Process exited (code X). Press Enter to restart"`，按 Enter 重新启动同 shell
+- [ ] PTY open 失败（如 shell 路径不存在）→ 显示可读的 error toast（如 `"无法启动 shell：/bin/fake-shell 不存在"`），应用不 panic / 不白屏
+- [ ] xterm renderer fallback：WebGL → Canvas 2D → DOM（逐级降级），降级事件记录到 console.warn
 
 ## 🧪 测试策略
 
@@ -121,16 +124,71 @@ reviewer:
 
 新 table `tabs`：
 ```rust
-struct TabState {
-    tab_id: String,              // UUID
-    workspace_id: String,        // FK
-    name: String,                // 用户可改
-    shell: String,               // "zsh" / "bash" / etc
-    cwd: String,                 // 当前工作目录
-    scroll_back: Vec<String>,    // 最多保留 10k 行
-    created_at: i64,
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
+
+/// Tab 状态 · IPC contract source of truth.
+///
+/// 前端类型由 ts-rs 自动生成到 `web/src/bindings/TabState.ts`（见
+/// `crates/app/build.rs`）· 禁止手写 TypeScript 对偶 interface · 避免 H2 类
+/// camelCase / snake_case drift 事故。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TabState {
+    pub tab_id: String,              // UUID
+    pub workspace_id: String,        // FK
+    pub name: String,                // 用户可改
+    pub shell: String,               // "zsh" / "bash" / etc
+    pub cwd: String,                 // 当前工作目录
+    /// ⚠️ 建议从 IPC contract 排除：scroll_back 数据量大（最多 10k 行），
+    /// 全量序列化拖慢 IPC。改为本地前端缓存，IPC 只传 tab_id，
+    /// 按需通过独立 command 拉取可见区 buffer。
+    pub scroll_back: Vec<String>,    // 最多保留 10k 行
+    /// Unix timestamp (seconds)· 映射为 TS `number` 而非默认 `bigint`：unix 时间戳
+    /// 秒数在可预见未来（~year 285476）都 < 2^53 · 用 `number` 前端 Date/sort 零改动。
+    #[ts(type = "number")]
+    pub created_at: i64,
 }
 ```
+
+## §G. IPC Contract（ts-rs）
+
+> 依据：PR #63 ts-rs rollout 确立的 IPC contract 规范（见 `docs/runtime-evidence/chore-ts-rs-rollout/h2-regression-proof.md`）。
+
+本 MVP 所有 IPC struct 必须单点维护——**Rust struct 为 source of truth**，禁止前端手写对偶 TypeScript interface。
+
+### G.1 本 MVP 涉及的 IPC struct 清单（预期）
+
+| Rust struct | 用途 | 前端 import 路径 |
+|-------------|------|-----------------|
+| `TabState` | Tab 全量状态（list/get） | `import type { TabState } from "../bindings/TabState"` |
+| `TabCreateRequest` | 新建 Tab 参数（shell / cwd 可选） | `import type { TabCreateRequest } from "../bindings/TabCreateRequest"` |
+| `TabCloseRequest` | 关闭 Tab 参数（tab_id） | `import type { TabCloseRequest } from "../bindings/TabCloseRequest"` |
+| `TabRenameRequest` | 重命名 Tab 参数（tab_id + name） | `import type { TabRenameRequest } from "../bindings/TabRenameRequest"` |
+| `TabListResponse` | 某 workspace 下 Tab 列表 | `import type { TabListResponse } from "../bindings/TabListResponse"` |
+
+> 实际 struct 名和字段以实施 PR 为准，但**必须**全部走 ts-rs 自动生成。
+
+### G.2 强制规范
+
+- [ ] 所有 IPC struct 必须 `#[derive(Debug, Clone, Serialize, Deserialize, TS)]` + `#[ts(export)]` + `#[serde(rename_all = "camelCase")]`
+- [ ] `i64` 类型的时间戳字段必须加 `#[ts(type = "number")]`（防止 TS 生成 `bigint`，前端 Date/sort 零改动）
+- [ ] bindings 由 `crates/app/build.rs` 在 `cargo build` 时自动生成到 `web/src/bindings/`
+- [ ] 前端**禁止**手写 `interface TabState { ... }` 或 `type TabState = { ... }`——所有类型必须从 `./bindings/*` import
+- [ ] `.prettierignore` 已排除 `web/src/bindings/`（防止 prettier 与生成格式冲突）
+
+### G.3 H2 类 regression proof（PR merge 前必做）
+
+模拟一次"Rust 端改字段名但前端忘同步"的场景，验证 compile-time 防御生效：
+
+1. 临时在任一 IPC struct（如 `TabState`）的某个字段上加 `#[ts(rename = "xxxProof")]`
+2. 运行 `cargo build -p vibestation-app`（Rust 端编译通过）
+3. 运行 `pnpm -C web typecheck`
+4. **预期**：`tsc` 报 `TS2339: Property 'xxx' does not exist on type 'TabState'`——FAIL 证明防御生效
+5. **回滚**：撤销 `#[ts(rename = ...)]`，确认 `pnpm typecheck` 恢复 PASS
+
+> 本 proof 只需做一次，结果写入 PR description 或 `docs/runtime-evidence/MVP-04/`（如实施 PR 本身含 ts-rs 集成）。
 
 ## ⚠️ 已知风险
 
@@ -146,11 +204,15 @@ struct TabState {
 ## 🔗 相关
 
 - `CLAUDE.md` #15 · #6 · ⚠️ CLI 警告（R1）
-- SPIKE-05（PTY 架构）· SPIKE-06（CLI 实机 + fix-path-env）
+- SPIKE-05（PTY 架构）· SPIKE-05.5（visible throughput 验证）· SPIKE-06（CLI 实机 + fix-path-env）
 - `implementation-plan.md` §10.6 终端正确性矩阵
 - 上游：MVP-03 · SPIKE-05 · SPIKE-06
 - 下游：MVP-05 · MVP-06
 
 ---
 
-**自审四问**：1. 矩阵覆盖 ✅ · 2. PTY fallback 已定 ✅ · 3. 三平台显式 ✅ · 4. tmux control mode / AI 联动 都推后 ✅
+**自审四问（2026-04-20）**：
+1. **递归完备性**：Acceptance 清单覆盖 Tab/PTY/兼容矩阵/粘贴/性能/错误/IPC contract 全维度 ✅
+2. **反向场景**：若 TS derive 漏加 → `pnpm typecheck` 立即 FAIL（H2 proof 制度化）· 若 PTY fallback 触发 → Acceptance B 仍通过（独立 PTY 不共享）✅
+3. **边界适用性**：10 Tab / 1 Tab / 0 Tab（新建 workspace 默认 1 Tab）都适用；macOS/Linux 双平台 shell 默认不同 ✅
+4. **YAGNI**：tmux control mode / AI 联动 / Pane 分屏 / 配置导入 都明确推后 ✅

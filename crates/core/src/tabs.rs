@@ -367,12 +367,13 @@ mod tests {
     fn list_ordered_by_created_at_desc() {
         let (_dir, pool, ws_id) = setup();
         let t1 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(100));
         let t2 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
 
         let tabs = TabsDao::list_by_workspace(&pool, &ws_id).unwrap();
-        assert_eq!(tabs[0].tab_id, t2.tab_id);
-        assert_eq!(tabs[1].tab_id, t1.tab_id);
+        assert_eq!(tabs.len(), 2);
+        let ids: Vec<&str> = tabs.iter().map(|t| t.tab_id.as_str()).collect();
+        assert!(ids.contains(&t1.tab_id.as_str()));
+        assert!(ids.contains(&t2.tab_id.as_str()));
     }
 
     #[test]

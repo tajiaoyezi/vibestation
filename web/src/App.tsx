@@ -20,15 +20,10 @@ import { ActivityStrip } from "./components/ActivityStrip";
 import { MainContent } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 
-export interface WorkspaceMetadata {
-  workspaceId: string;
-  name: string;
-  path: string;
-  hasGit: boolean;
-  repoRoot: string | null;
-  createdAt: number;
-  lastOpened: number;
-}
+// IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
+// 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
+import type { WorkspaceMetadata } from "./bindings";
+export type { WorkspaceMetadata };
 
 type IpcState =
   | { kind: "pending" }

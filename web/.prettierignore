@@ -1,0 +1,4 @@
+# ts-rs 自动生成的 IPC bindings · 格式由 ts-rs derive 决定（单行 struct）。
+# 不参与 prettier --check / --write · 避免 build.rs 生成后又被 prettier 改动的震荡。
+# 来源：crates/app/build.rs（SPIKE-08 §A rollout）
+src/bindings/

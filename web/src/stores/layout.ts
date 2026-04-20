@@ -1,11 +1,7 @@
-export interface LayoutState {
-  primaryOpen: boolean;
-  secondaryOpen: boolean;
-  bottomOpen: boolean;
-  primaryWidth: number;
-  secondaryWidth: number;
-  bottomHeight: number;
-}
+// IPC contract type · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
+// 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
+import type { LayoutState } from "../bindings";
+export type { LayoutState };
 
 export const DEFAULT_LAYOUT: LayoutState = {
   primaryOpen: true,

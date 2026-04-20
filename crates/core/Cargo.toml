@@ -21,3 +21,8 @@ ts-rs.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+criterion = "0.5"
+
+[[bench]]
+name = "workspace_query"
+harness = false

@@ -127,14 +127,14 @@ mod tests {
 
     #[test]
     fn load_nonexistent_workspace_errors() {
-        let (dir, pool) = setup();
+        let (_dir, pool) = setup();
         let result = LayoutStore::load(&pool, "nonexistent-id");
         assert!(matches!(result, Err(LayoutError::NotFound(_))));
     }
 
     #[test]
     fn save_nonexistent_workspace_errors() {
-        let (dir, pool) = setup();
+        let (_dir, pool) = setup();
         let state = LayoutState::default();
         let result = LayoutStore::save(&pool, "nonexistent-id", &state);
         assert!(matches!(result, Err(LayoutError::NotFound(_))));

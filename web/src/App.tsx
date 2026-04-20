@@ -1,10 +1,25 @@
-import { createSignal, onMount, Show, For, type Component } from "solid-js";
+import {
+  createSignal,
+  onMount,
+  onCleanup,
+  Show,
+  type Component,
+} from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./styles.css";
 
-interface WorkspaceMetadata {
+import { LayoutProvider, useLayout } from "./stores/layout-context";
+import { ThemeProvider } from "./stores/theme";
+import { PrimarySidebar } from "./components/PrimarySidebar";
+import { SecondarySidebar } from "./components/SecondarySidebar";
+import { BottomPanel } from "./components/BottomPanel";
+import { ActivityStrip } from "./components/ActivityStrip";
+import { MainContent } from "./components/MainContent";
+import { ThemeSwitch } from "./components/ThemeSwitch";
+
+export interface WorkspaceMetadata {
   workspaceId: string;
   name: string;
   path: string;
@@ -21,17 +36,242 @@ type IpcState =
 
 type View = { kind: "welcome" } | { kind: "workspace"; ws: WorkspaceMetadata };
 
-export const App: Component = () => {
+const IpcIndicator: Component<{ state: IpcState }> = (props) => {
+  const label = () => {
+    switch (props.state.kind) {
+      case "pending":
+        return "ipc: connecting…";
+      case "ok":
+        return `ipc: ${props.state.message}`;
+      case "error":
+        return `ipc error: ${props.state.message}`;
+    }
+  };
+  const className = () =>
+    props.state.kind === "error" ? "vs-diag-error" : "vs-diag-ok";
+  return <span class={className()}>{label()}</span>;
+};
+
+const LayoutShell: Component<{
+  workspaces: () => WorkspaceMetadata[];
+  currentView: () => View;
+  ipc: () => IpcState;
+  version: () => string;
+  dbReady: () => boolean;
+  loading: () => boolean;
+  deleteConfirm: () => string | null;
+  error: () => string | null;
+  onOpen: (id: string) => void;
+  onCreate: () => void;
+  onDeleteConfirm: (id: string) => void;
+  onDeleteExecute: () => void;
+  onDeleteCancel: () => void;
+  onDismissError: () => void;
+}> = (props) => {
+  const [layout, dispatch] = useLayout();
+
+  const activeWorkspace = (): WorkspaceMetadata | null => {
+    const v = props.currentView();
+    return v.kind === "workspace" ? v.ws : null;
+  };
+
+  const handlePrimaryResizeStart = (e: MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = layout().primaryWidth;
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientX - startX;
+      dispatch({ kind: "resize-primary", width: startWidth + delta });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const handleSecondaryResizeStart = (e: MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = layout().secondaryWidth;
+    const onMove = (ev: MouseEvent) => {
+      const delta = startX - ev.clientX;
+      dispatch({ kind: "resize-secondary", width: startWidth + delta });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const handleBottomResizeStart = (e: MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = layout().bottomHeight;
+    const onMove = (ev: MouseEvent) => {
+      const delta = startY - ev.clientY;
+      dispatch({ kind: "resize-bottom", height: startHeight + delta });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod) return;
+    switch (e.key) {
+      case "1":
+        e.preventDefault();
+        dispatch({ kind: "toggle-primary" });
+        break;
+      case "2":
+        e.preventDefault();
+        dispatch({ kind: "toggle-secondary" });
+        break;
+      case "j":
+      case "J":
+        e.preventDefault();
+        dispatch({ kind: "toggle-bottom" });
+        break;
+    }
+  };
+
+  onMount(() => {
+    document.addEventListener("keydown", handleKeyDown);
+  });
+
+  onCleanup(() => {
+    document.removeEventListener("keydown", handleKeyDown);
+  });
+
+  return (
+    <div class="vs-shell">
+      <div class="vs-main-grid">
+        <PrimarySidebar
+          workspaces={props.workspaces}
+          activeWorkspace={activeWorkspace}
+          onOpen={props.onOpen}
+          onCreate={props.onCreate}
+          onDelete={props.onDeleteConfirm}
+          loading={props.loading}
+          layout={() => ({
+            primaryOpen: layout().primaryOpen,
+            primaryWidth: layout().primaryWidth,
+          })}
+          onResizeStart={handlePrimaryResizeStart}
+          onResizeReset={() => dispatch({ kind: "reset-primary" })}
+        />
+
+        <MainContent activeWorkspace={activeWorkspace} />
+
+        <SecondarySidebar
+          layout={() => ({
+            secondaryOpen: layout().secondaryOpen,
+            secondaryWidth: layout().secondaryWidth,
+          })}
+          onResizeStart={handleSecondaryResizeStart}
+          onResizeReset={() => dispatch({ kind: "reset-secondary" })}
+        />
+
+        <ActivityStrip />
+      </div>
+
+      <BottomPanel
+        layout={() => ({
+          bottomOpen: layout().bottomOpen,
+          bottomHeight: layout().bottomHeight,
+        })}
+        onResizeStart={handleBottomResizeStart}
+        onResizeReset={() => dispatch({ kind: "reset-bottom" })}
+      />
+
+      <footer class="vs-status-bar" aria-label="Status bar">
+        <div class="vs-status-group">
+          <IpcIndicator state={props.ipc()} />
+        </div>
+        <div class="vs-status-group">
+          <ThemeSwitch />
+          <span class="vs-status-item">
+            <span class="vs-status-val">v{props.version()} · alpha</span>
+          </span>
+        </div>
+      </footer>
+
+      <Show when={props.error()}>
+        <div class="vs-error-bar" role="alert">
+          {props.error()}
+          <button
+            type="button"
+            class="vs-error-dismiss"
+            onClick={props.onDismissError}
+            aria-label="Dismiss error"
+          >
+            ×
+          </button>
+        </div>
+      </Show>
+
+      <Show when={props.deleteConfirm() !== null}>
+        <div class="vs-modal-overlay" role="dialog" aria-modal="true">
+          <div class="vs-modal">
+            <h3>Delete workspace?</h3>
+            <p>文件不会删，仅从 Vibestation 移除。</p>
+            <div class="vs-modal-actions">
+              <button
+                type="button"
+                class="vs-btn-danger"
+                onClick={props.onDeleteExecute}
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                class="vs-btn-secondary"
+                onClick={props.onDeleteCancel}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </Show>
+    </div>
+  );
+};
+
+const App: Component = () => {
   const [version, setVersion] = createSignal<string>("…");
   const [ipc, setIpc] = createSignal<IpcState>({ kind: "pending" });
   const [workspaces, setWorkspaces] = createSignal<WorkspaceMetadata[]>([]);
-  const [currentView, setCurrentView] = createSignal<View>({
-    kind: "welcome",
-  });
+  const [currentView, setCurrentView] = createSignal<View>({ kind: "welcome" });
   const [dbReady, setDbReady] = createSignal(false);
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = createSignal<string | null>(null);
+
+  const activeWorkspaceId = (): string | null => {
+    const v = currentView();
+    return v.kind === "workspace" ? v.ws.workspaceId : null;
+  };
 
   onMount(async () => {
     try {
@@ -51,8 +291,6 @@ export const App: Component = () => {
     }
 
     try {
-      // H1 修复：DB 路径由 backend 自取 app_local_data_dir() · 不传 frontend 参数
-      // 防 path traversal（review session 10 主 agent）
       await invoke("workspace_init");
       setDbReady(true);
       await refreshWorkspaces();
@@ -81,7 +319,6 @@ export const App: Component = () => {
     try {
       const selected = await open({ directory: true, multiple: false });
       if (!selected) return;
-
       const dirPath = typeof selected === "string" ? selected : selected;
 
       const exists = await invoke<boolean>("workspace_exists", {
@@ -117,7 +354,9 @@ export const App: Component = () => {
     }
   };
 
-  const handleDeleteWorkspace = async (id: string) => {
+  const handleDeleteWorkspace = async () => {
+    const id = deleteConfirm();
+    if (!id) return;
     try {
       await invoke("workspace_delete", { id });
       setWorkspaces((prev) => prev.filter((w) => w.workspaceId !== id));
@@ -136,249 +375,28 @@ export const App: Component = () => {
     }
   };
 
-  const activeWorkspace = (): WorkspaceMetadata | null => {
-    const v = currentView();
-    return v.kind === "workspace" ? v.ws : null;
-  };
-
   return (
-    <main class="vs-root">
-      <div class="vs-sidebar">
-        <div class="vs-sidebar-header">
-          <VibestationMarkSmall />
-          <span class="vs-sidebar-title">Workspaces</span>
-          <button
-            type="button"
-            class="vs-btn-icon"
-            aria-label="Create workspace"
-            onClick={handleCreateWorkspace}
-            disabled={loading()}
-          >
-            +
-          </button>
-        </div>
-        <ul class="vs-ws-list" role="listbox" aria-label="Workspace list">
-          <For each={workspaces()}>
-            {(ws) => (
-              <li
-                role="option"
-                classList={{
-                  "vs-ws-item": true,
-                  "vs-ws-item-active":
-                    activeWorkspace()?.workspaceId === ws.workspaceId,
-                }}
-                onClick={() => handleOpenWorkspace(ws.workspaceId)}
-              >
-                <span class="vs-ws-name">{ws.name}</span>
-                <Show when={ws.hasGit}>
-                  <span class="vs-git-badge" aria-label="Git repository">
-                    Git
-                  </span>
-                </Show>
-                <button
-                  type="button"
-                  class="vs-ws-delete"
-                  aria-label={`Delete ${ws.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteConfirm(ws.workspaceId);
-                  }}
-                >
-                  ×
-                </button>
-              </li>
-            )}
-          </For>
-        </ul>
-        <Show when={workspaces().length === 0 && dbReady()}>
-          <p class="vs-empty-hint">No workspaces yet.</p>
-        </Show>
-      </div>
-
-      <section class="vs-main">
-        <Show
-          when={activeWorkspace() !== null}
-          fallback={
-            <div class="vs-welcome">
-              <VibestationMark />
-              <div class="vs-title-block">
-                <h1 id="vs-welcome-title" class="vs-title">
-                  Vibestation
-                </h1>
-                <p class="vs-tagline">多 Tab 终端 + JetBrains 级 Git 工作台</p>
-                <span class="vs-version" aria-label={`Version ${version()}`}>
-                  <span class="vs-version-dot" aria-hidden="true" />v{version()}{" "}
-                  · alpha
-                </span>
-              </div>
-              <button
-                type="button"
-                class="vs-cta"
-                aria-label="Create first workspace"
-                onClick={handleCreateWorkspace}
-                disabled={loading()}
-              >
-                Create first workspace
-              </button>
-            </div>
-          }
-        >
-          <div class="vs-workspace-view">
-            <h2 class="vs-ws-heading">{activeWorkspace()?.name}</h2>
-            <p class="vs-ws-path" title={activeWorkspace()?.path ?? ""}>
-              {activeWorkspace()?.path}
-            </p>
-            <Show when={activeWorkspace()?.hasGit}>
-              <p class="vs-ws-git-info">
-                <span class="vs-git-badge">Git</span>
-                <span class="vs-ws-repo-root">
-                  {activeWorkspace()?.repoRoot}
-                </span>
-              </p>
-            </Show>
-            <p class="vs-ws-placeholder">
-              Tool Windows + Tab 管理由 MVP-03/04 接管
-            </p>
-          </div>
-        </Show>
-      </section>
-
-      <Show when={error()}>
-        <div class="vs-error-bar" role="alert">
-          {error()}
-          <button
-            type="button"
-            class="vs-error-dismiss"
-            onClick={() => setError(null)}
-            aria-label="Dismiss error"
-          >
-            ×
-          </button>
-        </div>
-      </Show>
-
-      <Show when={deleteConfirm() !== null}>
-        <div class="vs-modal-overlay" role="dialog" aria-modal="true">
-          <div class="vs-modal">
-            <h3>Delete workspace?</h3>
-            <p>文件不会删，仅从 Vibestation 移除。</p>
-            <div class="vs-modal-actions">
-              <button
-                type="button"
-                class="vs-btn-danger"
-                onClick={() => handleDeleteWorkspace(deleteConfirm()!)}
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                class="vs-btn-secondary"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      </Show>
-
-      <footer class="vs-diag" aria-label="Runtime diagnostics">
-        <IpcIndicator state={ipc()} />
-      </footer>
-    </main>
+    <ThemeProvider>
+      <LayoutProvider activeWorkspaceId={activeWorkspaceId}>
+        <LayoutShell
+          workspaces={workspaces}
+          currentView={currentView}
+          ipc={ipc}
+          version={version}
+          dbReady={dbReady}
+          loading={loading}
+          deleteConfirm={deleteConfirm}
+          error={error}
+          onOpen={handleOpenWorkspace}
+          onCreate={handleCreateWorkspace}
+          onDeleteConfirm={(id) => setDeleteConfirm(id)}
+          onDeleteExecute={handleDeleteWorkspace}
+          onDeleteCancel={() => setDeleteConfirm(null)}
+          onDismissError={() => setError(null)}
+        />
+      </LayoutProvider>
+    </ThemeProvider>
   );
 };
 
-const VibestationMark: Component = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 64 64"
-    width="64"
-    height="64"
-    role="img"
-    aria-label="Vibestation mark"
-  >
-    <defs>
-      <linearGradient id="m-grad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="oklch(0.72 0.16 240)" />
-        <stop offset="100%" stop-color="oklch(0.58 0.2 260)" />
-      </linearGradient>
-    </defs>
-    <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#m-grad)" />
-    <g
-      fill="none"
-      stroke="white"
-      stroke-width="3.2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M20 24 L28 32 L20 40" />
-      <line x1="32" y1="42" x2="46" y2="42" />
-    </g>
-    <circle cx="46" cy="22" r="2.5" fill="white" opacity="0.9" />
-  </svg>
-);
-
-const VibestationMarkSmall: Component = () => (
-  // M3 修复：xmlns 修正 2002→2000 + 内联 defs 用独立 id "m-grad-small"
-  // 防 sidebar small mark 因 welcome page 不在 DOM 时 gradient 引用失效（review session 10 主 agent）
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 64 64"
-    width="20"
-    height="20"
-    role="img"
-    aria-label="Vibestation mark"
-  >
-    <defs>
-      <linearGradient id="m-grad-small" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="oklch(0.72 0.16 240)" />
-        <stop offset="100%" stop-color="oklch(0.58 0.2 260)" />
-      </linearGradient>
-    </defs>
-    <rect
-      x="4"
-      y="4"
-      width="56"
-      height="56"
-      rx="14"
-      fill="url(#m-grad-small)"
-    />
-    <g
-      fill="none"
-      stroke="white"
-      stroke-width="3.2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M20 24 L28 32 L20 40" />
-      <line x1="32" y1="42" x2="46" y2="42" />
-    </g>
-  </svg>
-);
-
-interface IpcIndicatorProps {
-  state: IpcState;
-}
-
-const IpcIndicator: Component<IpcIndicatorProps> = (props) => {
-  const label = () => {
-    switch (props.state.kind) {
-      case "pending":
-        return "ipc: connecting…";
-      case "ok":
-        return `ipc: ${props.state.message}`;
-      case "error":
-        return `ipc error: ${props.state.message}`;
-    }
-  };
-
-  const className = () =>
-    props.state.kind === "error" ? "vs-diag-error" : "vs-diag-ok";
-
-  return (
-    <span class={className()} data-testid="ipc-indicator">
-      {label()}
-    </span>
-  );
-};
+export { App };

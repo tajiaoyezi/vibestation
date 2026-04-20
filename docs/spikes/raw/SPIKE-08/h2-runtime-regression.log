@@ -1,0 +1,12 @@
+[browser-e2e] goto http://127.0.0.1:1420
+[browser-e2e] create Golden Path Repo
+[browser-e2e] created-id workspace-0001
+[browser-e2e] failure-screenshot /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/../../raw/SPIKE-08/h2-runtime-regression.png
+[browser-e2e] trace /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/../../raw/SPIKE-08/h2-runtime-regression-trace.zip
+[browser-e2e] failed page.waitForSelector: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('[data-testid=\'empty-state\']') to be visible[22m
+
+    at main (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/scripts/browser-e2e.mjs:66:16) {
+  name: 'TimeoutError'
+}

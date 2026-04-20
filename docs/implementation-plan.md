@@ -20,7 +20,7 @@
 | Tauri 决策 | "已敲定" | **默认 + Spike Day 2 硬通过 + Electron 28+ 保底** |
 | Cargo workspace | 4 crate | **2 crate（app + core）**，v0.2 再拆 |
 | git2 + gix 混用 | 同时上 | **默认 git2，gix 在 Spike Day 3 benchmark 后评估读路径再引入** |
-| redb 持久化 | "已敲定" | **默认 redb，Spike 后 benchmark 对比 rusqlite 再锁** |
+| rusqlite 持久化 | "已锁定" | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5 · redb 2.6.3 B.2 坏库检测 FAIL superseded） |
 | AI-Aware Pane 叙事 | 核心卖点 | **v1.0 vision；README / landing 完全移除，MVP 不宣传** |
 | MVP 工期 | 10 周 | **12 周**（20% buffer） |
 | v1.0 总工期 | 24-25 周 | **28-30 周** |
@@ -66,7 +66,7 @@
 
 1. **不做通用 IDE**：不内置语法高亮/代码补全/LSP 集成。
 2. **不 Fork Ghostty 源码**：Ghostty 是 Zig，技术栈冲突，只做配置兼容。
-3. **不做云同步**：workspace/配置纯本地 redb（或 Spike 后替换为 rusqlite）。
+3. **不做云同步**：workspace/配置纯本地 rusqlite。
 4. **不做协作/团队功能**：不做 PR review、不做评论、不做 issue 追踪。
 5. **不支持 Windows（v1.0 前）**：macOS + Ubuntu 24 先打磨透；ConPTY 和 Wayland/X11 两套坑不同步踩。
 6. **不做 Git Flow / GitHub Flow 工作流教条**。
@@ -172,7 +172,7 @@ Session 10 Spike W0 macOS 全过后 · §3.1 表格 6 处锁定状态更新：
                    │                     │
                    │  git:    git2 / gix │
                    │  pty:    portable-pty│
-                   │  store:  redb       │
+                   │  store:  rusqlite   │
                    │  watch:  notify     │
                    │  config: toml       │
                    └─────────────────────┘
@@ -190,7 +190,7 @@ v1 的 4-crate（app / core / git / pty-proxy）对单人项目过度工程。v2
 | Crate | 职责 | 关键依赖 | 禁止 |
 |-------|------|----------|------|
 | `vibestation-app` | Tauri 入口、IPC 路由、事件广播、AppState 组装 | `tauri`、`tokio`、`tracing` | - |
-| `vibestation-core` | 业务模型 + Git + PTY + 持久化 + 事件总线一体 | `serde`、`redb`（待定）、`git2`、`gix`（待定）、`portable-pty`、`notify` | `tauri`（纯逻辑层）|
+| `vibestation-core` | 业务模型 + Git + PTY + 持久化 + 事件总线一体 | `serde`、`rusqlite` + `r2d2_sqlite`、`git2`、`gix 0.70`、`portable-pty`、`notify` | `tauri`（纯逻辑层）|
 
 **拆分触发条件**：当以下任一情况发生时，把 `core` 拆为 `core / git / pty-proxy`：
 
@@ -299,7 +299,7 @@ vibestation/
 │           ├── session.rs           # TerminalSession/UserSession
 │           ├── config.rs            # AppConfig + TOML 读写
 │           ├── profile.rs           # TerminalProfile + 导入
-│           ├── persistence.rs       # redb 封装（未锁定）
+│           ├── persistence.rs       # rusqlite 封装（ADR-005 accepted）
 │           ├── events.rs            # 内部事件总线
 │           ├── watcher.rs           # notify + debouncer-mini 封装
 │           ├── paths.rs             # directories::ProjectDirs 封装
@@ -512,7 +512,7 @@ pub struct UserSession {
 | 数据 | 存储 | 理由 |
 |------|------|------|
 | `AppConfig` | TOML 文件（`~/.config/vibestation/config.toml`）| 用户可编辑 |
-| `Workspace` 列表 | **redb（默认）/ rusqlite（Spike 后 benchmark 决定）** | 高频读写 |
+| `Workspace` 列表 | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5） | 高频读写 |
 | `TerminalProfile` | 同上 + 源文件路径引用 | 支持重新同步 |
 | `UserSession` | 单行 | 崩溃恢复 |
 | `TerminalSession` 运行时 | 纯内存 `HashMap<Id, Arc<TerminalSession>>` | PTY 资源不可序列化 |
@@ -1029,7 +1029,7 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 | **R24** | **终端正确性问题（IME/CJK/OSC52/mouse/alt-screen/tmux 兼容）** | **高** | **CRITICAL** | W11 专项验收矩阵（§10.6）；每项可 demo；不通过不 release；OSC52 剪贴板转发、bracketed paste、mouse reporting、alt-screen 切换、tmux 嵌套全测 | 核心作者 | W11 |
 | R25 | TaskRunner 任意命令执行被注入 | 中 | 高 | §13 安全边界：白名单机制 + 二次确认 + 最小权限；AI 回填 prompt sanitize；不开 sudo；不写系统目录 | 核心作者 | v0.1（基础） / v1.0（AI 回填） |
 | R26 | Git edge-case（worktree/submodule/LFS/nested repo/partial clone）行为异常 | 高 | 中 | Non-goals 声明 MVP 仅保证"不崩溃"；集成测试覆盖 5 种场景；v0.3-v1.0 渐进支持 | 核心作者 | W5 起 |
-| R27 | 本地状态损坏（redb 文件损坏 / 升级迁移失败）导致用户数据丢失 | 中 | 高 | schema_version 字段 + 迁移测试；备份（`~/.config/vibestation/backups/`）；崩溃后启动时自检 + 可选回滚；提供手动导出/导入命令 | 核心作者 | v0.1 |
+| R27 | 本地状态损坏（rusqlite 文件损坏 / 升级迁移失败）导致用户数据丢失 | 中 | 高 | schema_version 字段 + 迁移测试；备份（`~/.config/vibestation/backups/`）；崩溃后启动时自检 + 可选回滚；提供手动导出/导入命令 | 核心作者 | v0.1 |
 | R28 | 商标 / 项目名冲突（"vibestation" 被他人注册）| 中 | 中 | v0.1 发布前做商标搜索（USPTO / EUIPO / CNIPA）；域名推到 W10 附近再决定（候选 `.app` / `.dev` / `.io`）；GitHub organization 预注册 | 核心作者 | W10-W11 |
 | R29 | AI 提供商 API 变更（Anthropic / OpenAI 折腾）破坏 CLI 集成 | 中 | 中 | 不直接调 API（让用户自己跑 Claude CLI / Codex CLI）；只解析输出；CLI 协议变化在 v1.0 AI-Aware 时才敏感，届时 W23 spike 验证 | 核心作者 | W23 |
 | R30 | 崩溃上报 / telemetry 合规（GDPR / CCPA）| 中 | 中 | 默认 `telemetry_enabled = false`；首次启动显式询问；仅收集匿名 crash report + 版本号；有明确 privacy policy；用户可随时导出 / 删除 | 核心作者 | W11 |

@@ -100,7 +100,7 @@ draft ────────► ready ─────────────�
 - **UI 引用**（UI Reference）：`design/directions/1-calm-studio.html` 对应区块 / 截图
 - **Acceptance**（验收清单）：勾选式，evaluator 按条对照
 - **测试策略**：单元 / 集成 / E2E 覆盖哪些路径
-- **数据模型变更**（如有）：redb key schema / redb table 变化
+- **数据模型变更**（如有）：rusqlite schema / rusqlite table 变化
 
 ### BUG 必填
 

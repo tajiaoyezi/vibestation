@@ -1,5 +1,6 @@
 import {
   createSignal,
+  createEffect,
   onMount,
   onCleanup,
   Show,
@@ -68,12 +69,19 @@ const LayoutShell: Component<{
   onDeleteCancel: () => void;
   onDismissError: () => void;
 }> = (props) => {
-  const [layout, dispatch] = useLayout();
+  const { layout, dispatch, loadForWorkspace } = useLayout();
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
     return v.kind === "workspace" ? v.ws : null;
   };
+
+  createEffect(() => {
+    const ws = activeWorkspace();
+    if (ws) {
+      loadForWorkspace(ws.workspaceId);
+    }
+  });
 
   const handlePrimaryResizeStart = (e: MouseEvent) => {
     e.preventDefault();

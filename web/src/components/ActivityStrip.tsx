@@ -2,7 +2,7 @@ import { type Component, For } from "solid-js";
 import { useLayout } from "../stores/layout-context";
 
 export const ActivityStrip: Component = () => {
-  const [layout, dispatch] = useLayout();
+  const { layout, dispatch } = useLayout();
 
   type PanelId = "primary" | "secondary" | "bottom";
 

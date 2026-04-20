@@ -2,7 +2,7 @@
 id: MVP-08
 type: mvp
 title: Diff 基础视图（自绘）+ Git Status 只读面板
-status: draft
+status: ready
 owner:
 phase: W9-W10
 depends_on: ["MVP-07"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §3.1（Diff 自建）
 risk_ref:
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-08: Diff 基础视图 + Git Status 只读

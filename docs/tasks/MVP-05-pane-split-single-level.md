@@ -2,7 +2,7 @@
 id: MVP-05
 type: mvp
 title: Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）
-status: draft
+status: ready
 owner:
 phase: W6-W7
 depends_on: ["MVP-04"]
@@ -12,7 +12,7 @@ blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1 · §5.3（Pane 系统）
 risk_ref:
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-05: Pane 分屏（单层）

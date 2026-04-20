@@ -1,0 +1,29 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-04 Tab storage IPC permissions
+# 参考 allow-workspace-* 模式 · 每个 command 独立 grant
+
+[[permission]]
+identifier = "allow-tab-list"
+description = "允许前端列出某 workspace 下所有 Tab"
+commands.allow = ["tab_list"]
+
+[[permission]]
+identifier = "allow-tab-create"
+description = "允许前端创建新 Tab（启动 PTY + xterm 实例）"
+commands.allow = ["tab_create"]
+
+[[permission]]
+identifier = "allow-tab-close"
+description = "允许前端关闭 Tab（PTY 进程清理）"
+commands.allow = ["tab_close"]
+
+[[permission]]
+identifier = "allow-tab-rename"
+description = "允许前端重命名 Tab 标题"
+commands.allow = ["tab_rename"]
+
+[[permission]]
+identifier = "allow-tab-scrollback-fetch"
+description = "允许前端按需拉取 Tab scrollback buffer（IPC contract 排除全量 scroll_back · 按需分页拉取）"
+commands.allow = ["tab_scrollback_fetch"]

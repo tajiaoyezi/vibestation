@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Vibestation MVP-03 默认 capability · workspace CRUD + layout + theme + greet + dialog 插件 · 最小权限集",
+  "description": "Vibestation MVP-04 默认 capability · workspace CRUD + layout + theme + tab CRUD + greet + dialog 插件 · 最小权限集",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -16,6 +16,11 @@
     "allow-layout-load",
     "allow-theme-get",
     "allow-theme-set",
+    "allow-tab-list",
+    "allow-tab-create",
+    "allow-tab-close",
+    "allow-tab-rename",
+    "allow-tab-scrollback-fetch",
     "dialog:default"
   ]
 }

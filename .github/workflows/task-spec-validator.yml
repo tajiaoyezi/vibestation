@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 2
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # 需要 base branch 全历史才能 diff detect 变更文件
           fetch-depth: 0

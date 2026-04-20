@@ -111,11 +111,13 @@ mod tests {
     fn save_and_load_roundtrip() {
         let (dir, pool) = setup();
         let id = create_ws(&pool, &dir);
-        let mut state = LayoutState::default();
-        state.primary_open = false;
-        state.secondary_open = true;
-        state.primary_width = 300;
-        state.bottom_height = 350;
+        let state = LayoutState {
+            primary_open: false,
+            secondary_open: true,
+            primary_width: 300,
+            bottom_height: 350,
+            ..Default::default()
+        };
         LayoutStore::save(&pool, &id, &state).unwrap();
 
         let loaded = LayoutStore::load(&pool, &id).unwrap();
@@ -144,8 +146,10 @@ mod tests {
     fn overwrite_previous_state() {
         let (dir, pool) = setup();
         let id = create_ws(&pool, &dir);
-        let mut state = LayoutState::default();
-        state.primary_width = 200;
+        let mut state = LayoutState {
+            primary_width: 200,
+            ..Default::default()
+        };
         LayoutStore::save(&pool, &id, &state).unwrap();
 
         state.primary_width = 400;

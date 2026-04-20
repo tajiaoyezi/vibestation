@@ -5,7 +5,9 @@
 
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
-use vibestation_core::{WorkspaceMetadata, WorkspaceStore};
+use vibestation_core::{
+    AppSettingsStore, LayoutState, LayoutStore, WorkspaceMetadata, WorkspaceStore,
+};
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
@@ -79,6 +81,42 @@ fn workspace_exists(state: State<'_, AppState>, path: String) -> Result<bool, St
     WorkspaceStore::exists_at_path(pool, &path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn layout_save(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    layout_state: LayoutState,
+) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    LayoutStore::save(pool, &workspace_id, &layout_state).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn layout_load(state: State<'_, AppState>, workspace_id: String) -> Result<LayoutState, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    LayoutStore::load(pool, &workspace_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn theme_get(state: State<'_, AppState>) -> Result<String, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    match AppSettingsStore::get(pool, "theme") {
+        Ok(v) => Ok(v),
+        Err(vibestation_core::app_settings::SettingsError::NotFound(_)) => Ok("auto".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+fn theme_set(state: State<'_, AppState>, theme: String) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    AppSettingsStore::set(pool, "theme", &theme).map_err(|e| e.to_string())
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -97,6 +135,10 @@ pub fn run() {
             workspace_open,
             workspace_delete,
             workspace_exists,
+            layout_save,
+            layout_load,
+            theme_get,
+            theme_set,
         ])
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");

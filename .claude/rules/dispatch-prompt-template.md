@@ -169,6 +169,64 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 **事件**：2026-04-19 · MVP-02 · OpenCode 跑 `pnpm tauri:dev` 截图后没 cleanup · Vite/pnpm 进程 orphan 4 小时占 port 1420 · main agent 后续 session 启动 dev 失败 · 用户报错排查才定位到是 OpenCode 残留（PID 4920/4953/5060 · 另含 Codex spike-05-pty 19648）。
 
+### 2.9 · Agent 能力矩阵 · 本地 agent vs 远程 API agent 适配
+
+下发 prompt 给外部 agent 时 · **目标 agent 的文件访问能力决定 prompt 结构**。盲目复用模板会在远程 API agent 上失败（agent 拿到路径但读不到文件）。
+
+#### 三类 agent 对照
+
+| Agent 类型 | 代表 | 本地文件 | git/shell | prompt 策略 |
+|---|---|---|---|---|
+| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf | ✅ worktree + Bash | ✅ 完整 | **给路径即可** |
+| **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek | ❌ 无本地 | ❌ 无 shell | **必须附文件原文** |
+| **IDE 插件** | Trae / Kilo / Cursor 内嵌聊天 · Copilot Chat | 🟡 依赖插件 | 🟡 部分 | **明确工具要求 + 附原文兜底** |
+
+#### 强制做法
+
+**dispatch prompt 顶部 meta 段必须含**：
+
+```markdown
+> **执行者**：<Agent Name>
+> **Agent 类型**：<本地 CLI | 远程 API | IDE 插件>
+```
+
+**远程 API agent 的 prompt 必须自包含**：
+
+1. 所有需要审查 / 修改的文件原文 · 用 `---BEGIN SPEC---` / `---END SPEC---`（或类似分隔标记）包裹 · 贴进 prompt
+2. 所有需要参考的上下文（其他 spec / ADR / 决策表）· 提炼关键段贴进 prompt · 不能只说 "参见 CLAUDE.md #13"
+3. **输出路径双路径兼容**：
+   - 若 agent 有本地 git / worktree 能力 → 按流程 commit + push + 开 PR
+   - 若无本地 access → 输出完整修改后文件全文 · 用户粘到本机
+
+**本地 CLI agent 的 prompt 可以只给路径**（能通过 worktree + Bash 读）· 但依然必须明确：
+
+- 独立 worktree 路径（硬约束 2.4）
+- 分支名（硬约束 2.6）
+- commit trailer（硬约束 2.5）
+
+#### 反模式
+
+| 反模式 | 真正该做 |
+|---|---|
+| 复制本地 agent 模板（只给路径）给远程 API agent | 按 agent 类型分支 · 远程 API 必须附原文 |
+| 假设所有 agent 都能 `git worktree add` | 明确询问 / 默认无 · 双路径兼容 |
+| 远程 API prompt 说 "参考 CLAUDE.md §X" | 把 §X 关键段摘出来贴进 prompt |
+| 不在 meta 段声明 agent 类型 | 每个 dispatch prompt 顶部必写一行 `Agent 类型：...` |
+
+#### 事件
+
+**2026-04-20 · session 12 · MVP-07 Kimi 首次踩坑**：
+
+- 主 agent 仿 `MVP-04-kimi-prompt.md` 模板写 `MVP-07-kimi-prompt.md`（只引用路径 · 未附 spec 原文）
+- 用户指出 "kimi 的 你怎么直接用的 tasks 下的 md 文件 并且也没有 prompt 呀"
+- 修复：prompt 从 167 行扩到 335 行 · 嵌入 MVP-07 spec 完整 140 行原文 + 双路径兼容
+- 根因：主 agent 对 MVP-04 Kimi 成功的 post-hoc 叙事错误 · 未验证真实机制（worktree access / 用户补发 / Kimi 工具 · 主 agent 不知道）· 本 §2.9 规则化
+
+#### 关联
+
+- [全局] `~/.claude/rules/17-dispatch-agent-capability-matrix.md` · 本节的上位通用规则
+- [项目] Kimi 协作记录：`spike-tmp/dispatch/MVP-04-kimi-prompt.md`（167 行 · 路径版 · 成功但不清楚机制）· `MVP-07-kimi-prompt.md`（335 行 · 原文版 · 确定成功）
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板

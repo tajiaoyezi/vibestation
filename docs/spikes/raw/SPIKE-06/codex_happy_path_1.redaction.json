@@ -1,0 +1,10 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/codex_happy_path_1.cast.raw",
+  "source_sha256": "614a6cf57537d2d25d7dba3e66b6d8721dd2b3cafbe771304800a76e25c83c9f",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/codex_happy_path_1.redacted.cast",
+  "redacted_sha256": "4e0d2706372d4d2dd4f8b5cb72dffacc31b7d60f3f2de74e6f67bcafbac85bf9",
+  "redacted_fields": [
+    "/Users/[a-zA-Z0-9_\\-\\.]+"
+  ],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

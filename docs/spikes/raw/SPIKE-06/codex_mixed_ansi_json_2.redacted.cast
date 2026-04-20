@@ -1,0 +1,7 @@
+{"version":3,"term":{"cols":120,"rows":40},"timestamp":1776691181,"idle_time_limit":1.0,"command":"bash -lc \"$RUN_CMD\"","env":{"SHELL":"/bin/zsh"}}
+[0.417, "o", "\u001b[36m[ansi-banner codex]\u001b[0m\r\n"]
+[0.170, "o", "{\"type\":\"thread.started\",\"thread_id\":\"019dab0b-f88a-7283-a50d-518d305c3315\"}\r\n"]
+[0.003, "o", "{\"type\":\"turn.started\"}\r\n"]
+[12.808, "o", "{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"{\\\"status\\\":\\\"ok\\\",\\\"message\\\":\\\"Returning the requested one-line JSON object.\\\"}\"}}\r\n"]
+[0.145, "o", "{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":27076,\"cached_input_tokens\":4480,\"output_tokens\":99}}\r\n"]
+[2.412, "x", "0"]

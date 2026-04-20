@@ -1,0 +1,8 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/codex_auth_fail_3.cast.raw",
+  "source_sha256": "7bf4e997c19621cac6a8837259ed97c5c931da163017b60fdeda8dff40098e5a",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/codex_auth_fail_3.redacted.cast",
+  "redacted_sha256": "7bf4e997c19621cac6a8837259ed97c5c931da163017b60fdeda8dff40098e5a",
+  "redacted_fields": [],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

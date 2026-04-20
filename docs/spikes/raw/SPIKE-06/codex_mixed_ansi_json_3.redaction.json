@@ -1,0 +1,8 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/codex_mixed_ansi_json_3.cast.raw",
+  "source_sha256": "47cdee5c3f578c20cd60478342082599b1e78158eab22d4ae062ed71725b3b02",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/codex_mixed_ansi_json_3.redacted.cast",
+  "redacted_sha256": "47cdee5c3f578c20cd60478342082599b1e78158eab22d4ae062ed71725b3b02",
+  "redacted_fields": [],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

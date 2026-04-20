@@ -126,7 +126,7 @@ draft ────────► ready ─────────────�
 | [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md) | rusqlite 数据安全 B.1-5 + A.3 性能补测 | done | 1d | SPIKE-04 | R27 |
 | [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | done | 1d | SPIKE-02 | — |
 | [SPIKE-05.5](./SPIKE-05.5-pty-visible-throughput-fallback.md) | PTY visible throughput + per-session fallback 对照 | done | 1d | SPIKE-05 | — |
-| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | ready（§A harness ✅ · §A 36 样本 + §B Apple Dev 待）| 1d | SPIKE-05 · phase-4-infra-landing | R1 |
+| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | ready（§A 全完成 · harness PR #38 + 36 样本 PR #71 · R1 保留 · §B Apple Dev 待）| 1d | SPIKE-05 · phase-4-infra-landing | R1 |
 | [SPIKE-07](./SPIKE-07-cli-protocol-parser.md) | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）| draft | 3d | SPIKE-06 | R1 |
 | [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md) | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化）| done | 2d | MVP-02 | — |
 
@@ -137,12 +137,12 @@ draft ────────► ready ─────────────�
 | [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | ready（Phase A + B ✅ · Phase C Ubuntu runtime 待）| 5d | SPIKE-02 |
 | [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | done | 4d | MVP-01 |
 | [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| done | 4d | MVP-01/02 |
-| [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| draft | 8d | MVP-03 · SPIKE-05/06 |
-| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| draft | 4d | MVP-04 |
+| [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| ready（spec PR #64 + storage prep PR #72 · tabs 表 + IPC + ts-rs bindings 已 done）| 8d | MVP-03 · SPIKE-05/06 |
+| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| ready（PR #74）| 4d | MVP-04 |
 | [MVP-06](./MVP-06-config-import.md) | 配置导入（Ghostty + iTerm2 + Alacritty）| draft | 3d | MVP-04 |
-| [MVP-07](./MVP-07-git-log-readonly.md) | Git Log 只读视图 + Commit 详情 | draft | 5d | MVP-02/03 · SPIKE-03 |
-| [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | draft | 5d | MVP-07 |
-| [MVP-09](./MVP-09-stage-unstage-commit.md) | Stage/Unstage + Commit 操作（git2 写）| draft | 4d | MVP-08 · SPIKE-04 |
+| [MVP-07](./MVP-07-git-log-readonly.md) | Git Log 只读视图 + Commit 详情 | ready（PR #66）| 5d | MVP-02/03 · SPIKE-03 |
+| [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | ready（PR #70）| 5d | MVP-07 |
+| [MVP-09](./MVP-09-stage-unstage-commit.md) | Stage/Unstage + Commit 操作（git2 写）| ready（PR #73）| 4d | MVP-08 · SPIKE-04 |
 | [MVP-10](./MVP-10-settings-telemetry-packaging.md) | 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）| draft | 5d | MVP-01..09 全部 |
 
 **占位 spec（v0.2 / v0.3 / v1.0 范围 · `implementation-plan.md §10.1` 砍到后续版本）**：

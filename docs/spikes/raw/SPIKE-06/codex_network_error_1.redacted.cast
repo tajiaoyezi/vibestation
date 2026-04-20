@@ -1,0 +1,5 @@
+{"version":3,"term":{"cols":120,"rows":40},"timestamp":1776689703,"idle_time_limit":1.0,"command":"/private/tmp/spike-06-pr2-work/spike-tmp/archive/SPIKE-06-pr2/scripts/run_with_ctrl_c.exp","env":{"SHELL":"/bin/zsh"}}
+[12.372, "o", "^C525288Z ERROR codex_api::endpoint::responses_websocket: failed to connect to websocket: IO error: Connection refused (os error 61), url: wss://chatgpt.com/backend-api/codex/responses\r\r\n"]
+[0.103, "o", "ERROR: Reconnecting... 2/5\r\r\n"]
+[0.010, "o", "turn interrupted\r\r\n"]
+[0.009, "x", "0"]

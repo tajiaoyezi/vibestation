@@ -1,0 +1,6 @@
+{"version":3,"term":{"cols":120,"rows":40},"timestamp":1776691580,"idle_time_limit":1.0,"command":"bash -lc \"$RUN_CMD\"","env":{"SHELL":"/bin/zsh"}}
+[2.665, "o", "Invalid API key · Fix external API key\r\n"]
+[0.000, "o", "\u001b[?1006l\u001b[?1003l\u001b[?1002l\u001b[?1000l\u001b[>4m\u001b[<u\u001b[?1004l\u001b[?2031l"]
+[0.000, "o", "\u001b[?2004l\u001b[?25h\u001b]9;4;0;\u0007"]
+[0.506, "o", "\u001b[?25h"]
+[0.006, "x", "1"]

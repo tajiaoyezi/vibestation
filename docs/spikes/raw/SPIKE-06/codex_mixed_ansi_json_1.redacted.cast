@@ -1,0 +1,7 @@
+{"version":3,"term":{"cols":120,"rows":40},"timestamp":1776689894,"idle_time_limit":1.0,"command":"bash -lc \"$RUN_CMD\"","env":{"SHELL":"/bin/zsh"}}
+[0.032, "o", "\u001b[36m[ansi-banner codex]\u001b[0m\r\n"]
+[0.615, "o", "{\"type\":\"thread.started\",\"thread_id\":\"019daaf8-5699-7b43-b1d6-6f9964abf82f\"}\r\n"]
+[0.003, "o", "{\"type\":\"turn.started\"}\r\n"]
+[13.281, "o", "{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"agent_message\",\"text\":\"{\\\"status\\\":\\\"ok\\\",\\\"message\\\":\\\"Ready.\\\"}\"}}\r\n"]
+[0.186, "o", "{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":27076,\"cached_input_tokens\":4480,\"output_tokens\":101}}\r\n"]
+[2.669, "x", "0"]

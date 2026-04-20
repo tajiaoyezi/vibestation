@@ -1,0 +1,10 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/claude_interrupt_residual_3.cast.raw",
+  "source_sha256": "ac0db4a98282a2f7a02c1b6ab3c923e211349406bee59fcfd3e88f06c7faac07",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/claude_interrupt_residual_3.redacted.cast",
+  "redacted_sha256": "56c7ef9c5b30c722b2080992983bf36357a3621c7d2e446bc4d05cdf8d02d74e",
+  "redacted_fields": [
+    "/Users/[a-zA-Z0-9_\\-\\.]+"
+  ],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

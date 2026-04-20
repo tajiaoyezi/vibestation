@@ -1,0 +1,8 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/claude_happy_path_3.cast.raw",
+  "source_sha256": "25bf7b5658d45e99317afd02531f1271d3cd0a3ac8b9c9a0bb7d28d732de95a8",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/claude_happy_path_3.redacted.cast",
+  "redacted_sha256": "25bf7b5658d45e99317afd02531f1271d3cd0a3ac8b9c9a0bb7d28d732de95a8",
+  "redacted_fields": [],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

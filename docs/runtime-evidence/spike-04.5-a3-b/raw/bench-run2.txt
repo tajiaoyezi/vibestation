@@ -1,0 +1,89 @@
+   Compiling vibestation-core v0.1.0 (/private/tmp/spike-04.5-a3-b-work/crates/core)
+    Finished `bench` profile [optimized] target(s) in 17.40s
+     Running benches/workspace_query.rs (target/release/deps/workspace_query-1cafe43e4bf63adf)
+Gnuplot not found, using plotters backend
+Benchmarking snapshots_warm/no_index/0
+Benchmarking snapshots_warm/no_index/0: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.1s, or reduce sample count to 80.
+Benchmarking snapshots_warm/no_index/0: Collecting 100 samples in estimated 6.1358 s (100 iterations)
+Benchmarking snapshots_warm/no_index/0: Analyzing
+snapshots_warm/no_index/0
+                        time:   [58.502 ms 58.758 ms 59.040 ms]
+                        change: [+0.1985% +0.8101% +1.4357%] (p = 0.01 < 0.05)
+                        Change within noise threshold.
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high severe
+Benchmarking snapshots_warm/no_index/1
+Benchmarking snapshots_warm/no_index/1: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 6.0s, or reduce sample count to 80.
+Benchmarking snapshots_warm/no_index/1: Collecting 100 samples in estimated 5.9548 s (100 iterations)
+Benchmarking snapshots_warm/no_index/1: Analyzing
+snapshots_warm/no_index/1
+                        time:   [58.214 ms 58.499 ms 58.805 ms]
+                        change: [-0.9438% -0.3407% +0.2837%] (p = 0.29 > 0.05)
+                        No change in performance detected.
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking snapshots_warm/no_index/2
+Benchmarking snapshots_warm/no_index/2: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.8s, or reduce sample count to 80.
+Benchmarking snapshots_warm/no_index/2: Collecting 100 samples in estimated 5.8243 s (100 iterations)
+Benchmarking snapshots_warm/no_index/2: Analyzing
+snapshots_warm/no_index/2
+                        time:   [58.126 ms 58.348 ms 58.570 ms]
+                        change: [-2.1278% -0.9035% +0.1174%] (p = 0.12 > 0.05)
+                        No change in performance detected.
+Benchmarking snapshots_warm/with_index/0
+Benchmarking snapshots_warm/with_index/0: Warming up for 3.0000 s
+Benchmarking snapshots_warm/with_index/0: Collecting 100 samples in estimated 5.5329 s (800 iterations)
+Benchmarking snapshots_warm/with_index/0: Analyzing
+snapshots_warm/with_index/0
+                        time:   [6.8816 ms 6.9225 ms 6.9730 ms]
+                        change: [-1.3427% -0.6339% +0.1785%] (p = 0.10 > 0.05)
+                        No change in performance detected.
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) high mild
+  3 (3.00%) high severe
+Benchmarking snapshots_warm/with_index/1
+Benchmarking snapshots_warm/with_index/1: Warming up for 3.0000 s
+Benchmarking snapshots_warm/with_index/1: Collecting 100 samples in estimated 5.5250 s (800 iterations)
+Benchmarking snapshots_warm/with_index/1: Analyzing
+snapshots_warm/with_index/1
+                        time:   [6.8896 ms 6.9137 ms 6.9388 ms]
+                        change: [-4.8687% -2.7680% -1.0519%] (p = 0.00 < 0.05)
+                        Performance has improved.
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking snapshots_warm/with_index/2
+Benchmarking snapshots_warm/with_index/2: Warming up for 3.0000 s
+Benchmarking snapshots_warm/with_index/2: Collecting 100 samples in estimated 5.5272 s (800 iterations)
+Benchmarking snapshots_warm/with_index/2: Analyzing
+snapshots_warm/with_index/2
+                        time:   [6.9272 ms 6.9700 ms 7.0200 ms]
+                        change: [-2.7650% -0.5624% +0.9618%] (p = 0.66 > 0.05)
+                        No change in performance detected.
+Found 5 outliers among 100 measurements (5.00%)
+  3 (3.00%) high mild
+  2 (2.00%) high severe
+
+Benchmarking workspace_list_100/no_index
+Benchmarking workspace_list_100/no_index: Warming up for 3.0000 s
+Benchmarking workspace_list_100/no_index: Collecting 100 samples in estimated 5.0543 s (303k iterations)
+Benchmarking workspace_list_100/no_index: Analyzing
+workspace_list_100/no_index
+                        time:   [16.589 µs 16.637 µs 16.690 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  2 (2.00%) low mild
+  3 (3.00%) high mild
+Benchmarking workspace_list_100/with_index
+Benchmarking workspace_list_100/with_index: Warming up for 3.0000 s
+Benchmarking workspace_list_100/with_index: Collecting 100 samples in estimated 5.0067 s (429k iterations)
+Benchmarking workspace_list_100/with_index: Analyzing
+workspace_list_100/with_index
+                        time:   [11.615 µs 11.648 µs 11.682 µs]
+

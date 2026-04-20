@@ -10,11 +10,11 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（session 10 终极末 · 12 PR 全 merged · FU 系列 4/4 全关闭 · MVP-02 H2 camelCase fix + ADR-011 accepted · CLAUDE.md 决策表 #18 · 无 open PR · 无 worktree 残留 · 无 stale ref · **HEAD 见 `git log`**）| 分支切换 |
+| **Active branch** | `main`（session 11 开场 · session 10 后半段 + 11 开场累计 14 PR merged · MVP-03 + SPIKE-08 + ADR-006 v2-D + Vite8/TS6 评估 + rusqlite 字样对齐 全落地 · tasks/README 状态表本 PR 同步 · 无 open PR · 无 worktree 残留 · **HEAD 见 `git log`**）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Session 11 三选**（按价值排序 · 无前置阻塞）：(1) **MVP-03 Tool Windows** · MVP-02 解阻塞 · Calm Studio token 已有 · 推荐 (2) **SPIKE-06 PR 2** · 36 样本录制 · 前置 `brew install gitleaks asciinema` · 1-2d (3) **E2E 测试 spike** · H2 bug 暴露 CI 盲区 · 投 Playwright 预防类似 regression | session end |
+| **Next concrete action** | **Session 11 三选**（按价值排序 · 无前置阻塞）：(1) **ts-rs 推广 MVP-02 IPC contract** · SPIKE-08 §A 选型落地生产化 · 闭合 H2 根因 · 0.5-1d · 推荐 (2) **MVP-04 多 Tab 终端 spec review** · draft → ready 翻转 · 依赖已满足（MVP-03 done · SPIKE-05/05.5/06 §A done）· 后续 8d 大 task (3) **SPIKE-06 PR 2** · 36 样本录制 · 前置 `brew install gitleaks asciinema` · 1-2d | session end |
 | **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
@@ -23,10 +23,21 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 macOS 全 done（含 SPIKE-05.5）· MVP-01 + MVP-02 全 done · workspace 管理 + git 自动识别 + 多 workspace UI 落地** · 三路并行模式稳定（reviewer-led rebase / fix · OpenCode + Codex 协作纪律建立）· 进入 MVP-03（Tool Windows） · Phase B Ubuntu 等环境
-**日期**：2026-04-19（session 10 末）
+**阶段**：**Spike W0 macOS 全 done（含 SPIKE-05.5 + SPIKE-08 E2E/contract harness）· MVP-01 + MVP-02 + MVP-03 全 done · Tool Windows 5-zone + toggle + resize + theme 落地** · SPIKE-08 选型结论 §A ts-rs（v0.1 GA 前强制覆盖 IPC contract）· §B Playwright runtime 作为 v0.1 补层（非 required）· 进入 MVP-04（多 Tab 终端）spec 评审 · Phase B Ubuntu 等环境
+**日期**：2026-04-20（session 11 开场）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（近 20 个按时间倒序）**：
+- **PR #61 `20457df`**（session 11 开场 · **MVP-03 done**）· Tool Windows 布局 5-zone + toggle + resize + theme · OpenCode 主交付 · 20 验收清单项 + 8 硬约束全过 · 29/29 Rust 测试（+13 新增）· 7/7 CI 目标全绿 · 5 张 runtime 截图（dark × 4 + light × 1 · `docs/runtime-evidence/mvp-03/`）
+- **PR #60 `8eeddc4`**（session 11 开场 · **SPIKE-08 done**）· §A ts-rs 选型 PASS（Rust → TS type codegen · build.rs trigger）· §B Playwright + Vite 作为 v0.1 自动化补层（非 required）· §C CI hybrid gate · Linux tauri-driver 留 follow-up · H2 compile-time regression 回归验证 FAIL 符合预期
+- **PR #59 `6d6c43b`**（session 11 开场 · **Vite 8 + TS 6 升级评估**）· major bump 现状 + 收益 + 风险 + 推荐（v0.1 GA 后再升）· 不碰生产代码
+- **PR #58 `db80a1f`**（session 10 末 · **docs rusqlite 字样对齐**）· implementation-plan 8 处 stale 现状描述清理（redb → rusqlite · 对齐 ADR-005）
+- **PR #57 `a0865fe`**（session 10 末 · **MVP-03 spec draft → ready 翻转**）· reviewer-led 翻转 gate (a) 路径
+- **PR #56 `6bb7719`**（session 10 末 · **SPIKE-08 spec 新建**）· E2E + IPC contract 双层防御 harness 选型 + POC · 2d · H2 根因制度化前置
+- **PR #53 `aa60cd2`** / **PR #52 `5a9812e`**（session 10 末 · dependabot）· actions/checkout v4→v6 · actions/upload-artifact v4→v7
+- **PR #51 `6198fe5`**（session 10 末 · codex round 2 review 修复）· 1 HIGH + 2 MEDIUM + 1 LOW 文档同步修复
+- **PR #50 `976f46e`**（session 10 末 · **ADR-006 accepted + CLAUDE.md v2-D**）· Issue 3 b + H-2 c · 单人项目修订 · "self-review + Arbiter approval" 模式（单人项目不存在独立评审的术语澄清）· 未来升级 v2-strict 触发条件显式化
+- **PR #49 `8b8b707`**（session 10 末 · codex review 文档同步修复）· Issue 1 + H-1/M-1/M-2/L-1 + Issue 2
+- **PR #48 `623bbd5`**（session 10 终极末 · PROGRESS sync 3）· PR #46/#47 + H2 + FU-1 全捕获
 - **PR #47 `4f14c8f`**（session 10 终极末 · **H2 + FU-1 闭环**）· IPC 字段命名 camelCase mismatch 修复（5 字段 16 处）· runtime 验证 Delete + Git badge + dark mode 全过 · 截图 3 重做（44.7 KB · ADR-011 R1 落位）· FU-1 关闭
 - **PR #46 `fb503ef`**（session 10 真末 · **PROGRESS sync 2**）· 反映 FU-2/3/4 全关闭 · session 10 日志加后半段 5 PR 子段
 - **PR #45 `67d4373`**（session 10 真末 · **FU-2 翻转 + 6 步实施**）· ADR-011 proposed→accepted · dispatch prompt §2.3 路径改 · 新建 `.claude/rules/runtime-evidence-location.md` · CLAUDE.md 决策表 #18 新 row · 清 `spike-tmp/img/` 残留
@@ -172,7 +183,25 @@
 - **测试覆盖**：23 unit tests（19 workspace + 4 db migration · 含 UTF-8 / spaces / duplicate / nonexistent / git parent detection / idempotent migration）
 - **Reviewer fix**：H1 path traversal（workspace_init 改 backend 自取 `app_local_data_dir()`）+ M3 SVG bug（VibestationMarkSmall xmlns + 内联 gradient）+ spec done 翻转走 (a) 路径
 - **Explicit skip 推 MVP-04**：§C `workspace.close` IPC + opened/closed session 状态建模 · §D `app_state` table（"打开列表 + 顺序"持久化）· 与 Tab 管理一起做避免分裂改动
-- **Follow-up 收尾**：FU-2 ✅ 关闭（PR #44 + #45 · ADR-011 accepted + 6 步实施）· FU-3 ✅ 关闭（PR #42 · dispatch prompt §2.8 升级）· FU-4 ✅ 关闭（PR #43 · SPIKE-01/02 归档）· FU-1 仍留下次（截图 3 重做 · 需用户手动）
+- **Follow-up 收尾**：FU-1 ✅ 关闭（PR #47 · 截图 3 重做 · 用户手动）· FU-2 ✅ 关闭（PR #44 + #45 · ADR-011 accepted + 6 步实施）· FU-3 ✅ 关闭（PR #42 · dispatch prompt §2.8 升级）· FU-4 ✅ 关闭（PR #43 · SPIKE-01/02 归档）
+
+### 🎛️ **MVP-03 Tool Windows 已交付**（session 11 开场 · PR #61 merged · OpenCode 主交付）
+
+- **布局**：5-zone grid（Activity Strip + Primary Sidebar + Main + Secondary Sidebar + Bottom Panel）· 严格对齐原型 `design/directions/1-calm-studio.html` DEFAULT_STATE
+- **交互**：toggle（Primary / Secondary / Bottom 独立开关）· resize（拖拽分隔条 · min/max 范围约束）· theme（light / dark · `prefers-color-scheme` 自适应）
+- **持久化**：布局状态入 rusqlite（列宽 / 折叠态 / 主题）· 跨 session 恢复
+- **测试**：29 unit tests（+13 新增 · layout.rs + persistence）· 7/7 CI target 全绿
+- **Runtime 证据**：5 张截图（`docs/runtime-evidence/mvp-03/` · dark × 4 + light × 1 · 60-100 KB · 符合 ADR-011 R4）
+- **验收**：20 项清单全过 · 8 条硬约束（dispatch prompt v2）全过
+
+### 🧪 **SPIKE-08 E2E + IPC contract harness 已交付**（session 11 开场 · PR #60 merged · Codex 主交付）
+
+- **§A Contract layer**：**ts-rs 选用**（v0.1 GA 前强制覆盖所有新增 IPC contract · Rust type → TS type codegen · `build.rs` trigger · `beforeDev/BuildCommand` 保证 bindings fresh）
+- **§A 对比**：`ts-rs 12.0.1`（stars 1765 · 依赖 656 行）vs `tauri-specta 2.0.0-rc.24`（仍 RC · 依赖 675 行 · builder-based 集成成本高）· 选 ts-rs
+- **§B Runtime layer**：`Playwright + Vite` 作为 v0.1 自动化 runtime 补层（非 required）· 真实 Tauri IPC E2E（B.1/B.3 Linux tauri-driver）本轮未收敛 · 不作为 v0.1 GA required gate
+- **§C CI**：contract + browser smoke 全平台 required · native runtime 继续保留 manual runtime evidence · Linux `tauri-driver` workflow 留 informational follow-up
+- **H2 回归验证**：临时把 `WorkspaceRecord.id` 改为 `workspace_id` · `pnpm typecheck` **必然 FAIL**（符合预期）· 证明 contract layer 能把 H2 类 drift 前移到 compile-time
+- **下一步（session 11 候选 1）**：ts-rs 推广到 MVP-02 现有 5 个 IPC contract struct · 闭合 H2 根因制度化
 
 **并行化节奏说明**：SPIKE-03/04 是纯 CLI bench · 不依赖 Tauri UI · 用户决策放宽 depends_on（SPIKE-02 → SPIKE-01）· 由 opencode agent 并行完成。这是 session 6 协作规则"给原话 prompt 让用户转发给其他 agent"的首次大规模落地。
 
@@ -183,6 +212,11 @@
 
 ## ⚠️ 当前卡点 / 注意事项
 
+- **MVP-03 ✅ done · Tool Windows 布局已交付**（PR #61 merged · session 11 开场 · OpenCode 主交付 · 5-zone + toggle + resize + theme · 29/29 Rust 测试 + 5 张 runtime 截图 · ADR-011 R4 符合）
+- **SPIKE-08 ✅ done · E2E + IPC contract harness 选型**（PR #60 merged · session 11 开场 · Codex 主交付 · §A ts-rs PASS · §B Playwright runtime FAIL · §C hybrid gate · 下一步 ts-rs 推广 MVP-02 现有 IPC contract · 闭合 H2 根因制度化）
+- **ADR-006 accepted + CLAUDE.md v2-D**（PR #50 merged · session 10 末 · "self-review + Arbiter approval" 单人项目术语澄清 · 未来升级 v2-strict 触发条件显式化）
+- **Vite 8 + TS 6 major bump 评估**（PR #59 merged · docs/upgrade-notes/ · 推荐 v0.1 GA 后再升 · 不碰生产代码）
+- **docs rusqlite 字样对齐**（PR #58 merged · implementation-plan 8 处 stale 清理 · 对齐 ADR-005）
 - **SPIKE-04.5 ✅ 全 done** · R27 数据安全 close · A.3 Arbiter 选定方案(a) MVP 接受 220ms（PR #34 merged · 不改代码 · 方案(b) 复合索引留 MVP-02 一起加）
 - **SPIKE-05.5 ✅ done** · ADR-003 accepted · CLAUDE.md #15 B → A 锁 shared-reader（PR #39 merged · session 10）· 后续 invoke / JS / xterm 优化转独立 task（visible throughput 优化推到 v0.2 / v0.3）
 - **MVP-02 ✅ done · workspace 管理已交付**（PR #40 merged · session 10 · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转）· §C close + §D opened 列表 explicit skip 推 MVP-04
@@ -207,10 +241,11 @@
 |------|------|
 | ✅ Phase 1-4 Pre-code 完备 | **已达成**（2026-04-18 session 5 · 4 PR 全 merge）|
 | ✅ Spike W0 启动 | **已达成**（session 7 · 首行 Rust 代码 · SPIKE-01 Phase A PASS）|
-| 🟡 Spike W0 部分完成 | session 7 进行中：SPIKE-01/02 Phase A macOS done · SPIKE-03/04/05 done · SPIKE-04.5 / SPIKE-05.5 待推进 · SPIKE-06 按需 |
-| 🟡 Spike Pass（全 done） | SPIKE-01/02 Phase B Ubuntu + SPIKE-04.5 + SPIKE-05.5 + SPIKE-06 全过 + Apple 申请 |
+| ✅ Spike W0 macOS 全通过 | **已达成**（session 11 开场 · SPIKE-01/02 Phase A · SPIKE-03/04/04.5/05/05.5/08 全 done · SPIKE-06 §A harness done · 36 样本 + §B Apple Dev 阻塞外部资源）|
+| 🟡 Spike W0 全平台通过 | SPIKE-01/02 Phase B Ubuntu（阻塞环境）+ SPIKE-06 36 样本 + Apple 申请 |
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede |
-| 🟡 MVP 实施启动 | Spike W0 + ADR-003/005/006/007 proposed → accepted |
+| ✅ MVP 实施启动 | **已达成**（session 8 · MVP-01 Phase A · ADR-003/005/006/007 全 accepted）|
+| 🟡 MVP v0.1 进度 | **3/10 done**（MVP-01 ready + MVP-02/03 done · session 11 开场）· MVP-04 draft 待 spec review · MVP-05..10 draft |
 | 🎯 v0.1 GA | MVP-01..10 全过 §10.1 + §10.6 终端正确性矩阵 + §10.3 跨平台 |
 | 🔴 连续 2 周 < 5h 投入 | 触发 hibernation（`implementation-plan.md §10.5`）|
 
@@ -219,9 +254,11 @@
 | 产出 | 路径 |
 |------|------|
 | v2 实施计划（14 章 + 附录）| `docs/implementation-plan.md` |
-| 7 个 Spike spec（W0 + v1.0-pre）| `docs/tasks/SPIKE-0[1-7]-*.md` |
+| 8 个 Spike spec（W0 + v1.0-pre + H2 制度化 · 含 SPIKE-04.5 / SPIKE-05.5 补测）| `docs/tasks/SPIKE-*.md` |
 | 20 个 MVP spec（v0.1 详细 + v0.2+ 占位）| `docs/tasks/MVP-[01-20]-*.md` |
 | 11 个 ADR（11 accepted · 0 proposed · session 10 末 ADR-006 升级后全收敛）| `docs/adr/ADR-0[01-11]-*.md` |
+| 9 个 Spike report（含 SPIKE-08 harness 选型）| `docs/spikes/SPIKE-*-report.md` |
+| MVP-02 / MVP-03 runtime 证据 | `docs/runtime-evidence/mvp-0[23]/` |
 | Agent 入口 · 决策表 · 自审四问 · 翻转 gate | `CLAUDE.md` |
 | 人类启动手册 | `docs/SESSION-STARTUP.md` |
 | 贡献指南 · 含用户拍板 gate | `CONTRIBUTING.md` |
@@ -231,6 +268,38 @@
 ---
 
 ## Session 日志（近 5 次）
+
+### Session 11（2026-04-20 · 状态同步 + MVP-03 / SPIKE-08 落地确认）
+
+**跨越里程碑**：session 10 末 + session 11 开场累计 merge 14 个 PR（#48-#61）· **MVP-03 Tool Windows + SPIKE-08 E2E/contract harness 选型落地** · tasks/README 状态表文档负债清零 · 进入 MVP-04 spec review 前置阶段。
+
+**14 个 PR 概览**（按 merge 顺序）：
+
+- **session 10 末尾（PR #48-#58 · 11 个）**：
+  - #48 / #49 / #51 · codex round 2 review 文档同步（Issue 1 + H-1/M-1/M-2/L-1 + Issue 2 · 1 HIGH + 2 MEDIUM + 1 LOW）
+  - #50 · **ADR-006 accepted + CLAUDE.md v2-D**（单人项目修订 · "self-review + Arbiter approval" 术语澄清 · 未来升级 v2-strict 触发条件）
+  - #52 / #53 · dependabot（actions/checkout v4→v6 · actions/upload-artifact v4→v7）
+  - #56 · SPIKE-08 spec 新建（E2E + IPC contract 双层防御 harness 选型 POC · H2 根因制度化前置 · 2d）
+  - #57 · MVP-03 spec draft → ready 翻转（reviewer-led gate (a) 路径）
+  - #58 · docs rusqlite 字样对齐（implementation-plan 8 处 stale 清理 · 对齐 ADR-005）
+
+- **session 11 开场（PR #59-#61 · 3 个）**：
+  - #59 · **Vite 8 + TS 6 major bump 评估**（docs/upgrade-notes/ · 推荐 v0.1 GA 后再升 · 不碰生产代码）
+  - #60 · **SPIKE-08 done**（Codex 主交付 · §A ts-rs 选用 · §B Playwright 作 v0.1 补层 · §C hybrid gate · H2 compile-time 回归验证 FAIL 符合预期）
+  - #61 · **MVP-03 done**（OpenCode 主交付 · 5-zone + toggle + resize + theme · 29/29 Rust 测试 + 20 验收清单全过 + 5 张 runtime 截图）
+
+**Session 11 本 PR 动作**（state sync）：
+
+- 更新 `docs/tasks/README.md` 表格：SPIKE-01/02 → in-progress · SPIKE-03/04/05/08 → done · 新增 SPIKE-04.5 / 05.5 行 · SPIKE-06 → ready · MVP-01 → ready · MVP-02/03 → done（对齐 frontmatter · 文档负债清零）
+- 更新 `docs/PROGRESS.md`：PR 列表补 #48-#61 · 当前位置 → 进入 MVP-04 · 阶段切换信号表加 "Spike W0 macOS 全通过" + "MVP v0.1 进度 3/10" · 近期关键交付物索引同步（SPIKE 报告 9 个 · runtime evidence 2 个目录）· 本 session 日志段
+
+**Session 11 候选下一步动作**（三选 · 按价值排序）：
+
+1. **ts-rs 推广 MVP-02 IPC contract**（SPIKE-08 §A 选型生产化 · 闭合 H2 根因 · 0.5-1d · 推荐）
+2. **MVP-04 多 Tab 终端 spec review**（draft → ready 翻转 · 依赖已满足 · 后续 8d 大 task）
+3. **SPIKE-06 PR 2 · 36 样本录制**（前置 `brew install gitleaks asciinema` · 1-2d）
+
+---
 
 ### Session 10（2026-04-19 晚 · 三路并行收敛 · 4 PR 全 merged · MVP-02 落地）
 

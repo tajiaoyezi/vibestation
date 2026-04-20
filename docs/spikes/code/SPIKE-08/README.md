@@ -1,6 +1,6 @@
 # SPIKE-08 · IPC contract + runtime 双层防御 POC
 
-对应 report：[`docs/spikes/SPIKE-08-report.md`](../../SPIKE-08-report.md)  
+对应 report：[`docs/spikes/SPIKE-08-report.md`](../../SPIKE-08-report.md)
 对应 spec：[`docs/tasks/SPIKE-08-e2e-and-contract-harness.md`](../../../tasks/SPIKE-08-e2e-and-contract-harness.md)
 
 ## 来源

@@ -10,11 +10,11 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `main`（session 11 开场 · session 10 后半段 + 11 开场累计 14 PR merged · MVP-03 + SPIKE-08 + ADR-006 v2-D + Vite8/TS6 评估 + rusqlite 字样对齐 全落地 · tasks/README 状态表本 PR 同步 · 无 open PR · 无 worktree 残留 · **HEAD 见 `git log`**）| 分支切换 |
+| **Active branch** | `chore/progress-sync-session-11-12`（session 11 全程 + session 12 开场 · session 11 累计 3 PR merged: #62 状态同步 + #63 ts-rs rollout + #64 Kimi MVP-04 spec review · session 12 开场开 PR #65 skill 入库 + 本 PROGRESS sync · 3 dispatch 已派出待外部 agent 响应 · **HEAD 见 `git log`**）| 分支切换 |
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Session 11 三选**（按价值排序 · 无前置阻塞）：(1) **ts-rs 推广 MVP-02 IPC contract** · SPIKE-08 §A 选型落地生产化 · 闭合 H2 根因 · 0.5-1d · 推荐 (2) **MVP-04 多 Tab 终端 spec review** · draft → ready 翻转 · 依赖已满足（MVP-03 done · SPIKE-05/05.5/06 §A done）· 后续 8d 大 task (3) **SPIKE-06 PR 2** · 36 样本录制 · 前置 `brew install gitleaks asciinema` · 1-2d | session end |
+| **Next concrete action** | **Session 12 三路并行派发中**（无前置阻塞）：(A) **Kimi · MVP-07 Git Log spec review** · draft → ready + 补 §G ts-rs + §H gix 栈约束 · 2-4h · prompt 含 spec 原文（远程 API agent 模式）(B) **Codex · SPIKE-06 PR 2** · 36 CLI 样本录制 + 脱敏 + gitleaks 0 hit · 1-2d · 本地 agent 模式（worktree access）(C) **OpenCode · SPIKE-04.5 §A.3 方案(b)** · rusqlite 复合索引 benchmark · 0.5-1d · 含 fallback 树（若 OpenCode 不可用则自接）· 主 agent 同时跑 session 11→12 收尾（本 PR）+ 等待 3 外部 PR 回收 | session end |
 | **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
@@ -23,10 +23,14 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 macOS 全 done（含 SPIKE-05.5 + SPIKE-08 E2E/contract harness）· MVP-01 + MVP-02 + MVP-03 全 done · Tool Windows 5-zone + toggle + resize + theme 落地** · SPIKE-08 选型结论 §A ts-rs（v0.1 GA 前强制覆盖 IPC contract）· §B Playwright runtime 作为 v0.1 补层（非 required）· 进入 MVP-04（多 Tab 终端）spec 评审 · Phase B Ubuntu 等环境
-**日期**：2026-04-20（session 11 开场）
+**阶段**：**Spike W0 macOS 全 done（含 SPIKE-05.5 + SPIKE-08 E2E/contract harness）· MVP-01 + MVP-02 + MVP-03 全 done · MVP-04 spec ready（PR #64 Kimi 交付 · H2 根因 ts-rs contract 落地 PR #63）** · 进入 **MVP-04 实施前置** + **MVP-07 spec review**（Kimi 并行）+ **SPIKE-06 PR 2 36 样本**（Codex 并行）+ **SPIKE-04.5 A.3 方案(b)**（OpenCode 并行）· Phase B Ubuntu 等环境
+**日期**：2026-04-20（session 11 全程 + session 12 开场）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（近 20 个按时间倒序）**：
+**已合入的 PR（近 25 个按时间倒序）**：
+- **PR #64（pending merge · Arbiter action）**· Kimi · MVP-04 spec review + §G ts-rs contract 章节 + draft → ready 翻转 · CI 7/7 全绿 · MERGEABLE · 分支 `chore/tasks/mvp-04-ready` · Kimi 走翻转 (a) 路径 2 commit 结构 · 瑕疵 1：PR body 被 `ps aux` / `pnpm typecheck` log 污染（非 BLOCK · 下次 prompt 注意 shell escape）
+- **PR #65（pending merge · Arbiter action）**· Claude Code · `.claude/skills/end-session/SKILL.md` 入库（session 11 working tree 残留 · 219 行 · 按 rule 13 补归档）
+- **PR #63 `44e5e95`**（session 11 · **ts-rs rollout · H2 根因制度化**）· ts-rs 12 集成 workspace · `crates/app/build.rs` 每次 build 生成 `web/src/bindings/` · `WorkspaceMetadata` / `LayoutState` 加 `#[derive(TS)]` + `#[ts(export)]` · 前端删手写 interface → import from bindings · H2 regression proof：临时 rename 字段 tsc 抓 10 处 drift · fix commit `c09e250` 加 `.prettierignore` 排除 generated bindings
+- **PR #62 `3daad7f`**（session 11 · **状态同步 · PR #48-#61 + MVP-03/SPIKE-08 done**）· tasks/README 11 行状态列对齐 frontmatter · PROGRESS 补 session 10 末 + session 11 开场 14 PR · 阶段切换信号加 "Spike W0 macOS 全通过" + "MVP v0.1 进度 3/10"
 - **PR #61 `20457df`**（session 11 开场 · **MVP-03 done**）· Tool Windows 布局 5-zone + toggle + resize + theme · OpenCode 主交付 · 20 验收清单项 + 8 硬约束全过 · 29/29 Rust 测试（+13 新增）· 7/7 CI 目标全绿 · 5 张 runtime 截图（dark × 4 + light × 1 · `docs/runtime-evidence/mvp-03/`）
 - **PR #60 `8eeddc4`**（session 11 开场 · **SPIKE-08 done**）· §A ts-rs 选型 PASS（Rust → TS type codegen · build.rs trigger）· §B Playwright + Vite 作为 v0.1 自动化补层（非 required）· §C CI hybrid gate · Linux tauri-driver 留 follow-up · H2 compile-time regression 回归验证 FAIL 符合预期
 - **PR #59 `6d6c43b`**（session 11 开场 · **Vite 8 + TS 6 升级评估**）· major bump 现状 + 收益 + 风险 + 推荐（v0.1 GA 后再升）· 不碰生产代码
@@ -245,7 +249,7 @@
 | 🟡 Spike W0 全平台通过 | SPIKE-01/02 Phase B Ubuntu（阻塞环境）+ SPIKE-06 36 样本 + Apple 申请 |
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede |
 | ✅ MVP 实施启动 | **已达成**（session 8 · MVP-01 Phase A · ADR-003/005/006/007 全 accepted）|
-| 🟡 MVP v0.1 进度 | **3/10 done**（MVP-01 ready + MVP-02/03 done · session 11 开场）· MVP-04 draft 待 spec review · MVP-05..10 draft |
+| 🟡 MVP v0.1 进度 | **3/10 done + 1 ready**（MVP-01 ready + MVP-02/03 done · MVP-04 ready [PR #64 Kimi]）· MVP-05/06/08/09/10 draft · MVP-07 draft 待 Kimi 评审中（session 12 dispatch） |
 | 🎯 v0.1 GA | MVP-01..10 全过 §10.1 + §10.6 终端正确性矩阵 + §10.3 跨平台 |
 | 🔴 连续 2 周 < 5h 投入 | 触发 hibernation（`implementation-plan.md §10.5`）|
 
@@ -269,9 +273,9 @@
 
 ## Session 日志（近 5 次）
 
-### Session 11（2026-04-20 · 状态同步 + MVP-03 / SPIKE-08 落地确认）
+### Session 11（2026-04-20 · 状态同步 + MVP-03/SPIKE-08 落地 + ts-rs rollout + MVP-04 spec ready + Kimi 首次成功协作）
 
-**跨越里程碑**：session 10 末 + session 11 开场累计 merge 14 个 PR（#48-#61）· **MVP-03 Tool Windows + SPIKE-08 E2E/contract harness 选型落地** · tasks/README 状态表文档负债清零 · 进入 MVP-04 spec review 前置阶段。
+**跨越里程碑**：session 10 末 + session 11 全程累计 merge 17 个 PR（#48-#63）+ PR #64 pending merge · **MVP-03 Tool Windows + SPIKE-08 E2E/contract harness 选型 + ts-rs 生产化落地 + MVP-04 spec ready** · Kimi 首次外部 agent 成功协作 · tasks/README 状态表文档负债清零 · 进入 MVP-04 实施前置 + MVP-07 review 阶段。
 
 **14 个 PR 概览**（按 merge 顺序）：
 
@@ -293,11 +297,45 @@
 - 更新 `docs/tasks/README.md` 表格：SPIKE-01/02 → in-progress · SPIKE-03/04/05/08 → done · 新增 SPIKE-04.5 / 05.5 行 · SPIKE-06 → ready · MVP-01 → ready · MVP-02/03 → done（对齐 frontmatter · 文档负债清零）
 - 更新 `docs/PROGRESS.md`：PR 列表补 #48-#61 · 当前位置 → 进入 MVP-04 · 阶段切换信号表加 "Spike W0 macOS 全通过" + "MVP v0.1 进度 3/10" · 近期关键交付物索引同步（SPIKE 报告 9 个 · runtime evidence 2 个目录）· 本 session 日志段
 
-**Session 11 候选下一步动作**（三选 · 按价值排序）：
+**Session 11 后续动作全部完成**（原三选候选全部消化）：
 
-1. **ts-rs 推广 MVP-02 IPC contract**（SPIKE-08 §A 选型生产化 · 闭合 H2 根因 · 0.5-1d · 推荐）
-2. **MVP-04 多 Tab 终端 spec review**（draft → ready 翻转 · 依赖已满足 · 后续 8d 大 task）
-3. **SPIKE-06 PR 2 · 36 样本录制**（前置 `brew install gitleaks asciinema` · 1-2d）
+1. ✅ **ts-rs 推广 MVP-02 IPC contract** · PR #63 `44e5e95` merged · `WorkspaceMetadata` / `LayoutState` 加 `#[derive(TS)]` · build.rs 生成 bindings · 前端删手写 interface · H2 regression proof 跑通（tsc 抓 10 处 drift）· fix commit `c09e250` .prettierignore 排除 generated
+2. ✅ **MVP-04 spec review · draft → ready** · PR #64（pending merge · CI 7/7 全绿）· **Kimi 主交付**（首次 Kimi 外部 agent 成功协作）· §G IPC Contract（ts-rs）章节新增 · `TabState` derive + `#[ts(type = "number")]` · `scroll_back` 建议从 IPC 排除 remark · (a) 翻转路径 2 commit
+3. ⏸ **SPIKE-06 PR 2 · 36 样本** · 用户 brew install gitleaks + asciinema 完成 · session 11 期间 OpenCode 不可用暂搁 · session 12 重派 Codex（见 session 12 开场段）
+
+**Session 11 新外部 agent 协作经验**（Kimi 首次成功）：
+
+- Kimi 按 dispatch prompt 11 硬约束全部满足 · 独立 worktree `/private/tmp/mvp-04-review-work` · 翻转 (a) 路径 Kimi 自己 push 2 commit 结构 · Commit trailer `Co-authored-by: Kimi <noreply@moonshot.ai>`
+- **1 个瑕疵（非 BLOCK）**：PR body 被 `ps aux` + `pnpm typecheck FAIL` log 污染 · diff 干净 · 未来 Kimi prompt 需明示 PR body 纯 markdown 避免 heredoc shell escape · MVP-07 prompt 已加这条警告
+
+**Session 11 OpenCode 状态变化**：
+
+- 用户声明 "目前 opencode 无法执行任务 · 先不考虑 opencode 了"
+- SPIKE-06 PR 2 原下发 OpenCode prompt（`spike-tmp/dispatch/SPIKE-06-pr2-opencode-prompt.md`）搁置
+- session 12 尝试再次分派 OpenCode（SPIKE-04.5 方案(b) 小任务）带 fallback 树验证 recovery
+
+---
+
+### Session 12 开场（2026-04-20 晚 · 三路外部 agent 并行派发 + 本 PROGRESS sync）
+
+**开场动作**：
+
+1. ✅ **PR #65** · `.claude/skills/end-session/SKILL.md` 入库（session 11 working tree 残留 · 按 rule 13 补归档 · 219 行 · 分支 `chore/add-end-session-skill`）
+2. ✅ **3 dispatch prompt 生成**（spike-tmp/dispatch/ · gitignored · 等用户转发）：
+   - **Kimi** · MVP-07 Git Log spec review（335 行 · 含 spec 原文 · 双路径兼容 worktree / 无 access 输出完整修改版）
+   - **Codex** · SPIKE-06 PR 2 36 CLI 样本录制 + 脱敏 + gitleaks 0 hit + 4 样归档（Spike 层级）
+   - **OpenCode** · SPIKE-04.5 §A.3 方案(b) rusqlite 复合索引 benchmark（0.5-1d · fallback 树若不可用主 agent 自接）
+3. 🔄 **本 PROGRESS sync PR**（分支 `chore/progress-sync-session-11-12` · 本 PR）· 反映 session 11 全程 + session 12 开场状态
+4. ⏳ **等 3 dispatch PR 回收** + Arbiter merge PR #64/#65/本 PR
+
+**Session 12 文件域隔离**（3 agent + 主 agent 零冲突）：
+
+| Agent | 文件域 | 文件 |
+|---|---|---|
+| Kimi | MVP-07 spec 单文件 | `docs/tasks/MVP-07-git-log-readonly.md` |
+| Codex | SPIKE-06 报告 + raw 归档（新建） | `docs/spikes/SPIKE-06-report.md` + `docs/spikes/raw/SPIKE-06/*` |
+| OpenCode | rusqlite schema + benchmark 证据 | `crates/core/src/*` + `docs/runtime-evidence/spike-04.5-a3-b/*` |
+| 主 agent | PROGRESS sync + skill 入库 | `docs/PROGRESS.md` · `.claude/skills/end-session/SKILL.md` |
 
 ---
 

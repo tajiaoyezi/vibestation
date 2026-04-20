@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 4;
+const CURRENT_SCHEMA_VERSION: u32 = 5;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -71,6 +71,9 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
     }
     if user_version < 4 {
         migrate_v4(conn)?;
+    }
+    if user_version < 5 {
+        migrate_v5(conn)?;
     }
 
     Ok(())
@@ -131,6 +134,29 @@ fn migrate_v4(conn: &Connection) -> Result<(), DbError> {
     )
     .map_err(|e| DbError::Migration {
         version: 4,
+        reason: e.to_string(),
+    })?;
+    Ok(())
+}
+
+fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS tabs (
+             tab_id        TEXT PRIMARY KEY,
+             workspace_id  TEXT NOT NULL,
+             name          TEXT NOT NULL,
+             shell         TEXT NOT NULL,
+             cwd           TEXT NOT NULL,
+             scroll_back   TEXT NOT NULL DEFAULT '[]',
+             created_at    INTEGER NOT NULL,
+             FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS idx_tabs_workspace_created
+             ON tabs(workspace_id, created_at DESC);
+         PRAGMA user_version = 5;",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 5,
         reason: e.to_string(),
     })?;
     Ok(())
@@ -345,6 +371,155 @@ mod tests {
             .unwrap();
         assert_eq!(version, 4, "re-running v4 migration should be idempotent");
         drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v5_migration_creates_tabs_table() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v5test.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='tabs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(table_exists, "tabs table should exist after v5 migration");
+
+        let index_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name='idx_tabs_workspace_created'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            index_exists,
+            "idx_tabs_workspace_created should exist after v5 migration"
+        );
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 5);
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v5_tabs_table_has_fk_and_columns() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v5fktest.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(tabs)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        assert!(cols.contains(&"tab_id".to_string()));
+        assert!(cols.contains(&"workspace_id".to_string()));
+        assert!(cols.contains(&"name".to_string()));
+        assert!(cols.contains(&"shell".to_string()));
+        assert!(cols.contains(&"cwd".to_string()));
+        assert!(cols.contains(&"scroll_back".to_string()));
+        assert!(cols.contains(&"created_at".to_string()));
+
+        let fk_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM pragma_foreign_key_list('tabs')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(fk_exists, "tabs should have FK referencing workspaces");
+
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v5_migration_idempotent() {
+        let (dir, pool) = test_pool();
+        let conn = pool.get().unwrap();
+
+        run_migrations(&conn).unwrap();
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, CURRENT_SCHEMA_VERSION);
+
+        conn.execute("DROP INDEX idx_tabs_workspace_created", [])
+            .unwrap();
+        conn.execute("DROP TABLE tabs", []).unwrap();
+
+        conn.execute(
+            "CREATE TABLE tabs (tab_id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, name TEXT NOT NULL, shell TEXT NOT NULL, cwd TEXT NOT NULL, scroll_back TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL, FOREIGN KEY (workspace_id) REFERENCES workspaces(workspace_id) ON DELETE CASCADE)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "CREATE INDEX idx_tabs_workspace_created ON tabs(workspace_id, created_at DESC)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v5(&conn).unwrap();
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='tabs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            table_exists,
+            "tabs table should still exist after re-running v5"
+        );
+
+        let version2: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            version2, 5,
+            "user_version should remain 5 after idempotent run"
+        );
+
+        drop(conn);
+        drop(pool);
+        drop(dir);
+    }
+
+    #[test]
+    fn v5_fk_violation_rejected() {
+        let (dir, pool) = test_pool();
+        let conn = pool.get().unwrap();
+        conn.execute("PRAGMA foreign_keys = ON", []).unwrap();
+
+        let result = conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, created_at) VALUES ('t1', 'nonexistent-ws', 'tab', 'zsh', '/tmp', 0)",
+            [],
+        );
+        assert!(result.is_err(), "FK violation should be rejected");
+
+        drop(conn);
+        drop(pool);
         drop(dir);
     }
 }

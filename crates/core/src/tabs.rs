@@ -234,8 +234,8 @@ impl TabsDao {
                 other => TabError::Db(DbError::Query(other.to_string())),
             })?;
 
-        let mut scrollback: Vec<String> = serde_json::from_str(&current)
-            .unwrap_or_else(|_| Vec::new());
+        let mut scrollback: Vec<String> =
+            serde_json::from_str(&current).unwrap_or_else(|_| Vec::new());
         scrollback.extend(lines.iter().cloned());
 
         let max_lines: usize = 10_000;
@@ -244,8 +244,7 @@ impl TabsDao {
             scrollback.drain(0..drain_count);
         }
 
-        let json = serde_json::to_string(&scrollback)
-            .map_err(|e| DbError::Query(e.to_string()))?;
+        let json = serde_json::to_string(&scrollback).map_err(|e| DbError::Query(e.to_string()))?;
 
         let rows = conn
             .execute(
@@ -274,14 +273,11 @@ impl TabsDao {
                 |row| row.get(0),
             )
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => {
-                    TabError::NotFound(tab_id.to_string())
-                }
+                rusqlite::Error::QueryReturnedNoRows => TabError::NotFound(tab_id.to_string()),
                 other => TabError::Db(DbError::Query(other.to_string())),
             })?;
 
-        let scrollback: Vec<String> = serde_json::from_str(&current)
-            .unwrap_or_else(|_| Vec::new());
+        let scrollback: Vec<String> = serde_json::from_str(&current).unwrap_or_else(|_| Vec::new());
 
         let start = offset.min(scrollback.len());
         let end = (offset + limit).min(scrollback.len());
@@ -504,8 +500,12 @@ mod tests {
         let (_dir, pool, ws_id) = setup();
         let tab = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
 
-        TabsDao::scrollback_append(&pool, &tab.tab_id, &["line1".to_string(), "line2".to_string()])
-            .unwrap();
+        TabsDao::scrollback_append(
+            &pool,
+            &tab.tab_id,
+            &["line1".to_string(), "line2".to_string()],
+        )
+        .unwrap();
 
         let lines = TabsDao::scrollback_fetch(&pool, &tab.tab_id, 0, 10).unwrap();
         assert_eq!(lines, vec!["line1", "line2"]);
@@ -551,7 +551,10 @@ mod tests {
 
         let all = TabsDao::scrollback_fetch(&pool, &tab.tab_id, 0, 10_500).unwrap();
         assert_eq!(all.len(), 10_000);
-        assert!(all[0].starts_with("old"), "oldest entries should still be present");
+        assert!(
+            all[0].starts_with("old"),
+            "oldest entries should still be present"
+        );
         assert_eq!(all[9999], "new4");
     }
 
@@ -577,7 +580,10 @@ mod tests {
     fn tab_id_is_valid_uuid_format() {
         let (_dir, pool, ws_id) = setup();
         let tab = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
-        assert!(Uuid::parse_str(&tab.tab_id).is_ok(), "tab_id should be valid UUID v4");
+        assert!(
+            Uuid::parse_str(&tab.tab_id).is_ok(),
+            "tab_id should be valid UUID v4"
+        );
     }
 
     #[test]

@@ -401,7 +401,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert!(index_exists, "idx_tabs_workspace_created should exist after v5 migration");
+        assert!(
+            index_exists,
+            "idx_tabs_workspace_created should exist after v5 migration"
+        );
 
         let version: u32 = conn
             .pragma_query_value(None, "user_version", |row| row.get(0))
@@ -485,12 +488,18 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert!(table_exists, "tabs table should still exist after re-running v5");
+        assert!(
+            table_exists,
+            "tabs table should still exist after re-running v5"
+        );
 
         let version2: u32 = conn
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
-        assert_eq!(version2, 5, "user_version should remain 5 after idempotent run");
+        assert_eq!(
+            version2, 5,
+            "user_version should remain 5 after idempotent run"
+        );
 
         drop(conn);
         drop(pool);

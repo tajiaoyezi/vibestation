@@ -119,22 +119,24 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 估时 | 依赖 | 风险 |
 |----|------|------|------|------|------|
-| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| draft | 1d | — | R12 |
-| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| draft | 1d | SPIKE-01 | **R12 CRITICAL** |
-| [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| draft | 1d | SPIKE-02 | R3 |
-| [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | draft | 1d | SPIKE-02 | R27 |
-| [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | draft | 1d | SPIKE-02 | — |
-| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | draft | 1d | SPIKE-05 · phase-4-infra-landing | R1 |
+| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | — | R12 |
+| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | SPIKE-01 | **R12 CRITICAL** |
+| [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| done | 1d | SPIKE-02 | R3 |
+| [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | done | 1d | SPIKE-02 | R27 |
+| [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md) | rusqlite 数据安全 B.1-5 + A.3 性能补测 | done | 1d | SPIKE-04 | R27 |
+| [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | done | 1d | SPIKE-02 | — |
+| [SPIKE-05.5](./SPIKE-05.5-pty-visible-throughput-fallback.md) | PTY visible throughput + per-session fallback 对照 | done | 1d | SPIKE-05 | — |
+| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | ready（§A harness ✅ · §A 36 样本 + §B Apple Dev 待）| 1d | SPIKE-05 · phase-4-infra-landing | R1 |
 | [SPIKE-07](./SPIKE-07-cli-protocol-parser.md) | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）| draft | 3d | SPIKE-06 | R1 |
-| [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md) | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化）| draft | 2d | MVP-02 | — |
+| [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md) | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化）| done | 2d | MVP-02 | — |
 
 ### MVP（v0.1 范围 · B 折中方案）
 
 | ID | 标题 | 状态 | 估时 | 依赖 |
 |----|------|------|------|------|
-| [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | draft | 5d | SPIKE-02 |
-| [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | draft | 4d | MVP-01 |
-| [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| draft | 4d | MVP-01/02 |
+| [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | ready（Phase A + B ✅ · Phase C Ubuntu runtime 待）| 5d | SPIKE-02 |
+| [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | done | 4d | MVP-01 |
+| [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| done | 4d | MVP-01/02 |
 | [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| draft | 8d | MVP-03 · SPIKE-05/06 |
 | [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| draft | 4d | MVP-04 |
 | [MVP-06](./MVP-06-config-import.md) | 配置导入（Ghostty + iTerm2 + Alacritty）| draft | 3d | MVP-04 |

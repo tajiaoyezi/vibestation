@@ -1,0 +1,13 @@
+ts-rs #typescript #ts #bindings #ts-rs #wasm
+generate typescript bindings from rust types
+version: 12.0.1
+license: MIT
+rust-version: 1.78.0
+documentation: https://docs.rs/ts-rs/12.0.1
+homepage: https://github.com/Aleph-Alpha/ts-rs
+repository: https://github.com/Aleph-Alpha/ts-rs
+crates.io: https://crates.io/crates/ts-rs/12.0.1
+features:
+ +default                  = [serde-compat]
+  serde-compat             = [ts-rs-macros/serde-compat]
+  33 deactivated features

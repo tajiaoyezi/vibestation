@@ -1,22 +1,24 @@
 # SPIKE-06 · Raw Samples Archive
 
-> 本目录存放 **脱敏后的派生样本**（进 git）。原始未脱敏捕获保留在本机 `~/.vibestation-spike-raw/SPIKE-06/`，冷备保留在 `spike-tmp/archive/SPIKE-06-pr2/`（gitignored）。
+> 本目录存放 **脱敏后的派生样本**（进 git）。
+> 原始未脱敏捕获保留在本机 `~/.vibestation-spike-raw/SPIKE-06/`。
+> 冷备保留在 `spike-tmp/archive/SPIKE-06-pr2/`（gitignored）。
 
 ## 归档位置
 
 | 物料 | 位置 | 状态 |
-|---|---|---|
+| --- | --- | --- |
 | 脱敏后 cast | `docs/spikes/raw/SPIKE-06/*.redacted.cast` | ✅ 36 条 |
 | 脱敏元数据 | `docs/spikes/raw/SPIKE-06/*.redaction.json` | ✅ 36 条 |
 | 原始 cast | `~/.vibestation-spike-raw/SPIKE-06/*.cast.raw` | ✅ 36 条 |
-| 冷备 / build log / 本地 orchestration | `spike-tmp/archive/SPIKE-06-pr2/` | ✅ |
+| 冷备 / build log | `spike-tmp/archive/SPIKE-06-pr2/` | ✅ |
 
 ## 命名约定
 
 ```text
-<cli>_<scenario>_<n>.cast.raw        # 本机原始录制（不进 git）
-<cli>_<scenario>_<n>.redacted.cast   # repo 内脱敏样本
-<cli>_<scenario>_<n>.redaction.json  # repo 内脱敏元数据
+<cli>_<scenario>_<n>.cast.raw
+<cli>_<scenario>_<n>.redacted.cast
+<cli>_<scenario>_<n>.redaction.json
 ```
 
 场景枚举：
@@ -28,50 +30,65 @@
 - `long_stream`
 - `mixed_ansi_json`
 
-## 36 条矩阵（PR 2）
+## 矩阵摘要
 
-| Redacted cast | Raw source | CLI | 场景 | 平台 | 录制时间 |
-|---|---|---|---|---|---|
-| `claude_happy_path_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_happy_path_1.cast.raw` | Claude CLI | happy path | macOS | 2026-04-20 20:49:12 |
-| `claude_happy_path_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_happy_path_2.cast.raw` | Claude CLI | happy path | macOS | 2026-04-20 21:00:13 |
-| `claude_happy_path_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_happy_path_3.cast.raw` | Claude CLI | happy path | macOS | 2026-04-20 21:18:28 |
-| `claude_interrupt_residual_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_interrupt_residual_1.cast.raw` | Claude CLI | 中断后残帧 | macOS | 2026-04-20 20:53:01 |
-| `claude_interrupt_residual_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_interrupt_residual_2.cast.raw` | Claude CLI | 中断后残帧 | macOS | 2026-04-20 21:00:32 |
-| `claude_interrupt_residual_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_interrupt_residual_3.cast.raw` | Claude CLI | 中断后残帧 | macOS | 2026-04-20 21:26:19 |
-| `claude_auth_fail_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_auth_fail_1.cast.raw` | Claude CLI | 认证失败 | macOS | 2026-04-20 20:49:27 |
-| `claude_auth_fail_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_auth_fail_2.cast.raw` | Claude CLI | 认证失败 | macOS | 2026-04-20 21:00:35 |
-| `claude_auth_fail_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_auth_fail_3.cast.raw` | Claude CLI | 认证失败 | macOS | 2026-04-20 21:26:23 |
-| `claude_network_error_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_network_error_1.cast.raw` | Claude CLI | 网络错误 | macOS | 2026-04-20 20:55:21 |
-| `claude_network_error_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_network_error_2.cast.raw` | Claude CLI | 网络错误 | macOS | 2026-04-20 21:00:48 |
-| `claude_network_error_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_network_error_3.cast.raw` | Claude CLI | 网络错误 | macOS | 2026-04-20 21:26:36 |
-| `claude_long_stream_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_long_stream_1.cast.raw` | Claude CLI | 长流式输出 | macOS | 2026-04-20 20:56:39 |
-| `claude_long_stream_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_long_stream_2.cast.raw` | Claude CLI | 长流式输出 | macOS | 2026-04-20 21:08:44 |
-| `claude_long_stream_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_long_stream_3.cast.raw` | Claude CLI | 长流式输出 | macOS | 2026-04-20 21:31:02 |
-| `claude_mixed_ansi_json_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_mixed_ansi_json_1.cast.raw` | Claude CLI | 混合 ANSI / JSON-line | macOS | 2026-04-20 20:51:33 |
-| `claude_mixed_ansi_json_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_mixed_ansi_json_2.cast.raw` | Claude CLI | 混合 ANSI / JSON-line | macOS | 2026-04-20 21:09:02 |
-| `claude_mixed_ansi_json_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/claude_mixed_ansi_json_3.cast.raw` | Claude CLI | 混合 ANSI / JSON-line | macOS | 2026-04-20 21:31:18 |
-| `codex_happy_path_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_happy_path_1.cast.raw` | Codex CLI | happy path | macOS | 2026-04-20 20:51:50 |
-| `codex_happy_path_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_happy_path_2.cast.raw` | Codex CLI | happy path | macOS | 2026-04-20 21:09:37 |
-| `codex_happy_path_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_happy_path_3.cast.raw` | Codex CLI | happy path | macOS | 2026-04-20 21:20:35 |
-| `codex_interrupt_residual_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_interrupt_residual_1.cast.raw` | Codex CLI | 中断后残帧 | macOS | 2026-04-20 21:15:31 |
-| `codex_interrupt_residual_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_interrupt_residual_2.cast.raw` | Codex CLI | 中断后残帧 | macOS | 2026-04-20 21:16:08 |
-| `codex_interrupt_residual_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_interrupt_residual_3.cast.raw` | Codex CLI | 中断后残帧 | macOS | 2026-04-20 21:20:59 |
-| `codex_auth_fail_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_auth_fail_1.cast.raw` | Codex CLI | 认证失败 | macOS | 2026-04-20 20:54:53 |
-| `codex_auth_fail_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_auth_fail_2.cast.raw` | Codex CLI | 认证失败 | macOS | 2026-04-20 21:16:51 |
-| `codex_auth_fail_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_auth_fail_3.cast.raw` | Codex CLI | 认证失败 | macOS | 2026-04-20 21:21:41 |
-| `codex_network_error_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_network_error_1.cast.raw` | Codex CLI | 网络错误 | macOS | 2026-04-20 20:55:16 |
-| `codex_network_error_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_network_error_2.cast.raw` | Codex CLI | 网络错误 | macOS | 2026-04-20 21:17:04 |
-| `codex_network_error_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_network_error_3.cast.raw` | Codex CLI | 网络错误 | macOS | 2026-04-20 21:21:54 |
-| `codex_long_stream_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_long_stream_1.cast.raw` | Codex CLI | 长流式输出 | macOS | 2026-04-20 20:58:14 |
-| `codex_long_stream_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_long_stream_2.cast.raw` | Codex CLI | 长流式输出 | macOS | 2026-04-20 21:19:40 |
-| `codex_long_stream_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_long_stream_3.cast.raw` | Codex CLI | 长流式输出 | macOS | 2026-04-20 21:24:32 |
-| `codex_mixed_ansi_json_1.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_mixed_ansi_json_1.cast.raw` | Codex CLI | 混合 ANSI / JSON | macOS | 2026-04-20 20:58:31 |
-| `codex_mixed_ansi_json_2.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_mixed_ansi_json_2.cast.raw` | Codex CLI | 混合 ANSI / JSON | macOS | 2026-04-20 21:19:57 |
-| `codex_mixed_ansi_json_3.redacted.cast` | `~/.vibestation-spike-raw/SPIKE-06/codex_mixed_ansi_json_3.cast.raw` | Codex CLI | 混合 ANSI / JSON | macOS | 2026-04-20 21:24:47 |
+| CLI | 场景 | 次数 |
+| --- | --- | --- |
+| Claude CLI | happy / interrupt / auth / network / long / mixed | 18 |
+| Codex CLI | happy / interrupt / auth / network / long / mixed | 18 |
+| 合计 | 2 CLI × 6 场景 × 3 次 | 36 |
+
+## 36 条样本清单
+
+### Claude CLI
+
+```text
+claude_happy_path_1.redacted.cast          macOS  2026-04-20 20:49:12
+claude_happy_path_2.redacted.cast          macOS  2026-04-20 21:00:13
+claude_happy_path_3.redacted.cast          macOS  2026-04-20 21:18:28
+claude_interrupt_residual_1.redacted.cast  macOS  2026-04-20 20:53:01
+claude_interrupt_residual_2.redacted.cast  macOS  2026-04-20 21:00:32
+claude_interrupt_residual_3.redacted.cast  macOS  2026-04-20 21:26:19
+claude_auth_fail_1.redacted.cast           macOS  2026-04-20 20:49:27
+claude_auth_fail_2.redacted.cast           macOS  2026-04-20 21:00:35
+claude_auth_fail_3.redacted.cast           macOS  2026-04-20 21:26:23
+claude_network_error_1.redacted.cast       macOS  2026-04-20 20:55:21
+claude_network_error_2.redacted.cast       macOS  2026-04-20 21:00:48
+claude_network_error_3.redacted.cast       macOS  2026-04-20 21:26:36
+claude_long_stream_1.redacted.cast         macOS  2026-04-20 20:56:39
+claude_long_stream_2.redacted.cast         macOS  2026-04-20 21:08:44
+claude_long_stream_3.redacted.cast         macOS  2026-04-20 21:31:02
+claude_mixed_ansi_json_1.redacted.cast     macOS  2026-04-20 20:51:33
+claude_mixed_ansi_json_2.redacted.cast     macOS  2026-04-20 21:09:02
+claude_mixed_ansi_json_3.redacted.cast     macOS  2026-04-20 21:31:18
+```
+
+### Codex CLI
+
+```text
+codex_happy_path_1.redacted.cast           macOS  2026-04-20 20:51:50
+codex_happy_path_2.redacted.cast           macOS  2026-04-20 21:09:37
+codex_happy_path_3.redacted.cast           macOS  2026-04-20 21:20:35
+codex_interrupt_residual_1.redacted.cast   macOS  2026-04-20 21:15:31
+codex_interrupt_residual_2.redacted.cast   macOS  2026-04-20 21:16:08
+codex_interrupt_residual_3.redacted.cast   macOS  2026-04-20 21:20:59
+codex_auth_fail_1.redacted.cast            macOS  2026-04-20 20:54:53
+codex_auth_fail_2.redacted.cast            macOS  2026-04-20 21:16:51
+codex_auth_fail_3.redacted.cast            macOS  2026-04-20 21:21:41
+codex_network_error_1.redacted.cast        macOS  2026-04-20 20:55:16
+codex_network_error_2.redacted.cast        macOS  2026-04-20 21:17:04
+codex_network_error_3.redacted.cast        macOS  2026-04-20 21:21:54
+codex_long_stream_1.redacted.cast          macOS  2026-04-20 20:58:14
+codex_long_stream_2.redacted.cast          macOS  2026-04-20 21:19:40
+codex_long_stream_3.redacted.cast          macOS  2026-04-20 21:24:32
+codex_mixed_ansi_json_1.redacted.cast      macOS  2026-04-20 20:58:31
+codex_mixed_ansi_json_2.redacted.cast      macOS  2026-04-20 21:19:57
+codex_mixed_ansi_json_3.redacted.cast      macOS  2026-04-20 21:24:47
+```
 
 ## Historical Smoke（PR 1）
 
-以下 6 条 `.txt` 为 2026-04-19 的零敏感 smoke 样本，保留作历史基线：
+以下 6 条 `.txt` 为 2026-04-19 的零敏感 smoke 样本：
 
 - `claude-version-01.txt`
 - `claude-version-02.txt`
@@ -85,8 +102,10 @@
 脱敏策略：
 
 - 使用 repo 内 `docs/spikes/code/SPIKE-06/harness/redact.py`
-- 本地 orchestration 脚本位于 `spike-tmp/archive/SPIKE-06-pr2/scripts/redact_batch.py`
-- 占位保留结构，敏感值丢失：JWT / API key / Bearer / 本地路径 / GitHub remote / 邮箱
+- 本地 orchestration 脚本位于
+  `spike-tmp/archive/SPIKE-06-pr2/scripts/redact_batch.py`
+- 占位保留结构，敏感值丢失：
+  JWT / API key / Bearer / 本地路径 / GitHub remote / 邮箱
 
 `gitleaks` 结果（2026-04-20 · `gitleaks 8.30.1`）：
 
@@ -117,6 +136,8 @@ repo 内可复用的 harness 入口：
 
 ```bash
 cd docs/spikes/code/SPIKE-06/harness
-./redact.py --input ~/.vibestation-spike-raw/SPIKE-06/claude_happy_path_1.cast.raw --output ../../raw/SPIKE-06/claude_happy_path_1.redacted.cast
+./redact.py \
+  --input ~/.vibestation-spike-raw/SPIKE-06/claude_happy_path_1.cast.raw \
+  --output ../../raw/SPIKE-06/claude_happy_path_1.redacted.cast
 ./verify.sh ../../raw/SPIKE-06
 ```

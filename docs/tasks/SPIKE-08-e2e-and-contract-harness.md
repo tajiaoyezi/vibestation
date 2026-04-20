@@ -2,8 +2,8 @@
 id: SPIKE-08
 type: spike
 title: E2E + IPC contract 双层防御 harness 选型 + POC
-status: ready
-owner:
+status: in-progress
+owner: Codex CLI
 phase: W0+-extension
 depends_on: ["MVP-02"]
 blocks: []

@@ -1,0 +1,10 @@
+{
+  "source_raw": "/Users/USER/.vibestation-spike-raw/SPIKE-06/claude_long_stream_3.cast.raw",
+  "source_sha256": "76a71df4ddf9e6f9622acf30a121acc223219c68d6ecc0104925bbaeaba27cec",
+  "redacted_output": "/private/tmp/spike-06-pr2-work/docs/spikes/raw/SPIKE-06/claude_long_stream_3.redacted.cast",
+  "redacted_sha256": "ea10330d28fbe1d1d1b67f8991b3112269650c93ac8101cdc9c7da5616918190",
+  "redacted_fields": [
+    "/Users/[a-zA-Z0-9_\\-\\.]+"
+  ],
+  "replacement_strategy": "regex via docs/spikes/code/SPIKE-06/harness/redact.py; structure preserved, values lost"
+}

@@ -1,0 +1,13 @@
+tauri-specta #async #specta #rspc #typescript #typesafe
+Completely typesafe Tauri commands
+version: 2.0.0-rc.24
+license: MIT
+rust-version: unknown
+documentation: https://docs.rs/tauri-specta/latest/tauri-specta
+repository: https://github.com/specta-rs/tauri-specta
+crates.io: https://crates.io/crates/tauri-specta/2.0.0-rc.24
+features:
+ +default    = []
+  derive     = [dep:tauri-specta-macros]
+  javascript = [dep:specta-typescript, dep:specta-tags]
+  typescript = [dep:specta-typescript, dep:specta-tags]

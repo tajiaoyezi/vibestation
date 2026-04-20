@@ -1,0 +1,12 @@
+
+> spike-08-contract-runtime@0.1.0 typecheck /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> tsc --noEmit
+
+src/App.tsx(48,53): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+src/App.tsx(65,71): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+src/App.tsx(67,39): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+src/App.tsx(174,85): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+src/App.tsx(182,71): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+src/backend.ts(35,5): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'WorkspaceRecord'.
+src/backend.ts(70,34): error TS2339: Property 'id' does not exist on type 'WorkspaceRecord'.
+ ELIFECYCLE  Command failed with exit code 2.

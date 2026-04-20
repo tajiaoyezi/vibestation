@@ -1,0 +1,71 @@
+name: SPIKE-08 Linux Smoke
+
+on:
+  push:
+    branches:
+      - spike/SPIKE-08
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tauri-driver-linux:
+    name: tauri-driver smoke · Ubuntu 24.04
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: docs/spikes/code/SPIKE-08
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.0 --activate
+          pnpm --version
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Ubuntu deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            webkit2gtk-driver \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libsoup-3.0-dev \
+            librsvg2-dev \
+            patchelf \
+            xvfb
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            docs/spikes/code/SPIKE-08/target
+          key: spike-08-linux-cargo-${{ runner.os }}-${{ hashFiles('docs/spikes/code/SPIKE-08/src-tauri/Cargo.lock') }}
+
+      - name: Install tauri-driver
+        run: cargo install tauri-driver --locked
+
+      - name: Run Linux smoke
+        run: ./scripts/run-linux-driver-smoke.sh
+
+      - name: Upload Linux raw artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-08-linux-raw
+          path: docs/spikes/raw/SPIKE-08/linux/

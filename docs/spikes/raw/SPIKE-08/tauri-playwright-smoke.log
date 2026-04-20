@@ -1,0 +1,38 @@
+
+> spike-08-contract-runtime@0.1.0 e2e:tauri /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> playwright test e2e/tests/tauri.spec.ts --config e2e/playwright.config.ts --project=tauri
+
+
+Running 1 test using 1 worker
+
+(node:90088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:90088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [tauri] › e2e/tests/tauri.spec.ts:3:1 › create/list/delete golden path in real Tauri window (30.3s)
+
+
+  1) [tauri] › e2e/tests/tauri.spec.ts:3:1 › create/list/delete golden path in real Tauri window ───
+
+    Error: TauriPage command 'eval' failed: timeout (30s)
+        at TauriPage.command (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/node_modules/.pnpm/@srsholmes+tauri-playwright@0.2.2_@playwright+test@1.59.1/node_modules/@srsholmes/tauri-playwright/dist/index.js:870:13)
+        at TauriPage.evaluate (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/node_modules/.pnpm/@srsholmes+tauri-playwright@0.2.2_@playwright+test@1.59.1/node_modules/@srsholmes/tauri-playwright/dist/index.js:514:18)
+        at Object.tauriPage (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/node_modules/.pnpm/@srsholmes+tauri-playwright@0.2.2_@playwright+test@1.59.1/node_modules/@srsholmes/tauri-playwright/dist/index.js:1652:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../raw/SPIKE-08/tauri-playwright-results/tauri-create-list-delete-golden-path-in-real-Tauri-window-tauri/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../raw/SPIKE-08/tauri-playwright-results/tauri-create-list-delete-golden-path-in-real-Tauri-window-tauri/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../../raw/SPIKE-08/tauri-playwright-results/tauri-create-list-delete-golden-path-in-real-Tauri-window-tauri/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace ../../raw/SPIKE-08/tauri-playwright-results/tauri-create-list-delete-golden-path-in-real-Tauri-window-tauri/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [tauri] › e2e/tests/tauri.spec.ts:3:1 › create/list/delete golden path in real Tauri window ────
+ ELIFECYCLE  Command failed with exit code 1.

@@ -1,0 +1,32 @@
+
+> spike-08-contract-runtime@0.1.0 tauri:dev:e2e /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> tauri dev --features e2e-testing
+
+     Running BeforeDevCommand (`pnpm dev:tauri`)
+
+> spike-08-contract-runtime@0.1.0 dev:tauri /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> pnpm contract:generate && pnpm dev
+
+
+> spike-08-contract-runtime@0.1.0 contract:generate /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> cargo build --manifest-path src-tauri/Cargo.toml
+
+   Compiling spike-08-contract-runtime v0.1.0 (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/src-tauri)
+        Warn Waiting for your frontend dev server to start on http://localhost:1420/...
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.13s
+
+> spike-08-contract-runtime@0.1.0 dev /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> vite
+
+
+  VITE v6.4.2  ready in 254 ms
+
+  ➜  Local:   http://127.0.0.1:1420/
+     Running DevCommand (`cargo  run --no-default-features --features e2e-testing --color always --`)
+        Info Watching /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/src-tauri for changes...
+[1m[92m   Compiling[0m spike-08-contract-runtime v0.1.0 (/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/src-tauri)
+[1m[96m    Building[0m [=======================> ] 378/380: spike-08-contract-runtime   [1m[96m    Building[0m [=======================> ] 379/380: spike-08-contract-runtime(b…[K[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 2.08s
+[1m[92m     Running[0m `/private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/target/debug/spike-08-contract-runtime`
+tauri-plugin-playwright: listening on unix:/tmp/tauri-playwright.sock
+ ELIFECYCLE  Command failed.
+ ELIFECYCLE  Command failed with exit code 143.

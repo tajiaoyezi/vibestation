@@ -1,0 +1,6 @@
+[browser-e2e] goto http://127.0.0.1:1420
+[browser-e2e] create Golden Path Repo
+[browser-e2e] created-id workspace-0001
+[browser-e2e] delete-ok 已删除 Golden Path Repo · deleted=workspace-0001 · remaining=0
+[browser-e2e] screenshot /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/../../raw/SPIKE-08/playwright-browser-final.png
+[browser-e2e] trace /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08/../../raw/SPIKE-08/playwright-browser-trace.zip

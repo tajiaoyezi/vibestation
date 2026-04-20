@@ -1,0 +1,5 @@
+
+> spike-08-contract-runtime@0.1.0 contract:generate /private/tmp/spike-08-work/docs/spikes/code/SPIKE-08
+> cargo build --manifest-path src-tauri/Cargo.toml
+
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s

@@ -1,0 +1,9 @@
+tauri-plugin-playwright #tauri #playwright #testing #e2e #webdriver
+Tauri plugin that enables Playwright E2E testing by embedding a control server in the app
+version: 0.2.2
+license: MIT
+rust-version: unknown
+documentation: https://docs.rs/tauri-plugin-playwright/0.2.2
+homepage: https://github.com/srsholmes/tauri-playwright
+repository: https://github.com/srsholmes/tauri-playwright
+crates.io: https://crates.io/crates/tauri-plugin-playwright/0.2.2

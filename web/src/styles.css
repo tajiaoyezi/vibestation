@@ -896,8 +896,7 @@ body,
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
   color: var(--text-1);
-  transition:
-    background-color var(--dur-fast) var(--ease);
+  transition: background-color var(--dur-fast) var(--ease);
   border-left: 2px solid transparent;
 }
 
@@ -1060,13 +1059,27 @@ body,
   flex-shrink: 0;
 }
 
-.vs-git-log-status-A { color: var(--success); }
-.vs-git-log-status-M { color: var(--warning); }
-.vs-git-log-status-D { color: var(--danger); }
-.vs-git-log-status-R { color: var(--accent); }
-.vs-git-log-status-C { color: var(--accent); }
-.vs-git-log-status-T { color: var(--text-4); }
-.vs-git-log-status-U { color: var(--text-4); }
+.vs-git-log-status-A {
+  color: var(--success);
+}
+.vs-git-log-status-M {
+  color: var(--warning);
+}
+.vs-git-log-status-D {
+  color: var(--danger);
+}
+.vs-git-log-status-R {
+  color: var(--accent);
+}
+.vs-git-log-status-C {
+  color: var(--accent);
+}
+.vs-git-log-status-T {
+  color: var(--text-4);
+}
+.vs-git-log-status-U {
+  color: var(--text-4);
+}
 
 .vs-git-log-file-path {
   color: var(--text-3);

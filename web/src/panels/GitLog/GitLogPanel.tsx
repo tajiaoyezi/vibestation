@@ -1,4 +1,12 @@
-import { type Component, createSignal, createEffect, onMount, onCleanup, For, Show } from "solid-js";
+import {
+  type Component,
+  createSignal,
+  createEffect,
+  onMount,
+  onCleanup,
+  For,
+  Show,
+} from "solid-js";
 import type {
   GitLogEntry,
   GitLogQueryRequest,
@@ -25,10 +33,7 @@ export function createGitLogStore() {
   const [detailLoading, setDetailLoading] = createSignal(false);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  const load = async (
-    workspaceId: string,
-    resetOffset = true,
-  ) => {
+  const load = async (workspaceId: string, resetOffset = true) => {
     setLoading(true);
     setError(null);
     const newOffset = resetOffset ? 0 : offset();
@@ -180,7 +185,9 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
       fallback={
         <div class="vs-git-log-empty">
           <p class="vs-placeholder-text">No git repository found</p>
-          <p class="vs-placeholder-text">Open a directory containing a .git folder</p>
+          <p class="vs-placeholder-text">
+            Open a directory containing a .git folder
+          </p>
         </div>
       }
     >
@@ -227,23 +234,31 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
               {(entry) => (
                 <button
                   class={`vs-git-log-entry ${store.selectedSha() === entry.shortSha ? "vs-git-log-entry-selected" : ""}`}
-                  onClick={() => store.loadDetail(workspaceId(), entry.shortSha)}
+                  onClick={() =>
+                    store.loadDetail(workspaceId(), entry.shortSha)
+                  }
                 >
                   <div class="vs-git-log-entry-header">
                     <span class="vs-git-log-sha">{entry.shortSha}</span>
-                    <span class="vs-git-log-time">{formatTime(entry.authoredDate)}</span>
+                    <span class="vs-git-log-time">
+                      {formatTime(entry.authoredDate)}
+                    </span>
                   </div>
                   <div class="vs-git-log-message">{entry.message}</div>
                   <div class="vs-git-log-author">{entry.authorName}</div>
                   <div class="vs-git-log-labels">
                     <For each={entry.branchLabels}>
                       {(label) => (
-                        <span class="vs-git-log-label vs-git-log-branch">{label}</span>
+                        <span class="vs-git-log-label vs-git-log-branch">
+                          {label}
+                        </span>
                       )}
                     </For>
                     <For each={entry.tagLabels}>
                       {(label) => (
-                        <span class="vs-git-log-label vs-git-log-tag">{label}</span>
+                        <span class="vs-git-log-label vs-git-log-tag">
+                          {label}
+                        </span>
                       )}
                     </For>
                   </div>
@@ -274,20 +289,36 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
             <Show when={store.detail() && !store.detailLoading()}>
               <div class="vs-git-log-detail-content">
                 <div class="vs-git-log-detail-meta">
-                  <div><strong>Author:</strong> {store.detail()!.author.name} &lt;{store.detail()!.author.email}&gt;</div>
-                  <div><strong>Date:</strong> {new Date(store.detail()!.author.timestamp * 1000).toLocaleString()}</div>
-                  <div><strong>Committer:</strong> {store.detail()!.committer.name}</div>
-                  <div><strong>SHA:</strong> {store.detail()!.fullSha}</div>
+                  <div>
+                    <strong>Author:</strong> {store.detail()!.author.name} &lt;
+                    {store.detail()!.author.email}&gt;
+                  </div>
+                  <div>
+                    <strong>Date:</strong>{" "}
+                    {new Date(
+                      store.detail()!.author.timestamp * 1000,
+                    ).toLocaleString()}
+                  </div>
+                  <div>
+                    <strong>Committer:</strong> {store.detail()!.committer.name}
+                  </div>
+                  <div>
+                    <strong>SHA:</strong> {store.detail()!.fullSha}
+                  </div>
                   <Show when={store.detail()!.parents.length > 0}>
                     <div>
                       <strong>Parents:</strong>{" "}
                       <For each={store.detail()!.parents}>
-                        {(p) => <span class="vs-git-log-parent">{p.shortSha}</span>}
+                        {(p) => (
+                          <span class="vs-git-log-parent">{p.shortSha}</span>
+                        )}
                       </For>
                     </div>
                   </Show>
                 </div>
-                <div class="vs-git-log-detail-message">{store.detail()!.message}</div>
+                <div class="vs-git-log-detail-message">
+                  {store.detail()!.message}
+                </div>
                 <div class="vs-git-log-detail-files">
                   <Show
                     when={store.detail()!.files.length <= 1000}
@@ -298,12 +329,16 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
                       </div>
                     }
                   >
-                    <div><strong>Files ({store.detail()!.files.length}):</strong></div>
+                    <div>
+                      <strong>Files ({store.detail()!.files.length}):</strong>
+                    </div>
                   </Show>
                   <For each={store.detail()!.files.slice(0, 200)}>
                     {(file) => (
                       <div class="vs-git-log-file">
-                        <span class={`vs-git-log-file-status vs-git-log-status-${file.status}`}>
+                        <span
+                          class={`vs-git-log-file-status vs-git-log-status-${file.status}`}
+                        >
                           {file.status}
                         </span>
                         <span class="vs-git-log-file-path">{file.path}</span>

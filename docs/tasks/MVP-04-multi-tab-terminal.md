@@ -218,6 +218,7 @@ pub struct TabState {
 - **Wayland IME**：Wayland 下 IME 切换可能和 xterm focus 冲突 → 三平台分开测
 - **CLI 中断残帧（SPIKE-06 A.2）**：Ctrl+C Claude CLI 流式输出中途 → 检查残帧是否污染下条 prompt
 - **fix-path-env shim**（2026-04-21 · PR #82 · Codex）：Phase B 实施时 crates.io `fix-path-env` 包在 Codex 环境无法解析 · 改为 `crates/app/src/fix_path_env.rs` 53 行本地 shim（macOS/Linux 启动登录 shell + `printf %s "$PATH"` 覆盖 `env::set_var`）。**风险**：shim 无 timeout · 若用户 shell rc 文件 source 慢资源（NVM / oh-my-zsh plugin）· app 启动可能卡几秒。**GA gate**：v0.1.0 GA 发布前评估 · 若官方包在 CI 环境可用 · 切回；否则 shim 加 timeout 保护。
+- **Linux PTY SIGTERM timing 不稳定**（2026-04-21 · PR #82 CI failure · PR #86 多轮 workaround 失败）：`pty::tests::signal_sigterm_exits_exec_session` 在 macOS 本地稳定 · 在 GitHub Actions Ubuntu runner 上 timing 不一致 · `exec sleep 30` 后 SIGTERM 到 mio epoll 感知 PTY close event 的延迟 > 10s · 根因怀疑是 `tcgetpgrp` / `waitpid` / epoll 在 Linux PTY 上的行为和 macOS kqueue 差异。**workaround**（PR #86）：测试标 `#[cfg_attr(target_os = "linux", ignore)]` · 本地 macOS 继续跑 · CI Ubuntu skip。**GA gate**：MVP-04 Phase D（shell 兼容 · 三平台矩阵）启动时 · 在 Ubuntu 环境深挖 signal/exit 语义 · 解除 ignore。不阻塞 macOS-first v0.1.0-alpha 发布。
 
 ## 📝 Notes
 

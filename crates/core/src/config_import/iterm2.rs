@@ -89,8 +89,38 @@ fn parse_file(path: &Path) -> Result<Vec<ImportedField>, ConfigImportError> {
     if let Some(shell) = profile.get("Command").and_then(|v| v.as_string()) {
         fields.push(ImportedField::Shell(shell.to_string()));
     }
-    // ANSI color / keybinding 留 Phase B
+    // ANSI 0-15 colors
+    for i in 0u8..=15 {
+        let key = format!("Ansi {} Color", i);
+        if let Some(color_dict) = profile.get(&key).and_then(|v| v.as_dictionary()) {
+            let r = color_dict
+                .get("Red Component")
+                .and_then(|v| v.as_real())
+                .unwrap_or(0.0);
+            let g = color_dict
+                .get("Green Component")
+                .and_then(|v| v.as_real())
+                .unwrap_or(0.0);
+            let b = color_dict
+                .get("Blue Component")
+                .and_then(|v| v.as_real())
+                .unwrap_or(0.0);
+            fields.push(ImportedField::AnsiColor {
+                index: i,
+                hex: rgb_to_hex(r, g, b),
+            });
+        }
+    }
     Ok(fields)
+}
+
+fn rgb_to_hex(r: f64, g: f64, b: f64) -> String {
+    format!(
+        "#{:02x}{:02x}{:02x}",
+        (r * 255.0).round().clamp(0.0, 255.0) as u8,
+        (g * 255.0).round().clamp(0.0, 255.0) as u8,
+        (b * 255.0).round().clamp(0.0, 255.0) as u8,
+    )
 }
 
 #[cfg(test)]
@@ -170,5 +200,122 @@ mod tests {
         assert!(r.path_exists);
         assert!(r.detected_fields.is_empty());
         assert_eq!(r.errors.len(), 1);
+    }
+
+    #[test]
+    fn scan_ansi_colors_16() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        // 构建含 16 个 ANSI color 的 plist XML
+        let mut xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Guid</key>
+            <string>profile-1</string>
+            <key>Normal Font</key>
+            <string>JetBrains Mono 14</string>"#.to_string();
+        for i in 0u8..=15 {
+            xml.push_str(&format!(
+                "\n            <key>Ansi {} Color</key>\n            <dict>\n                <key>Red Component</key><real>{}</real>\n                <key>Green Component</key><real>{}</real>\n                <key>Blue Component</key><real>{}</real>\n            </dict>",
+                i,
+                i as f64 / 15.0,
+                i as f64 / 15.0,
+                i as f64 / 15.0
+            ));
+        }
+        xml.push_str(
+            r#"
+        </dict>
+    </array>
+</dict>
+</plist>"#,
+        );
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // family + size + shell(缺) + 16 ansi = 18
+        let ansi_count = r
+            .detected_fields
+            .iter()
+            .filter(|f| matches!(f, ImportedField::AnsiColor { .. }))
+            .count();
+        assert_eq!(ansi_count, 16);
+        // 验证 index 0 的 hex
+        let first_ansi = r
+            .detected_fields
+            .iter()
+            .find(|f| matches!(f, ImportedField::AnsiColor { index: 0, .. }));
+        assert!(
+            matches!(first_ansi, Some(ImportedField::AnsiColor { hex, .. }) if hex == "#000000")
+        );
+        // 验证 index 15 的 hex (1.0 → ff)
+        let last_ansi = r
+            .detected_fields
+            .iter()
+            .find(|f| matches!(f, ImportedField::AnsiColor { index: 15, .. }));
+        assert!(
+            matches!(last_ansi, Some(ImportedField::AnsiColor { hex, .. }) if hex == "#ffffff")
+        );
+    }
+
+    #[test]
+    fn scan_ansi_colors_partial() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Guid</key>
+            <string>profile-1</string>
+            <key>Ansi 0 Color</key>
+            <dict>
+                <key>Red Component</key><real>0.1</real>
+                <key>Green Component</key><real>0.2</real>
+                <key>Blue Component</key><real>0.3</real>
+            </dict>
+            <key>Ansi 7 Color</key>
+            <dict>
+                <key>Red Component</key><real>0.7</real>
+                <key>Green Component</key><real>0.8</real>
+                <key>Blue Component</key><real>0.9</real>
+            </dict>
+        </dict>
+    </array>
+</dict>
+</plist>"#;
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        let ansi_count = r
+            .detected_fields
+            .iter()
+            .filter(|f| matches!(f, ImportedField::AnsiColor { .. }))
+            .count();
+        assert_eq!(ansi_count, 2);
+    }
+
+    #[test]
+    fn scan_rgb_to_hex_conversion() {
+        assert_eq!(rgb_to_hex(1.0, 0.0, 0.0), "#ff0000");
+        assert_eq!(rgb_to_hex(0.0, 1.0, 0.0), "#00ff00");
+        assert_eq!(rgb_to_hex(0.0, 0.0, 1.0), "#0000ff");
+        assert_eq!(rgb_to_hex(0.0, 0.0, 0.0), "#000000");
+        assert_eq!(rgb_to_hex(1.0, 1.0, 1.0), "#ffffff");
+        // 0.1, 0.2, 0.3 → 0.1*255=25.5→26(0x1a), 0.2*255=51.0→51(0x33), 0.3*255=76.5→77(0x4d)
+        assert_eq!(rgb_to_hex(0.1, 0.2, 0.3), "#1a334d");
     }
 }

@@ -61,9 +61,48 @@ pub fn scan(home: &Path) -> ImportScanResult {
 
 fn parse_file(path: &Path) -> Result<Vec<ImportedField>, ConfigImportError> {
     let content = std::fs::read_to_string(path)?;
-    let cfg: GhosttyConfig =
-        toml::from_str(&content).map_err(|e| ConfigImportError::Toml(e.to_string()))?;
-    Ok(config_to_fields(cfg))
+    // 去掉 keybind 行 · 让 toml 能正常解析 font/theme/shell（不受重复 key 影响）
+    let sanitized: String = content
+        .lines()
+        .filter(|line| !line.trim().starts_with("keybind"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let toml_fields = match toml::from_str::<GhosttyConfig>(&sanitized) {
+        Ok(cfg) => config_to_fields(cfg),
+        Err(e) => {
+            // toml 解析失败（非 keybind 原因）· 降级只取 keybinds
+            let err_fields = parse_keybinds_raw(&content);
+            if err_fields.is_empty() {
+                return Err(ConfigImportError::Toml(e.to_string()));
+            }
+            return Ok(err_fields);
+        }
+    };
+    let mut all = toml_fields;
+    all.extend(parse_keybinds_raw(&content));
+    Ok(all)
+}
+
+fn parse_keybinds_raw(content: &str) -> Vec<ImportedField> {
+    content
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.starts_with('#') || trimmed.is_empty() {
+                return None;
+            }
+            let rest = trimmed
+                .strip_prefix("keybind")?
+                .trim_start()
+                .strip_prefix('=')?
+                .trim();
+            let (key, action) = rest.split_once('=')?;
+            Some(ImportedField::KeyBinding {
+                key: key.trim().to_string(),
+                action: action.trim().to_string(),
+            })
+        })
+        .collect()
 }
 
 fn config_to_fields(cfg: GhosttyConfig) -> Vec<ImportedField> {
@@ -184,5 +223,73 @@ mod tests {
         assert!(r.path_exists);
         assert_eq!(r.detected_fields.len(), 1);
         assert!(r.errors.is_empty());
+    }
+
+    #[test]
+    fn scan_keybinds_multiple_lines() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/ghostty/config",
+            r#"
+keybind = cmd+t=new_tab
+keybind = cmd+w=close_tab
+keybind = cmd+shift+[=previous_tab
+"#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // toml parse 因重复 key 降级 · 只取 keybinds
+        assert_eq!(r.detected_fields.len(), 3);
+        assert!(r.errors.is_empty());
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "cmd+t" && action == "new_tab")
+        );
+    }
+
+    #[test]
+    fn scan_keybinds_with_font() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/ghostty/config",
+            r#"
+font_family = "JetBrains Mono"
+keybind = cmd+t=new_tab
+font_size = 14
+keybind = cmd+w=close_tab
+"#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // toml 先解析 font · 再手动 merge keybinds
+        assert_eq!(r.detected_fields.len(), 4);
+        assert!(r.errors.is_empty());
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::FontFamily(ref f) if f == "JetBrains Mono")
+        );
+        assert!(
+            matches!(&r.detected_fields[2], ImportedField::KeyBinding { key, action } if key == "cmd+t" && action == "new_tab")
+        );
+    }
+
+    #[test]
+    fn scan_keybinds_comment_skip() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/ghostty/config",
+            r#"
+# keybind = cmd+t=should_be_skipped
+keybind = cmd+t=new_tab
+"#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // 注释行被跳过 · 只有 1 个有效 keybind
+        assert_eq!(r.detected_fields.len(), 1);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "cmd+t" && action == "new_tab")
+        );
     }
 }

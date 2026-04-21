@@ -1,9 +1,12 @@
 import { type Component } from "solid-js";
+import { GitLogPanel } from "../panels/GitLog";
+import type { WorkspaceMetadata } from "../bindings";
 
 interface SecondarySidebarProps {
   layout: () => { secondaryOpen: boolean; secondaryWidth: number };
   onResizeStart: (e: MouseEvent) => void;
   onResizeReset: () => void;
+  activeWorkspace: () => WorkspaceMetadata | null;
 }
 
 export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
@@ -25,7 +28,7 @@ export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
         </div>
       </div>
       <div class="vs-panel-body">
-        <p class="vs-placeholder-text">MVP-07 will fill this area</p>
+        <GitLogPanel activeWorkspace={props.activeWorkspace} />
       </div>
       <div
         class="vs-resize-handle vs-resize-handle-w"

@@ -109,9 +109,15 @@ Tauri v2 默认 `csp: null` 是 "初次搭建" 设置 · **不是生产默认**�
 - `core:default` 包含 Tauri 核心 default set（app/event/image/menu/path/resources/tray/webview/window）· Phase B 收紧
 - `allow-greet` 显式允许 greet 命令
 
-### Phase B 前要做的收紧（TODO）
+### Phase B 前要做的收紧（TODO · 触发时机 @ MVP-04 Phase B 启动）
 
-分析 `core:default` 展开的 9 个子 set · 只保留实际需要的：
+⏰ **触发时机**（本 TODO 从未明确 deadline · session 13 audit L-1 补）：
+
+MVP-04 Phase B（PTY runtime 启动）**第一次要加 `fs:*` 或 `process:*` permission 时** · 必须**同一 PR 内**完成本收紧动作。不能继续延后到 Phase C/D。
+
+**责任人**：MVP-04 Phase B 的 implementer agent（OpenCode / Codex / Claude 均可）· PR body Test Plan 必含 checkbox "Tauri capability 已从 core:default 收紧到精确子集"。
+
+**动作分析** · `core:default` 展开的 9 个子 set · 只保留实际需要的：
 
 - `core:app:default`（app info）· 大概率需要
 - `core:window:default`（window 操作）· MVP 可能需要 close/minimize/resize

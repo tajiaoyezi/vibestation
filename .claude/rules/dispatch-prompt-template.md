@@ -386,10 +386,27 @@ GO 🚀
 
 ## 4 · 参考实现
 
-已有参考实现：
-- `spike-tmp/dispatch/MVP-02-opencode-prompt.md`（2026-04-19 · MVP 层级 · 第一个应用 7 条硬约束 + 禁止清单的完整模板 · 2.8 于 session 10 后增补）
-- `spike-tmp/dispatch/SPIKE-05.5-codex-prompt.md`（2026-04-19 · 旧版 · 未含硬约束段 · 作为"重构前对照"参考）
-- `spike-tmp/dispatch/SPIKE-04.5-a3-opencode-prompt.md`（2026-04-19 · 旧版 · 第一次踩"自行 accept"坑的反面教材）
+### 4.1 · 推荐参考（session 12 验证成功 · 高可复用）
+
+- `spike-tmp/dispatch/MVP-04-storage-prep-opencode-prompt.md`（2026-04-20 · MVP phased · OpenCode 第 2 次 recover 成功 · 36 单元测试 + ts-rs 5 bindings · 最完整 MVP 拆分 prompt 范本）
+- `spike-tmp/dispatch/MVP-07-kimi-prompt.md`（2026-04-20 · **Kimi 远程 API 标杆**· 335 行 · 附 spec 原文 140 行 + 双路径兼容 · 解决本地 CLI 模板复制给远程 API 失败的根因）
+- `spike-tmp/dispatch/SPIKE-06-pr2-codex-prompt.md`（2026-04-20 · Codex CLI · 36 脱敏样本 + R1 保留独立 section · 最完整 Spike 4 样齐全 prompt）
+- `spike-tmp/dispatch/MVP-05-kimi-prompt.md`（2026-04-20 · Kimi 第 5 次 · Pane 分屏 §H 布局模型约束 · 14 min 最快交付）
+- `spike-tmp/dispatch/MVP-02-opencode-prompt.md`（2026-04-19 · 第一个应用硬约束 + 禁止清单的完整模板 · session 10 后 2.8 子进程清理增补）
+
+### 4.2 · 历史对照（反面教材 · 避免重踩）
+
+- `spike-tmp/dispatch/SPIKE-04.5-a3-opencode-prompt.md`（2026-04-19 · 第一次踩"自行 accept"坑 · OpenCode 绕过 benchmark 自标 Arbiter 选定 · 触发 §2.1 规则化）
+- `spike-tmp/dispatch/SPIKE-05.5-codex-prompt.md`（2026-04-19 · 未含硬约束段 · "重构前对照"参考 · 对比 §2 成型前后的完整度）
+
+### 4.3 · 参考选择指南
+
+| 任务类型 | 推荐模板 | 原因 |
+|---|---|---|
+| MVP 实施（有多 phase）| `MVP-04-storage-prep-opencode-prompt.md` | Phase A 拆分 + 测试覆盖率要求 + ts-rs bindings 要求齐全 |
+| MVP / Spec review（Kimi 远程 API）| `MVP-07-kimi-prompt.md` | 双路径兼容 + 附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
+| Spike（decision-grade · 4 样齐全）| `SPIKE-06-pr2-codex-prompt.md` | 最严格 artifact 归档 + raw 溯源 + R1 保留独立 section |
+| Chore / 文档 · 本地 CLI agent | `MVP-02-opencode-prompt.md` | 简洁 + 8 硬约束 + 禁止清单 |
 
 ---
 

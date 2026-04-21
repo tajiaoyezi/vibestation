@@ -157,7 +157,7 @@ struct PaneState {
 
 ## §G. IPC Contract（ts-rs）
 
-> 复用 MVP-04 §G 模式：所有 IPC struct 必须 derive `TS` + `serde`，前端禁手写 bindings，`build.rs` 自动生成。IPC 侧不包含 `scroll_back`，走独立拉取接口。
+> **依据**：[ADR-014 · IPC contract source of truth = Rust struct + ts-rs codegen](../adr/ADR-014-ipc-contract-source-of-truth-ts-rs.md)（规范源头）。复用 MVP-04 §G 模式：所有 IPC struct 必须 derive `TS` + `serde`，前端禁手写 bindings，`build.rs` 自动生成。IPC 侧不包含 `scroll_back`，走独立拉取接口。
 
 ### G.1 预期 IPC struct 清单
 

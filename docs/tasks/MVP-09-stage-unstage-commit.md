@@ -147,7 +147,7 @@ Commit UI 状态（message 草稿 / Amend 勾选态）持久化到现有 `app_se
 
 ## §G. IPC Contract（ts-rs）
 
-> 依据：PR #63 ts-rs rollout 确立的 IPC contract 规范（见 `docs/runtime-evidence/chore-ts-rs-rollout/h2-regression-proof.md`）。
+> **依据**：[ADR-014 · IPC contract source of truth = Rust struct + ts-rs codegen](../adr/ADR-014-ipc-contract-source-of-truth-ts-rs.md)（H2 根因消除 · SPIKE-08 §A PASS + PR #63 rollout 生产化 · 规范源头）。所有 IPC struct 必须遵循 ADR-014 §规范 5 条 + H2 regression proof 6 步。
 
 本 MVP 所有 IPC struct 必须单点维护——**Rust struct 为 source of truth**，禁止前端手写对偶 TypeScript interface。
 

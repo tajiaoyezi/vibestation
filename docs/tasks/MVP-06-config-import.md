@@ -146,6 +146,8 @@ reviewer: Kimi
 
 ## §G. IPC Contract（ts-rs）
 
+> **依据**：[ADR-014 · IPC contract source of truth = Rust struct + ts-rs codegen](../adr/ADR-014-ipc-contract-source-of-truth-ts-rs.md)（规范源头 · H2 根因消除 · SPIKE-08 §A PASS + PR #63 rollout 生产化）。所有 IPC struct 必须遵循 ADR-014 §规范 5 条 + H2 regression proof 6 步。
+
 ### G.1 预期 IPC struct 清单
 
 | Rust struct | 用途 | 前端 import |

@@ -9,9 +9,10 @@ use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
-    AppSettingsStore, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager,
-    PtySpawnRequest, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
-    TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
+    AppSettingsStore, CommitDetail, GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
+    LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+    WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -242,6 +243,37 @@ fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
     }
 }
 
+#[tauri::command]
+fn git_log_query(
+    state: State<'_, AppState>,
+    req: GitLogQueryRequest,
+) -> Result<GitLogQueryResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitLogReader::query(&repo_path, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_log_commit_detail(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    sha: String,
+) -> Result<CommitDetail, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace = WorkspaceStore::get_by_id(pool, &workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitLogReader::commit_detail(&repo_path, &sha).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_log_cache_clear() -> Result<(), String> {
+    GitLogReader::cache_clear().map_err(|e| e.to_string())
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -281,6 +313,9 @@ pub fn run() {
             tab_pty_resize,
             tab_pty_signal,
             tab_pty_kill,
+            git_log_query,
+            git_log_commit_detail,
+            git_log_cache_clear,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

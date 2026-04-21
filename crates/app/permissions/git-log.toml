@@ -1,0 +1,19 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-07 Git Log 只读 IPC permissions
+# 参考 tabs.toml 模式 · 每个 command 独立 grant
+
+[[permission]]
+identifier = "allow-git-log-query"
+description = "允许前端分页查询 workspace 对应 git repo 的 commit log（gix 读）"
+commands.allow = ["git_log_query"]
+
+[[permission]]
+identifier = "allow-git-log-commit-detail"
+description = "允许前端拉取指定 commit 的详情（元数据 + 变更文件列表）"
+commands.allow = ["git_log_commit_detail"]
+
+[[permission]]
+identifier = "allow-git-log-cache-clear"
+description = "允许前端清理内存 LRU 缓存（可选 · 若实现 cache）"
+commands.allow = ["git_log_cache_clear"]

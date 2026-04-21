@@ -22,6 +22,7 @@
 | [ADR-011](./ADR-011-runtime-evidence-location.md) | Runtime evidence 路径锁 `docs/runtime-evidence/<task-id>/` | **accepted** | #18 | Session 10 FU-2 · PR #44/#45 @ 2026-04-19 |
 | [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）| **accepted** | —（治理规则）| Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21 |
 | [ADR-013](./ADR-013-spike-cold-backup-degradation.md) | Spike 冷备归档 v1 强制 → v2 推荐（22% 合规率实证 · 3 场景判断清单保留特殊情况）| **accepted** | —（项目规则）| Session 13 中 · audit M-1 根因 @ 2026-04-21 |
+| [ADR-014](./ADR-014-ipc-contract-source-of-truth-ts-rs.md) | IPC contract source of truth = Rust struct + ts-rs codegen（H2 根因消除 · compile-time 防字段 drift）| **accepted** | —（规范类跨模块 · 未在锁定表）| Session 13 中 · audit X-4 补正式 ADR · SPIKE-08 §A PASS @ 2026-04-20 + PR #63 rollout |
 
 ---
 
@@ -112,13 +113,17 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ## 📊 ADR 覆盖范围（Codex PR #12 review F1 复核精确描述 · Session 10 accepted 扩充）
 
-**已 ADR 化（11 条 · 11 accepted · 0 proposed · session 10 末 ADR-006 升级后全 accepted）**：
-- A 档 · 11 条 accepted：
+**已 ADR 化（14 条 · 14 accepted · 0 proposed · session 13 audit X-3/X-4 扩展后）**：
+- A 档（11 条 accepted · 对应 `CLAUDE.md` 决策表）：
   - Phase 1 锁定 6 条：`#1` License · `#2` MVP 范围 · `#3` AI-Aware v1.0 vision · `#5` Cargo workspace · `#6` 前端栈 · `#7` Diff 自建
   - Session 8-10 Spike 通过 3 条：`#13` Git 栈（SPIKE-03 @ 2026-04-19）· `#14` 本地存储 rusqlite（SPIKE-04.5 @ 2026-04-19）· `#15` PTY 方案（SPIKE-05.5 @ 2026-04-19）
   - Session 10 FU-2 新增 1 条：`#18` Runtime evidence 路径锁（PR #44/#45 @ 2026-04-19）
   - Session 10 末 B→A 升级 1 条：`#19` 桌面框架 Tauri 2（macOS Phase A 强 PASS · Ubuntu Phase B pending caveat · PR #50 @ 2026-04-19）
 - B 档 · 当前空（原 #12 桌面框架 session 10 末升级到 A 栏 #19 · B 栏 header 保留作未来类似决策载体）
+- 治理 / 规范 / 项目规则类（3 条 accepted · 不在决策表 · session 12-13 audit 产出）：
+  - `ADR-012` · v2-D → v2-D.1 Arbiter approval 规则简化（session 13 audit H1 根因 @ 2026-04-21）
+  - `ADR-013` · Spike 冷备归档 v1 → v2 降级（session 13 audit M-1 根因 @ 2026-04-21 · 22% 合规率实证）
+  - `ADR-014` · IPC contract source of truth = ts-rs codegen（session 13 audit X-4 · SPIKE-08 §A + PR #63 rollout 追溯正式化 · H2 根因消除）
 
 **A 档未 ADR 化**（5 条 · 已在其他文档锁定 · 需要改变决策时才补 ADR）：
 - `#4` Calm Studio 视觉方向 → 锁定 @ `design/directions/1-calm-studio.html`
@@ -133,4 +138,4 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ---
 
-**本目录 Phase 3 建立（2026-04-18）· 当前 11 个 ADR（11 accepted · 0 proposed · session 10 末全收敛）· 覆盖范围如上精确描述。**
+**本目录 Phase 3 建立（2026-04-18）· 当前 14 个 ADR（14 accepted · 0 proposed · session 13 audit X-3/X-4 扩展至 14）· 覆盖范围如上精确描述。**

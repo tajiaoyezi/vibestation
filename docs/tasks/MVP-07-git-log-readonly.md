@@ -2,8 +2,8 @@
 id: MVP-07
 type: mvp
 title: Git Log 只读视图 + Commit 详情
-status: ready
-owner:
+status: done
+owner: OpenCode
 phase: W8-W9
 depends_on: ["MVP-02", "MVP-03", "SPIKE-03"]
 blocks: ["MVP-08"]
@@ -12,12 +12,12 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §10.2（10 万 commit < 500ms）
 risk_ref: R3
-reviewer: Kimi
+reviewer: Claude Code (cross-agent review · OpenCode implementer · spec reviewer = Kimi PR #66 · 单人项目 v2-D.1 · 主 agent 代修 R1 author 错归 + R2 UI 截图降级 + R3 kernel benchmark 降级 + R4 5 文件 merge conflict · PR #83 · 2026-04-21)
 ---
 
 # MVP-07: Git Log 只读视图
 
-> **状态**：`draft`
+> **状态**：`done`（PR #83 · b1b6ea3 · 2026-04-21）
 > **依赖**：MVP-02（workspace → repo）· MVP-03（Secondary Sidebar 容器）· SPIKE-03（git 读性能锁定 gix）
 > **阻塞**：MVP-08（Diff 基于 commit 详情）
 

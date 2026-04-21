@@ -1,0 +1,6 @@
+# scoped cleanup
+## remaining vibestation/tauri/vite processes
+## port 1420
+✓ port 1420 clean
+## note
+No PTY child shell was left running during smoke capture; broad pkill on system zsh/bash was intentionally avoided to prevent killing unrelated user terminals.

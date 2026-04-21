@@ -3,6 +3,7 @@
 > **定位**：当前状态面板（agent 和人类都先读本文件获取"我是谁 / 做到哪 / 下一步 / 卡点"）。
 > **更新约定**：session end / 阶段切换 / 决策变化时手动更新。不要每个 commit 都更新（噪音大）。
 > Session 历史归档到 `docs/session-history/`（Phase 3 已建立）——**不要**归档到 CHANGELOG（CHANGELOG 是 release-please 自动维护的发布日志）。
+> **PR 列表滚动窗口规则**（M-2 · 2026-04-21 session 13 audit）：本文件"已合入的 PR"段**只保留最近 2 个 session 的摘要** · 更早的以 `git log --all` + `docs/session-history/` 归档文件为准 · 每 session 末整理。
 
 ---
 
@@ -10,14 +11,15 @@
 
 | 字段 | 值 | 更新时机 |
 |------|----|---------|
-| **Active branch** | `chore/session-12-batch-sync`（session 12 收尾 batch sync · session 12 累计 11 PR merged: #64/#66/#70/#73/#74 Kimi 5 连发 spec review · #65 skill · #67/#69 主 agent 文档 · #68 OpenCode rusqlite 索引 · #71 Codex SPIKE-06 36 样本 · #72 OpenCode MVP-04 storage prep · 无 open PR · 无 worktree 残留 · **HEAD 见 `git log`**）| 分支切换 |
-| **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| 每次 commit |
-| **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| 每次 commit |
-| **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| push 后 |
-| **Next concrete action** | **Session 13 开场三选**（按价值排序 · v0.1 GA 路径日渐清晰）：(1) **MVP-04 PTY + xterm 实施**（storage 层已 done · PR #72 · Phase B/C/D/E/F 待 · 6.5-10d · 主线）· 可切分 sub-task 派 OpenCode/Codex (2) **MVP-06 配置导入 spec review**（Kimi 可做 · 最后 1 个 v0.1 draft · 解阻 MVP-10）· 3d · 20-30 min spec review (3) **MVP-07 Git Log 实施**（spec ready · 依赖全 done · 5d · v0.1 Git 能力入口）· 本 session 已 /end-session 收尾 · 详见 `spike-tmp/local-notes/LAST-SESSION-STATE-2026-04-20.md` | session end |
-| **Blocked by** | SPIKE-01/02 Phase B + ADR-006（Ubuntu 环境缺）· SPIKE-06 §B Apple Dev Program 申请（用户）· MVP-01 Phase C Ubuntu runtime 验证（无环境）| 阻塞变化 |
-| **Missing infra** | Ubuntu 24 LTS 环境（SPIKE-01/02 Phase B 前置）· Apple Developer Program（SPIKE-06 前置）| Phase 完成时 |
-| **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24 · ⚠️ Apple Dev | 新账号/工具时 |
+| **Active branch** | 见 `git branch --show-current`（本表不硬编码分支 · 避免 PROGRESS 和现实漂移 · H-2 · 2026-04-21）| — |
+| **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| — |
+| **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| — |
+| **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| — |
+| **Next concrete action** | **Session 13 audit followup 清零中**（PR #76）：v2-D.1 规则简化（ADR-012 · 删 24h 补 comment 硬要求）+ H-1/2/3 + M-1/2/3/4/5 + L-1/2/3 + S-1/3 全修。清零后进主线 **MVP-04 PTY + xterm 实施**（Phase B 起 · 依赖 PR #72 storage prep · 6.5-10d · macOS-first · 可切 sub-task 派 OpenCode/Codex）· 同时 **MVP-06 Kimi prompt 已写** 等用户转发（spec review · 30 min 异步 · 解最后 1 个 v0.1 draft）| session end |
+| **Blocked by** | SPIKE-06 §B Apple Dev Program 申请（**用户决策中** · $99/y · 审核 2d-2w · 影响 MVP-10 codesign 但不阻塞 MVP-04-09）· SPIKE-01/02 §B + MVP-01 Phase C · **Ubuntu 24 LTS 环境 · 已降为 v0.1 GA 最低优先**（S-3 · 2026-04-21 · 见下方"v0.1 发布策略"）· 不阻塞 macOS 主线 | 阻塞变化 |
+| **Missing infra** | Ubuntu 24 LTS 环境（最低优先 · macOS 主线不依赖）· Apple Developer Program（SPIKE-06 §B + MVP-10 GA 前置）| Phase 完成时 |
+| **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24（最低优先 · 非主线）· ⚠️ Apple Dev（GA gate）| 新账号/工具时 |
+| **v0.1 发布策略** | **macOS-first**（S-3 · 2026-04-21 audit）· v0.1.0-alpha 只发 macOS · v0.1.0 GA 前评估 Ubuntu 状态：若 Ubuntu 环境仍缺 → v0.1.0 GA 也 macOS-only · Ubuntu 延到 v0.2 · 决策基线：Ubuntu 非主用户设备 · 环境搭建成本高 · 不阻塞 macOS 主线 | GA 前最终评估 |
 
 ---
 
@@ -26,57 +28,28 @@
 **阶段**：**Spike W0 macOS 100% 完结（SPIKE-01-08 全 done · 含 SPIKE-06 §A 36 样本 PR #71）· v0.1 主线 spec 近乎全 ready**（MVP-02/03 done · MVP-01/04/05/07/08/09 ready · 仅 MVP-06 draft · MVP-10 依赖 MVP-06）· **MVP-04 storage 层 done**（PR #72 · migration v5 + TabsDao + IPC + ts-rs bindings）· v0.1 Git 能力闭环（MVP-07/08/09 三分工 §H）+ 终端画面闭环（MVP-04/05）达成 · 进入 **MVP-04 PTY + xterm 实施 + MVP-06 最后 spec review** 阶段 · Phase B/C Ubuntu 等环境
 **日期**：2026-04-20（session 12 收尾 · session 11 → session 12 全程统一归档）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（近 30 个按时间倒序）**：
-- **本 PR（session 12 batch sync）** · Claude Code · `docs/tasks/README.md` 5 处 state drift + `docs/PROGRESS.md` 已合入 PR 补 11 个 + MVP v0.1 进度更新 + 阶段切换信号 + session 12 完整日志段
-- **PR #74 `b7bfb0b`**（session 12 下半场 · **MVP-05 spec ready**）· Kimi 5 连发最后 1 · Pane 分屏 · §G 10 struct + LayoutNode tagged union + SplitDir string union + PaneState 排除 scroll_back · §H **Pane 布局模型约束**（非 Git · 深度 ≤ 2 + 6 矩阵 + 原子性 + migration v6 + v0.2/v0.3 扩展）· 瑕疵 1：PR body "Arbiter Approval Dialogue" 段模拟对话自标 approved（非 BLOCK · 未来 prompt 加硬约束 2.11 禁止）
-- **PR #73 `f0d4a07`**（session 12 下半场 · **MVP-09 spec ready · v0.1 Git 能力闭环达成**）· Kimi · Stage/Unstage/Commit · §G 9 struct + CommitError tagged enum · §H git2 0.20 纯写路径 + SPIKE-04 §C 依据 + 禁 gix/similar/第四库 + API 要点表 · 140 字 → 284 字 ready
-- **PR #72 `4f629c0`**（session 12 下半场 · **MVP-04 storage 层 done**）· OpenCode · Migration v5 tabs 表 + FK CASCADE + idx_tabs_workspace_created · TabsDao 6 CRUD + 2 scrollback 方法 · 5 IPC commands · Tauri ACL tabs.toml 5 条 · ts-rs 5 bindings · 单元测试 36 个（tabs 24 + db 12 · 远超 15 阈值）· Runtime 证据 3 份 log · OpenCode 第 2 次成功（recover 验证完成）
-- **PR #71 `c3eafec`**（session 12 下半场 · **SPIKE-06 §A 36 样本 + SPIKE W0 macOS 100% 完结**）· Codex CLI · 2 CLI × 6 场景 × 3 次 = 36 脱敏样本 + 36 redaction.json + raw/README 重编 · 冷备迁主 repo `spike-tmp/archive/SPIKE-06-pr2/`（和 SPIKE-05 并列）· gitleaks 0 hit · **R1 不下调**（独立 `## R1 风险陈述（硬边界）` section · 3 处 "R1 保留"）· 2 轮修复（markdown lint 表格格式 → trailing whitespace）
-- **PR #70 `b52d7ab`**（session 12 下半场 · **MVP-08 spec ready**）· Kimi 第 3 次 · 14 min 最快 · Diff + Status · §G 8 struct + DiffLineType string union + `similar` crate · §H 三分工（gix 读 + git2 写 + similar diff · bundle size +5-7MB 估算 + fallback 优先级 + 禁 Monaco/第 4 git 库）
-- **PR #69 `b83937d`**（session 12 · **多 agent 并发踩坑复盘 + dispatch §2.9 agent 能力矩阵**）· Claude Code · `docs/session-12-post-mortem-2026-04-20.md` 事故时间线 / 根因 / 改进措施 · 新全局 rule 16 多 agent worktree 并发 + rule 17 dispatch agent 能力矩阵 + common/git-workflow 扩充 commit 输出铁律 · 项目 memory 初始化（MEMORY.md + 3 feedback）· Obsidian 归档
-- **PR #68 `c2e8202`**（session 12 · **SPIKE-04.5 §A.3 方案(b) · 88.2% P99 改善**）· OpenCode 第 1 次 recover 成功 · `idx_workspaces_last_opened ON workspaces(last_opened DESC)` migration v4 · Criterion bench 3 runs × 100 samples · snapshots 1M 行 warm P99 58.35ms → 6.97ms（PASS）· workspace 100 行 16.64µs → 11.65µs（NEUTRAL · 5µs 绝对差）· raw 3 份 bench 输出归档 `docs/runtime-evidence/spike-04.5-a3-b/`
-- **PR #67 `f5ee7ea`**（session 11 → 12 开场 · **PROGRESS sync**）· session 11 全程回顾 + session 12 开场派发同步 · 踩坑事故：commit 意外落 main 本地（外部 agent 并发 worktree add 触发 HEAD 漂移 · 已修复未 push · 零影响 · 触发 rule 16 制定）
-- **PR #66 `5d0f56a`**（session 12 · **MVP-07 spec ready**）· Kimi 第 2 次 · 20 min · Git Log 只读 · §G 7 struct + GitLogEntry/CommitDetail derive · §H gix 0.70 只读 · SPIKE-03 1973× 依据 · 10 万 commit 首屏 < 500ms 可达性分析
-- **PR #65 `7bc515d`**（session 12 开场 · **skill 入库**）· Claude Code · `.claude/skills/end-session/SKILL.md`（session 11 working tree 残留 · rule 13 补归档 · 219 行 · 项目级 extend 全局 end-session skill）
-- **PR #64 `133a990`**（session 11 遗留 → 12 开场 · **MVP-04 spec ready · Kimi 首次成功**）· Kimi 首次外部 agent 协作 · 多 Tab 终端 · §G IPC Contract（ts-rs）章节新增 · `TabState` derive + `#[ts(type = "number")]` · `scroll_back` 从 IPC 排除 remark · (a) 翻转路径 2 commit · 瑕疵 1：PR body 被 `ps aux` log 污染（下次 prompt 修复）
-- **PR #63 `44e5e95`**（session 11 · **ts-rs rollout · H2 根因制度化**）· ts-rs 12 集成 workspace · `crates/app/build.rs` 每次 build 生成 `web/src/bindings/` · `WorkspaceMetadata` / `LayoutState` 加 `#[derive(TS)]` + `#[ts(export)]` · 前端删手写 interface → import from bindings · H2 regression proof：临时 rename 字段 tsc 抓 10 处 drift · fix commit `c09e250` 加 `.prettierignore` 排除 generated bindings
-- **PR #62 `3daad7f`**（session 11 · **状态同步 · PR #48-#61 + MVP-03/SPIKE-08 done**）· tasks/README 11 行状态列对齐 frontmatter · PROGRESS 补 session 10 末 + session 11 开场 14 PR · 阶段切换信号加 "Spike W0 macOS 全通过" + "MVP v0.1 进度 3/10"
-- **PR #61 `20457df`**（session 11 开场 · **MVP-03 done**）· Tool Windows 布局 5-zone + toggle + resize + theme · OpenCode 主交付 · 20 验收清单项 + 8 硬约束全过 · 29/29 Rust 测试（+13 新增）· 7/7 CI 目标全绿 · 5 张 runtime 截图（dark × 4 + light × 1 · `docs/runtime-evidence/mvp-03/`）
-- **PR #60 `8eeddc4`**（session 11 开场 · **SPIKE-08 done**）· §A ts-rs 选型 PASS（Rust → TS type codegen · build.rs trigger）· §B Playwright + Vite 作为 v0.1 自动化补层（非 required）· §C CI hybrid gate · Linux tauri-driver 留 follow-up · H2 compile-time regression 回归验证 FAIL 符合预期
-- **PR #59 `6d6c43b`**（session 11 开场 · **Vite 8 + TS 6 升级评估**）· major bump 现状 + 收益 + 风险 + 推荐（v0.1 GA 后再升）· 不碰生产代码
-- **PR #58 `db80a1f`**（session 10 末 · **docs rusqlite 字样对齐**）· implementation-plan 8 处 stale 现状描述清理（redb → rusqlite · 对齐 ADR-005）
-- **PR #57 `a0865fe`**（session 10 末 · **MVP-03 spec draft → ready 翻转**）· reviewer-led 翻转 gate (a) 路径
-- **PR #56 `6bb7719`**（session 10 末 · **SPIKE-08 spec 新建**）· E2E + IPC contract 双层防御 harness 选型 + POC · 2d · H2 根因制度化前置
-- **PR #53 `aa60cd2`** / **PR #52 `5a9812e`**（session 10 末 · dependabot）· actions/checkout v4→v6 · actions/upload-artifact v4→v7
-- **PR #51 `6198fe5`**（session 10 末 · codex round 2 review 修复）· 1 HIGH + 2 MEDIUM + 1 LOW 文档同步修复
-- **PR #50 `976f46e`**（session 10 末 · **ADR-006 accepted + CLAUDE.md v2-D**）· Issue 3 b + H-2 c · 单人项目修订 · "self-review + Arbiter approval" 模式（单人项目不存在独立评审的术语澄清）· 未来升级 v2-strict 触发条件显式化
-- **PR #49 `8b8b707`**（session 10 末 · codex review 文档同步修复）· Issue 1 + H-1/M-1/M-2/L-1 + Issue 2
-- **PR #48 `623bbd5`**（session 10 终极末 · PROGRESS sync 3）· PR #46/#47 + H2 + FU-1 全捕获
-- **PR #47 `4f14c8f`**（session 10 终极末 · **H2 + FU-1 闭环**）· IPC 字段命名 camelCase mismatch 修复（5 字段 16 处）· runtime 验证 Delete + Git badge + dark mode 全过 · 截图 3 重做（44.7 KB · ADR-011 R1 落位）· FU-1 关闭
-- **PR #46 `fb503ef`**（session 10 真末 · **PROGRESS sync 2**）· 反映 FU-2/3/4 全关闭 · session 10 日志加后半段 5 PR 子段
-- **PR #45 `67d4373`**（session 10 真末 · **FU-2 翻转 + 6 步实施**）· ADR-011 proposed→accepted · dispatch prompt §2.3 路径改 · 新建 `.claude/rules/runtime-evidence-location.md` · CLAUDE.md 决策表 #18 新 row · 清 `spike-tmp/img/` 残留
-- **PR #44 `025371d`**（session 10 真末 · **FU-2 draft**）· ADR-011 proposed · 3 选项对比 + 推荐选项 A · Arbiter dialogue approved
-- **PR #43 `307f075`**（session 10 真末 · **FU-4 rule 13 欠账修复**）· SPIKE-01/02 源码归档进 repo（80 文件 / ~1 MB 纯源码 / 从冷备 2 GB 剥离）
-- **PR #42 `d329b4a`**（session 10 真末 · **FU-3 硬约束升级**）· dispatch prompt §2.8 子进程清理 · 8 条硬约束（原 7 → 8）
-- **PR #41 `b76f647`**（session 10 中 · **PROGRESS sync 1**）· 4 PR 全 merged + MVP-02 落地 + reviewer-led 模式建立
-- **PR #40 `15649bc`**（session 10 · **MVP-02 done**）· Workspace CRUD + git auto-detect + multi-workspace UI · 23 unit tests · OpenCode 主交付 + 主 agent H1/M3 fix + spec done 翻转
-- **PR #39 `51f2cb3`**（session 10 · **SPIKE-05.5 done**）· Codex shared-reader vs per-session 对照 · 200 files · ADR-003 accepted · CLAUDE.md #15 B→A · reviewer-led rebase
-- **PR #38 `4d8156d`**（session 10 · **SPIKE-06 §A harness**）· CLI record + redact + gitleaks pipeline · 2 smoke (claude/codex --version) · 36 样本留 PR 2
-- **PR #37 `73a9e31`**（session 10 · dispatch-rules 沉淀）· `.claude/rules/dispatch-prompt-template.md` 273 行 · 7 条默认硬约束 + 标准模板 + 升级路径
-- **PR #36 `c97accf`**（session 9 末 · MVP-02 + SPIKE-06 ready 翻转 + redb→rusqlite 字样清理）
-- **PR #35 `1dfe015`**（session 9 末 · PROGRESS Session 8/9 同步）
-- **PR #34 `5acaa90`**（session 9 · OpenCode SPIKE-04.5 §A.3 决策落地 · Arbiter 选定方案(a) 220ms）
-- **PR #33 `54247fc`**（session 9 · MVP-01 Phase B）· Calm Studio token + 欢迎页精装 + 真实 icon
-- **PR #32 `a41708e`**（session 9 · md 盘点清理）· 删 2 过时 + 归档 1 复盘到 session-history
-- **PR #31 `cfe8a32`**（session 8 · Tauri v2 规则沉淀）· ACL + CSP + capability + CLI 坑
-- **PR #30 `2ab1f99`**（session 8 · SPIKE-05 done）· HOL / boundedness PASS · visible throughput FAIL
-- **PR #29 `88410f8`**（session 8 · SPIKE-04.5 done）· rusqlite B.1-5 通过 · A.3 性能 pending Arbiter
-- **PR #28 `dd71d71`**（session 8 · **MVP-01 Phase A**）· Cargo workspace + Tauri 骨架 + SolidJS · 首行生产代码
-- **PR #26/#27**（session 8 · SPIKE-03/04 代码归档抢救）· /tmp 事故抢救 + 归档进 repo
-- **PR #23/#24/#25**（session 7 · SPIKE-03/04 + SPIKE-04.5 spec）
-- **PR #20/#22**（session 7 · SPIKE-01/02 Phase A macOS）
-- **PR #17/#18/#19**（session 6 · onboarding + spec 翻转 + codex 二次复审）
-- **PR #1-12**（sessions 3-5 · Phase 1-4 pre-code 全交付）
+**已合入的 PR（滚动窗口 · 只保留最近 2 session · 更早见 `git log --all` + `docs/session-history/`）**：
+
+### Session 13（2026-04-21 · audit followup + 治理简化）
+
+- **PR #76 `TBD`**（session 13 开场 · **v2-D → v2-D.1 规则简化 + session 12 audit 全清零**）· Claude Code · 12+ commit：v2-D.1 规则（ADR-012 · 删 24h 补 comment 硬要求）+ SPIKE-01/02 blocked（H-1）+ MVP-04 depends_on note（H-3）+ migration v6 预告（L-2）+ MVP-10 gate-phase 注解（M-5）+ Reviewer 字段回填（M-3）+ local-notes 清理（M-4）+ PROGRESS Active branch 去硬编码（H-2）+ PR 列表滚动窗口规则（M-2）+ Ubuntu 降最低优先（S-3）+ Tauri capability TODO（L-1）+ dispatch template §4 参考实现更新（L-3）+ Spike 冷备规则降级（M-1 · ADR-013）+ MVP-06 Kimi prompt 写入（S-1）· 7 个历史 PR 过渡补 gh pr comment（v2-D → v2-D.1 切换）
+
+### Session 12（2026-04-20 · 多 agent 四路并发 · v0.1 Git + 终端闭环）
+
+- **PR #75 `039fa2b`**（session 12 batch sync）· Claude Code · tasks README 5 处 state drift + PROGRESS 已合入 PR 补 11 个 + MVP v0.1 进度更新
+- **PR #74 `b7bfb0b`**（**MVP-05 spec ready**）· Kimi 5 连发最后 1 · Pane 分屏 · §G 10 struct + §H Pane 布局模型约束
+- **PR #73 `f0d4a07`**（**MVP-09 spec ready · v0.1 Git 能力闭环达成**）· Kimi · Stage/Unstage/Commit · §H git2 0.20 纯写路径
+- **PR #72 `4f629c0`**（**MVP-04 storage 层 done**）· OpenCode · Migration v5 + TabsDao + 5 IPC + ts-rs bindings + 36 单元测试
+- **PR #71 `c3eafec`**（**SPIKE-06 §A 36 样本 + SPIKE W0 macOS 100% 完结**）· Codex CLI · 脱敏样本 + R1 保留
+- **PR #70 `b52d7ab`**（**MVP-08 spec ready**）· Kimi 第 3 次 · 14 min · Diff + Status · §H 三分工
+- **PR #69 `b83937d`**（多 agent 并发踩坑复盘 + dispatch §2.9 agent 能力矩阵）· Claude · 新全局 rule 16/17 + memory 初始化
+- **PR #68 `c2e8202`**（**SPIKE-04.5 §A.3 方案(b) · 88.2% P99 改善**）· OpenCode · idx_workspaces_last_opened 复合索引
+- **PR #67 `f5ee7ea`**（PROGRESS sync · session 11 → 12 开场）· 踩坑：commit 意外落 main · rule 16 制定触发
+- **PR #66 `5d0f56a`**（**MVP-07 spec ready**）· Kimi 第 2 次 · Git Log 只读 · gix 0.70
+- **PR #65 `7bc515d`**（skill 入库 end-session · 项目级 extend）· Claude
+- **PR #64 `133a990`**（**MVP-04 spec ready · Kimi 首次成功**）· Kimi 首次外部 agent 协作 · §G IPC Contract（ts-rs）
+
+> **滚动窗口前**：session 10 及更早（PR #1-#62）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理。
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 

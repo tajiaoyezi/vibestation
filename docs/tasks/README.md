@@ -76,7 +76,7 @@ draft ────────► ready ─────────────�
 | `estimate` | string | ✅ | `0.5d` / `1d` / `3d` |
 | `plan_ref` | string | ✅ | `implementation-plan.md` 章节 `§3.1.1` |
 | `risk_ref` | string | ⛔ 可选 | `R1` / `R12` / `R27` 等 `implementation-plan §9` 风险 ID |
-| `reviewer` | string | ⛔ 默认填 PR review 时 | 独立评审者（≠ owner）|
+| `reviewer` | string | ⛔ 默认填 PR review 时 | v2-D.1 语义 = 执行 review 的 **agent 名**（`Claude Code` / `Kimi` / `Codex CLI` / `OpenCode` 等）· 非 Arbiter（Arbiter approval 走 PR body trailer · 见 [ADR-012](../adr/ADR-012-v2d1-arbiter-approval-simplification.md)）· 单人项目下 self-review 合法 · 但 reviewer 字段必须填 agent 名（即使与 owner 同一 agent）· session 13 audit M-3 统一 · 旧 task 写 `User` 已回填为 `Claude Code` |
 
 **YAML frontmatter 示例**：详见 [`_template.md`](./_template.md)。
 
@@ -119,14 +119,14 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 估时 | 依赖 | 风险 |
 |----|------|------|------|------|------|
-| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | — | R12 |
-| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | SPIKE-01 | **R12 CRITICAL** |
+| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| blocked（Phase A macOS done · PR #20 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | — | R12 |
+| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| blocked（Phase A macOS done · PR #22 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | SPIKE-01 | **R12 CRITICAL** |
 | [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| done | 1d | SPIKE-02 | R3 |
 | [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | done | 1d | SPIKE-02 | R27 |
 | [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md) | rusqlite 数据安全 B.1-5 + A.3 性能补测 | done | 1d | SPIKE-04 | R27 |
 | [SPIKE-05](./SPIKE-05-pty-multi-tab.md) | portable-pty 单读 + mpsc + xterm 4-Tab 压测 | done | 1d | SPIKE-02 | — |
 | [SPIKE-05.5](./SPIKE-05.5-pty-visible-throughput-fallback.md) | PTY visible throughput + per-session fallback 对照 | done | 1d | SPIKE-05 | — |
-| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | ready（§A 全完成 · harness PR #38 + 36 样本 PR #71 · R1 保留 · §B Apple Dev 待）| 1d | SPIKE-05 · phase-4-infra-landing | R1 |
+| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md) | Claude CLI / Codex CLI 实机 + macOS Dev Program | blocked（§A done · PR #38 harness + PR #71 36 样本 · R1 保留 · §B 等 Apple Dev Program 申请 · audit H2 @ 2026-04-21）| 1d | SPIKE-05 · phase-4-infra-landing | R1 |
 | [SPIKE-07](./SPIKE-07-cli-protocol-parser.md) | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）| draft | 3d | SPIKE-06 | R1 |
 | [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md) | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化）| done | 2d | MVP-02 | — |
 

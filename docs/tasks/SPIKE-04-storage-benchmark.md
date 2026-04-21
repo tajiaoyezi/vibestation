@@ -10,7 +10,7 @@ blocks: ["SPIKE-04.5"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D4 · §9 R27 · §3.2
 risk_ref: R27
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # SPIKE-04: redb 2 vs rusqlite benchmark + git2 写 commit

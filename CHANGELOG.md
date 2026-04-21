@@ -31,7 +31,7 @@
 - Codex 5 轮对抗性审查（10 HIGH findings 全闭合 · 详见 PR #9）
 
 **Phase 3（2026-04-18）· 架构决策与治理文档**：
-- `docs/adr/` · 10 个 ADR（License / MVP 范围 / PTY / 前端栈 / 存储 / 桌面框架 / Git 栈 / Diff / AI-Aware / workspace）
+- `docs/adr/` · 10 个 ADR（License / MVP 范围 / PTY / 前端栈 / 存储 / 桌面框架 / Git 栈 / Diff / v1.0 vision / workspace）
 - `CODE_OF_CONDUCT.md` · Contributor Covenant 2.1 中文版
 - `CONTRIBUTING.md` · 贡献指南
 - `CHANGELOG.md` · 本文件
@@ -54,7 +54,7 @@
 
 - License = **Apache 2.0**（不签 CLA · [ADR-001](docs/adr/ADR-001-license-apache-2.0.md)）
 - MVP v0.1 范围 = **B 折中方案**（[ADR-002](docs/adr/ADR-002-mvp-scope-b-compromise.md)）
-- AI-Aware = **v1.0 vision · 对外不提**（[ADR-009](docs/adr/ADR-009-ai-aware-v1-vision.md)）
+- **v1.0 vision = 对外不提其细节**（见 [ADR-009](docs/adr/ADR-009-ai-aware-v1-vision.md) · 具体内容仅对内规划文档展开）
 - 前端栈 = **SolidJS + TypeScript + Vite + xterm.js**（[ADR-004](docs/adr/ADR-004-frontend-stack.md)）
 - Diff 渲染 = **自建**（非 Monaco · [ADR-008](docs/adr/ADR-008-diff-renderer-custom.md)）
 - Cargo workspace = **2 crate**（`app` + `core` · [ADR-010](docs/adr/ADR-010-cargo-workspace-2-crate.md)）

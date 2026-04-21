@@ -217,6 +217,7 @@ pub struct TabState {
 - **PTY 架构 fallback（SPIKE-05 B.3）**：若单读线程失败 → 改为一 session 一线程 → 10 Tab 资源上升 ~40MB
 - **Wayland IME**：Wayland 下 IME 切换可能和 xterm focus 冲突 → 三平台分开测
 - **CLI 中断残帧（SPIKE-06 A.2）**：Ctrl+C Claude CLI 流式输出中途 → 检查残帧是否污染下条 prompt
+- **fix-path-env shim**（2026-04-21 · PR #82 · Codex）：Phase B 实施时 crates.io `fix-path-env` 包在 Codex 环境无法解析 · 改为 `crates/app/src/fix_path_env.rs` 53 行本地 shim（macOS/Linux 启动登录 shell + `printf %s "$PATH"` 覆盖 `env::set_var`）。**风险**：shim 无 timeout · 若用户 shell rc 文件 source 慢资源（NVM / oh-my-zsh plugin）· app 启动可能卡几秒。**GA gate**：v0.1.0 GA 发布前评估 · 若官方包在 CI 环境可用 · 切回；否则 shim 加 timeout 保护。
 
 ## 📝 Notes
 

@@ -6,6 +6,7 @@ status: ready
 owner:
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]
+depends_on_notes: "SPIKE-06 = §A 脱敏样本（done · PR #71）· §B codesign/notarization 不是 MVP-04 前置（MVP-04 运行态用 ad-hoc sign 即可 · codesign 是 MVP-10 GA 打包事）· SPIKE-06 现 status: blocked 只是 §B 卡 Apple Dev · 不阻塞 MVP-04"
 blocks: ["MVP-05", "MVP-06"]
 blocked_by: []
 blocked_note:
@@ -66,6 +67,12 @@ reviewer: Kimi
 | Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ⏳ todo | — |
 
 **下次 agent 起点**：Phase B · 依赖 Phase A 已落地的 `TabsDao::create_tab/list_tabs` + IPC `tabs.create/tabs.list/tabs.close/tabs.rename` + `scrollback_append/fetch`（见 PR #72）· 不要重写 storage 层。
+
+**migration 版本规划**（L-2 · 本 MVP 不做 v6）：
+
+- Phase A 已用 `migration v5`（tabs 表 + FK CASCADE + idx_tabs_workspace_created）
+- `migration v6` 由 **MVP-05** 引入（panes 表或 `tabs.layout` 列 · 见 MVP-05 §H Pane 布局模型）· 不是本 MVP 范围
+- 未来 agent 实施 MVP-04 Phase B-F 时**不得**新建 migration · 只读写 tabs / scrollback 表
 
 **保持 `status: ready`**：整体 MVP-04 未 done · 允许下次 agent 直接认领 Phase B 起点。
 

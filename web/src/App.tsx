@@ -193,6 +193,7 @@ const LayoutShell: Component<{
           })}
           onResizeStart={handleSecondaryResizeStart}
           onResizeReset={() => dispatch({ kind: "reset-secondary" })}
+          activeWorkspace={activeWorkspace}
         />
 
         <ActivityStrip />

@@ -796,3 +796,288 @@ body,
 .vs-btn-secondary:hover {
   background: var(--bg-3);
 }
+
+/* ══════ GIT LOG PANEL ══════ */
+
+.vs-git-log {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.vs-git-log-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-2);
+}
+
+.vs-git-log-search {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.vs-git-log-search-input {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--r-4);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  outline: none;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.vs-git-log-search-input:focus {
+  border-color: var(--accent);
+  background: var(--bg-2);
+}
+
+.vs-git-log-search-input::placeholder {
+  color: var(--text-4);
+}
+
+.vs-git-log-error {
+  padding: var(--space-2) var(--space-3);
+  color: var(--danger);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: oklch(0.72 0.19 25 / 0.08);
+  border-bottom: 1px solid oklch(0.72 0.19 25 / 0.15);
+  flex-shrink: 0;
+}
+
+.vs-git-log-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+}
+
+.vs-git-log-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vs-git-log-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vs-git-log-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg-0);
+  border-radius: 4px;
+}
+
+.vs-git-log-loading {
+  padding: var(--space-3);
+  text-align: center;
+  color: var(--text-4);
+  font-size: 0.75rem;
+}
+
+.vs-git-log-entry {
+  appearance: none;
+  border: none;
+  background: none;
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  color: var(--text-1);
+  transition:
+    background-color var(--dur-fast) var(--ease);
+  border-left: 2px solid transparent;
+}
+
+.vs-git-log-entry:hover {
+  background: var(--bg-2);
+}
+
+.vs-git-log-entry-selected,
+.vs-git-log-entry-selected:hover {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.vs-git-log-entry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 2px;
+}
+
+.vs-git-log-sha {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.vs-git-log-time {
+  font-size: 0.625rem;
+  color: var(--text-4);
+  flex-shrink: 0;
+}
+
+.vs-git-log-message {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  line-height: var(--text-line);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.vs-git-log-author {
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+.vs-git-log-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.vs-git-log-label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--r-4);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+
+.vs-git-log-branch {
+  color: var(--accent);
+  border: 1px solid var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+.vs-git-log-tag {
+  color: var(--warning);
+  border: 1px solid oklch(0.82 0.13 80 / 0.2);
+  background: oklch(0.82 0.13 80 / 0.08);
+}
+
+.vs-git-log-load-more {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-2);
+  padding: var(--space-1) var(--space-3);
+  margin: var(--space-2) auto;
+  border-radius: var(--r-4);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: block;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.vs-git-log-load-more:hover {
+  background: var(--bg-3);
+}
+
+.vs-git-log-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vs-git-log-detail {
+  border-top: 1px solid var(--line-soft);
+  padding: var(--space-3);
+  background: var(--bg-1);
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.vs-git-log-detail-title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 var(--space-2);
+}
+
+.vs-git-log-detail-meta {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  line-height: var(--text-line);
+  margin-bottom: var(--space-2);
+}
+
+.vs-git-log-detail-meta strong {
+  color: var(--text-2);
+}
+
+.vs-git-log-detail-message {
+  font-size: 0.8125rem;
+  color: var(--text-1);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin: var(--space-2) 0;
+  font-family: var(--font-mono);
+}
+
+.vs-git-log-detail-files {
+  border-top: 1px solid var(--line-soft);
+  padding-top: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.vs-git-log-file {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.6;
+}
+
+.vs-git-log-file-status {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.vs-git-log-status-A { color: var(--success); }
+.vs-git-log-status-M { color: var(--warning); }
+.vs-git-log-status-D { color: var(--danger); }
+.vs-git-log-status-R { color: var(--accent); }
+.vs-git-log-status-C { color: var(--accent); }
+.vs-git-log-status-T { color: var(--text-4); }
+.vs-git-log-status-U { color: var(--text-4); }
+
+.vs-git-log-file-path {
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-git-log-parent {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--accent);
+  margin-right: var(--space-1);
+}

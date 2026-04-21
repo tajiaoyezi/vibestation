@@ -6,12 +6,17 @@
 pub mod app_settings;
 pub mod config_import;
 pub mod db;
+pub mod git_log;
 pub mod layout;
 pub mod pty;
 pub mod tabs;
 pub mod workspace;
 
 pub use app_settings::AppSettingsStore;
+pub use git_log::{
+    CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogError,
+    GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
+};
 pub use layout::{LayoutState, LayoutStore};
 pub use pty::{
     PtyError, PtyEvent, PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest,

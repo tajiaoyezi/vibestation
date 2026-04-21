@@ -20,6 +20,7 @@
 | [ADR-009](./ADR-009-ai-aware-v1-vision.md) | AI-Aware Pane 联动 = v1.0 vision（对外不宣传）| **accepted** | #3 | 锁定 @ Phase 1 |
 | [ADR-010](./ADR-010-cargo-workspace-2-crate.md) | Cargo workspace = 2 crate（app + core）| **accepted** | #5 | 锁定 @ Phase 1 |
 | [ADR-011](./ADR-011-runtime-evidence-location.md) | Runtime evidence 路径锁 `docs/runtime-evidence/<task-id>/` | **accepted** | #18 | Session 10 FU-2 · PR #44/#45 @ 2026-04-19 |
+| [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）| **accepted** | —（治理规则）| Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21 |
 
 ---
 

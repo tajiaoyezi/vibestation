@@ -15,6 +15,23 @@ use std::path::Path;
 #[serde(default)]
 struct AlacrittyConfig {
     font: Option<AlacrittyFont>,
+    keyboard: Option<AlacrittyKeyboard>,
+    #[serde(rename = "key_bindings")]
+    key_bindings: Option<Vec<AlacrittyBinding>>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
+struct AlacrittyKeyboard {
+    bindings: Vec<AlacrittyBinding>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+#[serde(default)]
+struct AlacrittyBinding {
+    key: Option<String>,
+    mods: Option<String>,
+    action: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -98,6 +115,23 @@ fn config_to_fields(cfg: AlacrittyConfig) -> Vec<ImportedField> {
         }
         if let Some(size) = font.size {
             fields.push(ImportedField::FontSize(size));
+        }
+    }
+
+    let kb_from_toml = cfg.keyboard.map(|k| k.bindings).unwrap_or_default();
+    let kb_from_yaml = cfg.key_bindings.unwrap_or_default();
+    let all_bindings: Vec<_> = kb_from_toml.into_iter().chain(kb_from_yaml).collect();
+
+    for binding in all_bindings {
+        if let Some(key) = binding.key {
+            let combined_key = match binding.mods {
+                Some(mods) if !mods.is_empty() => format!("{}+{}", mods, key),
+                _ => key,
+            };
+            fields.push(ImportedField::KeyBinding {
+                key: combined_key,
+                action: binding.action.unwrap_or_default(),
+            });
         }
     }
     fields
@@ -194,5 +228,92 @@ font:
         assert!(r.path_exists);
         assert_eq!(r.detected_fields.len(), 1); // 只有 size · family 缺
         assert!(r.errors.is_empty());
+    }
+
+    #[test]
+    fn scan_toml_keyboard_bindings() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/alacritty/alacritty.toml",
+            r#"
+            [[keyboard.bindings]]
+            key = "N"
+            mods = "Command"
+            action = "CreateNewWindow"
+
+            [[keyboard.bindings]]
+            key = "T"
+            mods = "Command"
+            action = "SpawnNewTab"
+        "#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        assert_eq!(r.detected_fields.len(), 2);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "Command+N" && action == "CreateNewWindow")
+        );
+    }
+
+    #[test]
+    fn scan_yaml_key_bindings_fallback() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/alacritty/alacritty.yml",
+            r#"
+key_bindings:
+  - { key: N, mods: Command, action: CreateNewWindow }
+  - { key: T, mods: Command, action: SpawnNewTab }
+"#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        assert_eq!(r.detected_fields.len(), 2);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "Command+N" && action == "CreateNewWindow")
+        );
+    }
+
+    #[test]
+    fn scan_bindings_no_mods() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/alacritty/alacritty.toml",
+            r#"
+            [[keyboard.bindings]]
+            key = "F11"
+            action = "ToggleFullscreen"
+        "#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        assert_eq!(r.detected_fields.len(), 1);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "F11" && action == "ToggleFullscreen")
+        );
+    }
+
+    #[test]
+    fn scan_bindings_mixed_mods() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_fixture(
+            tmp.path(),
+            ".config/alacritty/alacritty.toml",
+            r#"
+            [[keyboard.bindings]]
+            key = "T"
+            mods = "Command|Shift"
+            action = "SpawnNewTab"
+        "#,
+        );
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        assert_eq!(r.detected_fields.len(), 1);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "Command|Shift+T" && action == "SpawnNewTab")
+        );
     }
 }

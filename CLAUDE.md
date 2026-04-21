@@ -36,6 +36,15 @@
         - **(a) Reviewer 自己 push** 翻转 commit 到 PR branch（推荐 · 作者无法插入新改动）
         - **(b) Author push 翻转 commit 后 Reviewer 对最新 HEAD re-approve**（GitHub 分支保护应开启 "require approval from latest commit"）
       - 同规则适用于 spec PR 的 `draft → ready` 翻转（详见 `docs/tasks/README.md` 第 7 步）
+   5. **合入后 CI 验证**（session 14 事件制度化 · 2026-04-21）· merge 后 5-10 min 内 · 每次必查合入 commit 的 CI 状态：
+      ```bash
+      gh api "repos/tajiaoyezi/vibestation/commits/$(git rev-parse HEAD)/check-runs" \
+        --jq '.check_runs[] | "\(.conclusion // .status) · \(.name)"'
+      ```
+      - 任一 `conclusion=failure` → **立即开 fix PR**（例 PR #86 修 pty Linux ignore + prettier）· 不得拖到下一次 review 才发现
+      - 原因：repo 未启 branch protection required check · `gh pr merge --auto` 遇 pending CI 会**瞬合**（分支保护不生效）· 合入后 CI 后 fail 会被淹没
+      - 反模式：看 `gh pr checks <N>` 显示 `pending` 就 `--auto merge` 走人 · 不回头 check · 未来 agent 继承 failure status
+      - 事件：PR #82/#83 合入时 Rust/Frontend 被瞬合 · 4 commit 持续 fail · 直到 PR #86 才修
 
 **人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
 

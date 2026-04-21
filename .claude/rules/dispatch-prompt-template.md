@@ -253,6 +253,114 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 - [全局] `~/.claude/rules/17-dispatch-agent-capability-matrix.md` · 本节的上位通用规则
 - [项目] Kimi 协作记录：`spike-tmp/dispatch/MVP-04-kimi-prompt.md`（167 行 · 路径版 · 成功但不清楚机制）· `MVP-07-kimi-prompt.md`（335 行 · 原文版 · 确定成功）
 
+### 2.10 · GUI / 前端 task 必须跑 `pnpm lint`（不只 typecheck）
+
+**规则**
+
+Dispatch prompt 若涉及前端代码（`web/src/**` 或任何 SolidJS / React 组件 / CSS / TypeScript 文件）· §Acceptance 必须含两条：
+
+- [ ] `pnpm lint` 本地跑过（预期 `Checking formatting... All matched files use Prettier code style!`）
+- [ ] `pnpm typecheck` 本地跑过（预期 `tsc --noEmit` 0 errors）
+
+**缺任一 · BLOCK PR merge · 不是建议**。
+
+**为什么**
+
+CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettier --check） + `pnpm typecheck`（tsc --noEmit）。只做 typecheck 不做 lint · 本地 pass 但 CI fail（prettier 未格式化）。
+
+**事件**
+
+2026-04-21 · PR #83（OpenCode MVP-07 Git Log）· OpenCode 在 CLI 自动化会话只跑 `pnpm typecheck`· 漏 `pnpm lint`· 5 前端文件（`SecondarySidebar.tsx` / `GitLog/*` / `styles.css`）未 prettier 格式化 · CI fail · 后续 PR #84/#85 继承 fail · 直到 PR #86 修复。
+
+**反模式**
+
+| 反模式 | 正确做法 |
+|---|---|
+| Dispatch prompt 只列 `pnpm typecheck` | 两条都列 · 缺一 BLOCK |
+| 交付 agent 回报 "typecheck 过" 作为前端 gate 证据 | 必须同时显示 prettier `All matched files use Prettier code style!` |
+| 假设 `tsc --noEmit` pass 意味着前端 OK | typecheck 只查类型 · 不查格式 · prettier 是独立 gate |
+
+### 2.11 · Timing-sensitive 跨平台测试 · timeout 必须 ≥ 本地最大运行时长 × 2 · 或 Linux-only ignore
+
+**规则**
+
+涉及以下任一的测试 · dispatch prompt §Acceptance 必须含 timeout / 平台 gate 说明：
+
+- PTY / tty · signal 传递 · 子进程 spawn/kill
+- socket 连接 / HTTP request / 网络延迟相关
+- 文件 I/O 压测 · 大量 fd 操作
+- 依赖 kqueue / epoll / ETW 事件的异步等待
+
+**具体**
+
+1. 测试内 timeout 设置 · 至少 **本地 macOS 最大观察时长的 2 倍**（例：本地 1s 内 · CI 给 5s 以上 · 本地 5s · CI 给 ≥ 10s）· 且必须明确注释 "本地 vs CI margin"
+2. 若本地 macOS 跑 · 无法在 dispatch 期间验证 Linux CI · 显式标：
+   ```rust
+   #[cfg_attr(target_os = "linux", ignore = "<根因> · 本地 macOS 稳定 · Linux CI timing/语义待 Phase X 深挖")]
+   ```
+   配套在对应 MVP spec §已知风险 段加条目 + 明确 GA gate 解除 ignore 的触发条件
+3. 禁止反复加 timeout 作为"症状治疗"· 如果 timeout × 2 仍 fail · 根因是 **语义差异**（非 timing）· 立即切 Linux-only ignore + 技术债记录 · 避免陷入 timeout 扩张循环
+
+**为什么**
+
+本地 macOS（kqueue）和 Linux CI（epoll）对 PTY close event / signal 传递 / `waitpid` / `tcgetpgrp` 的语义可能有差异 · 纯 timeout 扩张不解决语义问题。
+
+**事件**
+
+2026-04-21 · PR #82（Codex MVP-04 Phase B PTY runtime）· `pty::tests::signal_sigterm_exits_exec_session` 本地 macOS 1s 内过 · Ubuntu CI 5s timeout。PR #86 round 1 改 200→500ms + 5s→10s · CI 仍 fail（11.45s）。PR #86 round 2 改 `#[cfg_attr(target_os = "linux", ignore)]` · CI 绿。**教训**：一路加 timeout 是症状治疗 · 根因深度在 SIGTERM → pty master fd close event → epoll readable 的传递链中某一环 Linux 和 macOS 语义不同 · 不是 timing。
+
+**反模式**
+
+| 反模式 | 正确做法 |
+|---|---|
+| 本地 `cargo test` 过就交付 | 跨平台测试必须预判 CI 是否 pass · 不确定时加 Linux-only ignore + 技术债 |
+| CI fail 后反复加 timeout | timeout × 2 仍 fail · 立即切 ignore + 深挖留下次 |
+| 不在 spec §已知风险 记 ignore 的技术债 | 必须记 · 含 GA gate 解除条件 |
+
+### 2.12 · 主 agent 在别人 worktree 操作 git config 后必须 unset（防跨 agent author 污染）
+
+**规则**
+
+主 agent 在**非主 repo** 的 worktree（如 `/private/tmp/<agent>-work`）临时切 git config user.name / user.email（为代 commit 某 agent）· 任务完成后必须：
+
+```bash
+cd /private/tmp/<agent>-work
+git config --unset user.email
+git config --unset user.name
+# 验证
+git config user.email   # 应该显示 global config · 不是临时值
+```
+
+**主 repo 本身**（用户工作的 repo）· 主 agent **不应**改 local config。如果 debug 时改过 · 必须立即 unset 回 global：
+
+```bash
+cd <project-root>
+git config --local --unset user.email 2>/dev/null || true
+git config --local --unset user.name 2>/dev/null || true
+```
+
+**验证触发**：每次 `git commit` 后 · 跑 `git log -1 --pretty=format:"%an <%ae>"` 确认 author 归属正确（硬约束 2.5.3 已有）· 若发现错归 · 立即 `git commit --amend --reset-author --no-edit`。
+
+**为什么**
+
+`git worktree add` 共享 `.git` 目录 · worktree-local config 写到 `.git/config` · 会被同 repo 的所有 worktree 继承。**更严重**：某些情况下 · worktree 操作会污染主 repo 的 local config（机制待确认 · 但 session 14 实测发生）。
+
+**事件**
+
+2026-04-21 · session 14 · **3 次跨 agent author 污染**：
+
+1. PR #82（Codex 交付）· 核心 commit `9fb6715` author 错归 Kimi · 根因：worktree 之前被 Kimi session 用过 · git config 继承 · Codex 未 reset · 主 agent 代修后复发
+2. PR #83（OpenCode 交付）· 前端 commit `366cd73` author 错归 Codex · 根因：主 agent 修 PR #82 时 `git config user.email noreply@openai.com` 到 worktree · OpenCode 后续 commit 继承 · 主 agent 代修
+3. PR #84（主 agent sync PR）· 主 repo **自己的 local config** 也被污染为 `OpenCode <noreply@opencode.ai>`· 主 agent commit 初次归为 OpenCode · unset local + amend reset 恢复为 global user
+
+**反模式**
+
+| 反模式 | 正确做法 |
+|---|---|
+| 在别人 worktree 改 git config 后不 unset | 必须 unset · 或该 worktree 用完立即 `git worktree remove` 销毁 |
+| 假设 worktree local config 不影响主 repo | 2026-04-21 实测**会污染**主 repo · 不知机制 · 必须防御性 unset |
+| 每次 commit 忘记验证 author（硬约束 2.5.3）| 2.5.3 的硬约束必须执行 · `git log -1 %an <%ae>` 是最后一道防线 |
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板

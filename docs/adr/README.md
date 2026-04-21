@@ -21,6 +21,7 @@
 | [ADR-010](./ADR-010-cargo-workspace-2-crate.md) | Cargo workspace = 2 crate（app + core）| **accepted** | #5 | 锁定 @ Phase 1 |
 | [ADR-011](./ADR-011-runtime-evidence-location.md) | Runtime evidence 路径锁 `docs/runtime-evidence/<task-id>/` | **accepted** | #18 | Session 10 FU-2 · PR #44/#45 @ 2026-04-19 |
 | [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）| **accepted** | —（治理规则）| Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21 |
+| [ADR-013](./ADR-013-spike-cold-backup-degradation.md) | Spike 冷备归档 v1 强制 → v2 推荐（22% 合规率实证 · 3 场景判断清单保留特殊情况）| **accepted** | —（项目规则）| Session 13 中 · audit M-1 根因 @ 2026-04-21 |
 
 ---
 

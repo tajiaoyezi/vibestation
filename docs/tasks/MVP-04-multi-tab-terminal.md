@@ -6,6 +6,7 @@ status: ready
 owner:
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]
+depends_on_notes: "SPIKE-06 = §A 脱敏样本（done · PR #71）· §B codesign/notarization 不是 MVP-04 前置（MVP-04 运行态用 ad-hoc sign 即可 · codesign 是 MVP-10 GA 打包事）· SPIKE-06 现 status: blocked 只是 §B 卡 Apple Dev · 不阻塞 MVP-04"
 blocks: ["MVP-05", "MVP-06"]
 blocked_by: []
 blocked_note:
@@ -53,6 +54,27 @@ reviewer: Kimi
 - 配置导入（→ MVP-06）
 - AI CLI 联动（v1.0 vision，禁区）
 - tmux 控制 mode（v0.2+）
+
+## 🛠 实施进度（2026-04-21 更新 · audit H3+L1）
+
+| Phase | 范围 | 状态 | PR |
+|-------|------|------|----|
+| Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done | [#72](https://github.com/tajiaoyezi/vibestation/pull/72) |
+| Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ⏳ todo | — |
+| Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ⏳ todo | — |
+| Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
+| Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（FK CASCADE） | ⏳ todo | — |
+| Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ⏳ todo | — |
+
+**下次 agent 起点**：Phase B · 依赖 Phase A 已落地的 `TabsDao::create_tab/list_tabs` + IPC `tabs.create/tabs.list/tabs.close/tabs.rename` + `scrollback_append/fetch`（见 PR #72）· 不要重写 storage 层。
+
+**migration 版本规划**（L-2 · 本 MVP 不做 v6）：
+
+- Phase A 已用 `migration v5`（tabs 表 + FK CASCADE + idx_tabs_workspace_created）
+- `migration v6` 由 **MVP-05** 引入（panes 表或 `tabs.layout` 列 · 见 MVP-05 §H Pane 布局模型）· 不是本 MVP 范围
+- 未来 agent 实施 MVP-04 Phase B-F 时**不得**新建 migration · 只读写 tabs / scrollback 表
+
+**保持 `status: ready`**：整体 MVP-04 未 done · 允许下次 agent 直接认领 Phase B 起点。
 
 ## 🖼 UI 引用
 

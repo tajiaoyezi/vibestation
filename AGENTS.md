@@ -53,7 +53,7 @@
 ## ⚡ 关键约束（详细见 CLAUDE.md "🚫 禁区"）
 
 - ❌ **禁止 push 到 main**：所有变更走 feature 分支 + PR + 独立评审
-- ❌ **禁止对外文案提及** `AI-Aware Pane` / `Mission Control` / `AI session aware`（v1.0 vision · ADR-009）
+- ❌ **禁止对外文案提及 v1.0 vision 具体名词**（具体禁词见 `CLAUDE.md §禁区` + [ADR-009](docs/adr/ADR-009-ai-aware-v1-vision.md) · 本条不 spell out 以避免 AGENTS 自身违规）
 - ❌ **禁止硬编码** API Key / 密码 / Token / 个人邮箱 / 生产域名
 - ❌ **禁止跳过 CI 必过项**：`gitleaks` / `task-spec-validator` / `cargo clippy -D warnings` / `cargo fmt --check` / `pnpm lint` / `pnpm typecheck`
 - ⚠️ **改 `CLAUDE.md` 决策表 A 栏前**：(1) 开新 ADR · (2) 独立评审通过 · (3) 用户拍板 gate

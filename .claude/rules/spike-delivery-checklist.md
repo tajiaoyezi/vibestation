@@ -15,18 +15,48 @@
 
 三个时间点缺一不可。
 
-## "4 样齐全" 归档位置（强制）
+## "3 样必交 + 1 样推荐" 归档位置（v2 简化 · 2026-04-21 · ADR-013）
 
-每个 Spike accept 前必须确认以下 4 样都在正确位置：
+每个 Spike accept 前必须确认以下位置齐全：
 
-| # | 物料 | 位置 | 是否进 git | 备注 |
-|---|---|---|:---:|---|
-| 1 | **决策文档** | `docs/spikes/SPIKE-XX-report.md` | ✅ | 结论 / 数据 / v1→v2 追溯 / 瑕疵归属 |
-| 2 | **实测源码** | `docs/spikes/code/SPIKE-XX/` | ✅ | 含 `src/` + `Cargo.toml` + `Cargo.lock`（已 gitignore 白名单）+ `README.md` |
-| 3 | **Raw 数据** | `docs/spikes/raw/SPIKE-XX/` | ✅ | JSON / log / benchmark 输出 + `README.md` 索引 |
-| 4 | **冷备**（含 build 产物） | `spike-tmp/archive/SPIKE-XX/` | ❌ | gitignored · 含 `target/` / 大 DB 测试文件 · 本地保留 |
+| # | 物料 | 位置 | 是否进 git | 级别 | 备注 |
+|---|---|---|:---:|:---:|---|
+| 1 | **决策文档** | `docs/spikes/SPIKE-XX-report.md` | ✅ | 🔴 必须 | 结论 / 数据 / v1→v2 追溯 / 瑕疵归属 |
+| 2 | **实测源码** | `docs/spikes/code/SPIKE-XX/` | ✅ | 🔴 必须 | 含 `src/` + `Cargo.toml` + `Cargo.lock`（已 gitignore 白名单）+ `README.md` |
+| 3 | **Raw 数据** | `docs/spikes/raw/SPIKE-XX/` | ✅ | 🔴 必须 | JSON / log / benchmark 输出 + `README.md` 索引 |
+| 4 | **冷备**（含 build 产物） | `spike-tmp/archive/SPIKE-XX/` | ❌ | 🟡 推荐 | gitignored · 含 `target/` / 大 DB 测试文件 · 本地保留 · **Cargo workspace + Cargo.lock 进 git 的前提下可选** |
 
-**缺任一项 · accept 不成立**。
+**3 样必须齐全 · accept 不成立若缺任一**。冷备（#4）是"推荐"而非"必须"· 原因见本文件 "冷备降级" 段。
+
+## 冷备降级（v1 → v2 · session 13 audit M-1）
+
+**2026-04-21 · session 13 audit M-1 · ADR-013**：
+
+- v1 规则（session 7-12）· 冷备 `spike-tmp/archive/SPIKE-XX/` 为"必须"· 实测 9 个 Spike（SPIKE-01/02/03/04/04.5/05/05.5/06/08）只有 **2 个做到**（SPIKE-05 + SPIKE-06-pr2）· 合规率 22%
+- v2 规则（本次修订）· 冷备降为"推荐"· 原因：
+  - `Cargo.lock` + `src/` + `benches/` 已进 git · 任何机器 `cargo build --release` 可 byte-level 复现
+  - 冷备的 `target/` build 产物仅省几分钟 build 时间 · 不增加信息量
+  - 大 DB 测试文件若确需保留 · 可以独立归档到 `docs/spikes/raw/SPIKE-XX/` 进 git（用 git LFS 若 > 50MB）
+  - 22% 合规率证明规则和现实不匹配 · 规则贬值
+
+**什么时候还是要做冷备**（推荐场景）：
+
+1. Spike 有 **> 100MB 的随机生成测试数据**（如 SPIKE-04.5 的 sqlite 测试 DB · 从 seed 生成需数分钟）· 冷备可省 re-generate 时间
+2. Spike 涉及**外部工具二进制**（如 pre-built binary 不在 Cargo.toml）· 冷备保留二进制快照
+3. Spike 有**非 Cargo 构建**（shell script / Makefile 自定义 build）· 冷备保留完整 build 环境
+
+MVP 阶段冷备仍 **推荐做**（不强制）· 未来若出现"code + raw 进 git 但无法复现"的案例 · 重新评估升级回 v1 强制。
+
+## 历史冷备欠账处理（v1 时期 7 个 Spike · session 13 audit）
+
+**不追溯补齐**（audit M-1 决定）：
+
+- SPIKE-01 / SPIKE-02 / SPIKE-03 / SPIKE-04 / SPIKE-04.5 / SPIKE-05.5 / SPIKE-08 无冷备
+- 这 7 个的 `code/` + `raw/` 均已进 git · `Cargo.lock` 冻结 · 可用 `cargo build` 复现 benchmark
+- 补做冷备成本高（需重新 build + tar + 本地保留）· 收益低（信息已在 git）
+- 接受为已存在的技术债 · 不追溯补齐
+
+**新 Spike**（未来）按 v2 规则做：3 样必须 + 冷备推荐（按上述 3 个场景判断是否做）。
 
 ## 每样物料的具体要求
 
@@ -58,11 +88,13 @@ README 必须包含字段：
 - 原始 benchmark 输出（JSON / log / txt）
 - 对应 `README.md` 做字段索引 · 让 report 的数字可溯源
 
-### 4. 冷备 `spike-tmp/archive/SPIKE-XX/`
+### 4. 冷备 `spike-tmp/archive/SPIKE-XX/` · 🟡 推荐（v2 · 非必须）
 
 - 完整 tarball 解压副本（含 target/ · 大 DB · 历史 build 产物）
 - gitignored · 不进 repo
 - 用途：若 git 归档被误删 / 复现需要 byte-level 一致的 build artifact · 从这里恢复
+- **何时强烈推荐**：> 100MB 随机测试数据 · 外部二进制工具 · 非 Cargo 构建（见"冷备降级"段 3 场景）
+- **何时可省略**：纯 Cargo 项目 · Cargo.lock 进 git · code + raw 已归档 · `cargo build` 可复现
 
 ## Review accept 的原子性
 
@@ -88,12 +120,12 @@ README 必须包含字段：
 所有 Spike 相关 PR（含 report + code + raw 归档的 PR）· body 的 Test Plan 必须显式包含：
 
 ```markdown
-- [ ] 决策文档 docs/spikes/SPIKE-XX-report.md 已入库
-- [ ] 源码归档 docs/spikes/code/SPIKE-XX/ 已入库（含 Cargo.lock）
-- [ ] Raw 数据 docs/spikes/raw/SPIKE-XX/ 已入库
-- [ ] 冷备 spike-tmp/archive/SPIKE-XX/ 本地保留（gitignored）
-- [ ] Report 引用的每个数字都能在 raw 文件溯源
-- [ ] clone 本 repo 后 · 在归档目录 cargo build 能复现 benchmark
+- [ ] 决策文档 docs/spikes/SPIKE-XX-report.md 已入库（🔴 必须）
+- [ ] 源码归档 docs/spikes/code/SPIKE-XX/ 已入库（含 Cargo.lock · 🔴 必须）
+- [ ] Raw 数据 docs/spikes/raw/SPIKE-XX/ 已入库（🔴 必须）
+- [ ] 冷备 spike-tmp/archive/SPIKE-XX/ 本地保留（🟡 推荐 · 若命中 3 场景则必做 · 见"冷备降级"段）
+- [ ] Report 引用的每个数字都能在 raw 文件溯源（🔴 必须）
+- [ ] clone 本 repo 后 · 在归档目录 cargo build 能复现 benchmark（🔴 必须）
 ```
 
 独立评审者（Arbiter 或另一 agent）必须亲自验证上述每一项 · 不勾即 block merge。

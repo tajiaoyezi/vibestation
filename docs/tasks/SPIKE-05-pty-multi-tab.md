@@ -10,7 +10,7 @@ blocks: ["SPIKE-06"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D5 · §3.1
 risk_ref:
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # SPIKE-05: portable-pty + xterm 多 Tab 压测

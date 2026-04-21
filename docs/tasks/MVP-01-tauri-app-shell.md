@@ -12,7 +12,7 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §3.1 · §3.2
 risk_ref:
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # MVP-01: Tauri 应用骨架 + 启动流程

@@ -79,13 +79,15 @@
 
 ---
 
-## 🛠️ 常用命令（**Spike W0 结束后生效**，pre-code 阶段全失败）
+## 🛠️ 常用命令（**当前全部可用** · Spike W0 macOS 完结 · 首行代码自 PR #28）
 
 ```bash
 # 前端
 pnpm install
-pnpm tauri dev
-pnpm tauri build
+pnpm tauri:dev          # ⚠ 注意是冒号 tauri:dev（scripts 映射 · 不是 "tauri dev"）
+pnpm tauri:build
+pnpm lint               # ESLint + Prettier
+pnpm typecheck          # tsc --noEmit
 
 # Rust
 cargo build
@@ -125,12 +127,15 @@ gh pr create
 - ❌ **禁止跳过 CI 必过项**：`cargo clippy -D warnings` / `cargo fmt --check` / `pnpm lint` / `pnpm typecheck`
 - ⚠️ **改锁定表 A 栏前必须**（v2-D · 2026-04-19 session 10 末升级 · 经 codex round 2 review 修订独立评审悖论）：
   1. 新开 `docs/adr/ADR-NNN-*.md`（Phase 3 后存在）· 走 proposed → accepted 两 PR 翻转流程
-  2. **Review + Arbiter approval**（当前**单人项目模式** · GitHub 单 admin · agent 无 GitHub 账号 · 私有仓+非 Pro 无 branch protection）：
-     - 术语澄清：**单人项目不存在"独立评审"**（reviewer ≠ implementer 在当前约束下不可得）· v2-D 改为 **"self-review + Arbiter approval"** 模式 · 未来触发 v2-strict 时（见 §3）升级为真"独立评审"
-     - **必须（单人项目 self-review + Arbiter approval）**：
-       - (a) PR body 含 `Implemented by: <agent-id>` + `Reviewed by: <same-or-different-agent-id · self-review 或 internal cross-review>` + Arbiter signature trailer：`Arbiter approve: tajiaoyezi · YYYY-MM-DD · "<dialogue 原文摘要>"`
-       - (b) merge 后 24h 内 `gh pr comment <N>` 完整 dialogue trail（包含 Arbiter approve 时间戳 + 原文）
-     - **不接受**：仅"dialogue 一句话" 不写 PR body / 不补 PR comment 的 audit trail · 这等同于无 audit
+  2. **Review + Arbiter approval**（当前**单人项目模式 v2-D.1** · GitHub 单 admin · agent 无 GitHub 账号 · 私有仓+非 Pro 无 branch protection · ADR-012 简化）：
+     - 术语澄清：**单人项目不存在"独立评审"**（reviewer ≠ implementer 在当前约束下不可得）· v2-D.1 保持 **"self-review + Arbiter approval"** 模式 · 未来触发 v2-strict 时（见 §3）升级为真"独立评审"
+     - **必须（单人项目 self-review + Arbiter approval · v2-D.1 简化版）** · PR body 含以下 3 行即算合规：
+       - `Implemented by: <agent-id>`
+       - `Reviewed by: <agent-id · self-review 或 internal cross-review>`
+       - `Arbiter approval: tajiaoyezi · YYYY-MM-DD HH:MM · "<dialogue 摘要>"`
+     - **不接受**：PR body 缺任一行 · 即视为未经 Arbiter 审批 · 不得 merge
+     - **推荐（非硬要求）**：可额外 `gh pr comment <N>` 贴完整 dialogue trail · 作为冗余 audit · 但 body trailer 已足够
+     - **v2-D → v2-D.1 变更原因**：v2-D "merge 后 24h 内必须补 PR comment" 纯靠人肉自觉 · session 12 批量实证失守（12/12 PR 零 comment）· 规则贬值 · 详见 [ADR-012](./docs/adr/ADR-012-v2d1-arbiter-approval-simplification.md)
      - **GitHub UI Approve 按钮**：单人项目 GitHub 不允许 self-approve own PR · 故当前不可用 · 未来触发条件见 §3
   3. **未来升级触发**（v2-D → v2-strict · 满足条件后**人工判定立即生效** · source of truth 见下）：
      - 条件（任一满足即触发）：
@@ -141,7 +146,8 @@ gh pr create
        - **独立评审**（reviewer ≠ implementer · 必须不同 agent 实例 or 不同 GitHub user）
        - **reviewer approve 必须在 GitHub PR UI 留痕**（`gh pr review --approve` 或 Approve 按钮）· 不再接受 PR body trailer + comment 模式
   4. 同步 `CLAUDE.md` + `implementation-plan.md`（二者都改 · 否则 codex / 未来 agent 会读到自相矛盾）
-  5. **过渡 audit trail 补档**：session 10 末规则升级前已 merge 的 PR #45（ADR-011 + 决策表 #18）按 §2 (a) 标准追溯补 PR comment · PR #50（v2-D 升级 PR · ADR-006 + 决策表 #19）即 v2-D 第一个 follower · 流程一开始就走 §2 (a) · 不再有"过渡末班车"概念
+  5. **过渡 audit trail 补档**：session 10 末规则升级前已 merge 的 PR #45（ADR-011 + 决策表 #18）按 §2 标准追溯补 PR body trailer · PR #50（v2-D 升级 PR · ADR-006 + 决策表 #19）即 v2-D 第一个 follower · 流程一开始就走 §2 · 不再有"过渡末班车"概念
+  6. **v2-D → v2-D.1 过渡（2026-04-21 · ADR-012）**：删除 v2-D §2(b) "merge 后 24h 补 PR comment" 硬要求 · PR body trailer 即算合规 · session 12 及之前的 body 缺 trailer PR（#64/#65/#67/#68/#69/#72/#75）一次性 `gh pr comment` 过渡补档 · 之后永不欠账
 - ⚠️ **Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证**：不得据此写生产代码
 
 ---
@@ -175,15 +181,22 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（Pre-code Phase 1-4 全交付 · Spike W0 可启动）
+## 🏁 当前可执行动作（session 13 · MVP-04 PTY 实施前夜）
 
-**⚠️ 仓库仍无代码**：`pnpm tauri dev` / `cargo build` 仍会失败，第一行代码在 SPIKE-01 启动后产生（`spike-tmp/spike-01-tauri/` · `.gitignore` 已排除）。
+**代码已落地**（`crates/app/` + `crates/core/` · 首行代码自 PR #28 · 2026-04-19 session 8）。`pnpm tauri:dev` 可跑 macOS 版本（Phase A+B ✅ · Phase C Ubuntu runtime 待环境 · session 13 降为最低优先）。
 
-本阶段可做的 3 件事（按优先级）：
+**v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
 
-1. **启动 Spike W0 Day 1**：认领 [`SPIKE-01 Tauri 三平台空壳启动`](./docs/tasks/SPIKE-01-tauri-three-platform-boot.md)（status: ready → in-progress 流程见上方第 5 步）。后续 W0-D2~D6 = SPIKE-02..06 顺序执行
-2. **帮 draft spec 升级 ready**：`docs/tasks/` 当前 27 个 spec 大部分仍是 draft；挑一个**不在 W0 关键路径上**的（例如 v0.2/v0.3/v1.0 的 MVP-12..20）走独立评审，演练 `draft → ready` 翻转 gate
-3. **遇到新决策时提议 ADR**：按 `docs/adr/_template.md` 走 ADR 流程（≥ 2 候选选项 + 正面/负面/风险 + 用户拍板 gate）
+- MVP-02/03 done · MVP-01 ready + Phase A/B done · MVP-04 storage 层 done（PR #72 · Phase B PTY runtime 待）
+- MVP-05/07/08/09 spec ready · MVP-06 spec review 进行中（Kimi 异步 · session 13）
+- SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）· §A 已 done
+
+本阶段可做的 4 件事（按优先级）：
+
+1. **MVP-04 Phase B PTY runtime 实施**（主线 · 2-3d · 派 Codex/OpenCode）· 依赖 PR #72 TabsDao · 参考 SPIKE-05 归档代码
+2. **MVP-06 spec review 返回**（Kimi 异步 · 20-30 min · 回后 PR 翻转 ready · v0.1 所有 10 MVP spec 全 ready 里程碑）
+3. **帮 v0.2/v0.3/v1.0 draft spec 升级 ready**（MVP-11..20 + SPIKE-07 · 离 v0.1 关键路径远 · 低优先）
+4. **遇到新决策提议 ADR**（按 `docs/adr/_template.md` · 当前 13 ADR · accepted 13 / proposed 0）
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
 

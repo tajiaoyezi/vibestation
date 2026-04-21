@@ -10,7 +10,7 @@ blocks: ["SPIKE-06"]
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D5 · §3.1
 risk_ref:
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # SPIKE-05.5: PTY visible throughput + per-session fallback 对照

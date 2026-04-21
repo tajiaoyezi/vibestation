@@ -27,6 +27,7 @@ pub enum ImportedField {
     Theme(String),
     Shell(String),
     KeyBinding { key: String, action: String },
+    AnsiColor { index: u8, hex: String },
 }
 
 /// 单个源扫描 + 解析结果

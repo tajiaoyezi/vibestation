@@ -119,8 +119,8 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 估时 | 依赖 | 风险 |
 |----|------|------|------|------|------|
-| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | — | R12 |
-| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| in-progress（Phase A macOS ✅ · Phase B Ubuntu 待环境）| 1d | SPIKE-01 | **R12 CRITICAL** |
+| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| blocked（Phase A macOS done · PR #20 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | — | R12 |
+| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| blocked（Phase A macOS done · PR #22 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | SPIKE-01 | **R12 CRITICAL** |
 | [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| done | 1d | SPIKE-02 | R3 |
 | [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | done | 1d | SPIKE-02 | R27 |
 | [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md) | rusqlite 数据安全 B.1-5 + A.3 性能补测 | done | 1d | SPIKE-04 | R27 |

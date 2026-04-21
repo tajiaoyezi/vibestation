@@ -2,11 +2,14 @@
 id: SPIKE-01
 type: spike
 title: Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）
-status: in-progress
+status: blocked
 owner: Claude Code (Sonnet 4.6)
 phase: W0-D1
 depends_on: []
 blocks: ["SPIKE-02", "SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
+blocked_by: ["ubuntu-24-environment"]
+blocked_from: in-progress
+blocked_note: Phase A macOS PASS（PR #20 · 冷启动 202ms median · ADR-006 accepted）· Phase B Ubuntu 等用户搭 Ubuntu 24 LTS 环境 · Ubuntu 已降为 v0.1 GA 最低优先（见 PROGRESS "S-3 Ubuntu 降级"）· 不是等 agent 认领 · session 13 horizontal scan @ 2026-04-21
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D1
 risk_ref: R12

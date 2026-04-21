@@ -2,11 +2,14 @@
 id: SPIKE-02
 type: spike
 title: Tauri 硬通过矩阵 + Electron fallback 验证
-status: in-progress
+status: blocked
 owner: Claude Code (Sonnet 4.6)
 phase: W0-D2
 depends_on: ["SPIKE-01"]
 blocks: ["SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
+blocked_by: ["ubuntu-24-environment"]
+blocked_from: in-progress
+blocked_note: Phase A macOS PASS（PR #22 · 10/10 稳定 · bundle 10MB/4MB · ADR-006 accepted）· Phase B Ubuntu 等用户搭 Ubuntu 24 LTS 环境 · Ubuntu 已降为 v0.1 GA 最低优先（见 PROGRESS "S-3 Ubuntu 降级"）· updater + 日文 IME 2 项降级已记录 · 不是等 agent 认领 · session 13 horizontal scan @ 2026-04-21
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D2
 risk_ref: R12

@@ -3,17 +3,22 @@
 //! MVP-02：workspace CRUD IPC 命令 + greet 保留作为版本自检。
 //! 存储：rusqlite via r2d2 连接池 · SPIKE-04.5 B.1-5 全过。
 
+mod fix_path_env;
+
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, State};
+use std::thread;
+use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
-    AppSettingsStore, LayoutState, LayoutStore, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
+    AppSettingsStore, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager,
+    PtySpawnRequest, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
+    TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 struct AppState {
     pool: Mutex<Option<DbPool>>,
+    pty: PtyManager,
 }
 
 #[tauri::command]
@@ -161,15 +166,98 @@ fn tab_scrollback_fetch(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let persisted = TabsDao::get(pool, &req.tab_id).map_err(|e| e.to_string())?;
+    drop(guard);
+
+    let spawn_req = PtySpawnRequest {
+        shell: if req.shell.is_empty() {
+            persisted.shell
+        } else {
+            req.shell
+        },
+        cwd: if req.cwd.is_empty() {
+            persisted.cwd
+        } else {
+            req.cwd
+        },
+        ..req
+    };
+
+    state.pty.spawn(spawn_req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_pty_stdin(state: State<'_, AppState>, tab_id: String, data: String) -> Result<(), String> {
+    state.pty.stdin(&tab_id, &data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_pty_resize(
+    state: State<'_, AppState>,
+    tab_id: String,
+    cols: u16,
+    rows: u16,
+) -> Result<(), String> {
+    state
+        .pty
+        .resize(&tab_id, cols, rows)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_pty_signal(
+    state: State<'_, AppState>,
+    tab_id: String,
+    signal: String,
+) -> Result<(), String> {
+    state
+        .pty
+        .signal(&tab_id, &signal)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_pty_kill(state: State<'_, AppState>, tab_id: String) -> Result<(), String> {
+    state
+        .pty
+        .kill(&tab_id)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
+    while let Ok(event) = events.recv() {
+        let result = match event {
+            PtyEvent::Stdout(payload) => app.emit("tab_pty_stdout", payload),
+            PtyEvent::Exited(payload) => app.emit("tab_pty_exited", payload),
+        };
+
+        if let Err(error) = result {
+            eprintln!("[mvp-04] emit PTY event failed: {error}");
+        }
+    }
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
 /// 若 Tauri 初始化失败（窗口 / 插件加载异常）则 panic · 由 Tauri 默认错误处理上浮。
 pub fn run() {
+    let _ = fix_path_env::fix();
+    let pty = PtyManager::new();
+    let pty_events = pty
+        .take_event_receiver()
+        .expect("PTY event receiver should be taken exactly once");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             pool: Mutex::new(None),
+            pty,
         })
         .invoke_handler(tauri::generate_handler![
             greet,
@@ -188,7 +276,20 @@ pub fn run() {
             tab_close,
             tab_rename,
             tab_scrollback_fetch,
+            tab_pty_spawn,
+            tab_pty_stdin,
+            tab_pty_resize,
+            tab_pty_signal,
+            tab_pty_kill,
         ])
+        .setup(move |app| {
+            let handle = app.handle().clone();
+            thread::Builder::new()
+                .name("vibestation-pty-events".to_string())
+                .spawn(move || emit_pty_events(handle, pty_events))
+                .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?;
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");
 }

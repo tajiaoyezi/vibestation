@@ -21,6 +21,11 @@
     "allow-tab-close",
     "allow-tab-rename",
     "allow-tab-scrollback-fetch",
+    "allow-tab-pty-spawn",
+    "allow-tab-pty-stdin",
+    "allow-tab-pty-resize",
+    "allow-tab-pty-signal",
+    "allow-tab-pty-kill",
     "dialog:default"
   ]
 }

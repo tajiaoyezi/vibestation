@@ -7,11 +7,16 @@ pub mod app_settings;
 pub mod config_import;
 pub mod db;
 pub mod layout;
+pub mod pty;
 pub mod tabs;
 pub mod workspace;
 
 pub use app_settings::AppSettingsStore;
 pub use layout::{LayoutState, LayoutStore};
+pub use pty::{
+    PtyError, PtyEvent, PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest,
+    PtyStdoutEvent, PTY_EVENT_QUEUE_CAPACITY,
+};
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
 };

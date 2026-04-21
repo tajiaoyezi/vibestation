@@ -15,7 +15,7 @@
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| — |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| — |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| — |
-| **Next concrete action** | **Session 13 audit followup 清零中**（PR #76）：v2-D.1 规则简化（ADR-012 · 删 24h 补 comment 硬要求）+ H-1/2/3 + M-1/2/3/4/5 + L-1/2/3 + S-1/3 全修。清零后进主线 **MVP-04 PTY + xterm 实施**（Phase B 起 · 依赖 PR #72 storage prep · 6.5-10d · macOS-first · 可切 sub-task 派 OpenCode/Codex）· 同时 **MVP-06 Kimi prompt 已写** 等用户转发（spec review · 30 min 异步 · 解最后 1 个 v0.1 draft）| session end |
+| **Next concrete action** | **v0.1 所有 10 MVP spec 全 ready 里程碑达成**（PR #76 三轮 audit 清零 · PR #77 MVP-06 Kimi spec review · 2026-04-21 merged）· 进入纯实施阶段 · **下一步**：MVP-04 Phase B PTY runtime 派工（等 Arbiter 选 Codex vs OpenCode · 参考 `spike-tmp/local-notes/MVP-04-PTY-stack-research-2026-04-20.md` · 2-3d · 依赖 PR #72 storage prep · macOS-first）· 主线外 · SPIKE-06 §B Apple Dev 申请（用户决策）+ Ubuntu 环境（最低优先 · GA 前评估）| session end |
 | **Blocked by** | SPIKE-06 §B Apple Dev Program 申请（**用户决策中** · $99/y · 审核 2d-2w · 影响 MVP-10 codesign 但不阻塞 MVP-04-09）· SPIKE-01/02 §B + MVP-01 Phase C · **Ubuntu 24 LTS 环境 · 已降为 v0.1 GA 最低优先**（S-3 · 2026-04-21 · 见下方"v0.1 发布策略"）· 不阻塞 macOS 主线 | 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（最低优先 · macOS 主线不依赖）· Apple Developer Program（SPIKE-06 §B + MVP-10 GA 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24（最低优先 · 非主线）· ⚠️ Apple Dev（GA gate）| 新账号/工具时 |
@@ -25,14 +25,16 @@
 
 ## 📍 当前位置
 
-**阶段**：**Spike W0 macOS 100% 完结（SPIKE-01-08 全 done · 含 SPIKE-06 §A 36 样本 PR #71）· v0.1 主线 spec 近乎全 ready**（MVP-02/03 done · MVP-01/04/05/07/08/09 ready · 仅 MVP-06 draft · MVP-10 依赖 MVP-06）· **MVP-04 storage 层 done**（PR #72 · migration v5 + TabsDao + IPC + ts-rs bindings）· v0.1 Git 能力闭环（MVP-07/08/09 三分工 §H）+ 终端画面闭环（MVP-04/05）达成 · 进入 **MVP-04 PTY + xterm 实施 + MVP-06 最后 spec review** 阶段 · Phase B/C Ubuntu 等环境
-**日期**：2026-04-20（session 12 收尾 · session 11 → session 12 全程统一归档）
+**阶段**：🏆 **v0.1 所有 10 MVP spec 全 ready 里程碑达成**（2026-04-21 · PR #77 MVP-06 merged · 仅剩 MVP-10 gate-phase 等其他实施）· Spike W0 macOS 100% 完结 · session 13 三轮 audit 清零 · 14 ADR accepted · v2-D.1 规则生效 · **进入纯实施阶段**· 主线 = MVP-04 Phase B PTY runtime
+**日期**：2026-04-21（session 13 · PR #76 audit 清零 + PR #77 MVP-06 ready · 里程碑达成）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留最近 2 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 13（2026-04-21 · audit followup + 治理简化）
+### Session 13（2026-04-21 · audit 清零 + MVP-06 ready · v0.1 里程碑达成）
 
-- **PR #76 `TBD`**（session 13 开场 · **v2-D → v2-D.1 规则简化 + session 12 audit 全清零**）· Claude Code · 12+ commit：v2-D.1 规则（ADR-012 · 删 24h 补 comment 硬要求）+ SPIKE-01/02 blocked（H-1）+ MVP-04 depends_on note（H-3）+ migration v6 预告（L-2）+ MVP-10 gate-phase 注解（M-5）+ Reviewer 字段回填（M-3）+ local-notes 清理（M-4）+ PROGRESS Active branch 去硬编码（H-2）+ PR 列表滚动窗口规则（M-2）+ Ubuntu 降最低优先（S-3）+ Tauri capability TODO（L-1）+ dispatch template §4 参考实现更新（L-3）+ Spike 冷备规则降级（M-1 · ADR-013）+ MVP-06 Kimi prompt 写入（S-1）· 7 个历史 PR 过渡补 gh pr comment（v2-D → v2-D.1 切换）
+- **本 PR（session 13 mvp-06 landed sync）** · Claude Code · docs/tasks/README.md MVP-06 行状态 draft → ready · PROGRESS.md 里程碑 + Next action 更新 + session 13 段同步 PR #76/#77 落地
+- **PR #77 `1c236fe`**（session 13 下半 · **MVP-06 spec ready · v0.1 所有 10 MVP spec 全 ready 里程碑**）· Kimi 第 6 次（session 12 五连 + session 13 第 1 次 · 累计 5/5 + 1/1 = 6/6 成功率）· 配置导入 spec review · §G 7 struct + §H H.1-4 决策锁定（parser 选型 3 crate + 4 禁止 / 降级树 / 快捷键 canonical form / 字体 fallback）· 量化 A-F Acceptance · PR #77 经 rebase 清理冲突（squash merge 后孤儿 10 commit · force-with-lease 保留 author）· cherry-picked 512ded8（原 8f5cf90）
+- **PR #76 `6a6976b`**（session 13 开场 · **session 12 audit 三轮清零 + v2-D.1 规则简化 + ADR-012/013/014**）· Claude Code · 13 commit：v2-D.1（删 24h 补 comment 硬要求 · ADR-012）+ SPIKE-01/02/06 blocked（H-1 横向）+ MVP-04 depends_on note + §实施进度（H-3/L-2）+ MVP-10 gate-phase（M-5）+ Reviewer 回填（M-3）+ local-notes 清理（M-4）+ PROGRESS 去硬编码 + 滚动窗口规则 + Ubuntu 降最低优先（H-2/M-2/S-3）+ Tauri capability TODO（L-1）+ dispatch §4 参考（L-3）+ Spike 冷备 v2 降级（M-1 · ADR-013）+ MVP-06 Kimi prompt（S-1）+ SPIKE-07 note + CLAUDE.md 过时段（X-1/X-2）+ ADR-014 IPC contract（X-3/X-4）+ 对外文件禁区脱敏 6 处（X-5 · 含 design/index.html landing）· 29 项三轮清零 · 7 历史 PR 过渡补 gh pr comment
 
 ### Session 12（2026-04-20 · 多 agent 四路并发 · v0.1 Git + 终端闭环）
 

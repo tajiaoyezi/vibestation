@@ -13,7 +13,7 @@ blocked_note: Phase A macOS PASS（PR #22 · 10/10 稳定 · bundle 10MB/4MB · 
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D2
 risk_ref: R12
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # SPIKE-02: Tauri 硬通过矩阵 + Electron fallback 验证

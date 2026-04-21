@@ -76,7 +76,7 @@ draft ────────► ready ─────────────�
 | `estimate` | string | ✅ | `0.5d` / `1d` / `3d` |
 | `plan_ref` | string | ✅ | `implementation-plan.md` 章节 `§3.1.1` |
 | `risk_ref` | string | ⛔ 可选 | `R1` / `R12` / `R27` 等 `implementation-plan §9` 风险 ID |
-| `reviewer` | string | ⛔ 默认填 PR review 时 | 独立评审者（≠ owner）|
+| `reviewer` | string | ⛔ 默认填 PR review 时 | v2-D.1 语义 = 执行 review 的 **agent 名**（`Claude Code` / `Kimi` / `Codex CLI` / `OpenCode` 等）· 非 Arbiter（Arbiter approval 走 PR body trailer · 见 [ADR-012](../adr/ADR-012-v2d1-arbiter-approval-simplification.md)）· 单人项目下 self-review 合法 · 但 reviewer 字段必须填 agent 名（即使与 owner 同一 agent）· session 13 audit M-3 统一 · 旧 task 写 `User` 已回填为 `Claude Code` |
 
 **YAML frontmatter 示例**：详见 [`_template.md`](./_template.md)。
 

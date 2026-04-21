@@ -6,6 +6,7 @@ status: draft
 owner:
 phase: W11-W12
 depends_on: ["MVP-01", "MVP-02", "MVP-03", "MVP-04", "MVP-05", "MVP-06", "MVP-07", "MVP-08", "MVP-09"]
+depends_on_notes: "MVP-10 = v0.1 GA 发布 gate · 不是技术依赖 · 而是 '所有 v0.1 功能齐全才能打包发布' 的 phase gate。depends_on 数组列 9 个 MVP 是为了 README/PROGRESS 可视化时 'MVP-10 阻塞链' 能完整显示 · 不代表 MVP-10 的代码依赖这些 MVP 的 API。实施时可以 MVP-01-09 并行收尾的同时启动 MVP-10 的设置面板 + Telemetry 对话框 · 仅 §打包阶段需等其他 MVP 全 done。"
 blocks: []
 blocked_by: []
 blocked_note:

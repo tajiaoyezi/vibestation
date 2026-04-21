@@ -13,7 +13,7 @@ blocked_note: Phase A macOS PASS（PR #20 · 冷启动 202ms median · ADR-006 a
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D1
 risk_ref: R12
-reviewer: User (Arbiter · GitHub PR approve)
+reviewer: Claude Code
 ---
 
 # SPIKE-01: Tauri 2 三平台空壳启动

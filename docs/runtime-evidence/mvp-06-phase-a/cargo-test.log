@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running unittests src/lib.rs (target/debug/deps/vibestation_core-f7a55f1661287e86)
+
+running 16 tests
+test config_import::ghostty::tests::scan_no_file_not_exists ... ok
+test config_import::iterm2::tests::scan_no_file_not_exists ... ok
+test config_import::alacritty::tests::scan_yaml_fallback_when_toml_absent ... ok
+test config_import::tests::scan_empty_home_all_not_found ... ok
+test config_import::iterm2::tests::scan_empty_profiles_array ... ok
+test config_import::alacritty::tests::scan_missing_fields_partial_result ... ok
+test config_import::iterm2::tests::scan_broken_plist_graceful ... ok
+test config_import::alacritty::tests::scan_broken_toml_graceful ... ok
+test config_import::ghostty::tests::scan_unknown_fields_skipped ... ok
+test config_import::ghostty::tests::scan_primary_path_exists ... ok
+test config_import::alacritty::tests::scan_toml_preferred_over_yaml ... ok
+test config_import::iterm2::tests::scan_single_profile_extracts_font_shell ... ok
+test config_import::tests::scan_returns_3_sources ... ok
+test config_import::ghostty::tests::scan_broken_toml_graceful_error ... ok
+test config_import::ghostty::tests::scan_fallback_path_when_primary_absent ... ok
+test config_import::ghostty::tests::scan_both_paths_prefers_primary ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 66 filtered out; finished in 0.01s
+

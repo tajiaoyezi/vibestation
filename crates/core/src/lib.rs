@@ -4,6 +4,7 @@
 //! pane 联动（v1.0 vision）等。保持纯 Rust · 可独立 `cargo test` · 不依赖 Tauri。
 
 pub mod app_settings;
+pub mod config_import;
 pub mod db;
 pub mod layout;
 pub mod tabs;

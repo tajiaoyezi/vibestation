@@ -75,6 +75,8 @@ secrets.toml
 *.log
 # 例外：Spike 归档的 raw log 需要进 git（决策证据可复现 · 和 Cargo.lock 白名单同模式）
 !docs/spikes/raw/**/*.log
+# 例外：MVP / feature runtime 证据 log 需要进 git（ADR-011 R1-R5）
+!docs/runtime-evidence/**/*.log
 logs/
 .cache/
 .parcel-cache/

@@ -18,6 +18,9 @@ chrono.workspace = true
 thiserror.workspace = true
 dunce.workspace = true
 ts-rs.workspace = true
+toml = "0.8"
+plist = "1.6"
+serde_yaml = "0.9"
 
 [dev-dependencies]
 tempfile.workspace = true

@@ -869,10 +869,13 @@ mod tests {
         let (manager, events) = manager_with_events();
         spawn_shell(&manager, "tab-signal").unwrap();
         manager.stdin("tab-signal", "exec sleep 30\n").unwrap();
-        thread::sleep(Duration::from_millis(200));
+        // CI Ubuntu runner 上 fork/exec 慢 · 200ms 可能不够 · sleep 提升到 500ms
+        // 防 SIGTERM 发到 sh 前 exec 未完成（PR #82 CI failure 根因）
+        thread::sleep(Duration::from_millis(500));
         manager.signal("tab-signal", "SIGTERM").unwrap();
 
-        let (_output, exit_code) = recv_until_exit(&events, "tab-signal", Duration::from_secs(5));
+        // timeout 5s → 10s · CI 慢机器 margin（本地 macOS 通常 < 1s · CI Ubuntu 偶尔 > 5s）
+        let (_output, exit_code) = recv_until_exit(&events, "tab-signal", Duration::from_secs(10));
         assert_eq!(exit_code, None);
     }
 

@@ -1,0 +1,28 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-04 Phase B · PTY runtime IPC permissions
+
+[[permission]]
+identifier = "allow-tab-pty-spawn"
+description = "允许前端为某 Tab 启动 PTY 进程（含 shell / cwd / 初始 size）"
+commands.allow = ["tab_pty_spawn"]
+
+[[permission]]
+identifier = "allow-tab-pty-stdin"
+description = "允许前端向 Tab 的 PTY 写入 stdin（用户键盘输入）"
+commands.allow = ["tab_pty_stdin"]
+
+[[permission]]
+identifier = "allow-tab-pty-resize"
+description = "允许前端通知 PTY 终端 size 变化（SIGWINCH 传达）"
+commands.allow = ["tab_pty_resize"]
+
+[[permission]]
+identifier = "allow-tab-pty-signal"
+description = "允许前端向 PTY 进程发信号（SIGINT / SIGTERM / SIGTSTP / SIGKILL）"
+commands.allow = ["tab_pty_signal"]
+
+[[permission]]
+identifier = "allow-tab-pty-kill"
+description = "允许前端主动 kill Tab 的 PTY 进程（Tab close 时清理）"
+commands.allow = ["tab_pty_kill"]

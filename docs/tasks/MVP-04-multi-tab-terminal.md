@@ -60,7 +60,7 @@ reviewer: Kimi
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done | [#72](https://github.com/tajiaoyezi/vibestation/pull/72) |
-| Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ⏳ todo | — |
+| Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ✅ done | [#82](https://github.com/tajiaoyezi/vibestation/pull/82) |
 | Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ⏳ todo | — |
 | Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
 | Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（FK CASCADE） | ⏳ todo | — |

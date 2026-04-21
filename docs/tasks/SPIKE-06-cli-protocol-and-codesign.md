@@ -2,14 +2,14 @@
 id: SPIKE-06
 type: spike
 title: Claude CLI / Codex CLI 实机 + macOS Developer Program 申请
-status: ready
+status: blocked
 owner:
 phase: W0-D6
 depends_on: ["SPIKE-05"]
 blocks: []
-blocked_by: []
-blocked_from:
-blocked_note:
+blocked_by: ["apple-dev-program-approval"]
+blocked_from: ready
+blocked_note: §A 36 样本 done（PR #71 · SPIKE W0 macOS 100% 完结）· §B codesign/notarization 依赖 Apple Developer Program（$99/y · 用户申请 · 审核 2d-2w）· 不是等 agent 认领 · session 13 audit H2 改 blocked（2026-04-21 · 审查报告 §3.2）
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D6 · §9 R1
 risk_ref: R1

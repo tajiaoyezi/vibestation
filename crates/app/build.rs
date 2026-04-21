@@ -12,8 +12,10 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    LayoutState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, WorkspaceMetadata,
+    CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogQueryRequest,
+    GitLogQueryResponse, LayoutState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState,
+    WorkspaceMetadata,
 };
 
 fn main() {
@@ -24,6 +26,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/layout.rs");
     println!("cargo:rerun-if-changed=../core/src/tabs.rs");
     println!("cargo:rerun-if-changed=../core/src/pty.rs");
+    println!("cargo:rerun-if-changed=../core/src/git_log.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -44,6 +47,14 @@ fn main() {
     PtyExitedEvent::export_all(&config).expect("export PtyExitedEvent");
     PtySpawnRequest::export_all(&config).expect("export PtySpawnRequest");
 
+    GitLogEntry::export_all(&config).expect("export GitLogEntry");
+    CommitAuthor::export_all(&config).expect("export CommitAuthor");
+    CommitParent::export_all(&config).expect("export CommitParent");
+    FileChange::export_all(&config).expect("export FileChange");
+    CommitDetail::export_all(&config).expect("export CommitDetail");
+    GitLogQueryRequest::export_all(&config).expect("export GitLogQueryRequest");
+    GitLogQueryResponse::export_all(&config).expect("export GitLogQueryResponse");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -61,6 +72,13 @@ fn main() {
             "export type { PtyStdoutEvent } from \"./PtyStdoutEvent\";",
             "export type { PtyExitedEvent } from \"./PtyExitedEvent\";",
             "export type { PtySpawnRequest } from \"./PtySpawnRequest\";",
+            "export type { GitLogEntry } from \"./GitLogEntry\";",
+            "export type { CommitAuthor } from \"./CommitAuthor\";",
+            "export type { CommitParent } from \"./CommitParent\";",
+            "export type { FileChange } from \"./FileChange\";",
+            "export type { CommitDetail } from \"./CommitDetail\";",
+            "export type { GitLogQueryRequest } from \"./GitLogQueryRequest\";",
+            "export type { GitLogQueryResponse } from \"./GitLogQueryResponse\";",
             "",
         ]
         .join("\n"),

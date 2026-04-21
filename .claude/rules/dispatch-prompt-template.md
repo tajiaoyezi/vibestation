@@ -99,9 +99,21 @@ cd /private/tmp/<task-id>-work
 
 **事件**：2026-04-19 · MVP-02 · OpenCode 在主目录开 `feat/MVP-02-workspace-management` · 主 agent checkout main 时 git 默认 carry-over unstaged 改动 · 主 working tree 脏 · 阻塞主 agent 开新 PR · 用户通知后 OpenCode 按 Option 1（commit + push + 独立 worktree）恢复。
 
-### 2.5 · Commit trailer 身份标识
+### 2.5 · Commit 身份标识（3 条硬约束 · 缺一即 BLOCK merge）
 
-每个 commit message **必须**含 `Co-authored-by` trailer 标识执行 agent：
+**必须** 3 条全做 · 不得只做 trailer 而跳过 git config：
+
+#### 2.5.1 · 覆盖继承的 git config（worktree 创建后第一步）
+
+```bash
+cd /private/tmp/<task-id>-work
+git config user.name "<Agent Name>"           # 例 "Codex CLI"
+git config user.email "<vendor>@<vendor>.ai"  # 例 "noreply@openai.com"
+```
+
+**为什么**：`git worktree add` 会继承主 repo 的 `.git/config` · 若上一个 task 在此 worktree 跑过其他 agent · author 字段会错归（例 PR #71 Codex commit author = "Kimi <noreply@moonshot.ai>"）。
+
+#### 2.5.2 · 每个 commit 必含 `Co-authored-by` trailer
 
 ```
 <type>(<scope>): <中文描述>
@@ -110,10 +122,24 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 ```
 
 标识列表：
+
 - Claude Code：`Co-authored-by: Claude Code <noreply@anthropic.com>`
 - Codex CLI：`Co-authored-by: Codex CLI <noreply@openai.com>`
 - OpenCode：`Co-authored-by: OpenCode <noreply@opencode.ai>`
+- Kimi（Moonshot）：`Co-authored-by: Kimi <noreply@moonshot.ai>`
 - Cursor / Aider / 其他：按工具官方邮箱
+
+#### 2.5.3 · commit 后立即验证 author 字段
+
+```bash
+git log -1 --pretty=format:"%an <%ae>"
+# 必须显示 "<Agent Name> <noreply@<vendor>.ai>"
+# 若显示其他 agent（如 "Kimi"）· 立即 git commit --amend --reset-author
+```
+
+**反模式**：只做 2.5.2 trailer · 跳过 2.5.1 git config → `git log` / `git blame` author 字段错 → 未来若上 CODEOWNERS 或 contribution 审计 · Codex 的贡献被归给 Kimi。
+
+**事件**：2026-04-20 session 12 · PR #71 · Codex 继承上一 Kimi task 的 worktree git config · commit author 显示 "Kimi" · 仅靠 trailer 不够 · audit M3 根因。
 
 ### 2.6 · 分支命名规范
 
@@ -231,6 +257,29 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 ## 3 · 标准 Dispatch Prompt 模板
 
+### 3.0 · 文件命名规范（audit M2 · 2026-04-21）
+
+dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
+
+```
+<TASK-ID>[-<phase-or-pr-suffix>]-<agent>-prompt.md
+```
+
+示例：
+
+- 单 phase task · MVP-05 整体 → `MVP-05-kimi-prompt.md`
+- 多 phase task · MVP-04 storage prep → `MVP-04-storage-prep-opencode-prompt.md`
+- 分 PR Spike · SPIKE-06 pr2 → `SPIKE-06-pr2-codex-prompt.md`
+- 修复 dispatch · SPIKE-06 pr2 第二轮修复 → `SPIKE-06-pr2-codex-fix-prompt.md`
+
+**禁止**：
+
+- 无 suffix 的歧义命名（`MVP-04-opencode.md` 不清楚是哪个 phase）
+- 大小写不一致（全大写 TASK-ID · 全小写 agent 和 `-prompt` 后缀）
+- 放到其他目录（如 `docs/dispatch/` · `.claude/dispatch/`）
+
+### 3.1 · 标准模板
+
 ```markdown
 # <TASK-ID> · <Agent Name> Dispatch Prompt
 
@@ -302,6 +351,20 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 - 不要改 ADR / 其他 spec
 - 不要声称 "Arbiter 选定 X" 除非 PR 有 Arbiter 明确 comment
 - 不要在 CI 绿就声称 ready
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 PR body 必含段（v2-D.1 · audit M1）
+
+## Implemented by · Reviewed by
+
+- Implemented by: <agent-id · 例 Codex CLI / OpenCode / Kimi>
+- Reviewed by: <same agent-id · self-review 或 cross-review>
+  - 单人项目 v2-D.1 模式：无 cross-agent review 合法 · 但必须显式声明
+  - 例："Reviewed by: OpenCode · self-review（单人项目 v2-D.1 模式 · 无 cross-agent review · Arbiter approval 见下）"
+- Arbiter approval: tajiaoyezi · YYYY-MM-DD HH:MM · "<dialogue 摘要>"
+
+**为什么要显式声明 self-review**：防止未来新 agent 学习此 PR 当模板 · 误以为 "implementer 勾完 hard constraints 即合规" 传染到多 agent 场景。见 `docs/adr/ADR-012-v2d1-arbiter-approval-simplification.md`。
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

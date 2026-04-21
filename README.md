@@ -72,7 +72,7 @@ open design/index.html
 | v0.1 MVP | +12 周 | 多 Tab 终端 · Git log/status 只读 · Commit · 基础 Diff · 单层 Pane · 配置导入 · 崩溃恢复 · macOS + Linux 签名打包 |
 | v0.2 | +5 周 | Push/Pull/Fetch · Rail graph · 分支管理 · Pane 任意嵌套 |
 | v0.3 | +5 周 | Rebase/Merge/Cherry-pick · 冲突解决 · Pop to External |
-| v1.0 | +6-8 周 | AI-Aware Pane 联动（session ↔ commit · 一键回滚 AI 改动）|
+| v1.0 | +6-8 周 | 高级工作流能力（范围详见 [`implementation-plan.md`](docs/implementation-plan.md)）|
 
 **总预算**：28-30 周 × 20-25 小时 ≈ 600-750 小时（含 20% buffer）。若投入减半，触发 [`docs/implementation-plan.md#105-降级树`](docs/implementation-plan.md) 降级策略。
 

@@ -23,7 +23,7 @@
 | 方式 | 入口 | 模板 |
 |------|------|------|
 | **报告 bug** | GitHub Issues · `🐛 Bug Report` | `.github/ISSUE_TEMPLATE/bug_report.yml` |
-| **建议功能** | GitHub Issues · `✨ Feature Request` | 含 AI-Aware 叙事合规勾选 |
+| **建议功能** | GitHub Issues · `✨ Feature Request` | 含对外叙事合规勾选（禁词见 `CLAUDE.md §禁区`）|
 | **提议 task spec** | GitHub Issues · `📋 Task Spec Proposal` | 后续可正式 PR |
 | **讨论 / 问问题** | GitHub Discussions | 不走 issue |
 | **安全漏洞** | GitHub Security Advisory（私密） | **不要开 issue** |
@@ -159,7 +159,7 @@ Co-authored-by: <Agent Name> <email>
 以下禁区来自 `CLAUDE.md §禁区` · **任何 PR 违反则硬拒绝**：
 
 - ❌ **禁止 push 到 main**（走 feature branch + PR + 独立评审）
-- ❌ **禁止对外文案提及** `AI-Aware Pane` / `Mission Control` / `AI session aware`（v1.0 vision · `ADR-009`）
+- ❌ **禁止对外文案提及 v1.0 vision 具体名词**（具体禁词见 `CLAUDE.md §禁区` + [ADR-009](docs/adr/ADR-009-ai-aware-v1-vision.md) · 本条不 spell out 以避免 CONTRIBUTING 自身违规）
 - ❌ **禁止硬编码** API Key / 密码 / Token / 个人邮箱 / 生产域名（用 `.env.local`）
 - ❌ **禁止跳过 CI 必过项**（`cargo clippy -D warnings` / `cargo fmt --check` / `pnpm lint` / `pnpm typecheck` / `gitleaks` / `task-spec-validator`）
 - ❌ **禁止重排 `docs/implementation-plan.md`** 的章节结构（允许章末追加 changelog / v2.x 子节）

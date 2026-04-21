@@ -79,13 +79,15 @@
 
 ---
 
-## 🛠️ 常用命令（**Spike W0 结束后生效**，pre-code 阶段全失败）
+## 🛠️ 常用命令（**当前全部可用** · Spike W0 macOS 完结 · 首行代码自 PR #28）
 
 ```bash
 # 前端
 pnpm install
-pnpm tauri dev
-pnpm tauri build
+pnpm tauri:dev          # ⚠ 注意是冒号 tauri:dev（scripts 映射 · 不是 "tauri dev"）
+pnpm tauri:build
+pnpm lint               # ESLint + Prettier
+pnpm typecheck          # tsc --noEmit
 
 # Rust
 cargo build
@@ -179,15 +181,22 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（Pre-code Phase 1-4 全交付 · Spike W0 可启动）
+## 🏁 当前可执行动作（session 13 · MVP-04 PTY 实施前夜）
 
-**⚠️ 仓库仍无代码**：`pnpm tauri dev` / `cargo build` 仍会失败，第一行代码在 SPIKE-01 启动后产生（`spike-tmp/spike-01-tauri/` · `.gitignore` 已排除）。
+**代码已落地**（`crates/app/` + `crates/core/` · 首行代码自 PR #28 · 2026-04-19 session 8）。`pnpm tauri:dev` 可跑 macOS 版本（Phase A+B ✅ · Phase C Ubuntu runtime 待环境 · session 13 降为最低优先）。
 
-本阶段可做的 3 件事（按优先级）：
+**v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
 
-1. **启动 Spike W0 Day 1**：认领 [`SPIKE-01 Tauri 三平台空壳启动`](./docs/tasks/SPIKE-01-tauri-three-platform-boot.md)（status: ready → in-progress 流程见上方第 5 步）。后续 W0-D2~D6 = SPIKE-02..06 顺序执行
-2. **帮 draft spec 升级 ready**：`docs/tasks/` 当前 27 个 spec 大部分仍是 draft；挑一个**不在 W0 关键路径上**的（例如 v0.2/v0.3/v1.0 的 MVP-12..20）走独立评审，演练 `draft → ready` 翻转 gate
-3. **遇到新决策时提议 ADR**：按 `docs/adr/_template.md` 走 ADR 流程（≥ 2 候选选项 + 正面/负面/风险 + 用户拍板 gate）
+- MVP-02/03 done · MVP-01 ready + Phase A/B done · MVP-04 storage 层 done（PR #72 · Phase B PTY runtime 待）
+- MVP-05/07/08/09 spec ready · MVP-06 spec review 进行中（Kimi 异步 · session 13）
+- SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）· §A 已 done
+
+本阶段可做的 4 件事（按优先级）：
+
+1. **MVP-04 Phase B PTY runtime 实施**（主线 · 2-3d · 派 Codex/OpenCode）· 依赖 PR #72 TabsDao · 参考 SPIKE-05 归档代码
+2. **MVP-06 spec review 返回**（Kimi 异步 · 20-30 min · 回后 PR 翻转 ready · v0.1 所有 10 MVP spec 全 ready 里程碑）
+3. **帮 v0.2/v0.3/v1.0 draft spec 升级 ready**（MVP-11..20 + SPIKE-07 · 离 v0.1 关键路径远 · 低优先）
+4. **遇到新决策提议 ADR**（按 `docs/adr/_template.md` · 当前 13 ADR · accepted 13 / proposed 0）
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
 

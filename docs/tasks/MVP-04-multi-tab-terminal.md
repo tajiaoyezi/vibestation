@@ -3,7 +3,7 @@ id: MVP-04
 type: mvp
 title: 多 Tab 终端（PTY + xterm.js + Shell/CLI 兼容）
 status: ready
-owner:
+owner: Codex CLI
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]
 depends_on_notes: "SPIKE-06 = §A 脱敏样本（done · PR #71）· §B codesign/notarization 不是 MVP-04 前置（MVP-04 运行态用 ad-hoc sign 即可 · codesign 是 MVP-10 GA 打包事）· SPIKE-06 现 status: blocked 只是 §B 卡 Apple Dev · 不阻塞 MVP-04"
@@ -61,7 +61,7 @@ reviewer: Kimi
 |-------|------|------|----|
 | Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done | [#72](https://github.com/tajiaoyezi/vibestation/pull/72) |
 | Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ✅ done | [#82](https://github.com/tajiaoyezi/vibestation/pull/82) |
-| Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ⏳ todo | — |
+| Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ✅ done | [#91](https://github.com/tajiaoyezi/vibestation/pull/91) |
 | Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
 | Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（FK CASCADE） | ⏳ todo | — |
 | Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ⏳ todo | — |
@@ -131,6 +131,7 @@ reviewer: Kimi
 - [ ] Shell 进程异常退出（非零 exit code 或 signal）→ Tab 内显示 `"Process exited (code X). Press Enter to restart"`，按 Enter 重新启动同 shell
 - [ ] PTY open 失败（如 shell 路径不存在）→ 显示可读的 error toast（如 `"无法启动 shell：/bin/fake-shell 不存在"`），应用不 panic / 不白屏
 - [ ] xterm renderer fallback：WebGL → Canvas 2D → DOM（逐级降级），降级事件记录到 console.warn
+- [ ] Shell 冷启动反馈：tab 新建到 PTY 首屏可见文本之间，显示明确 loading 态（启动卡片 + shell 路径提示），禁白屏
 
 ## 🧪 测试策略
 
@@ -219,6 +220,7 @@ pub struct TabState {
 - **CLI 中断残帧（SPIKE-06 A.2）**：Ctrl+C Claude CLI 流式输出中途 → 检查残帧是否污染下条 prompt
 - **fix-path-env shim**（2026-04-21 · PR #82 · Codex）：Phase B 实施时 crates.io `fix-path-env` 包在 Codex 环境无法解析 · 改为 `crates/app/src/fix_path_env.rs` 53 行本地 shim（macOS/Linux 启动登录 shell + `printf %s "$PATH"` 覆盖 `env::set_var`）。**风险**：shim 无 timeout · 若用户 shell rc 文件 source 慢资源（NVM / oh-my-zsh plugin）· app 启动可能卡几秒。**GA gate**：v0.1.0 GA 发布前评估 · 若官方包在 CI 环境可用 · 切回；否则 shim 加 timeout 保护。
 - **Linux PTY SIGTERM timing 不稳定**（2026-04-21 · PR #82 CI failure · PR #86 多轮 workaround 失败）：`pty::tests::signal_sigterm_exits_exec_session` 在 macOS 本地稳定 · 在 GitHub Actions Ubuntu runner 上 timing 不一致 · `exec sleep 30` 后 SIGTERM 到 mio epoll 感知 PTY close event 的延迟 > 10s · 根因怀疑是 `tcgetpgrp` / `waitpid` / epoll 在 Linux PTY 上的行为和 macOS kqueue 差异。**workaround**（PR #86）：测试标 `#[cfg_attr(target_os = "linux", ignore)]` · 本地 macOS 继续跑 · CI Ubuntu skip。**GA gate**：MVP-04 Phase D（shell 兼容 · 三平台矩阵）启动时 · 在 Ubuntu 环境深挖 signal/exit 语义 · 解除 ignore。不阻塞 macOS-first v0.1.0-alpha 发布。
+- **Shell rc 慢启动感知**（2026-04-22 · PR #91 · Codex）：macOS GUI zsh + oh-my-zsh / nvm / pyenv plugin source 可能 1-3s 才吐出首屏可见文本。**workaround**：Phase C 前端加入 loading 态（F.4）覆盖 UX，避免用户把启动中的 PTY 误判成白屏。若用户 shell rc 卡 30s+ · 视为用户环境问题，app 不主动介入。
 
 ## 📝 Notes
 

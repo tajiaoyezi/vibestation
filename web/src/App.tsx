@@ -63,6 +63,7 @@ const LayoutShell: Component<{
   onDeleteExecute: () => void;
   onDeleteCancel: () => void;
   onDismissError: () => void;
+  onCloseWorkspaceView: (workspaceId: string) => void;
 }> = (props) => {
   const { layout, dispatch, loadForWorkspace } = useLayout();
 
@@ -139,6 +140,11 @@ const LayoutShell: Component<{
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.defaultPrevented) return;
+    if (e.target instanceof Element && e.target.closest(".vs-terminal-shell")) {
+      return;
+    }
+
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
     switch (e.key) {
@@ -184,7 +190,11 @@ const LayoutShell: Component<{
           onResizeReset={() => dispatch({ kind: "reset-primary" })}
         />
 
-        <MainContent activeWorkspace={activeWorkspace} />
+        <MainContent
+          activeWorkspace={activeWorkspace}
+          onCloseWorkspaceView={props.onCloseWorkspaceView}
+          workspaces={props.workspaces}
+        />
 
         <SecondarySidebar
           layout={() => ({
@@ -379,6 +389,13 @@ const App: Component = () => {
     }
   };
 
+  const handleCloseWorkspaceView = (workspaceId: string) => {
+    const view = currentView();
+    if (view.kind === "workspace" && view.ws.workspaceId === workspaceId) {
+      setCurrentView({ kind: "welcome" });
+    }
+  };
+
   return (
     <ThemeProvider>
       <LayoutProvider activeWorkspaceId={activeWorkspaceId}>
@@ -397,6 +414,7 @@ const App: Component = () => {
           onDeleteExecute={handleDeleteWorkspace}
           onDeleteCancel={() => setDeleteConfirm(null)}
           onDismissError={() => setError(null)}
+          onCloseWorkspaceView={handleCloseWorkspaceView}
         />
       </LayoutProvider>
     </ThemeProvider>

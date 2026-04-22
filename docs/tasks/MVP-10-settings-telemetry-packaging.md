@@ -155,20 +155,38 @@ reviewer: Kimi
 
 ## 💾 数据模型变更
 
-扩展 `app_settings`：
+`app_settings` 表当前结构（`crates/core/src/db.rs` `migrate_v3` 已建）：
 
 ```sql
-ALTER TABLE app_settings ADD COLUMN telemetry_opt_in INTEGER; -- NULL = 未决策，0 = false，1 = true
-ALTER TABLE app_settings ADD COLUMN paste_protection INTEGER NOT NULL DEFAULT 1;
-ALTER TABLE app_settings ADD COLUMN default_shell TEXT NOT NULL DEFAULT '/bin/zsh';
-ALTER TABLE app_settings ADD COLUMN font_family TEXT NOT NULL DEFAULT 'JetBrains Mono';
-ALTER TABLE app_settings ADD COLUMN font_size REAL NOT NULL DEFAULT 14.0;
-ALTER TABLE app_settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'auto';
-ALTER TABLE app_settings ADD COLUMN git_user_name TEXT;
-ALTER TABLE app_settings ADD COLUMN git_user_email TEXT;
+CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 ```
 
-> Schema 版本：migration v6（接 MVP-04 storage 层 v5）。
+**即 KV 表 · 不是宽表**。MVP-01..09 的 `default_shell` / `theme` 等均通过 `INSERT INTO app_settings (key, value) VALUES (?, ?)` 写入（见 `crates/core/src/app_settings.rs` `AppSettingsStore::get/set`）· MVP-10 继承此 pattern。
+
+MVP-10 新增以下 key（**不新建 migration** · 对齐 YAGNI · 无 schema 变更）：
+
+| key | value 编码 | default（行缺失时语义）| 含义 |
+|---|---|---|---|
+| `telemetry_opt_in` | `"true"` / `"false"` / 行缺失 | 缺失 = 未决策 · 弹对话框（B.1）| Telemetry opt-in 状态 |
+| `paste_protection` | `"true"` / `"false"` | `"true"` | 粘贴保护 toggle（MVP-04 §D 已读取）|
+| `default_shell` | 路径（`/bin/zsh` 等）| `/bin/zsh`（mac）· `/bin/bash`（linux）| 新 Tab 默认 shell（MVP-04 已读取）|
+| `font_family` | 字体名 | `"JetBrains Mono"` | 终端字体 |
+| `font_size` | 数字字符串 | `"14"` | 终端字号 |
+| `theme` | `"light"` / `"dark"` / `"auto"` | `"auto"`（MVP-03 已读取 · 回填默认值）| 主题 |
+| `git_user_name` | string / 行缺失 | 缺失 = 从 `git config` 读 | Git 用户名 override |
+| `git_user_email` | string / 行缺失 | 缺失 = 从 `git config` 读 | Git 邮箱 override |
+
+Rust 侧 `AppSettings` struct（§G.2）对 KV 做类型包装 · 读写走 `AppSettingsStore::get(key)` / `set(key, value)` · 不走 `ALTER TABLE`。类型安全由 ts-rs 生成的 TypeScript 类型 + Rust struct 双向保证。
+
+**migration 版本规划**：
+
+- `migrate_v5` 已由 MVP-04 Phase A 占（`tabs` 表 · PR #72）
+- `migrate_v6` 由 **MVP-05** 占（panes 布局 · [MVP-04 §实施进度](./MVP-04-multi-tab-terminal.md) 已锁）
+- **MVP-10 不新建 migration**（纯 KV 写入 · 无 schema 变更 · YAGNI）
+- 若未来 GA 前发现需强类型约束（如 `telemetry_opt_in` 想做 `CHECK (value IN ('true','false'))`）· 可在 v7+ 新 migration · 但不在 MVP-10 范围
 
 ## §G. IPC Contract（ts-rs）
 

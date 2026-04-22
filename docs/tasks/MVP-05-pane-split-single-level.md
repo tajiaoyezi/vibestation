@@ -17,7 +17,7 @@ reviewer: Kimi
 
 # MVP-05: Pane 分屏（单层）
 
-> **状态**：`draft`
+> **状态**：`ready`
 > **依赖**：MVP-04（Tab 终端存在才能分屏）
 > **战略依据**：`§10.1` MVP B 折中方案 · `§5.3` Pane 系统
 
@@ -55,7 +55,20 @@ reviewer: Kimi
 - 任意嵌套（v0.2+）
 - 方向键跳邻居 Pane / ⌘Enter 最大化（v0.2+）
 - Dual AI / Triple Review / Quad 预设（v0.2+）
-- Pane Detach（v0.3+）
+- Pane Detach（v0.3+)
+
+## 🛠 实施进度
+
+| Phase | 范围 | 状态 | PR |
+|-------|------|------|----|
+| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ⏳ todo | — |
+| Phase B · Pane runtime | `pane_pty_*` 5 IPC commands（复刻 `tab_pty_*` 架构）+ 分屏 / 关 Pane 的后端逻辑 + 深度检查 Rust 侧硬编码 `MAX_LAYOUT_DEPTH = 2` | ⏳ todo | — |
+| Phase C · 前端分屏 UI | SolidJS 组件 + 分隔条拖拽 + focus 切换 + Smart Layouts 菜单 + 双击复位 | ⏳ todo | — |
+| Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo | — |
+
+**下次 agent 起点**：Phase A · 依赖 MVP-04 Phase A 已落地的 `tabs` 表 + `TabsDao`（见 PR #72）· **不要重写** `tabs` 表 · 只加 `panes` 新表 + `tabs` 2 新列。
+
+**依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。
 
 ## 🖼 UI 引用
 
@@ -117,25 +130,16 @@ reviewer: Kimi
 
 ## 💾 数据模型变更
 
-扩展 `tabs` table，加入 `layout`：
-```rust
-enum LayoutNode {
-    Single(PaneId),
-    Split { direction: SplitDir, ratio: f32, first: Box<LayoutNode>, second: Box<LayoutNode> },
-}
-// MVP-05 限制：LayoutNode 树深度 ≤ 2（根 + 一层 Split）
-```
+详见：
 
-新 table `panes`（每个 Pane 独立 PTY）：
-```rust
-struct PaneState {
-    pane_id: String,
-    tab_id: String,               // FK
-    shell: String,
-    cwd: String,
-    scroll_back: Vec<String>,
-}
-```
+- **§G.2 IPC struct derive 模板** · `LayoutNode` / `PaneState` 等 Rust struct 完整定义（ts-rs 注解齐全）
+- **§H.4 布局持久化存储** · migration v6 完整 SQL（`CREATE TABLE panes` + `ALTER TABLE tabs`）
+
+本段仅列 storage 层高层摘要：
+
+- 新表：`panes`（每个 Pane 独立 PTY · FK → `tabs(tab_id)` ON DELETE CASCADE）
+- `tabs` 扩展：`layout` TEXT（JSON 序列化 `LayoutNode`）+ `focused_pane_id` TEXT（当前聚焦 Pane）
+- migration 版本：v6（接 MVP-04 Phase A v5）· 由 MVP-05 Phase A 实施
 
 ## ⚠️ 已知风险
 
@@ -327,26 +331,68 @@ pub struct PaneScrollbackFetchRequest {
 ### H.4 布局持久化存储
 
 - **`tabs.layout`** TEXT 字段：存储 JSON 序列化的 `LayoutNode`（tagged union 格式）。
-- 若 MVP-04 storage prep（PR #72）的 migration v5 仅定义 `tabs` 表且无 `layout` 字段，MVP-05 实施需 **migration v6** 扩展：
-  ```sql
-  ALTER TABLE tabs ADD COLUMN layout TEXT DEFAULT '{"kind":"single","paneId":""}';
-  ALTER TABLE tabs ADD COLUMN focused_pane_id TEXT DEFAULT NULL;
-  ```
-  - `focused_pane_id` 替代原 `tabs` 表隐式单 Pane 假设，支持多 Pane 下 focus 持久化。
-- **`panes` 表**：新表，schema 与 `PaneState` 对齐（不含 `scroll_back`）；`scroll_back` 存 JSON TEXT（同 MVP-04 `tabs` 表 `scroll_back` 模式）。
-- **外键约束**：`panes.tab_id → tabs.id ON DELETE CASCADE`，Tab 关闭时自动级联删除所属 Pane。
+- **`panes`** 表：新表，schema 与 `PaneState` 对齐（不含 `scroll_back`）；`scroll_back` 存 JSON TEXT（同 MVP-04 `tabs` 表 `scroll_back` 模式）。
+- `focused_pane_id` 替代原 `tabs` 表隐式单 Pane 假设，支持多 Pane 下 focus 持久化。
+- **外键约束**：`panes.tab_id REFERENCES tabs(tab_id) ON DELETE CASCADE`，Tab 关闭时自动级联删除所属 Pane。
+
+MVP-05 Phase A 实施 migration v6 完整 SQL（仿 MVP-04 `migrate_v5` 模式）：
+
+```sql
+-- migration v6 · MVP-05 Phase A
+CREATE TABLE IF NOT EXISTS panes (
+    pane_id      TEXT PRIMARY KEY,
+    tab_id       TEXT NOT NULL,
+    shell        TEXT NOT NULL,
+    cwd          TEXT NOT NULL,
+    scroll_back  TEXT NOT NULL DEFAULT '[]',
+    created_at   INTEGER NOT NULL,
+    FOREIGN KEY (tab_id) REFERENCES tabs(tab_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_panes_tab_created ON panes(tab_id, created_at DESC);
+
+-- 同 migration · tabs 表扩展 layout + focused_pane_id
+ALTER TABLE tabs ADD COLUMN layout TEXT NOT NULL DEFAULT '{"kind":"single","paneId":""}';
+ALTER TABLE tabs ADD COLUMN focused_pane_id TEXT;
+
+PRAGMA user_version = 6;
+```
 
 ### H.5 扩展路径
 
 - **v0.2 深度放开**：`LayoutNode` enum 本身无需改动；只需将 `MAX_LAYOUT_DEPTH` 从 2 改为 4，前端 resize 逻辑适配多层级分隔条。Smart Layouts 新增预设枚举值即可。
 - **v0.3 Pane Detach**：涉及 IPC contract 大改（`LayoutNode` 需跨窗口），必须走 ADR 流程；当前 §G 的 `PaneState` / `LayoutNode` 暂不预留 `window_id` 字段，避免 YAGNI 污染。
 
+### H.6 · Pane PTY IPC 命名决策
+
+MVP-04 Phase B（PR #82）已落地 5 个 `tab_pty_*` IPC commands（spawn/stdin/resize/signal/kill · payload 用 `tab_id`）。MVP-05 Pane 独立 PTY · IPC 层有两条路径：
+
+| 选项 | IPC 命名 | 和 MVP-04 Phase B 关系 | 前端改动 | 推荐度 |
+|---|---|---|---|---|
+| A · 新建 `pane_pty_*` 5 commands | `pane_pty_spawn` / `stdin` / `resize` / `signal` / `kill` | 独立命名空间 · MVP-04 不改 | 前端增加 pane 分支 · `tab_pty_*` 保留 | ✅ 推荐 |
+| B · 复用 `tab_pty_*` + 加 paneId 参数 | `tab_pty_spawn({ tabId, paneId? })` | 破坏 `PtySpawnRequest` struct（已有 ts-rs binding） | 前端所有 `tab_pty_*` 调用加 `paneId` | ❌ 不推荐 |
+
+**锁定 A**（独立命名）· 理由：
+
+- MVP-04 Phase B 的 `PtySpawnRequest` 已生成 ts-rs binding（`web/src/bindings/PtySpawnRequest.ts`）· 改 struct 会触发前端全量 refactor
+- Pane PTY 生命周期和 Tab PTY 独立（Pane 可以关但 Tab 存在 · 反之亦然）· 独立 IPC 表达更清晰
+- 未来 v0.3 Pane Detach 时 · `pane_pty_*` 可以独立升级（如加 `window_id` 参数）· 不影响 `tab_pty_*`
+
+**实施约定**（Phase B）：
+
+- `crates/core/src/pane_pty.rs` 新建（仿 `pty.rs` 架构 · 复用 `PtyManager` 基础设施）
+- 5 IPC commands：`pane_pty_spawn` / `pane_pty_stdin` / `pane_pty_resize` / `pane_pty_signal` / `pane_pty_kill` · payload 用 `pane_id`
+- 2 events：`pane_pty_stdout` / `pane_pty_exited` · payload `{ paneId, ... }`
+- Tauri permission：`allow-pane-pty-spawn` / `allow-pane-pty-stdin` / `allow-pane-pty-resize` / `allow-pane-pty-signal` / `allow-pane-pty-kill`（5 permission · 新建 `crates/app/permissions/pane-pty.toml`）
+- ts-rs struct：`PanePtySpawnRequest` · `PanePtyStdoutEvent` · `PanePtyExitedEvent`（独立命名 · 不复用 `Pty*`）
+
 ---
 
-**自审四问**（2026-04-20）：
+**自审四问**（2026-04-20 · 2026-04-22 session 15 补第 7 条）：
+
 1. 合法/非法 + 视觉覆盖 ✅ · §H.2 矩阵 6 用例起步 + 回滚测试
 2. 非法操作 graceful 拒绝 ✅ · toast 3s + 原子回滚 + 深度检查 Rust 侧硬编码
 3. 多 DPI 显式测 ✅ · 手动 QA 项保留
 4. 任意嵌套 / 方向键 / Dual AI / Pane Detach 都在 v0.2+/v0.3+ ✅ · §H.1/H.5 明确扩展路径
-5. §G ts-rs contract（LayoutNode tagged union + SplitDir string union）✅ · 9 个 IPC struct 全清单
+5. §G ts-rs contract（LayoutNode tagged union + SplitDir string union）✅ · 10 个 IPC struct 全清单
 6. §H 布局深度约束 + 持久化迁移路径 ✅ · migration v6 方案 + 原子性约束
+7. **对齐 MVP-04 Phase A/B 实施现状 ✅** · FK `tabs(tab_id)` + `PRAGMA user_version = 6` + `pane_pty_*` 独立命名锁定 A 选项

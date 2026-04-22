@@ -15,7 +15,7 @@
 | **Latest commit** | 见 `git log --oneline -1`（不在此处硬编码）| — |
 | **Worktree status** | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）| — |
 | **Unpushed branches** | 见 `git branch -vv`（不在此处硬编码）| — |
-| **Next concrete action** | **session 14 三路并发 4 PR 全部合入**（Kimi #80/#81 MVP-06 parser 层 · Codex #82 MVP-04 Phase B PTY runtime · OpenCode #83 MVP-07 Git Log 只读）· **下一步**：MVP-04 Phase C xterm 前端（主线 · 依赖 Phase B PTY runtime · 2-3d · 派 OpenCode 或 Codex）· 并行可选 MVP-08 Diff / MVP-09 Stage-Commit（等 MVP-07 基础被使用再评估）· 主线外 · SPIKE-06 §B Apple Dev 申请（用户决策）· Ubuntu 环境（最低优先 · GA 前评估）· MVP-07 UI 截图 + linux kernel benchmark GA gate 补齐 | session end |
+| **Next concrete action** | **session 15 · 4 PR 全部合入**（Kimi #88 MVP-10 spec review · Kimi #89 MVP-05 spec 对齐 · Claude Code #90 Linux PTY ignore fix · Codex #91 MVP-04 Phase C xterm 前端）· **MVP-04 Phase C 里程碑 + v0.1 10 MVP spec 全 ready 里程碑双达成**· **下一步**：MVP-04 Phase D（shell 兼容 + Claude/Codex CLI 实机 · 需 Ubuntu 环境 · 最低优先）+ Phase E（scrollback 持久化 · 前后端串联）+ Phase F（runtime 证据 · A.5/E.2/E.4 性能量化归此）· 并行可选 MVP-08 Diff（依赖 MVP-07 已 done · 独立于 MVP-04 Phase D-F）· 主线外 · SPIKE-06 §B Apple Dev 申请（用户决策）· MVP-07 UI 截图 + kernel benchmark GA gate 补齐 | session end |
 | **Blocked by** | SPIKE-06 §B Apple Dev Program 申请（**用户决策中** · $99/y · 审核 2d-2w · 影响 MVP-10 codesign 但不阻塞 MVP-04-09）· SPIKE-01/02 §B + MVP-01 Phase C · **Ubuntu 24 LTS 环境 · 已降为 v0.1 GA 最低优先**（S-3 · 2026-04-21 · 见下方"v0.1 发布策略"）· 不阻塞 macOS 主线 | 阻塞变化 |
 | **Missing infra** | Ubuntu 24 LTS 环境（最低优先 · macOS 主线不依赖）· Apple Developer Program（SPIKE-06 §B + MVP-10 GA 前置）| Phase 完成时 |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ⚠️ Ubuntu 24（最低优先 · 非主线）· ⚠️ Apple Dev（GA gate）| 新账号/工具时 |
@@ -25,10 +25,18 @@
 
 ## 📍 当前位置
 
-**阶段**：🏗️ **session 14 三路并发 4 PR 全部 merged**（2026-04-21 · Kimi × 2 + Codex × 1 + OpenCode × 1）· **MVP-04 Phase B PTY runtime done**（shared reader + bounded mpsc + drop-oldest）· **MVP-06 parser 层完整**（Phase A + A+ · 26 tests · 6 `ImportedField` variants）· **MVP-07 Git Log 只读 done**（gix 0.70 + SolidJS panel + H2 regression proof · 92 workspace tests · UI 截图 + kernel benchmark GA gate 补）· 14 ADR accepted · v2-D.1 规则稳态运行 · **主线** = MVP-04 Phase C xterm 前端
-**日期**：2026-04-21（session 14 · 三路并发代码实施 · 主 agent 代修 Codex/OpenCode 的 git 遗漏）
+**阶段**：🏗️ **session 15 · MVP-04 Phase C 里程碑达成**（2026-04-22 · Codex PR #91 · xterm.js 5.5 + SolidJS 前端 + shell 冷启动 loading 态 · 1891 行前端新代码）· **v0.1 10 MVP spec 全 ready 里程碑**（Kimi PR #88 MVP-10 · 最后一块 draft 升 ready）· Kimi 10 连 merged（100% 成功率保持）· 14 ADR accepted · v2-D.1 规则稳态运行 · **主线** = MVP-04 Phase D（shell 兼容 + Ubuntu 实机）/ Phase E（持久化）/ Phase F（证据 + 性能量化）
+**日期**：2026-04-22（session 15 · MVP-04 Phase C 落地 · v0.1 spec 完全 ready · Kimi 第 9-10 次 + Codex resume 断线续命成功）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留最近 2 session · 更早见 `git log --all` + `docs/session-history/`）**：
+
+### Session 15（2026-04-22 · MVP-04 Phase C 里程碑 + v0.1 10 MVP spec 全 ready · 4 PR 全 merged）
+
+- **本 PR（session 15 closeout）** · Claude Code · PROGRESS session 15 段新建（PR #88/#89/#90/#91 摘要）· session 13 按滚动窗口规则移出 · CHANGELOG [Unreleased] 追加 MVP-04 Phase C 里程碑 + MVP-10/05 spec review + PR #90 Linux PTY ignore 条目 + Kimi 协作 8→10 次更新 · Next action / 阶段描述更新到 MVP-04 Phase D-F
+- **PR #91 `26b1dea`**（**MVP-04 Phase C xterm 前端 done · 主线里程碑**）· Codex CLI · xterm.js 5.5 + SolidJS 组件（Terminal.tsx 713 行 + TerminalPane 323 + TabBar 147 + PasteConfirmDialog 86 + hooks 140 + styles.css 378）· WebGL → Canvas → DOM fallback · 5 `tab_pty_*` IPC commands 全对接 + 2 events 监听 · 前端零手写 interface（ts-rs bindings 全接入）· 粘贴保护（多行 confirm + 前 5 行 unicode-safe 截断 + "不再提示本 session" checkbox）· 快捷键（⌘T/⌘W/⌘⇧[/]/⌘1..9 · attachCustomKeyEventHandler 放行）· **F.4 Shell 冷启动 loading 态**（Codex 实施中发现的 UX gap · 原 spec 未显式要求 · 诚实声明补 §F.4 + §已知风险 "Shell rc 慢启动感知"）· Runtime 证据 5 截图（1.0MB 总 · 含核心亮点 `05-shell-loading-card.png`）· 本地 4 gate 全过（lint / typecheck / cargo build / tauri build）· **中途断线** · Claude Code 起 resume prompt 续命（stash / fetch / branch / config / claim 5 步前置修 3 处环境坑 · PR #71/#82 author 错归教训预防生效）· A.5/E.2/E.4 性能量化归 Phase F（runtime 证据专 phase · 不 block）· 1891 行前端新代码 · 7 commit（claim + 依赖 + 骨架 + loading + 挂载 + 证据 + spec）
+- **PR #90 `09be862`**（**Rust CI 修 · PTY exit event Linux-only ignore · 同 PR #86 根因复发**）· Claude Code · `pty::tests::spawn_stdin_and_exit_emit_stdout_and_exit_event` 在 Ubuntu CI timeout · 和 `signal_sigterm_exits_exec_session` 同根因（mio epoll vs kqueue PTY close event 语义差异）· 按 §2.11 硬约束 + PR #86 先例 · 立即标 `#[cfg_attr(target_os = "linux", ignore)]` + 技术债记录（不加 timeout workaround · 已证无效）· **不改 MVP-04 spec**（避免和 Codex PR #91 in-progress 冲突 · spec extend 留给 Codex PR）· merge 顺序 #90 → #91 让 PR #91 拿到 Linux ignore 保护 · 主 repo config §2.12 污染检测 + unset 本 session 触发 3 次（Codex worktree config 也污染主 repo · 新发现）
+- **PR #89 `4ffe35a`**（**MVP-05 Pane spec 对齐 MVP-04 Phase A/B 实施现状**）· Kimi 第 10 次协作 · 5 gap 修复：§H.4 FK `tabs.id → tabs(tab_id)` + `panes` 表完整 CREATE DDL + idx_panes_tab_created · §H.6 新增 Pane PTY IPC 命名决策（锁 A 选项 `pane_pty_*` 独立 · 不破坏 MVP-04 Phase B 接口）· §🛠 实施进度表 Phase A-D 拆分（仿 MVP-04 模式）· §💾 清理重复指向 §G.2 + §H.4 · 自审四问补第 7 条对齐实施现状 · Claude Code reviewer self-push 翻转 gate (a) 审计痕迹 · **Kimi 零实质错误**（对比 MVP-10 要修 2 处）· 10 连 merged 战绩保持
+- **PR #88 `e597b5f`**（**MVP-10 spec review draft → ready · v0.1 10 MVP spec 全 ready 里程碑**）· Kimi 第 9 次协作 + Claude Code cross-review · §G 6 struct（AppSettings / SettingsUpdateRequest / TelemetryOptInRequest / TelemetryStatus / CrashReportPayload / AppVersionInfo）· §H.1-5 决策锁定（H.1 Telemetry 栈延 Phase 4 Spike 候选 Sentry 为默认 / H.2 打包 tauri-cli 2.x 锁 / H.3 公证 notarytool + GitHub secret 锁 / H.4 AppImage tauri 自带锁 / H.5 privacy-policy 自写最小版 + Apache 2.0 锁）· Acceptance A-G 全量化 28 checkbox（原 20）· 运行时证据要求 7 截图（对齐 ADR-011）· 数据模型变更补 8 字段 · Claude Code reviewer 代修 2 处（app_settings KV vs 宽表误读 + migration v6 归属和 MVP-05 冲突）· §2.12 污染防御首次命中 + unset · PR body v2-D.1 三行 trailer 齐
 
 ### Session 14（2026-04-21 · 三路并发代码实施 · 8 PR 全 merged · CI fail 修复 + 制度化 audit）
 
@@ -41,13 +49,7 @@
 - **PR #81 `6b2a160`**（**MVP-06 Phase A+ parser 字段深化**）· Kimi 第 8 次协作（首次代码扩展）· `ImportedField::AnsiColor { index, hex }` variant · iTerm2 ANSI 0-15 RGB→hex 转换（test 覆盖 #000000/#ffffff/#1a334d 精度）· Ghostty `keybind = X=Y` 重复行逐行扫（**Kimi 主动优化降级方案**：先 filter keybind 行 → sanitized 给 toml → merge · 不丢 font/theme/shell）· Alacritty `[[keyboard.bindings]]` TOML 0.14+ + `key_bindings:` YAML 0.13- 双格式 · +10 测试（total 26）
 - **PR #80 `aceceb8`**（**MVP-06 Phase A parser 基础 · Kimi 首次代码实施成功**）· Kimi 第 7 次协作（首次代码 · 此前 6 次全 spec review · 100% 成功率）· `crates/core/src/config_import/` 4 文件 653 行（mod.rs + ghostty.rs + iterm2.rs + alacritty.rs）· Ghostty 双路径优先级 · iTerm2 binary/text plist + Default Bookmark Guid · Alacritty TOML > YAML · 边界 graceful（文件不存在/格式损坏/字段缺失/未知字段）· 16 单元测试 · `.gitignore` 白名单补漏 `!docs/runtime-evidence/**/*.log`（ADR-011 R1-R5 前提）
 
-### Session 13（2026-04-21 · audit 清零 + MVP-06 ready · v0.1 里程碑达成）
-
-- **本 PR（session 13 mvp-06 landed sync）** · Claude Code · docs/tasks/README.md MVP-06 行状态 draft → ready · PROGRESS.md 里程碑 + Next action 更新 + session 13 段同步 PR #76/#77 落地
-- **PR #77 `1c236fe`**（session 13 下半 · **MVP-06 spec ready · v0.1 所有 10 MVP spec 全 ready 里程碑**）· Kimi 第 6 次（session 12 五连 + session 13 第 1 次 · 累计 5/5 + 1/1 = 6/6 成功率）· 配置导入 spec review · §G 7 struct + §H H.1-4 决策锁定（parser 选型 3 crate + 4 禁止 / 降级树 / 快捷键 canonical form / 字体 fallback）· 量化 A-F Acceptance · PR #77 经 rebase 清理冲突（squash merge 后孤儿 10 commit · force-with-lease 保留 author）· cherry-picked 512ded8（原 8f5cf90）
-- **PR #76 `6a6976b`**（session 13 开场 · **session 12 audit 三轮清零 + v2-D.1 规则简化 + ADR-012/013/014**）· Claude Code · 13 commit：v2-D.1（删 24h 补 comment 硬要求 · ADR-012）+ SPIKE-01/02/06 blocked（H-1 横向）+ MVP-04 depends_on note + §实施进度（H-3/L-2）+ MVP-10 gate-phase（M-5）+ Reviewer 回填（M-3）+ local-notes 清理（M-4）+ PROGRESS 去硬编码 + 滚动窗口规则 + Ubuntu 降最低优先（H-2/M-2/S-3）+ Tauri capability TODO（L-1）+ dispatch §4 参考（L-3）+ Spike 冷备 v2 降级（M-1 · ADR-013）+ MVP-06 Kimi prompt（S-1）+ SPIKE-07 note + CLAUDE.md 过时段（X-1/X-2）+ ADR-014 IPC contract（X-3/X-4）+ 对外文件禁区脱敏 6 处（X-5 · 含 design/index.html landing）· 29 项三轮清零 · 7 历史 PR 过渡补 gh pr comment
-
-> **滚动窗口前**：session 12 及更早（PR #1-#75）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理。
+> **滚动窗口前**：session 13 及更早（PR #1-#77）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（保留最近 2 session · session 14+15 当前窗口内）。
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 

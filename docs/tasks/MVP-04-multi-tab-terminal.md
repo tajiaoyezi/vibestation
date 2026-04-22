@@ -64,7 +64,7 @@ reviewer: Kimi
 | Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ✅ done | [#91](https://github.com/tajiaoyezi/vibestation/pull/91) |
 | Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
 | Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（随 tabs 行删除自动清理 · sqlite 已验证） | ✅ done | — |
-| Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ⏳ todo | — |
+| Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ✅ done | — |
 
 **Phase E · 持久化补充验收（本 PR）**
 - [x] PTY stdout 持续写入 scrollback（100ms debounce / 100 行阈值，whichever first）
@@ -74,7 +74,13 @@ reviewer: Kimi
 - [x] 10k 行上限 trim · 超过部分 FIFO drop（Phase A DAO 测试覆盖 + 本轮 PTY→DB 集成路径补齐）
 - [x] PTY exit 时强制 flush 剩余 pending buffer（不丢最后几行）
 
-**下次 agent 起点**：Phase D + Phase F · Phase A/B/C/E 已落地；继续 shell 兼容（默认 shell / Claude/Codex CLI 实机）与 runtime 证据 / 性能量化，不要重写 storage 或 PTY 主链。
+**Phase F · runtime 证据补充验收（本 PR）**
+- [x] Runtime 证据已提交到 `docs/runtime-evidence/mvp-04/`（5 张截图 + `metrics-phase-f.md`）
+- [x] create / rename / switch / close / scrollback 画面均有覆盖
+- [x] A.5 / E.2 tab switch latency 已量化（AX 自动化 2-tab 样本 median `20 ms`）
+- [x] E.4 已量化：页面内同步 JS 执行 `sync max = 3 ms`（frame delta `19 ms` 作为上下文记录于 evidence note）
+
+**下次 agent 起点**：Phase D · Phase A/B/C/E/F 已落地；继续 shell 兼容（默认 shell / Claude/Codex CLI 实机），不要重写 storage / PTY 主链或重复 runtime 证据采样。
 
 **migration 版本规划**（L-2 · 本 MVP 不做 v6）：
 

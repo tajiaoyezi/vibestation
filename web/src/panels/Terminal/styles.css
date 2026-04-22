@@ -1,0 +1,333 @@
+.vs-terminal-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent 28%),
+    var(--bg-1);
+}
+
+.vs-terminal-workspace-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 30px;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent);
+}
+
+.vs-terminal-workspace-meta {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.vs-terminal-workspace-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.vs-terminal-workspace-path {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-terminal-session-meta {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vs-terminal-tabbar {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-2);
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-0);
+}
+
+.vs-terminal-tabbar-scroll {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: stretch;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding: var(--space-1) 0 0;
+}
+
+.vs-terminal-tabbar-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.vs-terminal-tab {
+  display: flex;
+  min-width: 0;
+  max-width: 240px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+  border-bottom: 2px solid transparent;
+  border-radius: var(--r-6) var(--r-6) 0 0;
+  background: transparent;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.vs-terminal-tab.is-active {
+  border-bottom-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-soft), transparent 72%);
+}
+
+.vs-terminal-tab-trigger {
+  appearance: none;
+  display: inline-flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.vs-terminal-tab.is-active .vs-terminal-tab-trigger {
+  color: var(--text-1);
+}
+
+.vs-terminal-tab-label {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-terminal-tab-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-4);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font: inherit;
+  padding: 4px 6px;
+}
+
+.vs-terminal-tab-close,
+.vs-terminal-new-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  font: inherit;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-terminal-tab-close {
+  width: 20px;
+  height: 20px;
+  margin-right: 2px;
+}
+
+.vs-terminal-new-tab {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  align-self: center;
+  margin-top: 1px;
+  border-color: var(--line);
+}
+
+.vs-terminal-tab-close:hover,
+.vs-terminal-new-tab:hover {
+  border-color: var(--line);
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+.vs-terminal-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background:
+    radial-gradient(circle at top, rgb(255 255 255 / 0.03), transparent 40%),
+    var(--bg-1);
+}
+
+.vs-terminal-pane {
+  position: absolute;
+  inset: 0;
+  padding: var(--space-3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.vs-terminal-pane.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vs-terminal-host {
+  height: 100%;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+  overflow: hidden;
+}
+
+.vs-terminal-host .xterm {
+  height: 100%;
+  padding: var(--space-2) var(--space-3);
+}
+
+.vs-terminal-host .xterm-viewport {
+  background: transparent !important;
+}
+
+.vs-terminal-toast {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 30;
+  max-width: min(420px, calc(100% - 2 * var(--space-4)));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+  color: var(--text-1);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.26);
+}
+
+.vs-terminal-toast.is-error {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in oklch, var(--bg-0) 88%, var(--danger));
+}
+
+.vs-terminal-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.vs-terminal-modal {
+  width: min(520px, calc(100% - 2 * var(--space-5)));
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+  background: var(--bg-1);
+  box-shadow: 0 24px 72px rgb(0 0 0 / 0.34);
+  padding: var(--space-5);
+}
+
+.vs-terminal-modal h3 {
+  margin: 0 0 var(--space-2);
+  color: var(--text-1);
+  font-size: 1rem;
+}
+
+.vs-terminal-modal p {
+  margin: 0 0 var(--space-4);
+  color: var(--text-2);
+  font-size: 0.875rem;
+}
+
+.vs-terminal-paste-preview {
+  margin: 0 0 var(--space-4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  max-height: 160px;
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+.vs-terminal-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-2);
+  font-size: 0.8125rem;
+}
+
+.vs-terminal-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.vs-btn-primary {
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-6);
+  background: var(--accent-soft);
+  color: var(--text-1);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-btn-primary:hover {
+  background: color-mix(in oklch, var(--accent-soft) 70%, var(--accent));
+}
+
+@media (width <= 900px) {
+  .vs-terminal-workspace-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .vs-terminal-workspace-meta {
+    width: 100%;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .vs-terminal-tab {
+    max-width: 180px;
+  }
+
+  .vs-terminal-pane {
+    padding: var(--space-2);
+  }
+}

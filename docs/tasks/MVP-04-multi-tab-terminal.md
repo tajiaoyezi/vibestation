@@ -3,7 +3,7 @@ id: MVP-04
 type: mvp
 title: 多 Tab 终端（PTY + xterm.js + Shell/CLI 兼容）
 status: ready
-owner:
+owner: Codex CLI
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]
 depends_on_notes: "SPIKE-06 = §A 脱敏样本（done · PR #71）· §B codesign/notarization 不是 MVP-04 前置（MVP-04 运行态用 ad-hoc sign 即可 · codesign 是 MVP-10 GA 打包事）· SPIKE-06 现 status: blocked 只是 §B 卡 Apple Dev · 不阻塞 MVP-04"

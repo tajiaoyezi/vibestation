@@ -85,6 +85,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
+  const newlyCreatedTabIds = new Set<string>();
   const removingWorkspaces = new Set<string>();
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -241,6 +242,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const tabs = tabsByWorkspace()[workspaceId] ?? [];
     for (const tab of tabs) {
       paneApis.delete(tab.tabId);
+      newlyCreatedTabIds.delete(tab.tabId);
       removeRuntime(tab.tabId);
     }
 
@@ -269,6 +271,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
       const response = await invoke<TabListResponse>("tab_list", {
         workspaceId,
       });
+      for (const tab of response.tabs) {
+        newlyCreatedTabIds.delete(tab.tabId);
+      }
+
       const tabs =
         response.tabs.length > 0
           ? response.tabs
@@ -283,6 +289,9 @@ export const Terminal: Component<TerminalProps> = (props) => {
               }),
             ];
 
+      if (response.tabs.length === 0 && tabs[0]) {
+        newlyCreatedTabIds.add(tabs[0].tabId);
+      }
       syncWorkspaceTabs(workspaceId, tabs);
       setPasteConfirmSkip(workspaceId, false);
     } catch (error) {
@@ -346,6 +355,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies TabCreateRequest,
       });
 
+      newlyCreatedTabIds.add(tab.tabId);
       updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
       setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
       upsertRuntime(tab.tabId, (runtime) => ({
@@ -408,6 +418,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies TabCloseRequest,
       });
 
+      newlyCreatedTabIds.delete(tabId);
       removeRuntime(tabId);
       paneApis.delete(tabId);
 
@@ -656,6 +667,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
                 tab.workspaceId === activeWorkspaceId() &&
                 tab.tabId === currentActiveTabId()
               }
+              isNewlyCreated={newlyCreatedTabIds.has(tab.tabId)}
               pasteGuardDisabled={
                 skipPasteConfirmByWorkspace()[tab.workspaceId] ?? false
               }

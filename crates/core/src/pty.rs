@@ -3,6 +3,8 @@
 //! 架构依据：SPIKE-05 / SPIKE-05.5 + ADR-003 accepted。
 //! 这里保留单 shared-reader + mio poll，避免回落到 per-session reader thread。
 
+use crate::db::DbPool;
+use crate::tabs::TabsDao;
 use crossbeam_channel::{self, Receiver, Sender, TryRecvError, TrySendError};
 use mio::unix::SourceFd;
 use mio::{Events, Interest, Poll, Token};
@@ -26,6 +28,8 @@ const READ_POLL_TIMEOUT: Duration = Duration::from_millis(50);
 const IDLE_SLEEP: Duration = Duration::from_millis(25);
 const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
 const EXIT_WAIT_STEP: Duration = Duration::from_millis(20);
+const SCROLLBACK_FLUSH_INTERVAL: Duration = Duration::from_millis(100);
+const SCROLLBACK_FLUSH_THRESHOLD: usize = 100;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -104,6 +108,59 @@ enum SignalTarget {
     Process(libc::pid_t),
 }
 
+enum ScrollbackCommand {
+    Append { tab_id: String, lines: Vec<String> },
+    Shutdown,
+}
+
+#[derive(Default)]
+struct ScrollbackBuffer {
+    partial_line: String,
+    pending_lines: Vec<String>,
+    pending_since: Option<Instant>,
+}
+
+impl ScrollbackBuffer {
+    fn push_chunk(&mut self, chunk: &str) {
+        let lines = parse_chunk_to_lines(chunk, &mut self.partial_line);
+        if lines.is_empty() {
+            return;
+        }
+
+        if self.pending_lines.is_empty() {
+            self.pending_since = Some(Instant::now());
+        }
+        self.pending_lines.extend(lines);
+    }
+
+    fn drain_due(&mut self, now: Instant) -> Option<Vec<String>> {
+        let should_flush = self.pending_lines.len() >= SCROLLBACK_FLUSH_THRESHOLD
+            || self
+                .pending_since
+                .is_some_and(|started| now.duration_since(started) >= SCROLLBACK_FLUSH_INTERVAL);
+        if !should_flush {
+            return None;
+        }
+
+        self.pending_since = None;
+        Some(std::mem::take(&mut self.pending_lines))
+    }
+
+    fn drain_all(&mut self) -> Option<Vec<String>> {
+        if !self.partial_line.is_empty() {
+            self.pending_lines
+                .push(std::mem::take(&mut self.partial_line));
+        }
+        if self.pending_lines.is_empty() {
+            self.pending_since = None;
+            return None;
+        }
+
+        self.pending_since = None;
+        Some(std::mem::take(&mut self.pending_lines))
+    }
+}
+
 #[derive(Clone)]
 struct DropOldestSender<T> {
     inner: Arc<DropOldestSenderInner<T>>,
@@ -163,6 +220,8 @@ struct PtySession {
     child: Mutex<Box<dyn Child + Send + Sync>>,
     closed: AtomicBool,
     exit_emitted: AtomicBool,
+    scrollback: Mutex<ScrollbackBuffer>,
+    scrollback_tx: Sender<ScrollbackCommand>,
 }
 
 impl PtySession {
@@ -237,18 +296,14 @@ impl PtySession {
         }
     }
 
-    fn emit_stdout(
-        &self,
-        events: &DropOldestSender<PtyEvent>,
-        bytes: &[u8],
-    ) -> Result<(), PtyError> {
-        if bytes.is_empty() || self.closed.load(Ordering::Relaxed) {
+    fn emit_stdout(&self, events: &DropOldestSender<PtyEvent>, data: &str) -> Result<(), PtyError> {
+        if data.is_empty() || self.closed.load(Ordering::Relaxed) {
             return Ok(());
         }
 
         events.send(PtyEvent::Stdout(PtyStdoutEvent {
             tab_id: self.tab_id.clone(),
-            data: String::from_utf8_lossy(bytes).to_string(),
+            data: data.to_string(),
         }))
     }
 
@@ -257,6 +312,7 @@ impl PtySession {
         events: &DropOldestSender<PtyEvent>,
         status: Option<ExitStatus>,
     ) -> Result<Option<i32>, PtyError> {
+        self.flush_scrollback_now();
         self.closed.store(true, Ordering::Relaxed);
 
         let exit_code = status.as_ref().and_then(exit_code_from_status);
@@ -285,13 +341,57 @@ impl PtySession {
         self.process_id
             .map(|pid| SignalTarget::Process(pid as libc::pid_t))
     }
+
+    fn record_scrollback_chunk(&self, chunk: &str) {
+        let ready = {
+            let mut scrollback = lock(&self.scrollback);
+            scrollback.push_chunk(chunk);
+            scrollback.drain_due(Instant::now())
+        };
+        self.enqueue_scrollback(ready);
+    }
+
+    fn flush_scrollback_if_due(&self) {
+        let ready = {
+            let mut scrollback = lock(&self.scrollback);
+            scrollback.drain_due(Instant::now())
+        };
+        self.enqueue_scrollback(ready);
+    }
+
+    fn flush_scrollback_now(&self) {
+        let ready = {
+            let mut scrollback = lock(&self.scrollback);
+            scrollback.drain_all()
+        };
+        self.enqueue_scrollback(ready);
+    }
+
+    fn enqueue_scrollback(&self, lines: Option<Vec<String>>) {
+        let Some(lines) = lines.filter(|lines| !lines.is_empty()) else {
+            return;
+        };
+
+        if let Err(error) = self.scrollback_tx.send(ScrollbackCommand::Append {
+            tab_id: self.tab_id.clone(),
+            lines,
+        }) {
+            eprintln!(
+                "[mvp-04] scrollback queue send failed for {}: {error}",
+                self.tab_id
+            );
+        }
+    }
 }
 
 pub struct PtyManager {
+    pool: Arc<Mutex<Option<DbPool>>>,
     sessions: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
     control_tx: Sender<ReaderCommand>,
     reader_thread: Mutex<Option<thread::JoinHandle<()>>>,
     reader_alive: Arc<AtomicBool>,
+    scrollback_tx: Sender<ScrollbackCommand>,
+    scrollback_thread: Mutex<Option<thread::JoinHandle<()>>>,
     next_token: AtomicUsize,
     event_tx: DropOldestSender<PtyEvent>,
     event_rx: Mutex<Option<Receiver<PtyEvent>>>,
@@ -300,11 +400,13 @@ pub struct PtyManager {
 impl PtyManager {
     #[must_use]
     pub fn new() -> Self {
+        let pool = Arc::new(Mutex::new(None));
         let (event_tx, event_rx) = crossbeam_channel::bounded(PTY_EVENT_QUEUE_CAPACITY);
         let event_dispatch = DropOldestSender::new(event_tx, event_rx.clone());
         let (control_tx, control_rx) = crossbeam_channel::bounded(PTY_CONTROL_QUEUE_CAPACITY);
         let sessions = Arc::new(Mutex::new(HashMap::new()));
         let reader_alive = Arc::new(AtomicBool::new(true));
+        let (scrollback_tx, scrollback_rx) = crossbeam_channel::unbounded();
 
         let reader_sessions = Arc::clone(&sessions);
         let reader_events = event_dispatch.clone();
@@ -313,12 +415,20 @@ impl PtyManager {
             .name("vibestation-pty-reader".to_string())
             .spawn(move || reader_loop(control_rx, reader_sessions, reader_events, reader_flag))
             .expect("spawn vibestation-pty-reader");
+        let writer_pool = Arc::clone(&pool);
+        let scrollback_thread = thread::Builder::new()
+            .name("vibestation-scrollback-writer".to_string())
+            .spawn(move || scrollback_writer_loop(scrollback_rx, writer_pool))
+            .expect("spawn vibestation-scrollback-writer");
 
         Self {
+            pool,
             sessions,
             control_tx,
             reader_thread: Mutex::new(Some(reader_thread)),
             reader_alive,
+            scrollback_tx,
+            scrollback_thread: Mutex::new(Some(scrollback_thread)),
             next_token: AtomicUsize::new(1),
             event_tx: event_dispatch,
             event_rx: Mutex::new(Some(event_rx)),
@@ -327,6 +437,10 @@ impl PtyManager {
 
     pub fn take_event_receiver(&self) -> Option<Receiver<PtyEvent>> {
         lock(&self.event_rx).take()
+    }
+
+    pub fn set_pool(&self, pool: DbPool) {
+        *lock(&self.pool) = Some(pool);
     }
 
     pub fn spawn(&self, req: PtySpawnRequest) -> Result<(), PtyError> {
@@ -380,6 +494,8 @@ impl PtyManager {
             child: Mutex::new(child),
             closed: AtomicBool::new(false),
             exit_emitted: AtomicBool::new(false),
+            scrollback: Mutex::new(ScrollbackBuffer::default()),
+            scrollback_tx: self.scrollback_tx.clone(),
         });
 
         lock(&self.sessions).insert(req.tab_id.clone(), Arc::clone(&session));
@@ -467,6 +583,10 @@ impl Drop for PtyManager {
         if let Some(handle) = lock(&self.reader_thread).take() {
             let _ = handle.join();
         }
+        let _ = self.scrollback_tx.send(ScrollbackCommand::Shutdown);
+        if let Some(handle) = lock(&self.scrollback_thread).take() {
+            let _ = handle.join();
+        }
     }
 }
 
@@ -546,6 +666,10 @@ fn reader_loop(
                 lock(&sessions_by_id).remove(&session.tab_id);
             }
         }
+
+        for session in sessions.values() {
+            session.flush_scrollback_if_due();
+        }
     }
 }
 
@@ -562,7 +686,9 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
         };
 
         if read > 0 {
-            if let Err(error) = session.emit_stdout(events, &buffer[..read as usize]) {
+            let chunk = String::from_utf8_lossy(&buffer[..read as usize]).to_string();
+            session.record_scrollback_chunk(&chunk);
+            if let Err(error) = session.emit_stdout(events, &chunk) {
                 eprintln!(
                     "[mvp-04] stdout emit failed for {}: {error}",
                     session.tab_id
@@ -607,6 +733,47 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
             }
         }
     }
+}
+
+fn scrollback_writer_loop(commands: Receiver<ScrollbackCommand>, pool: Arc<Mutex<Option<DbPool>>>) {
+    while let Ok(command) = commands.recv() {
+        match command {
+            ScrollbackCommand::Append { tab_id, lines } => {
+                let Some(pool) = lock(&pool).clone() else {
+                    eprintln!(
+                        "[mvp-04] scrollback append skipped for {}: database not initialized",
+                        tab_id
+                    );
+                    continue;
+                };
+
+                if let Err(error) = TabsDao::scrollback_append(&pool, &tab_id, &lines) {
+                    eprintln!("[mvp-04] scrollback append failed for {}: {error}", tab_id);
+                }
+            }
+            ScrollbackCommand::Shutdown => return,
+        }
+    }
+}
+
+fn parse_chunk_to_lines(chunk: &str, partial_line: &mut String) -> Vec<String> {
+    if chunk.is_empty() {
+        return Vec::new();
+    }
+
+    let mut combined = std::mem::take(partial_line);
+    combined.push_str(chunk);
+
+    let mut lines = Vec::new();
+    for segment in combined.split_inclusive('\n') {
+        if let Some(line) = segment.strip_suffix('\n') {
+            lines.push(line.strip_suffix('\r').unwrap_or(line).to_string());
+        } else {
+            partial_line.push_str(segment);
+        }
+    }
+
+    lines
 }
 
 fn parse_signal(signal: &str) -> Result<i32, PtyError> {
@@ -786,6 +953,45 @@ mod tests {
         assert_eq!(receiver.recv().unwrap(), "two");
         assert_eq!(receiver.recv().unwrap(), "three");
         assert!(receiver.is_empty());
+    }
+
+    #[test]
+    fn parse_chunk_to_lines_splits_complete_lines() {
+        let mut partial = String::new();
+        let lines = parse_chunk_to_lines("alpha\nbeta\r\ngamma\n", &mut partial);
+        assert_eq!(lines, vec!["alpha", "beta", "gamma"]);
+        assert!(partial.is_empty());
+    }
+
+    #[test]
+    fn parse_chunk_to_lines_preserves_partial_tail() {
+        let mut partial = String::new();
+        let first = parse_chunk_to_lines("hel", &mut partial);
+        let second = parse_chunk_to_lines("lo\nwor", &mut partial);
+        let third = parse_chunk_to_lines("ld\n", &mut partial);
+
+        assert!(first.is_empty());
+        assert_eq!(second, vec!["hello"]);
+        assert_eq!(third, vec!["world"]);
+        assert!(partial.is_empty());
+    }
+
+    #[test]
+    fn scrollback_flushes_when_due() {
+        let mut buffer = ScrollbackBuffer::default();
+        buffer.push_chunk("line1\nline2\n");
+        let ready = buffer.drain_due(Instant::now() + SCROLLBACK_FLUSH_INTERVAL);
+        assert_eq!(ready, Some(vec!["line1".to_string(), "line2".to_string()]));
+    }
+
+    #[test]
+    fn scrollback_force_flushes_partial_tail() {
+        let mut buffer = ScrollbackBuffer::default();
+        buffer.push_chunk("tail-without-newline");
+        assert_eq!(
+            buffer.drain_all(),
+            Some(vec!["tail-without-newline".to_string()])
+        );
     }
 
     #[test]

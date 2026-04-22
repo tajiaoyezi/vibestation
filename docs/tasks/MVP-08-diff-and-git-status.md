@@ -191,48 +191,6 @@ Status 面板折叠态 + Diff split/unified 偏好持久化到现有 `app_settin
 
 > 实际 struct 名和字段以实施 PR 为准，但**必须**全部走 ts-rs 自动生成。
 
-### G.5 · 与 MVP-07 已落地 binding 的复用决策
-
-MVP-07 已生成以下 7 个 ts-rs binding（位于 `web/src/bindings/`）· MVP-08 实施前必须明确复用 / 新增 / 扩展策略：
-
-| MVP-07 已有 binding | MVP-08 §G.1 预期 | 决策 | 理由 |
-|---|---|---|---|
-| `FileChange { path, status: string, additions, deletions }` | §G.1 `FileChange` 同名 | **复用** · 不在 MVP-08 重新定义 | 字段完全覆盖 MVP-08 需求 · status 是 string 当前足够（M/A/D/R/? 字符值 · enum 化是 G.5.2 升级路径） |
-| `FileStatus`（不存在）| §G.1 `FileStatus` 新 enum | **不新增独立 binding** · MVP-08 内部用 string 即可 | 新建 `FileStatus` enum 会和 MVP-07 `FileChange.status: string` 双轨 · 触发 H2 类前端漂移风险 |
-| `CommitAuthor` / `CommitDetail` / `CommitParent` | 不需要（MVP-08 只关心文件级 diff · 不展示 commit 元数据 · 那是 MVP-07 已做的） | **不引入** | 范围隔离 |
-| `GitLogEntry` / `GitLogQueryRequest` / `GitLogQueryResponse` | 不需要 | **不引入** | 同上 |
-
-#### G.5.1 MVP-08 实际新增的 binding 清单（8 个 · 替换原 §G.1）
-
-| Rust struct / enum | 用途 | 前端 import 路径 |
-|---|---|---|
-| `DiffRequest` | 触发 diff 计算 · 含 source（commit hash / `"unstaged"` / `"staged"`）+ file path | `import type { DiffRequest } from "../bindings/DiffRequest"` |
-| `DiffResponse` | diff 计算结果 · 含 hunks + binary flag + truncated flag | `import type { DiffResponse } from "../bindings/DiffResponse"` |
-| `DiffHunk` | 单个 hunk · 含 old_start / new_start / lines | `import type { DiffHunk } from "../bindings/DiffHunk"` |
-| `DiffLine` | 每行 · 含 line_type / content / line numbers | `import type { DiffLine } from "../bindings/DiffLine"` |
-| `DiffLineType` | enum：Added / Removed / Context | `import type { DiffLineType } from "../bindings/DiffLineType"` |
-| `GitStatusRequest` | 查 workspace 状态 · 含 workspace_id | `import type { GitStatusRequest } from "../bindings/GitStatusRequest"` |
-| `GitStatusResponse` | 含 staged / unstaged / untracked 3 组 `Vec<FileChange>`（**复用** MVP-07 `FileChange`）| `import type { GitStatusResponse } from "../bindings/GitStatusResponse"` |
-| `FileStatusEvent` | fs watch 触发的状态变化推送 event payload | `import type { FileStatusEvent } from "../bindings/FileStatusEvent"` |
-
-> 原 §G.1 `FileStatus` enum **不新增独立 binding**（MVP-08 内部用 string 即可 · 和 MVP-07 `FileChange.status` 一致 · 避免双轨）· 升级到 enum 留 G.5.2
-
-#### G.5.2 升级路径（v0.2 / 触发条件）
-
-未来若发现 `FileChange.status: string` 在 UI 渲染 / 测试 / 类型检查中频繁踩坑（如 typo `"modifed"` · status 字符集合不收敛）· 触发以下升级：
-
-1. 在 MVP-07 spec 加 ADR · 把 `FileChange.status: string` 改为 `FileStatus` enum · 同步 ts-rs binding regenerate
-2. MVP-08 frontend 同步用新 enum
-3. 当前 MVP-08 实施**不**做这个升级（避免 MVP-08 PR 改 MVP-07 接口 · 范围爬升）
-
-#### G.5.3 实施约定（MVP-08 Phase A）
-
-- `crates/core/src/diff.rs` 新建（含 `DiffRequest` / `DiffResponse` / `DiffHunk` / `DiffLine` / `DiffLineType`）
-- `crates/core/src/git_status.rs` 新建（含 `GitStatusRequest` / `GitStatusResponse` / `FileStatusEvent` · **复用** `crates/core/src/git_log.rs` 已 export 的 `FileChange`）
-- 6 IPC commands：`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`（split/unified 持久化）
-- 6 Tauri permissions：`allow-diff-compute` / `allow-git-status-*` 5 条 · 新建 `crates/app/permissions/diff.toml` + `crates/app/permissions/git-status.toml`
-- ts-rs bindings 自动生成到 `web/src/bindings/`（含上述 8 个新 + 复用 MVP-07 的 `FileChange`）
-
 ### G.2 derive 模板（以 `DiffLine` + `DiffLineType` 为例）
 
 ```rust
@@ -278,6 +236,48 @@ pub struct DiffLine {
 5. **回滚**：撤销 `#[ts(rename = ...)]`，确认 `pnpm typecheck` 恢复 PASS
 
 > 本 proof 只需做一次，结果写入 PR description 或 `docs/runtime-evidence/MVP-08/`（如实施 PR 本身含 ts-rs 集成）。
+
+### G.5 · 与 MVP-07 已落地 binding 的复用决策
+
+MVP-07 已生成以下 7 个 ts-rs binding（位于 `web/src/bindings/`）· MVP-08 实施前必须明确复用 / 新增 / 扩展策略：
+
+| MVP-07 已有 binding | MVP-08 §G.1 预期 | 决策 | 理由 |
+|---|---|---|---|
+| `FileChange { path, status: string, additions, deletions }` | §G.1 `FileChange` 同名 | **复用** · 不在 MVP-08 重新定义 | 字段完全覆盖 MVP-08 需求 · status 是 string 当前足够（M/A/D/R/? 字符值 · enum 化是 G.5.2 升级路径） |
+| `FileStatus`（不存在）| §G.1 `FileStatus` 新 enum | **不新增独立 binding** · MVP-08 内部用 string 即可 | 新建 `FileStatus` enum 会和 MVP-07 `FileChange.status: string` 双轨 · 触发 H2 类前端漂移风险 |
+| `CommitAuthor` / `CommitDetail` / `CommitParent` | 不需要（MVP-08 只关心文件级 diff · 不展示 commit 元数据 · 那是 MVP-07 已做的） | **不引入** | 范围隔离 |
+| `GitLogEntry` / `GitLogQueryRequest` / `GitLogQueryResponse` | 不需要 | **不引入** | 同上 |
+
+#### G.5.1 MVP-08 实际新增的 binding 清单（8 个 · 替换原 §G.1）
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `DiffRequest` | 触发 diff 计算 · 含 source（commit hash / `"unstaged"` / `"staged"`）+ file path | `import type { DiffRequest } from "../bindings/DiffRequest"` |
+| `DiffResponse` | diff 计算结果 · 含 hunks + binary flag + truncated flag | `import type { DiffResponse } from "../bindings/DiffResponse"` |
+| `DiffHunk` | 单个 hunk · 含 old_start / new_start / lines | `import type { DiffHunk } from "../bindings/DiffHunk"` |
+| `DiffLine` | 每行 · 含 line_type / content / line numbers | `import type { DiffLine } from "../bindings/DiffLine"` |
+| `DiffLineType` | enum：Added / Removed / Context | `import type { DiffLineType } from "../bindings/DiffLineType"` |
+| `GitStatusRequest` | 查 workspace 状态 · 含 workspace_id | `import type { GitStatusRequest } from "../bindings/GitStatusRequest"` |
+| `GitStatusResponse` | 含 staged / unstaged / untracked 3 组 `Vec<FileChange>`（**复用** MVP-07 `FileChange`）| `import type { GitStatusResponse } from "../bindings/GitStatusResponse"` |
+| `FileStatusEvent` | fs watch 触发的状态变化推送 event payload | `import type { FileStatusEvent } from "../bindings/FileStatusEvent"` |
+
+> 原 §G.1 `FileStatus` enum **不新增独立 binding**（MVP-08 内部用 string 即可 · 和 MVP-07 `FileChange.status` 一致 · 避免双轨）· 升级到 enum 留 G.5.2
+
+#### G.5.2 升级路径（v0.2 / 触发条件）
+
+未来若发现 `FileChange.status: string` 在 UI 渲染 / 测试 / 类型检查中频繁踩坑（如 typo `"modifed"` · status 字符集合不收敛）· 触发以下升级：
+
+1. 在 MVP-07 spec 加 ADR · 把 `FileChange.status: string` 改为 `FileStatus` enum · 同步 ts-rs binding regenerate
+2. MVP-08 frontend 同步用新 enum
+3. 当前 MVP-08 实施**不**做这个升级（避免 MVP-08 PR 改 MVP-07 接口 · 范围爬升）
+
+#### G.5.3 实施约定（MVP-08 Phase A）
+
+- `crates/core/src/diff.rs` 新建（含 `DiffRequest` / `DiffResponse` / `DiffHunk` / `DiffLine` / `DiffLineType`）
+- `crates/core/src/git_status.rs` 新建（含 `GitStatusRequest` / `GitStatusResponse` / `FileStatusEvent` · **复用** `crates/core/src/git_log.rs` 已 export 的 `FileChange`）
+- 6 IPC commands：`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`（split/unified 持久化）
+- 6 Tauri permissions：`allow-diff-compute` / `allow-git-status-*` 5 条 · 新建 `crates/app/permissions/diff.toml` + `crates/app/permissions/git-status.toml`
+- ts-rs bindings 自动生成到 `web/src/bindings/`（含上述 8 个新 + 复用 MVP-07 的 `FileChange`）
 
 ## §H. Git 栈约束（MVP-08 专有 · 读 + 写 + 算法三分工）
 

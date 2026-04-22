@@ -17,7 +17,7 @@ reviewer: Kimi
 
 # MVP-09: Stage/Unstage + Commit 操作
 
-> **状态**：`draft`
+> **状态**：`ready`
 > **依赖**：MVP-08（Status 面板）· SPIKE-04 §C（git2 写路径 smoke test）
 
 ---
@@ -57,6 +57,21 @@ reviewer: Kimi
 - Rebase / Merge / Cherry-pick（v0.3）
 - Commit signing（GPG）（v0.2+）
 - Partial staging（stage hunks）（v0.2）
+
+## 🛠 实施进度
+
+MVP-09 估时 4d，拆 4 Phase 串行实施：
+
+| Phase | 范围 | 状态 | PR |
+|-------|------|------|----|
+| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ⏳ todo | — |
+| Phase B · Status 面板操作接线 | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 | ⏳ todo | — |
+| Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
+| Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
+
+**下次 agent 起点**：Phase A
+
+**依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 
 ## 🖼 UI 引用
 
@@ -159,7 +174,7 @@ Commit UI 状态（message 草稿 / Amend 勾选态）持久化到现有 `app_se
 | `UnstageRequest` | 批量 unstage · 含 workspace_id + file_paths | `import type { UnstageRequest } from "../bindings/UnstageRequest"` |
 | `CommitRequest` | 提交参数 · 含 workspace_id + message + amend | `import type { CommitRequest } from "../bindings/CommitRequest"` |
 | `CommitResponse` | 提交结果 · 含 sha / short_sha / message / author / timestamp | `import type { CommitResponse } from "../bindings/CommitResponse"` |
-| `CommitAuthor` | Author / Committer 信息（name + email） | `import type { CommitAuthor } from "../bindings/CommitAuthor"` |
+| `CommitAuthor` | Author / Committer 信息（name + email + timestamp） | `import type { CommitAuthor } from "../bindings/CommitAuthor"` · **复用** MVP-07 已有 binding · 见 §G.5 |
 | `GitConfigIdentity` | 读出的 user.name / user.email | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"` |
 | `SetGitIdentityRequest` | 设置 identity · name + email + scope | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
 | `StageResult` | 批量 stage 结果 · staged_count + failed 列表 | `import type { StageResult } from "../bindings/StageResult"` |
@@ -216,6 +231,29 @@ pub enum CommitError {
 
 > 本 proof 只需做一次，结果写入 PR description 或 `docs/runtime-evidence/MVP-09/`（如实施 PR 本身含 ts-rs 集成）。
 
+### G.5 · 与上游已落地 binding 的复用决策
+
+MVP-09 实施前必须明确复用 / 新增边界，避免和 MVP-07 / MVP-08 已生成 binding 冲突：
+
+| 已有 binding | MVP-09 §G.1 涉及 | 决策 | 理由 |
+|---|---|---|---|
+| `CommitAuthor { name, email, timestamp }`（MVP-07 已生成）| §G.1 `CommitAuthor` | **复用** · 不在 MVP-09 重新定义 | `CommitResponse.author / committer` 直接引用现有 binding；字段含 `timestamp: number`（对齐 MVP-07 derive 模式 `#[ts(type = "number")]`） |
+| `FileChange { path, status, additions, deletions }`（MVP-07 已生成 · MVP-08 §G.5 已锁复用）| Commit 面板输入来源 | **复用** · 不造平行类型 | MVP-09 Stage/Unstage 操作的对象来自 MVP-08 Status 面板；禁止新建 `StagedFile` / `StatusFile` / `GitStatusItem` 等平行 struct |
+| `GitStatusResponse`（MVP-08 将生成）| Commit 面板 staged 文件列表来源 | **复用** · 不重新定义 | MVP-09 只消费 `GitStatusResponse.staged` 数组，不重新查询 status |
+
+#### G.5.1 保持独立的类型
+
+以下类型因语义不同，**不**复用现有 binding，保持为 MVP-09 新增：
+
+| Rust struct | 独立理由 |
+|---|---|
+| `GitConfigIdentity` | 表示 "identity 对话框可编辑表单 / git config 读取结果"，只含 `name + email`（无 timestamp）· 与 `CommitAuthor`（含 timestamp）语义不同 |
+| `SetGitIdentityRequest` | 写操作请求体 · 含 `scope` 字段（local / global）· 上游无对应类型 |
+| `StageResult` | MVP-09 专属批量操作结果 · 含 `staged_count + failed` 列表 · 上游无对应类型 |
+| `CommitError` | MVP-09 专属错误枚举 · 含 payload（stderr / exit_code / message）· 上游无对应类型 |
+
+> **核心原则**：MVP-09 是 "写操作消费上游读结果" · 输入侧全部复用（`FileChange` / `GitStatusResponse` / `CommitAuthor`）· 输出侧和写请求侧保持独立（`CommitRequest` / `StageResult` / `CommitError` / `GitConfigIdentity`）。
+
 ## §H. Git 栈约束（MVP-09 专有 · 纯写路径）
 
 MVP-09 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accepted · [ADR-007](../adr/ADR-007-git-stack.md)）· 必须明确：
@@ -249,6 +287,8 @@ MVP-09 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 | Amend | `Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))` |
 | 错误分诊 | `git2::Error::class()` / `git2::Error::code()` → 映射到 `CommitError` enum |
 
+> MVP-09 不新增 git crate，只消费 MVP-08 Status 结果并对 git2 写路径落地。
+
 ## 🔗 相关
 
 - `CLAUDE.md` #7 Diff 自建 · #13 Git 栈
@@ -264,3 +304,4 @@ MVP-09 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 2. **反向场景**：若 TS derive 漏加 → `pnpm typecheck` 立即 FAIL（H2 proof 制度化）· 若 git2 stage 失败 → 乐观 UI revert + toast error（Acceptance A）· 若 identity 缺失 → 弹窗引导不阻塞（Acceptance C）· 若 hook 失败 → 保留 message + 显示 stderr（Acceptance C）✅
 3. **边界适用性**：0 staged / 1 staged / 1000 staged · 空 message / 长 message / 中文 message · detached HEAD / 正常 branch · 有 hook / 无 hook · 全适用 ✅
 4. **YAGNI**：push/pull/fetch / branch ops / rebase / merge / cherry-pick / GPG signing / partial staging / AI 联动 都明确推后 ✅ · 新增关注点：§G ts-rs contract 覆盖 + §H git2 单路径锁定已显式文档化 ✅
+5. **对齐上游 binding**：`CommitAuthor` / `FileChange` / `GitStatusResponse` 复用决策已明确（§G.5）· 避免 MVP-09 实施时造平行类型 · 升级路径留 G.5.1 ✅

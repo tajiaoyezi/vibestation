@@ -43,6 +43,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
         .map_err(|e| format!("cannot resolve app_local_data_dir: {e}"))?;
     let db_path = dir.join("vibestation.db");
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
+    state.pty.set_pool(pool.clone());
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);
     Ok("ok".to_string())

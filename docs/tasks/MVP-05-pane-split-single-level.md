@@ -150,6 +150,10 @@ reviewer: Kimi
 
 - LayoutNode 用递归 enum 实现，v0.2 扩展到多层时只需放开深度限制
 - 当前 Pane focus 不跟随鼠标 hover（避免误触）
+- **session 15（2026-04-22）reviewer 对齐确认**：Kimi 第 10 次协作交付 · 5 gap 修复 + 自审第 7 条新增 · Claude Code reviewer self-push 翻转 gate (a) · 3 个对齐锚点 verified：
+  - FK `panes.tab_id REFERENCES tabs(tab_id)` vs `crates/core/src/db.rs` `migrate_v5` 主键 `tab_id TEXT PRIMARY KEY` ✅
+  - `PRAGMA user_version = 6` vs MVP-04 Phase A 已占 v5 ✅
+  - §H.6 锁 A 选项（`pane_pty_*` 独立）vs MVP-04 Phase B PR #82 已落地 `tab_pty_*` 5 IPC + `PtySpawnRequest` ts-rs binding ✅
 
 ## 🔗 相关
 

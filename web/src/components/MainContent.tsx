@@ -1,12 +1,11 @@
 import { type Component, Show } from "solid-js";
+import type { WorkspaceMetadata } from "../bindings";
+import { Terminal } from "../panels/Terminal";
 
 interface MainContentProps {
-  activeWorkspace: () => {
-    name: string;
-    path: string;
-    hasGit: boolean;
-    repoRoot: string | null;
-  } | null;
+  activeWorkspace: () => WorkspaceMetadata | null;
+  onCloseWorkspaceView: (workspaceId: string) => void;
+  workspaces: () => WorkspaceMetadata[];
 }
 
 export const MainContent: Component<MainContentProps> = (props) => {
@@ -27,21 +26,11 @@ export const MainContent: Component<MainContentProps> = (props) => {
           </div>
         }
       >
-        <div class="vs-workspace-placeholder">
-          <p class="vs-ws-heading">{props.activeWorkspace()?.name}</p>
-          <p class="vs-ws-path">{props.activeWorkspace()?.path}</p>
-          <Show when={props.activeWorkspace()?.hasGit}>
-            <p class="vs-ws-git-info">
-              <span class="vs-git-badge">Git</span>
-              <span class="vs-ws-repo-root">
-                {props.activeWorkspace()?.repoRoot}
-              </span>
-            </p>
-          </Show>
-          <p class="vs-ws-placeholder">
-            Tool Windows + Tab 管理由 MVP-03/04 接管
-          </p>
-        </div>
+        <Terminal
+          activeWorkspace={props.activeWorkspace}
+          onCloseWorkspaceView={props.onCloseWorkspaceView}
+          workspaces={props.workspaces}
+        />
       </Show>
     </section>
   );

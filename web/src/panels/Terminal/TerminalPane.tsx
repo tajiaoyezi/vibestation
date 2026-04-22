@@ -6,7 +6,13 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { createEffect, onCleanup, onMount, type Component } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
+  type Component,
+} from "solid-js";
 import type { PtyExitedEvent, PtyStdoutEvent, TabState } from "../../bindings";
 import {
   DEFAULT_PTY_COLS,
@@ -33,6 +39,7 @@ type TerminalPaneProps = {
   onResize: (tabId: string, cols: number, rows: number) => Promise<void>;
   onStart: (tab: TabState, cols: number, rows: number) => Promise<void>;
   onStdinError: (message: string) => void;
+  onStdout: (tabId: string) => void;
   onUnregisterApi: (tabId: string) => void;
 };
 
@@ -98,7 +105,18 @@ const setupRenderer = (
   onRendererChange("dom");
 };
 
+const hasPrintableOutput = (data: string): boolean => {
+  const stripped = data
+    .replace(/\u001b\[[0-9;?]*[ -/]*[@-~]/g, "")
+    .replace(/\u001b\][^\u0007]*(\u0007|\u001b\\)/g, "")
+    .replace(/\u001b[PX^_].*?(?:\u001b\\)/g, "")
+    .replace(/[\r\n\t ]+/g, "");
+
+  return stripped.length > 0;
+};
+
 export const TerminalPane: Component<TerminalPaneProps> = (props) => {
+  const [hasVisibleOutput, setHasVisibleOutput] = createSignal(false);
   let paneRef: HTMLDivElement | undefined;
   let hostRef: HTMLDivElement | undefined;
   let resizeObserver: ResizeObserver | undefined;
@@ -134,6 +152,11 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
         // Hidden host can throw during panel transitions; next focus retries.
       }
     });
+  };
+
+  const beginStart = () => {
+    setHasVisibleOutput(false);
+    void props.onStart(props.tab, currentSize().cols, currentSize().rows);
   };
 
   createEffect(() => {
@@ -196,7 +219,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       if (props.runtime.phase === "exited" || props.runtime.phase === "error") {
         if (data === "\r" || data === "\n") {
           term?.reset();
-          void props.onStart(props.tab, currentSize().cols, currentSize().rows);
+          beginStart();
         }
         return;
       }
@@ -236,6 +259,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
         return;
       }
 
+      if (hasPrintableOutput(event.payload.data)) {
+        setHasVisibleOutput(true);
+      }
+      props.onStdout(props.tab.tabId);
       term?.write(event.payload.data);
     });
 
@@ -252,8 +279,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
 
     queueFit();
     if (props.runtime.phase === "idle") {
-      const { cols, rows } = currentSize();
-      void props.onStart(props.tab, cols, rows);
+      beginStart();
     }
   });
 
@@ -276,6 +302,21 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       class={`vs-terminal-pane ${props.active ? "is-active" : ""}`}
       aria-hidden={!props.active}
     >
+      <div
+        class={`vs-terminal-loading ${!hasVisibleOutput() && props.runtime.phase !== "error" && props.runtime.phase !== "exited" ? "is-visible" : ""}`}
+        aria-hidden={
+          hasVisibleOutput() ||
+          props.runtime.phase === "error" ||
+          props.runtime.phase === "exited"
+        }
+      >
+        <span class="vs-terminal-loading-label">
+          Launching {props.tab.shell}…
+        </span>
+        <span class="vs-terminal-loading-hint">
+          Waiting for the first shell output
+        </span>
+      </div>
       <div ref={hostRef} class="vs-terminal-host" />
     </div>
   );

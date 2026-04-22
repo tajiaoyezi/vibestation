@@ -315,7 +315,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
       upsertRuntime(tab.tabId, (runtime) => ({
         ...runtime,
-        phase: "running",
+        phase: "starting",
         spawnError: null,
         exitCode: null,
         cols,
@@ -479,6 +479,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
       ...runtime,
       renderer,
     }));
+  };
+
+  const handleStdout = (tabId: string) => {
+    upsertRuntime(tabId, (runtime) =>
+      runtime.phase === "starting"
+        ? {
+            ...runtime,
+            phase: "running",
+          }
+        : runtime,
+    );
   };
 
   const focusActivePane = () => {
@@ -665,6 +676,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
               onResize={handleResize}
               onStart={startTab}
               onStdinError={showToast}
+              onStdout={handleStdout}
               onUnregisterApi={(tabId) => {
                 paneApis.delete(tabId);
               }}

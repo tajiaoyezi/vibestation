@@ -17,7 +17,7 @@ reviewer: Kimi
 
 # MVP-08: Diff 基础视图 + Git Status 只读
 
-> **状态**：`draft`
+> **状态**：`ready`
 > **依赖**：MVP-07（commit 详情触发 Diff）
 > **阻塞**：MVP-09（Stage/Unstage 基于 Status 面板）
 
@@ -61,6 +61,25 @@ reviewer: Kimi
 - 3-way merge 视图（v0.3+）
 - Rename 检测高级 UI（基础检测可做，复杂 UI v0.3+）
 
+## 🛠 实施进度
+
+MVP-08 估时 5d，拆 5 Phase 串行实施：
+
+| Phase | 范围 | 状态 | PR |
+|-------|------|------|----|
+| Phase A · diff 算法 + IPC 后端 | `similar` crate 接入 + git2 `statuses()` + gix blob 读取 + 6 个 IPC commands（`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`）+ 8 个 ts-rs binding 生成 + 单元测试（diff 算法 + binary 检测 + 大文件 fallback）| ⏳ todo | — |
+| Phase B · Status 面板前端 | SolidJS 组件 `web/src/panels/GitStatus/` + 3 分组折叠 + 文件 icon + 加减行数 + 持久化（rusqlite）| ⏳ todo | — |
+| Phase C · Diff 视图前端 | SolidJS 组件 `web/src/panels/Diff/` + split/unified 切换 + 行号 + 大文件 lazy load + binary 提示 + 帧时长 < 16ms 验证 | ⏳ todo | — |
+| Phase D · fs watch 自动刷新 | `notify` crate 集成 + 三平台测试（macOS FSEvents · Linux inotify · Windows ReadDirectoryChangesW）+ 防抖 200ms + IPC event 推送前端 | ⏳ todo | — |
+| Phase E · runtime 证据 + 性能量化 | ≥ 5 张截图 / 30s 录屏 · 覆盖 status 面板 / split diff / unified diff / 大文件 fallback / fs watch 实时刷新 · A.2/A.6/F 性能门槛实测 · 放 `docs/runtime-evidence/mvp-08/` | ⏳ todo | — |
+
+**下次 agent 起点**：Phase A · 依赖 MVP-07 已落地的 `crates/core/src/git_log.rs` + `web/src/bindings/` 7 个 binding（不要重写 git_log · 只复用 `FileChange` 等 binding · 见 §G.5）。
+
+**依赖关系说明**：
+- MVP-08 整体依赖 MVP-07 done（已满足 · PR #83）
+- MVP-08 Phase A-D 内部串行（Phase B/C 共用 Phase A 的 IPC + binding · Phase D 增强 · Phase E 收尾）
+- MVP-08 和 MVP-04 Phase E/F · MVP-05/06/09/10 文件域**完全隔离** · 可并行（MVP-08 只动 `crates/core/src/{diff,git_status}.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/{GitStatus,Diff}/`）
+
 ## 🖼 UI 引用
 
 - Bottom Panel Status：`design/directions/1-calm-studio.html` 底部面板区
@@ -71,7 +90,8 @@ reviewer: Kimi
 ### A. Diff 渲染
 
 - [ ] Diff 算法用 `similar` crate（Myers / Patience）· **不**走 git2/gix diff（避免 IPC 层多余序列化）
-- [ ] 渲染方案：**HTML 优先** · 1k 行 diff render < 50ms（Chrome DevTools Performance 面板 `performance.now()` 差值 · 5 次采样取 median）· 不达标才 fallback Canvas
+- [ ] 渲染方案：**HTML 优先** · 1k 行 diff **纯渲染** < 50ms（Chrome DevTools Performance 面板 `performance.now()` 差值 · 测起点 = `DiffResponse` 数据已在前端 · 终点 = DOM commit 完成 · 不含 IPC roundtrip 和 Rust 侧 similar 计算 · 5 次采样取 median）· 不达标才 fallback Canvas
+- [ ] **新增**：1k 行 diff **端到端**（用户点 Status 文件到 DOM commit）< 200ms（含 IPC + Rust similar + 渲染 · 测 3 次取 P99）· 这是用户感知门槛
 - [ ] 添加行：绿底黑字（`--color-diff-added-bg` token）· 删除行：红底黑字（`--color-diff-removed-bg`）· 未变上下文：默认色
 - [ ] 左右 split 和 unified 切换 toggle · 状态持久化到 rusqlite（per-workspace）
 - [ ] 行号列显示原文 / 新文行号，对齐（font-variant-numeric: tabular-nums）
@@ -79,7 +99,7 @@ reviewer: Kimi
 
 ### B. Diff 来源
 
-- [ ] Commit 详情点文件 → gix 读取 blob + parent blob → `similar` 计算 diff（ reviewer 对照 Rust 侧 `gix::object::Blob` → `similar::TextDiff` 调用链）
+- [ ] Commit 详情点文件 → gix 读取 blob + parent blob → `similar` 计算 diff（reviewer 对照 Rust 侧 `gix::object::Blob` → `similar::TextDiff` 调用链）
 - [ ] Unstaged 点文件 → git2 `diff_index_to_workdir()` → `similar` 计算 diff（`git2::Diff` 原生输出不够细 → 转交 `similar` 做行级 diff）
 - [ ] Staged 点文件 → git2 `diff_tree_to_index()` → `similar` 计算 diff
 
@@ -108,7 +128,9 @@ reviewer: Kimi
 
 ### F. 性能
 
-- [ ] Status 面板列出 1000 文件 < 200ms（测 3 次取 P99 · Criterion bench 用 fixture repo）
+- [ ] Status 面板列出 1000 文件 · 后端 git2 `statuses()` < 100ms（Criterion bench 用 1k 文件 fixture repo · 测 3 次取 P99）
+- [ ] Status 面板列出 1000 文件 · IPC 序列化 + 反序列化 < 30ms（含 `Vec<FileChange>` JSON encode/decode · Tauri IPC bench）
+- [ ] Status 面板列出 1000 文件 · 前端列表渲染 < 70ms（virtualized list · Chrome DevTools 测 · 总和 < 200ms 端到端）
 - [ ] Diff 打开 1k 行文件 < 200ms（测 3 次取 P99 · `performance.now()` 前端 timing）
 - [ ] Diff 打开 10k 行文件 < 1s（测 3 次取 P99 · Criterion bench 大文件 fixture）
 - [ ] fs watch 延迟 < 500ms（测 3 次取 P99 · 见 D 段测法）
@@ -139,6 +161,7 @@ Status 面板折叠态 + Diff split/unified 偏好持久化到现有 `app_settin
 - **大文件性能**：HTML 渲染优先 · 若 10k 行帧时长 > 16ms → fallback Canvas（记录决策到 ADR）
 - **Rename 检测**：git2 `statuses()` 支持 rename detection 但结果可能误判 · UI 保守显示 `old_name → new_name` · 不保证 100% 准确
 - **fs watch 跨平台**：`notify` crate 抽象三平台 · macOS FSEvents 有 2s 延迟下限 · Linux inotify 实时 · 差异在 E 段可接受范围
+- **fs watch macOS FSEvents 延迟**：macOS FSEvents 系统 API 有 2s 延迟下限 · 实测可能无法达到 §D < 500ms 目标 → 备选：(a) macOS 目标放宽到 < 2s（见 §H.6）或 (b) polling 1s fallback（CPU 上升）
 - **gix/git2 混用 bundle 体积**：git2 + gix + similar = 推算 +5-7MB（已在 MVP-07 §H 预算内）· 若 release 超限 → fallback single lib（rename detection 质量可能下降）
 
 ## 📝 Notes
@@ -164,9 +187,51 @@ Status 面板折叠态 + Diff split/unified 偏好持久化到现有 `app_settin
 | `DiffLineType` | enum：Added / Removed / Context | `import type { DiffLineType } from "../bindings/DiffLineType"` |
 | `GitStatusRequest` | 查 workspace 状态 | `import type { GitStatusRequest } from "../bindings/GitStatusRequest"` |
 | `GitStatusResponse` | 含 staged / unstaged / untracked 3 组 | `import type { GitStatusResponse } from "../bindings/GitStatusResponse"` |
-| `FileStatus` | 每文件 · 含 path / status / 加减行数 | `import type { FileStatus } from "../bindings/FileStatus"` |
+| `FileStatus` | 每文件 · 含 path / status / 加减行数 | ~~`import type { FileStatus } from "../bindings/FileStatus"`~~ → **见 §G.5 复用决策** |
 
 > 实际 struct 名和字段以实施 PR 为准，但**必须**全部走 ts-rs 自动生成。
+
+### G.5 · 与 MVP-07 已落地 binding 的复用决策
+
+MVP-07 已生成以下 7 个 ts-rs binding（位于 `web/src/bindings/`）· MVP-08 实施前必须明确复用 / 新增 / 扩展策略：
+
+| MVP-07 已有 binding | MVP-08 §G.1 预期 | 决策 | 理由 |
+|---|---|---|---|
+| `FileChange { path, status: string, additions, deletions }` | §G.1 `FileChange` 同名 | **复用** · 不在 MVP-08 重新定义 | 字段完全覆盖 MVP-08 需求 · status 是 string 当前足够（M/A/D/R/? 字符值 · enum 化是 G.5.2 升级路径） |
+| `FileStatus`（不存在）| §G.1 `FileStatus` 新 enum | **不新增独立 binding** · MVP-08 内部用 string 即可 | 新建 `FileStatus` enum 会和 MVP-07 `FileChange.status: string` 双轨 · 触发 H2 类前端漂移风险 |
+| `CommitAuthor` / `CommitDetail` / `CommitParent` | 不需要（MVP-08 只关心文件级 diff · 不展示 commit 元数据 · 那是 MVP-07 已做的） | **不引入** | 范围隔离 |
+| `GitLogEntry` / `GitLogQueryRequest` / `GitLogQueryResponse` | 不需要 | **不引入** | 同上 |
+
+#### G.5.1 MVP-08 实际新增的 binding 清单（8 个 · 替换原 §G.1）
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `DiffRequest` | 触发 diff 计算 · 含 source（commit hash / `"unstaged"` / `"staged"`）+ file path | `import type { DiffRequest } from "../bindings/DiffRequest"` |
+| `DiffResponse` | diff 计算结果 · 含 hunks + binary flag + truncated flag | `import type { DiffResponse } from "../bindings/DiffResponse"` |
+| `DiffHunk` | 单个 hunk · 含 old_start / new_start / lines | `import type { DiffHunk } from "../bindings/DiffHunk"` |
+| `DiffLine` | 每行 · 含 line_type / content / line numbers | `import type { DiffLine } from "../bindings/DiffLine"` |
+| `DiffLineType` | enum：Added / Removed / Context | `import type { DiffLineType } from "../bindings/DiffLineType"` |
+| `GitStatusRequest` | 查 workspace 状态 · 含 workspace_id | `import type { GitStatusRequest } from "../bindings/GitStatusRequest"` |
+| `GitStatusResponse` | 含 staged / unstaged / untracked 3 组 `Vec<FileChange>`（**复用** MVP-07 `FileChange`）| `import type { GitStatusResponse } from "../bindings/GitStatusResponse"` |
+| `FileStatusEvent` | fs watch 触发的状态变化推送 event payload | `import type { FileStatusEvent } from "../bindings/FileStatusEvent"` |
+
+> 原 §G.1 `FileStatus` enum **不新增独立 binding**（MVP-08 内部用 string 即可 · 和 MVP-07 `FileChange.status` 一致 · 避免双轨）· 升级到 enum 留 G.5.2
+
+#### G.5.2 升级路径（v0.2 / 触发条件）
+
+未来若发现 `FileChange.status: string` 在 UI 渲染 / 测试 / 类型检查中频繁踩坑（如 typo `"modifed"` · status 字符集合不收敛）· 触发以下升级：
+
+1. 在 MVP-07 spec 加 ADR · 把 `FileChange.status: string` 改为 `FileStatus` enum · 同步 ts-rs binding regenerate
+2. MVP-08 frontend 同步用新 enum
+3. 当前 MVP-08 实施**不**做这个升级（避免 MVP-08 PR 改 MVP-07 接口 · 范围爬升）
+
+#### G.5.3 实施约定（MVP-08 Phase A）
+
+- `crates/core/src/diff.rs` 新建（含 `DiffRequest` / `DiffResponse` / `DiffHunk` / `DiffLine` / `DiffLineType`）
+- `crates/core/src/git_status.rs` 新建（含 `GitStatusRequest` / `GitStatusResponse` / `FileStatusEvent` · **复用** `crates/core/src/git_log.rs` 已 export 的 `FileChange`）
+- 6 IPC commands：`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`（split/unified 持久化）
+- 6 Tauri permissions：`allow-diff-compute` / `allow-git-status-*` 5 条 · 新建 `crates/app/permissions/diff.toml` + `crates/app/permissions/git-status.toml`
+- ts-rs bindings 自动生成到 `web/src/bindings/`（含上述 8 个新 + 复用 MVP-07 的 `FileChange`）
 
 ### G.2 derive 模板（以 `DiffLine` + `DiffLineType` 为例）
 
@@ -242,19 +307,61 @@ MVP-08 涉及**读 + 状态查询 + diff 算法**混合路径 · 按 CLAUDE.md �
   - 不走 git2/gix 原生 diff（输出格式粗 · 序列化开销大）· 直接读 blob content → `similar::TextDiff` → 行级结果
 - **替代**：若 `similar` 依赖过重 → fallback `diff` crate（更简单 · 只有 Myers）
 
-### H.4 Bundle size 估算
+### H.4 Bundle size 估算（更新版 · 2026-04-22）
 
-- git2 + gix + similar 合计 ≈ **+5-7MB**（已在 MVP-07 §H 预算内）
-- 若 release bundle 超过目标（如 > 30MB）· 优先级：
-  1. 保留 git2（状态查询刚需）
-  2. 保留 gix（读性能刚需）
-  3. 替换 similar → `diff` crate（体积更小 · 算法降级为 Myers only）
+| 库 | 引入 MVP | 增量 | 累计 |
+|---|---|---|---|
+| gix 0.70 | MVP-07（已 done · PR #83） | +X MB（实测 · 待 MVP-08 实施 agent 用 `cargo bloat --release` 量化补） | +X MB |
+| git2 0.20 | MVP-08 Phase A | +Y MB（推算 ~2MB） | +X+Y MB |
+| similar | MVP-08 Phase A | +Z MB（推算 ~0.5MB · pure Rust 算法） | +X+Y+Z MB |
+| notify 6.x | MVP-08 Phase D | +W MB（推算 ~0.3MB） | total |
+
+**实施约定**（Phase A）：
+- 跑 `cargo bloat --release --crates -n 30` · 对比 MVP-07 done 后 vs MVP-08 Phase A 实施后的 release binary 体积 · 实际增量写到 PR body
+- 若 total > 30MB（`implementation-plan.md` §3.1 bundle 预算上限） · 触发 §H.4.1 fallback 决策
+
+### H.4.1 Bundle 超限 fallback 决策树（不变 · 重申）
+
+1. 保留 git2（状态查询刚需）
+2. 保留 gix（读性能刚需 · MVP-07 已上）
+3. 替换 similar → `diff` crate（体积更小 · 算法降级为 Myers only · 失去 Patience）
+4. 替换 notify → 自写 polling 1s（失去 fs watch 实时性 · macOS 反正 FSEvents 也是 2s 下限 · 影响有限）
 
 ### H.5 禁止
 
 - **禁止**引入 Monaco（CLAUDE.md #7 禁区 · 3MB bundle 超限）
 - **禁止**在 gix / git2 / similar 之外引入第四个 git 操作库
 - gitoxide 生态内 sub-crate（如 `gix-object` / `gix-traverse`）可用
+
+### H.6 · fs watch 跨平台实现选型
+
+**主路径**：`notify` crate 6.x（推荐 ^6.1）
+
+| 平台 | notify 后端 | 已知特性 |
+|---|---|---|
+| macOS | FSEvents | 2s 延迟下限（系统 API · 无法绕过 · §D 性能门槛 < 500ms 实测可能用 polling fallback）· 跨 fork/move 稳定 |
+| Linux | inotify | 实时（< 50ms）· 注意 fd 上限（ulimit · 默认 8192）· 大 repo（10 万文件）可能爆 fd |
+| Windows | ReadDirectoryChangesW | 实时 · 注意 buffer overflow（高频改动 batch loss）· MVP 阶段 v0.4 才覆盖 |
+
+**fallback 策略**：
+
+- macOS 实测 fs watch 延迟 > 500ms（FSEvents 系统限制） → 实施 agent 评估两选项：
+  - (a) 接受 macOS-only 弱化目标到 `< 2s`（FSEvents 真实下限）· 在 spec §D 注明
+  - (b) macOS 走 polling 1s（覆盖 < 500ms 目标 · 但 CPU 上升）
+- Linux fd 爆（10 万文件 repo）→ 自动降级 polling 2s（spec §⚠️ 已知风险 增条目）
+
+**实施约定**（Phase D）：
+- `crates/core/src/fs_watch.rs` 新建 · 封装 notify crate · 暴露 `subscribe(workspace_id, callback)` API
+- IPC event：`git_status_changed { workspaceId: string }`（防抖 200ms · 避免 vim swap 触发风暴）
+- 测试：mock `notify::Event` · 验证防抖 + 路径 filter（忽略 `.git/` 内部 · `node_modules/` · `target/`）
+
+### H.7 · fs watch 测试策略
+
+| 层次 | 范围 |
+|---|---|
+| 单元 | 防抖逻辑 + 路径 filter |
+| 集成 | 真 fs · `tempfile` repo · `fs::write()` 触发 → 等 IPC event · 跨平台 macOS/Linux 各跑一遍（Windows 留 v0.4） |
+| Soak | 10k 文件改动 / s 持续 1 min · 验证 IPC event rate 不爆（防抖收敛） |
 
 ## 🔗 相关
 
@@ -271,3 +378,4 @@ MVP-08 涉及**读 + 状态查询 + diff 算法**混合路径 · 按 CLAUDE.md �
 2. **反向场景**：若 TS derive 漏加 → `pnpm typecheck` 立即 FAIL（H2 proof 制度化）· 若 HTML 渲染帧时长 > 16ms → fallback Canvas（Acceptance A 硬要求）· 若 git2 `statuses()` 失败 → 显示 error toast（不 panic）✅
 3. **边界适用性**：0 文件 / 1 文件 / 1000 文件 / 大文件（>1MB / >10万行）/ 二进制 / 破损 repo 全适用；split / unified 双模式；三平台 fs watch 差异化 ✅
 4. **YAGNI**：语法高亮 / Stage hunk / Stash / 3-way merge / Rename 高级 UI / AI 联动 都明确推后 ✅ · 新增关注点：ts-rs contract（§G）· gix/git2/similar 三分工（§H）已显式文档化
+5. **对齐 MVP-07 已落地 binding**：`FileChange` 复用决策已明确（§G.5 锁 (a)）· 避免 MVP-08 实施时范围爬升改 MVP-07 接口 · 升级路径留 G.5.2 ✅

@@ -2,7 +2,7 @@
 id: MVP-10
 type: mvp
 title: 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）
-status: draft
+status: ready
 owner:
 phase: W11-W12
 depends_on: ["MVP-01", "MVP-02", "MVP-03", "MVP-04", "MVP-05", "MVP-06", "MVP-07", "MVP-08", "MVP-09"]
@@ -13,12 +13,12 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1 · §10.4（非功能）· §5.1（Telemetry）· §10.2（打包大小）
 risk_ref: R30
-reviewer:
+reviewer: Kimi
 ---
 
 # MVP-10: 设置 + Telemetry + 打包发布
 
-> **状态**：`draft`
+> **状态**：`ready`
 > **依赖**：所有 MVP-01..09（发布前收尾）
 > **v0.1 GA 硬门槛**
 
@@ -65,7 +65,7 @@ reviewer:
 **Don't**：
 - Telemetry 服务端（收集端点由 CI 期间 Phase 4 做）
 - Auto-update 服务端（Tauri plugin 已集成但 update manifest 服务端 v0.2+）
-- Windows 打包（v0.4）
+- Windows 打包(v0.4)
 - ARM Linux（v0.2）
 
 ## 🖼 UI 引用
@@ -77,83 +77,248 @@ reviewer:
 
 ### A. 设置面板
 
-- [ ] 菜单 / 快捷键 `⌘,` 打开设置
-- [ ] 4 个分组：外观 / 终端 / Git / 隐私
-- [ ] 所有改动实时生效（无需重启）
-- [ ] 持久化到 rusqlite `app_settings`
+- [ ] A.1 `⌘,`（macOS）或菜单 `Vibestation → Preferences` 打开设置面板；Linux 对应 `Ctrl+,` 或 hamburger 菜单
+- [ ] A.2 4 个分组显示：外观 / 终端 / Git / 隐私；每个分组可折叠
+- [ ] A.3 所有改动实时生效：主题切换后 < 100 ms UI 可见变化；字体改动后终端即时重渲染；rusqlite UPDATE `app_settings` P99 < 50 ms（本地 SSD）
+- [ ] A.4 持久化到 rusqlite `app_settings`：重启应用后设置值一致（integration test 覆盖）
 
 ### B. Telemetry opt-in 对话框
 
-- [ ] 首次启动（rusqlite 无 telemetry 决策）弹对话框，阻塞欢迎页
-- [ ] 对话框列出：收集项 + 不收集项 + 可改设置（设置 → 隐私）
-- [ ] 用户选择后写入 rusqlite `telemetry_opt_in: bool`
-- [ ] 再次启动不再弹（decision persisted）
-- [ ] 设置里改 toggle 立即生效
+- [ ] B.1 首次启动（rusqlite 无 `telemetry_opt_in` 决策，即值为 NULL）弹对话框，阻塞欢迎页渲染；启动顺序：Tauri window ready → opt-in modal mount → 用户决策前 WelcomePage 组件 return null 或 `display: none`
+- [ ] B.2 对话框列出：收集项（匿名 crash + 版本号 + OS type）+ 不收集项（IP、个人文件路径、commit 信息、终端内容、仓库名）+ 设置 → 隐私可改
+- [ ] B.3 用户选择"接受"后写入 `telemetry_opt_in = true`，选择"拒绝"后写入 `telemetry_opt_in = false`；再次启动时 `telemetry_opt_in IS NOT NULL` 不再弹对话框
+- [ ] B.4 设置里改 toggle 立即生效：true → 开始发送 crash；false → 立即停止发送（当前 session 已排队的 crash flush 后不再新增）
 
 ### C. Telemetry 实际行为
 
-- [ ] opt-in = false：**不发送任何遥测**（包括 crash report）
-- [ ] opt-in = true：发送匿名 crash + 版本号 + OS type
-- [ ] crash report 不含：IP / 用户文件路径 / commit 信息 / 终端内容
-- [ ] 收集端点 URL 在设置里公开显示
+- [ ] C.1 `opt-in = false`：**不发送任何遥测**（包括 crash report）；network panel / 代理验证 0 个 outbound 请求到 telemetry endpoint
+- [ ] C.2 `opt-in = true`：发送匿名 crash + 版本号 + OS type（macos / linux）；payload 含 `{"version":"0.1.0","os_type":"macos","stack_trace_hash":"abc123..."}`，不含用户标识
+- [ ] C.3 crash report 不含：IP / 用户文件路径 / commit 信息 / 终端内容；proof 步骤：(a) unit test 构造带 PII 的 panic（路径 `~/secret/`、commit hash `abc1234`）→ (b) 捕获 payload → (c) assert 正则 `/(?i)(ip|path|commit|content)/` 不匹配 → (d) ts-rs 类型检查兜底（`CrashReportPayload` 不含 PII 字段）
+- [ ] C.4 收集端点 URL 在设置 → 隐私里公开显示，用户可复制
 
 ### D. macOS 打包
 
-- [ ] `pnpm tauri build` 在 macOS 产出 signed + notarized .dmg
-- [ ] 公证通过（Apple Notary Service）
-- [ ] Stapling 完成（dmg 可离线校验）
-- [ ] Gatekeeper 开启的干净 mac 上可直接打开（无"无法验证开发者"提示）
+- [ ] D.1 `pnpm tauri build` 在 macOS 产出 signed `.app` + `.dmg`（`--target universal-apple-darwin` 或分别 `x86_64` / `aarch64`）
+- [ ] D.2 公证通过：`xcrun notarytool submit Vibestation.dmg --wait` exit code 0，日志无 Invalid / Rejected
+- [ ] D.3 Stapling 完成：`xcrun stapler staple Vibestation.dmg` exit code 0；`spctl -a -vv Vibestation.dmg` 输出含 `accepted`
+- [ ] D.4 Gatekeeper 干净的 mac 可直接打开：`xattr -l Vibestation.app` 无 `com.apple.quarantine` 阻止标记；或实机双击无"无法验证开发者"弹窗
 
 ### E. Linux 打包
 
-- [ ] AppImage 产出
-- [ ] sha256 校验和同时上传
-- [ ] Ubuntu 24 Wayland + X11 都可启动
-- [ ] （可选）GPG 签名 AppImage
+- [ ] E.1 AppImage 产出：单文件，大小 < 80 MB（ADR-005 存储约束 + `implementation-plan.md §10.2`）
+- [ ] E.2 sha256 校验和：`sha256sum Vibestation-0.1.0-linux-x86_64.AppImage > Vibestation-0.1.0-linux-x86_64.AppImage.sha256`，文件与 AppImage 同目录发布
+- [ ] E.3 Ubuntu 24 Wayland + X11 都可启动：`./Vibestation-0.1.0-linux-x86_64.AppImage --version` exit code 0 且窗口可见（Wayland 会话 + XWayland fallback 各测一次）；若 Ubuntu 24 环境仍缺，记 known limitation 并延到 v0.1.0-alpha 后评估
+- [ ] E.4 （可选）GPG 签名 AppImage：若实现，`gpg --detach-sign --armor` 产出 `.asc` 文件
 
 ### F. 非功能文件
 
-- [ ] `README.md` 双语（英/中），首屏即懂能做什么；**不提 AI-Aware / Mission Control**（禁区）
-- [ ] `CONTRIBUTING.md` 说明 PR 流程 + 代码风格
-- [ ] `CODE_OF_CONDUCT.md` Contributor Covenant 2.1
-- [ ] `CHANGELOG.md` Keep a Changelog 格式，v0.1.0 条目完整
-- [ ] `SECURITY.md` 有效的安全报告邮箱
-- [ ] `privacy-policy.md` 公开 + 设置里链接
+- [ ] F.1 `README.md` 双语（英/中），首屏 100 字内说明"多 Tab 终端 + JetBrains 级 Git 工作台"；grep 确认 0 处 `AI-Aware` / `Mission Control` / `AI session aware`（禁区，见 `CLAUDE.md §🚫`）
+- [ ] F.2 `CONTRIBUTING.md` 说明 PR 流程（feature branch + PR + review）+ 代码风格（cargo fmt / pnpm lint / Conventional Commits）
+- [ ] F.3 `CODE_OF_CONDUCT.md` Contributor Covenant 2.1（已有，验证版本号）
+- [ ] F.4 `CHANGELOG.md` Keep a Changelog 格式，`## [0.1.0] - YYYY-MM-DD` 段含 Added/Changed/Fixed/Removed 分类；内容与 GitHub Release notes 一致
+- [ ] F.5 `SECURITY.md` 含有效安全报告邮箱（格式验证：`grep -E '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' SECURITY.md` 命中 ≥ 1 处）
+- [ ] F.6 `privacy-policy.md` 公开 + 设置里链接；内容覆盖 GDPR Article 13 最小 6 项：收集什么 / 为什么 / 保留多久 / 第三方分享 / 用户权利 / 联系方式
 
 ### G. GitHub Release
 
-- [ ] v0.1.0 tag + Release 页面
-- [ ] 上传：mac dmg（x86_64 + aarch64）+ Linux AppImage（x86_64 + aarch64）+ sha256.txt
-- [ ] Release notes 来自 CHANGELOG.md
+- [ ] G.1 `v0.1.0` tag + Release 页面：tag 格式严格为 `v0.1.0`（前缀 `v`，不是 `0.1.0`）
+- [ ] G.2 上传 asset 命名规范：
+  - `Vibestation-0.1.0-macos-x86_64.dmg`
+  - `Vibestation-0.1.0-macos-aarch64.dmg`
+  - `Vibestation-0.1.0-linux-x86_64.AppImage`
+  - 每个 `.dmg` / `.AppImage` 配同名 `.sha256`
+- [ ] G.3 Release notes 来自 `CHANGELOG.md`：手动或 release-please 从 `## [0.1.0]` 段提取；GitHub Release 页面正文与 CHANGELOG 该段差异 ≤ 5%（允许格式微调）
 
 ## 🧪 测试策略
 
 | 层次 | 范围 |
 |------|------|
-| 单元 | Telemetry payload 脱敏 + 设置持久化 |
-| 集成 | 设置变更 → rusqlite 写入 → 重启恢复 |
-| E2E | 完整首次启动流程（包括 Telemetry 对话框）|
-| 手动 QA | 三平台打包验证 + notarization 实机测试 |
+| 单元 | Telemetry payload 脱敏（C.3 正则断言）+ 设置持久化（rusqlite 读写）|
+| 集成 | 设置变更 → rusqlite 写入 → 进程重启 → 读取一致 |
+| E2E | 完整首次启动流程（Telemetry 对话框 → 决策 → 欢迎页）|
+| 手动 QA | 三平台打包验证 + notarization 实机测试 + Gatekeeper 干净 mac |
+
+## 📸 运行时证据要求
+
+按 [ADR-011](../adr/ADR-011-runtime-evidence-location.md) + `.claude/rules/runtime-evidence-location.md` · MVP-10 实施 PR 必须提交以下证据到 `docs/runtime-evidence/mvp-10/`（进 git · ADR-011 R1-R5）：
+
+- `01-settings-panel.png`（设置面板打开 · 4 分组显示）
+- `02-settings-realtime.png`（改 theme 后实时生效 · 无重启）
+- `03-telemetry-opt-in.png`（首次启动 opt-in 对话框 · 阻塞欢迎页）
+- `04-telemetry-decline.png`（用户拒绝后 · 不发送遥测的 network log 或 console proof）
+- `05-macos-dmg-notarized.png`（`spctl -a -vv` 输出 · 证明公证 + stapling）
+- `06-linux-appimage-run.png`（Ubuntu 24 启动 AppImage · 窗口显示 · 若环境就绪）
+- `07-github-release.png`（`v0.1.0` Release 页面 · assets 清单）
+- 可选：`demo.mp4` 60s · 串起设置面板 + opt-in + 打包流程
+
+单目录总体积 ≤ 10 MB（ADR-011 R4）· 超则压缩。
 
 ## 💾 数据模型变更
 
 扩展 `app_settings`：
+
+```sql
+ALTER TABLE app_settings ADD COLUMN telemetry_opt_in INTEGER; -- NULL = 未决策，0 = false，1 = true
+ALTER TABLE app_settings ADD COLUMN paste_protection INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE app_settings ADD COLUMN default_shell TEXT NOT NULL DEFAULT '/bin/zsh';
+ALTER TABLE app_settings ADD COLUMN font_family TEXT NOT NULL DEFAULT 'JetBrains Mono';
+ALTER TABLE app_settings ADD COLUMN font_size REAL NOT NULL DEFAULT 14.0;
+ALTER TABLE app_settings ADD COLUMN theme TEXT NOT NULL DEFAULT 'auto';
+ALTER TABLE app_settings ADD COLUMN git_user_name TEXT;
+ALTER TABLE app_settings ADD COLUMN git_user_email TEXT;
 ```
-telemetry_opt_in: Option<bool>     // None = 未决策，弹对话框
-paste_protection: bool = true
-default_shell: String
+
+> Schema 版本：migration v6（接 MVP-04 storage 层 v5）。
+
+## §G. IPC Contract（ts-rs）
+
+> **依据**：[ADR-014 · IPC contract source of truth = Rust struct + ts-rs codegen](../adr/ADR-014-ipc-contract-source-of-truth-ts-rs.md)（H2 根因消除 · SPIKE-08 §A PASS + PR #63 rollout 生产化）。所有 IPC struct 必须遵循 ADR-014 §规范 5 条 + H2 regression proof 6 步。
+
+### G.1 预期 IPC struct 清单
+
+| Rust struct | 用途 | 前端 import |
+|---|---|---|
+| `AppSettings` | 全量 settings 查询 / 初始化回填 | `./bindings/AppSettings` |
+| `SettingsUpdateRequest` | 单字段或多字段 partial update | `./bindings/SettingsUpdateRequest` |
+| `TelemetryOptInRequest` | 首次启动 opt-in 用户决策 | `./bindings/TelemetryOptInRequest` |
+| `TelemetryStatus` | 当前 opt-in 状态 + 端点信息 | `./bindings/TelemetryStatus` |
+| `CrashReportPayload` | crash 上报 payload（脱敏）| `./bindings/CrashReportPayload` |
+| `AppVersionInfo` | 版本号 + OS type + 构建信息 | `./bindings/AppVersionInfo` |
+
+### G.2 derive 模板（示例片段）
+
+```rust
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSettings {
+    pub theme: String,
+    pub font_family: String,
+    #[ts(type = "number")]
+    pub font_size: f32,
+    pub default_shell: String,
+    pub paste_protection: bool,
+    pub telemetry_opt_in: Option<bool>,
+    pub git_user_name: Option<String>,
+    pub git_user_email: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsUpdateRequest {
+    pub theme: Option<String>,
+    pub font_family: Option<String>,
+    #[ts(type = "number")]
+    pub font_size: Option<f32>,
+    pub default_shell: Option<String>,
+    pub paste_protection: Option<bool>,
+    pub telemetry_opt_in: Option<bool>,
+    pub git_user_name: Option<String>,
+    pub git_user_email: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TelemetryStatus {
+    pub opt_in: bool,
+    pub endpoint_url: String,
+    pub data_collection_summary: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct CrashReportPayload {
+    pub version: String,
+    pub os_type: String,
+    pub stack_trace_hash: String,
+    // 显式不含：ip, user_path, commit_hash, terminal_content
+}
 ```
+
+### G.3 强制规范
+
+- 所有 IPC struct `#[derive(TS)]` + `#[ts(export)]` + `#[serde(rename_all = "camelCase")]`
+- `f32` / `i64` / `f64` 加 `#[ts(type = "number")]`（防 TS 生成 `bigint` · 前端 Date/sort 零改动）
+- bindings 由 `crates/app/build.rs` 生成到 `web/src/bindings/` · 前端禁手写 interface
+- `.prettierignore` 排除 `web/src/bindings/`
+- 含 PII 风险的字段（如 stack_trace）必须在 Rust 侧做脱敏后再封装进 IPC struct；禁止把原始 panic 信息直传前端
+
+### G.4 H2 类 regression proof
+
+实施 PR 时执行一次临时改名验证：将 `AppSettings.font_family` 临时改为 `font_name`，运行 `pnpm typecheck` 必须 FAIL（tsc 报 `font_family` 不存在）→ 证明 bindings 与前端 import 强关联。验证后恢复原名。将截图或终端输出保存到 `docs/runtime-evidence/mvp-10/h2-regression-proof.png`。
+
+## §H. MVP-10 决策锁定
+
+### H.1 · Telemetry 技术栈
+
+**状态**：延后到 Phase 4 CI workflow 建立前调研 + Spike 决策 · 当前 draft 建议 Sentry SDK 为默认候选 · 锁定权在 Arbiter
+
+| 候选 | 成本 | 隐私 / 数据主权 | SDK 体积 | 备注 |
+|---|---|---|---|---|
+| Sentry SDK（sentry-rust）| 自托管免费 / Cloud 有免费 tier | 自托管 = 完全主权 | ~1.5 MB | Rust 原生支持最好 · 社区成熟 · crash symbolication 完善 |
+| Plausible self-hosted | 开源免费 · 需自建服务器 | 完全主权 | 无 SDK（HTTP POST）| 偏 analytics · crash 支持弱 |
+| PostHog free tier | Cloud 免费 tier 限 1M 事件/月 | 数据出域到 PostHog Cloud | ~500 KB | 功能最全 · 但 free tier 有 event 上限 |
+| 自建 HTTP POST | 零第三方依赖 | 完全主权 | 0 KB | 需自建收集端 + 符号化 + 聚合 UI · 工作量最大 |
+
+- **当前建议**：Sentry SDK 为默认候选（理由：Rust 原生 + crash 场景最成熟 + 自托管零成本）
+- **禁止**：直接 commit 收集端 API key / DSN 到仓库（走 `.env` + GitHub Actions secret）
+- **禁止**：使用闭源且无法自托管的方案（如 Google Analytics）
+- **决策时点**：Phase 4 CI workflow 建立前完成 Spike（≤ 2h benchmark）· 若 Arbiter 提前拍板则立即锁定
+
+### H.2 · 打包工具
+
+- **锁定** `tauri-cli 2.x`（`pnpm tauri build` 默认路径）
+- **禁止** `cargo-bundle` 单独使用（Tauri 2 官方 bundler 已覆盖 dmg / AppImage / deb / rpm / msi）
+- **禁止** 自写 dmg 生成脚本或手动调 `hdiutil create`（Tauri bundler 已封装）
+- **理由**：Tauri CLI bundler 是官方唯一支持路径 · 已验证于 SPIKE-01/02
+
+### H.3 · macOS 公证流程
+
+- **锁定** `notarytool`（Xcode 13+ 新工具 · `altool` 已废弃）
+- **Credential 走 GitHub Actions secret**：
+  - `APPLE_ID`（Apple ID 邮箱）
+  - `APPLE_PASSWORD`（app-specific password）
+  - `APPLE_TEAM_ID`（10 字符 Team ID）
+- **禁止** 把 credential 明文写入仓库任何文件
+- **禁止** 把 `.p12` 证书文件 commit 到 git；CI 用 base64 编码存 secret，`base64 -d` 解码后导入 keychain
+- **参考**：Tauri 2 官方 signing guide + `tauri.conf.json > bundle > macOS > signingIdentity`
+
+### H.4 · Linux AppImage 生成工具
+
+- **锁定** `tauri-cli` 自带 AppImage 生成（基于 `linuxdeploy-plugin-appimage`）
+- **禁止** 手动调 `appimagetool` 生成 AppImage
+- **禁止** 生成 `.deb` / `.rpm`（v0.1 GA 只做 AppImage · deb/rpm 推 v0.2+）
+- **理由**：Tauri bundler 已集成 linuxdeploy · 单命令产出 · 与 macOS 流程一致
+
+### H.5 · privacy-policy 模板来源
+
+- **锁定** "自写最小版" + Apache 2.0 License 兼容
+- 内容必须覆盖 **GDPR Article 13 最小 6 项**：
+  1. 控制者身份与联系方式
+  2. 收集的个人数据类别
+  3. 处理目的与法律依据
+  4. 数据保留期限
+  5. 用户权利（访问 / 更正 / 删除 / 限制 / 可携带 / 反对）
+  6. 是否向第三方传输
+- **禁止** 使用 closed-source template（如 iubenda paid tier 生成的不可审计文本）
+- **允许** 参考 OSI 模板或 GDPR Article 13 官方指南 · 但须改写为 Vibestation 专用
+- 文件本身以 Apache 2.0 或 CC-BY 4.0 许可发布 · 与项目 LICENSE 兼容
 
 ## ⚠️ 已知风险
 
-- **R30 Telemetry 合规**：GDPR/CCPA 要求默认关 + 透明收集项 + 用户可撤回 → 本 spec 覆盖
-- **Apple Developer Program 审批时间**：SPIKE-06 已在 W0 申请，v0.1 发布（W12）时必须已通过；若未通过 → unsigned dmg（有警告，非 block）
-- **Notarization 失败常见原因**：entitlements 配置不全 / 代码引用不合规 API → 需要提前 W11 测试通过
+- **R30 Telemetry 合规**：GDPR/CCPA 要求默认关 + 透明收集项 + 用户可撤回 → 本 spec 覆盖（C.1-C.4 + H.1）
+- **Apple Developer Program 审批时间**：SPIKE-06 已在 W0 申请，v0.1 发布（W12）时必须已通过；若未通过 → unsigned dmg（有警告，非 block，见 D.4 降级路径）
+- **Notarization 失败常见原因**：entitlements 配置不全 / 代码引用不合规 API → 需要提前 W11 测试通过（D.2-D.3）
+- **Ubuntu 24 环境缺失**：E.3 可能无法实机验证 → 记 known limitation · v0.1.0-alpha macOS-first 策略兼容
 
 ## 📝 Notes
 
 - Telemetry 使用 `sentry` 或等价开源方案，收集端点 URL 在 Phase 4 CI workflow 阶段确定（可能用 Plausible self-hosted 或 PostHog free tier）
-- MVP-10 的 "privacy-policy.md" **必须过法律 / 合规检查**（即使是个人项目，GDPR 要求清楚声明）
+- MVP-10 的 `privacy-policy.md` **必须过法律 / 合规检查**（即使是个人项目，GDPR 要求清楚声明）
+- MVP-10 实施可以和 MVP-01..09 收尾并行启动，但打包发布阶段必须等所有上游 MVP done
 
 ## 🔗 相关
 
@@ -166,7 +331,8 @@ default_shell: String
 ---
 
 **自审四问**：
-1. 递归完备性：设置 / Telemetry / 打包 / 非功能 4 类全覆盖 ✅
-2. 反向场景：Notarization 失败 / Dev Program 未批 都有 fallback ✅
-3. 边界适用性：三平台打包 + GDPR/CCPA 合规明确 ✅
-4. YAGNI：auto-update 服务端 / Windows / ARM Linux 都推后 ✅
+
+1. **递归完备性**：设置 / Telemetry / 打包 / 非功能 / IPC Contract / 决策锁定 6 类全覆盖 ✅；清单自身在清单中 ✅
+2. **反向场景**：Notarization 失败 / Dev Program 未批 / Ubuntu 环境缺 都有 fallback（unsigned 降级 / known limitation / macOS-first）✅；Telemetry 拒绝后 0 发送（C.1）✅
+3. **边界适用性**：GDPR/CCPA 双合规覆盖 · macOS + Linux 双平台 · 首次启动 vs 后续启动区分 · opt-in 可撤回 ✅
+4. **YAGNI**：auto-update 服务端 / Windows / ARM Linux / deb rpm 都推后 ✅；Telemetry 服务端不自己做 ✅；不引入第 11 个 MVP ✅

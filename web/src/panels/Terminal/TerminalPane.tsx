@@ -17,9 +17,11 @@ import type { PtyExitedEvent, PtyStdoutEvent, TabState } from "../../bindings";
 import {
   DEFAULT_PTY_COLS,
   DEFAULT_PTY_ROWS,
+  fetchScrollback,
   getShortcutAction,
   type RendererKind,
   type TabRuntimeState,
+  writeScrollbackToTerm,
 } from "./hooks";
 
 type PaneApi = {
@@ -29,6 +31,7 @@ type PaneApi = {
 
 type TerminalPaneProps = {
   active: boolean;
+  isNewlyCreated: boolean;
   pasteGuardDisabled: boolean;
   runtime: TabRuntimeState;
   tab: TabState;
@@ -155,7 +158,6 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   };
 
   const beginStart = () => {
-    setHasVisibleOutput(false);
     void props.onStart(props.tab, currentSize().cols, currentSize().rows);
   };
 
@@ -218,6 +220,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     term.onData((data) => {
       if (props.runtime.phase === "exited" || props.runtime.phase === "error") {
         if (data === "\r" || data === "\n") {
+          setHasVisibleOutput(false);
           term?.reset();
           beginStart();
         }
@@ -253,6 +256,20 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       attributes: true,
       attributeFilter: ["data-theme"],
     });
+
+    if (!props.isNewlyCreated) {
+      try {
+        const lines = await fetchScrollback(props.tab.tabId);
+        await writeScrollbackToTerm(term, lines);
+        if (lines.length > 0) {
+          setHasVisibleOutput(true);
+        }
+      } catch (error) {
+        props.onStdinError(
+          `恢复终端 scrollback 失败：${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
 
     unlistenStdout = await listen<PtyStdoutEvent>("tab_pty_stdout", (event) => {
       if (event.payload.tabId !== props.tab.tabId) {

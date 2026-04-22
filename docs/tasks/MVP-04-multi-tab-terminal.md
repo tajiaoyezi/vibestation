@@ -63,10 +63,18 @@ reviewer: Kimi
 | Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ✅ done | [#82](https://github.com/tajiaoyezi/vibestation/pull/82) |
 | Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ✅ done | [#91](https://github.com/tajiaoyezi/vibestation/pull/91) |
 | Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
-| Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（FK CASCADE） | ⏳ todo | — |
+| Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（随 tabs 行删除自动清理 · sqlite 已验证） | ✅ done | — |
 | Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ⏳ todo | — |
 
-**下次 agent 起点**：Phase B · 依赖 Phase A 已落地的 `TabsDao::create_tab/list_tabs` + IPC `tabs.create/tabs.list/tabs.close/tabs.rename` + `scrollback_append/fetch`（见 PR #72）· 不要重写 storage 层。
+**Phase E · 持久化补充验收（本 PR）**
+- [x] PTY stdout 持续写入 scrollback（100ms debounce / 100 行阈值，whichever first）
+- [x] 关 workspace 重开后，已存在 Tab 的 scrollback 完整恢复（顺序 + 内容）
+- [x] 多 Tab scrollback 隔离（关重开后各自不串）
+- [x] 关 Tab 删除 `tabs` 行后，`scroll_back` JSON 同步消失（sqlite3 验证）
+- [x] 10k 行上限 trim · 超过部分 FIFO drop（Phase A DAO 测试覆盖 + 本轮 PTY→DB 集成路径补齐）
+- [x] PTY exit 时强制 flush 剩余 pending buffer（不丢最后几行）
+
+**下次 agent 起点**：Phase D + Phase F · Phase A/B/C/E 已落地；继续 shell 兼容（默认 shell / Claude/Codex CLI 实机）与 runtime 证据 / 性能量化，不要重写 storage 或 PTY 主链。
 
 **migration 版本规划**（L-2 · 本 MVP 不做 v6）：
 

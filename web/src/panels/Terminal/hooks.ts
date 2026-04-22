@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { Terminal as XTerm } from "@xterm/xterm";
 import { onCleanup, onMount } from "solid-js";
 import type { TabState } from "../../bindings";
 
@@ -22,6 +24,36 @@ export type ShortcutAction =
 
 export const DEFAULT_PTY_COLS = 120;
 export const DEFAULT_PTY_ROWS = 34;
+const SCROLLBACK_BATCH_SIZE = 1000;
+
+export const fetchScrollback = async (tabId: string): Promise<string[]> =>
+  invoke<string[]>("tab_scrollback_fetch", {
+    tabId,
+    offset: 0,
+    limit: 10_000,
+  });
+
+const writeBatch = (term: XTerm, data: string): Promise<void> =>
+  new Promise((resolve) => {
+    term.write(data, () => resolve());
+  });
+
+export const writeScrollbackToTerm = async (
+  term: XTerm,
+  lines: readonly string[],
+): Promise<void> => {
+  if (lines.length === 0) {
+    return;
+  }
+
+  for (let index = 0; index < lines.length; index += SCROLLBACK_BATCH_SIZE) {
+    const chunk = lines.slice(index, index + SCROLLBACK_BATCH_SIZE);
+    await writeBatch(term, `${chunk.join("\r\n")}\r\n`);
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  }
+};
 
 const isMacPlatform = (): boolean =>
   typeof navigator !== "undefined" &&

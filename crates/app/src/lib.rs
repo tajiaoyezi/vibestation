@@ -9,7 +9,8 @@ use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
-    AppSettingsStore, CommitDetail, GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
+    AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitLogQueryRequest,
+    GitLogQueryResponse, GitLogReader, GitStatusRequest, GitStatusResponse, GitStatusService,
     LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
     WorkspaceMetadata, WorkspaceStore,
@@ -275,6 +276,59 @@ fn git_log_cache_clear() -> Result<(), String> {
     GitLogReader::cache_clear().map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn diff_compute(state: State<'_, AppState>, req: DiffRequest) -> Result<DiffResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    DiffService::compute(&repo_path, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn diff_get_settings(state: State<'_, AppState>, workspace_id: String) -> Result<String, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    DiffService::get_view_mode(pool, &workspace_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_status_query(
+    state: State<'_, AppState>,
+    req: GitStatusRequest,
+) -> Result<GitStatusResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitStatusService::query(&repo_path, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_status_refresh(
+    state: State<'_, AppState>,
+    req: GitStatusRequest,
+) -> Result<GitStatusResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitStatusService::refresh(&repo_path, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_status_subscribe(workspace_id: String) {
+    GitStatusService::subscribe(&workspace_id);
+}
+
+#[tauri::command]
+fn git_status_unsubscribe(workspace_id: String) {
+    GitStatusService::unsubscribe(&workspace_id);
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -317,6 +371,12 @@ pub fn run() {
             git_log_query,
             git_log_commit_detail,
             git_log_cache_clear,
+            diff_compute,
+            diff_get_settings,
+            git_status_query,
+            git_status_refresh,
+            git_status_subscribe,
+            git_status_unsubscribe,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

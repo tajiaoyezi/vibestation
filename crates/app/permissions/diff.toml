@@ -1,0 +1,11 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-diff-compute"
+description = "允许前端计算指定文件的 diff（commit / staged / unstaged）"
+commands.allow = ["diff_compute"]
+
+[[permission]]
+identifier = "allow-diff-get-settings"
+description = "允许前端读取 diff 视图模式设置（split / unified）"
+commands.allow = ["diff_get_settings"]

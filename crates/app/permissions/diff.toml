@@ -9,3 +9,8 @@ commands.allow = ["diff_compute"]
 identifier = "allow-diff-get-settings"
 description = "允许前端读取 diff 视图模式设置（split / unified）"
 commands.allow = ["diff_get_settings"]
+
+[[permission]]
+identifier = "allow-diff-set-view-mode"
+description = "允许前端保存 diff 视图模式设置（split / unified）"
+commands.allow = ["diff_set_view_mode"]

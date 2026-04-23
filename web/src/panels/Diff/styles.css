@@ -1,0 +1,299 @@
+/* ══════ DIFF PANEL ══════ */
+
+.vs-diff-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-1);
+  color: var(--text-1);
+  font-family: var(--font-ui);
+  font-size: var(--text-size-base);
+  line-height: var(--text-line);
+}
+
+/* Toolbar */
+.vs-diff-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+.vs-diff-filepath {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.vs-diff-toolbar-right {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+.vs-diff-mode-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-3);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--r-4);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-diff-mode-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.vs-diff-mode-btn-on {
+  background: var(--bg-3);
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+/* Content area */
+.vs-diff-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.vs-diff-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.vs-diff-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vs-diff-content::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg-1);
+  border-radius: 4px;
+}
+
+/* States */
+.vs-diff-state {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  font-size: 0.8125rem;
+}
+
+.vs-diff-loading {
+  color: var(--text-3);
+}
+
+.vs-diff-error {
+  color: var(--danger);
+  background: oklch(0.72 0.19 25 / 0.08);
+}
+
+.vs-diff-empty {
+  color: var(--text-4);
+}
+
+.vs-diff-binary {
+  color: var(--text-2);
+}
+
+.vs-diff-binary-title {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.vs-diff-binary-sizes {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.vs-diff-truncated {
+  color: var(--text-2);
+}
+
+.vs-diff-truncated-title {
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.vs-diff-truncated-reason {
+  color: var(--text-3);
+  margin-bottom: var(--space-2);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.vs-diff-truncated-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-4);
+  margin-bottom: var(--space-3);
+}
+
+.vs-diff-show-anyway {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--text-1);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-diff-show-anyway:hover {
+  background: oklch(0.78 0.13 230 / 0.22);
+}
+
+/* Hunk */
+.vs-diff-hunks {
+  padding: var(--space-2) 0;
+}
+
+.vs-diff-hunk {
+  margin-bottom: var(--space-2);
+}
+
+.vs-diff-hunk-header {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/* Unified view */
+.vs-diff-unified {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.vs-diff-line {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 var(--space-2);
+  white-space: pre;
+  overflow: hidden;
+}
+
+.vs-diff-line:hover {
+  background: var(--bg-2);
+}
+
+.vs-diff-line-added {
+  background: oklch(0.8 0.14 155 / 0.08);
+}
+
+.vs-diff-line-added:hover {
+  background: oklch(0.8 0.14 155 / 0.15);
+}
+
+.vs-diff-line-removed {
+  background: oklch(0.72 0.19 25 / 0.08);
+}
+
+.vs-diff-line-removed:hover {
+  background: oklch(0.72 0.19 25 / 0.15);
+}
+
+.vs-diff-line-context {
+  background: transparent;
+}
+
+.vs-diff-line-num {
+  display: inline-block;
+  width: 40px;
+  text-align: right;
+  color: var(--text-4);
+  font-size: 0.6875rem;
+  flex-shrink: 0;
+  padding-right: var(--space-2);
+  user-select: none;
+}
+
+.vs-diff-line-num-old {
+  width: 40px;
+}
+
+.vs-diff-line-num-new {
+  width: 40px;
+}
+
+.vs-diff-line-marker {
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  color: var(--text-4);
+  font-size: 0.6875rem;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.vs-diff-line-content {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-1);
+  padding-left: var(--space-1);
+}
+
+/* Split view */
+.vs-diff-split {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.vs-diff-split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 20px;
+}
+
+.vs-diff-split-cell {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  white-space: pre;
+  overflow: hidden;
+  border-right: 1px solid var(--line-soft);
+}
+
+.vs-diff-split-cell:last-child {
+  border-right: none;
+}
+
+.vs-diff-split-empty {
+  background: var(--bg-1);
+}

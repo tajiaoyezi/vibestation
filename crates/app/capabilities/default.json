@@ -33,6 +33,8 @@
     "allow-diff-get-settings",
     "allow-git-status-query",
     "allow-git-status-refresh",
+    "allow-git-status-get-settings",
+    "allow-git-status-set-group-collapsed",
     "allow-git-status-subscribe",
     "allow-git-status-unsubscribe",
     "dialog:default"

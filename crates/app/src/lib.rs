@@ -10,10 +10,10 @@ use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
     AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitLogQueryRequest,
-    GitLogQueryResponse, GitLogReader, GitStatusRequest, GitStatusResponse, GitStatusService,
-    LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
-    WorkspaceMetadata, WorkspaceStore,
+    GitLogQueryResponse, GitLogReader, GitStatusCollapseRequest, GitStatusPanelSettings,
+    GitStatusRequest, GitStatusResponse, GitStatusService, LayoutState, LayoutStore, PtyEvent,
+    PtyEventReceiver, PtyManager, PtySpawnRequest, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -320,6 +320,27 @@ fn git_status_refresh(
 }
 
 #[tauri::command]
+fn git_status_get_settings(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<GitStatusPanelSettings, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    GitStatusService::get_panel_settings(pool, &workspace_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_status_set_group_collapsed(
+    state: State<'_, AppState>,
+    req: GitStatusCollapseRequest,
+) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    GitStatusService::set_group_collapsed(pool, &req.workspace_id, req.group, req.collapsed)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn git_status_subscribe(workspace_id: String) {
     GitStatusService::subscribe(&workspace_id);
 }
@@ -375,6 +396,8 @@ pub fn run() {
             diff_get_settings,
             git_status_query,
             git_status_refresh,
+            git_status_get_settings,
+            git_status_set_group_collapsed,
             git_status_subscribe,
             git_status_unsubscribe,
         ])

@@ -26,3 +26,6 @@ export type { DiffLineType } from "./DiffLineType";
 export type { GitStatusRequest } from "./GitStatusRequest";
 export type { GitStatusResponse } from "./GitStatusResponse";
 export type { FileStatusEvent } from "./FileStatusEvent";
+export type { GitStatusPanelSettings } from "./GitStatusPanelSettings";
+export type { GitStatusCollapseRequest } from "./GitStatusCollapseRequest";
+export type { GitStatusGroup } from "./GitStatusGroup";

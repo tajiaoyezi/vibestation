@@ -1,9 +1,12 @@
 import { type Component } from "solid-js";
+import type { WorkspaceMetadata } from "../bindings";
+import { GitStatusPanel } from "../panels/GitStatus";
 
 interface BottomPanelProps {
   layout: () => { bottomOpen: boolean; bottomHeight: number };
   onResizeStart: (e: MouseEvent) => void;
   onResizeReset: () => void;
+  activeWorkspace: () => WorkspaceMetadata | null;
 }
 
 export const BottomPanel: Component<BottomPanelProps> = (props) => {
@@ -27,7 +30,7 @@ export const BottomPanel: Component<BottomPanelProps> = (props) => {
         onDblClick={props.onResizeReset}
       />
       <div class="vs-bp-head">
-        <span class="vs-bp-tab vs-bp-tab-on">Problems</span>
+        <span class="vs-bp-tab vs-bp-tab-on">Git Status</span>
         <span class="vs-bp-tab">Output</span>
         <span class="vs-bp-tab">Diff</span>
         <div class="vs-bp-right">
@@ -35,7 +38,7 @@ export const BottomPanel: Component<BottomPanelProps> = (props) => {
         </div>
       </div>
       <div class="vs-bp-body">
-        <p class="vs-placeholder-text">MVP-08 will fill this area</p>
+        <GitStatusPanel activeWorkspace={props.activeWorkspace} />
       </div>
     </div>
   );

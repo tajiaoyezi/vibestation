@@ -11,6 +11,16 @@ description = "允许前端手动刷新 workspace 的 git status"
 commands.allow = ["git_status_refresh"]
 
 [[permission]]
+identifier = "allow-git-status-get-settings"
+description = "允许前端读取 Git Status 面板折叠设置"
+commands.allow = ["git_status_get_settings"]
+
+[[permission]]
+identifier = "allow-git-status-set-group-collapsed"
+description = "允许前端保存 Git Status 面板分组折叠状态"
+commands.allow = ["git_status_set_group_collapsed"]
+
+[[permission]]
 identifier = "allow-git-status-subscribe"
 description = "允许前端订阅 workspace 的 git status 更新事件"
 commands.allow = ["git_status_subscribe"]

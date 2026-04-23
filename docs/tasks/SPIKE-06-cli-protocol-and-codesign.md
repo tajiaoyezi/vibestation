@@ -25,7 +25,7 @@ reviewer:
 
 # SPIKE-06: Claude CLI / Codex CLI 实机 + macOS Dev Program
 
-> **状态**：`ready`（2026-04-19 draft → ready · phase-4-infra-landing 依赖已 PR #11 满足）
+> **状态**：`blocked`（§A harness + 36 脱敏样本已完成 · §B Apple Developer Program 申请中）
 > **依赖**：SPIKE-05（PTY 架构已验证 · done）· phase-4-infra-landing 已满足（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 均在 main · PR #11 merged）
 > **战略依据**：[`implementation-plan.md §附录 A D6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
 

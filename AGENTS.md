@@ -18,7 +18,7 @@
 
 ## 📍 当前阶段（一句话）
 
-**Pre-code Phase 1-4 全交付 · Spike W0 可启动**（2026-04-18 之后状态 · 详见 `docs/PROGRESS.md`）。
+**开发中 · 主线已进入 MVP-08 Phase C（Diff 视图前端）**（当前事实以 `docs/PROGRESS.md` 为准）。
 
 ---
 
@@ -41,8 +41,8 @@
 | **权威单文件入口** | `CLAUDE.md` | 规则 / 决策 / 禁区 / 命令速查 · 所有 agent 工具的事实标准 |
 | **当前位置** | `docs/PROGRESS.md` | 阶段 / 进度 / 下一步 |
 | **人类阶段感知手册** | `docs/SESSION-STARTUP.md` | 当前阶段 Playbook + FAQ |
-| **任务索引** | `docs/tasks/README.md` + `docs/tasks/<TYPE-NN>-*.md` | 27 个 task spec |
-| **架构决策** | `docs/adr/README.md` + `docs/adr/ADR-NNN-*.md` | 10 ADR · 6 accepted + 4 proposed |
+| **任务索引** | `docs/tasks/README.md` + `docs/tasks/<TYPE-NN>-*.md` | 30 个 task spec |
+| **架构决策** | `docs/adr/README.md` + `docs/adr/ADR-NNN-*.md` | 14 ADR accepted |
 | **战略计划（14 章 + 附录）** | `docs/implementation-plan.md` | 完整产品定位 / 架构 / 风险登记 / Milestone |
 | **视觉原型** | `design/directions/1-calm-studio.html` | Calm Studio 定稿 · 1329 行可直接 `open` 体验 |
 | **贡献指南** | `CONTRIBUTING.md` | PR 流程 + Commit 规范 + 用户拍板 gate |

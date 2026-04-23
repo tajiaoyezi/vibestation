@@ -1,7 +1,6 @@
 <!--
-  README — v0.0.0（规划期）
-  v0.1 发布时会由 design + implementation-plan 的产出派生出正式 README。
-  当前版本仅记录项目存在、定位与仓库结构，不对外宣传。
+  README — 开发中（未发布）
+  当前版本记录仓库现状与高层定位，不展开 session 级执行细节。
 -->
 
 # Vibestation
@@ -9,7 +8,7 @@
 > 给 Claude CLI / Codex CLI 用户的多 Tab 终端 + JetBrains 级 Git 工作台。
 > 一个窗口管多项目，每个 Tab 一个 CLI 会话，右栏看 Git，不再为了看 commit 打开一堆 IDE。
 
-**项目状态**：规划期 · v0.0.0 · 尚未发布可用二进制 · **Pre-code Phase 1-4 已全部交付**（27 task spec + 10 ADR + 全套治理），等待启动 Spike Week 0 Day 1（SPIKE-01 Tauri 三平台空壳）。
+**项目状态**：开发中 · 尚未发布可用二进制 · 终端主链已完成 `MVP-04` Phase A/B/C/E/F，Git 读链已完成 `MVP-07` + `MVP-08` Phase A/B，当前主线为 `MVP-08` Phase C（Diff 视图前端）。
 
 ---
 
@@ -21,10 +20,21 @@ vibestation/
 ├── NOTICE                  Apache 2.0 归属声明
 ├── README.md               本文件
 ├── .gitignore              Rust / Node / Tauri / OS
+├── crates/
+│   ├── app/                            Tauri 启动层 / IPC / permissions / capabilities
+│   └── core/                           业务核心（workspace / PTY / git / diff / layout）
+├── web/
+│   ├── src/                            SolidJS 前端（Terminal / Git Log / Git Status）
+│   └── package.json
 ├── docs/
+│   ├── PROGRESS.md                     当前进度 / 下一步 / 滚动窗口
+│   ├── SESSION-STARTUP.md              人类启动手册
+│   ├── tasks/                          task spec 索引与实施规格
+│   ├── adr/                            accepted ADR
+│   ├── runtime-evidence/               runtime 截图 / 指标记录
 │   ├── implementation-plan.md          v2 实施计划（14 章 + 附录）
 │   ├── codex-review-and-response.md    Codex 独立评审与应对
-│   └── tech-research.md                 CodexMonitor / lapce / gitui 预研
+│   └── tech-research.md                CodexMonitor / lapce / gitui 预研
 └── design/
     ├── index.html          视觉方向总览（4 个方向）
     ├── directions/
@@ -58,18 +68,18 @@ open design/index.html
 | 维度 | 值 |
 |------|---|
 | 许可证 | **Apache License 2.0**（无 CLA）|
-| 技术栈 | Tauri 2 + Rust + SolidJS + xterm.js（Spike Day 2 硬通过后锁；失败回退 Electron 28+）|
-| 持久化 | 默认 redb，Spike 后对比 rusqlite 再锁 |
-| Git 栈 | 默认 git2；读路径性能不足时引入 gix |
-| 平台 | MVP：macOS + Ubuntu 24（Wayland 必过）；Windows 11 推到 v0.4 |
+| 技术栈 | **Tauri 2 + Rust + SolidJS + xterm.js** |
+| 持久化 | **rusqlite 0.31+ + r2d2_sqlite** |
+| Git 栈 | **git2 0.20 写 + gix 0.70 读** |
+| 平台 | **macOS-first**；Ubuntu 24 为低优先级补测项；Windows 11 推到 v0.4 |
 | 视觉方向 | Calm Studio（柔和 oklch + Inter + JetBrains Mono 双字体）|
 
 ## 路线图（高层）
 
 | 里程碑 | 周 | 内容 |
 |--------|----|------|
-| Spike W0 | 1 周 | Tauri Pass/Fail · PTY · 多 Tab · Claude CLI 实机 · git2 读 · git2 写 · 存储对比 benchmark |
-| v0.1 MVP | +12 周 | 多 Tab 终端 · Git log/status 只读 · Commit · 基础 Diff · 单层 Pane · 配置导入 · 崩溃恢复 · macOS + Linux 签名打包 |
+| Spike W0（已完成） | 1 周 | Tauri / PTY / Git / 存储 / CLI 实机验证与 ADR 锁定 |
+| v0.1 MVP（进行中） | +12 周 | 多 Tab 终端 · Git log/status 只读 · Commit · 基础 Diff · 单层 Pane · 配置导入 · 崩溃恢复 · macOS-first 打包发布 |
 | v0.2 | +5 周 | Push/Pull/Fetch · Rail graph · 分支管理 · Pane 任意嵌套 |
 | v0.3 | +5 周 | Rebase/Merge/Cherry-pick · 冲突解决 · Pop to External |
 | v1.0 | +6-8 周 | 高级工作流能力（范围详见 [`implementation-plan.md`](docs/implementation-plan.md)）|

@@ -68,7 +68,10 @@ mod tests {
 
     #[test]
     fn resolved_shell_prefers_non_empty_env_value() {
-        assert_eq!(resolved_shell(Some("/opt/homebrew/bin/fish")), "/opt/homebrew/bin/fish");
+        assert_eq!(
+            resolved_shell(Some("/opt/homebrew/bin/fish")),
+            "/opt/homebrew/bin/fish"
+        );
     }
 
     #[test]

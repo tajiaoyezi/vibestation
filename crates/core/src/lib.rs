@@ -15,7 +15,9 @@ pub mod tabs;
 pub mod workspace;
 
 pub use app_settings::AppSettingsStore;
-pub use diff::{DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService};
+pub use diff::{
+    DiffError, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService,
+};
 pub use git_log::{
     CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogError,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader,

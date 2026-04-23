@@ -15,9 +15,11 @@ import type {
   WorkspaceMetadata,
 } from "../../bindings";
 import { queryLog, fetchDetail, clearCache } from "./gitLogApi";
+import type { DiffTarget } from "../../components/MainContent";
 
 export interface GitLogPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
+  onOpenDiff?: (target: DiffTarget) => void;
 }
 
 export function createGitLogStore() {
@@ -335,14 +337,25 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
                   </Show>
                   <For each={store.detail()!.files.slice(0, 200)}>
                     {(file) => (
-                      <div class="vs-git-log-file">
+                      <button
+                        type="button"
+                        class="vs-git-log-file"
+                        onClick={() => {
+                          if (!props.onOpenDiff) return;
+                          props.onOpenDiff({
+                            workspaceId: workspaceId(),
+                            source: store.detail()!.fullSha,
+                            filePath: file.path,
+                          });
+                        }}
+                      >
                         <span
                           class={`vs-git-log-file-status vs-git-log-status-${file.status}`}
                         >
                           {file.status}
                         </span>
                         <span class="vs-git-log-file-path">{file.path}</span>
-                      </div>
+                      </button>
                     )}
                   </For>
                 </div>

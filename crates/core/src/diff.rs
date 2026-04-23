@@ -85,6 +85,8 @@ pub enum DiffError {
     Io(String),
     #[error("setting error: {0}")]
     Settings(String),
+    #[error("invalid view mode: {0:?}, expected \"split\" or \"unified\"")]
+    InvalidViewMode(String),
 }
 
 impl From<std::io::Error> for DiffError {
@@ -124,6 +126,19 @@ impl DiffService {
             Err(SettingsError::NotFound(_)) => Ok(DEFAULT_VIEW_MODE.to_string()),
             Err(other) => Err(other.into()),
         }
+    }
+
+    pub fn set_view_mode(
+        pool: &DbPool,
+        workspace_id: &str,
+        view_mode: &str,
+    ) -> Result<(), DiffError> {
+        match view_mode {
+            "split" | "unified" => {}
+            other => return Err(DiffError::InvalidViewMode(other.to_string())),
+        }
+        let key = format!("diff_view_mode:{workspace_id}");
+        AppSettingsStore::set(pool, &key, view_mode).map_err(Into::into)
     }
 }
 
@@ -495,6 +510,41 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let db_path = dir.path().join("diff_settings.db");
         let pool = crate::db::open_pool(&db_path).unwrap();
+        assert_eq!(DiffService::get_view_mode(&pool, "ws-1").unwrap(), "split");
+    }
+
+    #[test]
+    fn set_view_mode_roundtrip_unified() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("diff_settings.db");
+        let pool = crate::db::open_pool(&db_path).unwrap();
+        DiffService::set_view_mode(&pool, "ws-1", "unified").unwrap();
+        assert_eq!(
+            DiffService::get_view_mode(&pool, "ws-1").unwrap(),
+            "unified"
+        );
+    }
+
+    #[test]
+    fn set_view_mode_overwrites_previous() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("diff_settings.db");
+        let pool = crate::db::open_pool(&db_path).unwrap();
+        DiffService::set_view_mode(&pool, "ws-1", "split").unwrap();
+        DiffService::set_view_mode(&pool, "ws-1", "unified").unwrap();
+        assert_eq!(
+            DiffService::get_view_mode(&pool, "ws-1").unwrap(),
+            "unified"
+        );
+    }
+
+    #[test]
+    fn set_view_mode_rejects_invalid_value() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("diff_settings.db");
+        let pool = crate::db::open_pool(&db_path).unwrap();
+        let err = DiffService::set_view_mode(&pool, "ws-1", "side-by-side").unwrap_err();
+        assert!(matches!(err, DiffError::InvalidViewMode(ref v) if v == "side-by-side"));
         assert_eq!(DiffService::get_view_mode(&pool, "ws-1").unwrap(), "split");
     }
 }

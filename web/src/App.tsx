@@ -216,6 +216,7 @@ const LayoutShell: Component<{
         })}
         onResizeStart={handleBottomResizeStart}
         onResizeReset={() => dispatch({ kind: "reset-bottom" })}
+        activeWorkspace={activeWorkspace}
       />
 
       <footer class="vs-status-bar" aria-label="Status bar">

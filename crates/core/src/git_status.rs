@@ -4,7 +4,11 @@ use git2::{DiffDelta, DiffOptions, ErrorCode, Repository as Git2Repository, Stat
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::FileChange;
+use crate::{
+    app_settings::{AppSettingsStore, SettingsError},
+    db::DbPool,
+    FileChange,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -32,6 +36,33 @@ pub struct FileStatusEvent {
     pub untracked: Vec<FileChange>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatusPanelSettings {
+    pub staged_collapsed: bool,
+    pub unstaged_collapsed: bool,
+    pub untracked_collapsed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatusCollapseRequest {
+    pub workspace_id: String,
+    pub group: GitStatusGroup,
+    pub collapsed: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub enum GitStatusGroup {
+    Staged,
+    Unstaged,
+    Untracked,
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum GitStatusError {
     #[error("not a git repository: {0}")]
@@ -40,11 +71,19 @@ pub enum GitStatusError {
     GitOpen(String),
     #[error("git2 error: {0}")]
     Git2(String),
+    #[error("setting error: {0}")]
+    Settings(String),
 }
 
 impl From<git2::Error> for GitStatusError {
     fn from(error: git2::Error) -> Self {
         Self::Git2(error.to_string())
+    }
+}
+
+impl From<SettingsError> for GitStatusError {
+    fn from(error: SettingsError) -> Self {
+        Self::Settings(error.to_string())
     }
 }
 
@@ -131,6 +170,51 @@ impl GitStatusService {
     pub fn subscribe(_workspace_id: &str) {}
 
     pub fn unsubscribe(_workspace_id: &str) {}
+
+    pub fn get_panel_settings(
+        pool: &DbPool,
+        workspace_id: &str,
+    ) -> Result<GitStatusPanelSettings, GitStatusError> {
+        Ok(GitStatusPanelSettings {
+            staged_collapsed: get_collapsed(pool, workspace_id, GitStatusGroup::Staged)?,
+            unstaged_collapsed: get_collapsed(pool, workspace_id, GitStatusGroup::Unstaged)?,
+            untracked_collapsed: get_collapsed(pool, workspace_id, GitStatusGroup::Untracked)?,
+        })
+    }
+
+    pub fn set_group_collapsed(
+        pool: &DbPool,
+        workspace_id: &str,
+        group: GitStatusGroup,
+        collapsed: bool,
+    ) -> Result<(), GitStatusError> {
+        let key = status_panel_setting_key(workspace_id, group);
+        let value = if collapsed { "true" } else { "false" };
+        AppSettingsStore::set(pool, &key, value)?;
+        Ok(())
+    }
+}
+
+fn get_collapsed(
+    pool: &DbPool,
+    workspace_id: &str,
+    group: GitStatusGroup,
+) -> Result<bool, GitStatusError> {
+    let key = status_panel_setting_key(workspace_id, group);
+    match AppSettingsStore::get(pool, &key) {
+        Ok(value) => Ok(value == "true"),
+        Err(SettingsError::NotFound(_)) => Ok(false),
+        Err(other) => Err(other.into()),
+    }
+}
+
+fn status_panel_setting_key(workspace_id: &str, group: GitStatusGroup) -> String {
+    let suffix = match group {
+        GitStatusGroup::Staged => "staged",
+        GitStatusGroup::Unstaged => "unstaged",
+        GitStatusGroup::Untracked => "untracked",
+    };
+    format!("status_panel_collapsed:{workspace_id}:{suffix}")
 }
 
 fn open_repo(repo_path: &Path) -> Result<Git2Repository, GitStatusError> {
@@ -274,6 +358,7 @@ fn unstaged_status_code(status: Status) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db;
     use git2::{IndexAddOption, Signature};
     use tempfile::TempDir;
 
@@ -281,6 +366,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let repo = Git2Repository::init(dir.path()).unwrap();
         (dir, repo)
+    }
+
+    fn setup_settings_pool() -> (TempDir, DbPool) {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("git_status_settings.db");
+        let pool = db::open_pool(&db_path).unwrap();
+        (dir, pool)
     }
 
     fn commit_all(repo: &Git2Repository, message: &str) {
@@ -367,5 +459,25 @@ mod tests {
             .unstaged
             .iter()
             .any(|file| file.path == "combo.txt"));
+    }
+
+    #[test]
+    fn panel_settings_default_to_expanded() {
+        let (_dir, pool) = setup_settings_pool();
+        let settings = GitStatusService::get_panel_settings(&pool, "ws-1").unwrap();
+        assert!(!settings.staged_collapsed);
+        assert!(!settings.unstaged_collapsed);
+        assert!(!settings.untracked_collapsed);
+    }
+
+    #[test]
+    fn set_group_collapsed_round_trips() {
+        let (_dir, pool) = setup_settings_pool();
+        GitStatusService::set_group_collapsed(&pool, "ws-1", GitStatusGroup::Untracked, true)
+            .unwrap();
+        let settings = GitStatusService::get_panel_settings(&pool, "ws-1").unwrap();
+        assert!(!settings.staged_collapsed);
+        assert!(!settings.unstaged_collapsed);
+        assert!(settings.untracked_collapsed);
     }
 }

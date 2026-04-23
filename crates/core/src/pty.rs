@@ -11,8 +11,10 @@ use mio::{Events, Interest, Poll, Token};
 use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::os::fd::RawFd;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -448,8 +450,9 @@ impl PtyManager {
             return Err(PtyError::AlreadyRunning(req.tab_id));
         }
 
+        let shell = effective_shell_for_spawn(&req.shell, std::env::var("SHELL").ok().as_deref());
         let resolved_shell =
-            resolve_shell(&req.shell).ok_or_else(|| PtyError::ShellNotFound(req.shell.clone()))?;
+            resolve_shell(&shell).ok_or_else(|| PtyError::ShellNotFound(shell.clone()))?;
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {
@@ -794,17 +797,53 @@ fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
     }
 }
 
+fn default_shell_path() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "/bin/zsh"
+    } else {
+        "/bin/bash"
+    }
+}
+
+fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
+    let requested = requested.trim();
+    let env_shell = env_shell
+        .map(str::trim)
+        .filter(|shell| !shell.is_empty())
+        .map(str::to_string);
+
+    if requested.is_empty() {
+        return env_shell.unwrap_or_else(|| default_shell_path().to_string());
+    }
+
+    if requested == default_shell_path() {
+        return env_shell.unwrap_or_else(|| requested.to_string());
+    }
+
+    requested.to_string()
+}
+
 fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {
-        return path.is_file().then(|| path.to_path_buf());
+        return is_executable_file(path).then(|| path.to_path_buf());
     }
 
-    std::env::var_os("PATH").and_then(|path_var| {
-        std::env::split_paths(&path_var)
+    resolve_shell_in_path(shell, std::env::var_os("PATH").as_deref())
+}
+
+fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBuf> {
+    path_var.and_then(|path_var| {
+        std::env::split_paths(path_var)
             .map(|dir| dir.join(shell))
-            .find(|candidate| candidate.is_file())
+            .find(|candidate| is_executable_file(candidate))
     })
+}
+
+fn is_executable_file(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+        .unwrap_or(false)
 }
 
 fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
@@ -835,6 +874,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 mod tests {
     use super::*;
     use crossbeam_channel::RecvTimeoutError;
+    use std::os::unix::fs::PermissionsExt;
     use ts_rs::{Config, TS};
 
     fn manager_with_events() -> (PtyManager, Receiver<PtyEvent>) {
@@ -998,6 +1038,53 @@ mod tests {
     fn exit_code_maps_none_for_signals() {
         let status = ExitStatus::with_signal("SIGKILL");
         assert_eq!(exit_code_from_status(&status), None);
+    }
+
+    #[test]
+    fn effective_shell_prefers_env_shell_for_default_request() {
+        assert_eq!(
+            effective_shell_for_spawn(default_shell_path(), Some("/opt/homebrew/bin/fish")),
+            "/opt/homebrew/bin/fish"
+        );
+    }
+
+    #[test]
+    fn effective_shell_keeps_explicit_non_default_request() {
+        assert_eq!(
+            effective_shell_for_spawn("/bin/sh", Some("/opt/homebrew/bin/fish")),
+            "/bin/sh"
+        );
+    }
+
+    #[test]
+    fn effective_shell_falls_back_when_request_is_empty() {
+        assert_eq!(
+            effective_shell_for_spawn("", Some("/usr/local/bin/bash")),
+            "/usr/local/bin/bash"
+        );
+        assert_eq!(effective_shell_for_spawn("", None), default_shell_path());
+    }
+
+    #[test]
+    fn resolve_shell_in_path_skips_non_executable_candidates() {
+        let temp = tempfile::TempDir::new().unwrap();
+        let first = temp.path().join("first");
+        let second = temp.path().join("second");
+        std::fs::create_dir_all(&first).unwrap();
+        std::fs::create_dir_all(&second).unwrap();
+
+        let non_exec = first.join("fish");
+        let exec = second.join("fish");
+        std::fs::write(&non_exec, "#!/bin/sh\n").unwrap();
+        std::fs::write(&exec, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&non_exec, std::fs::Permissions::from_mode(0o644)).unwrap();
+        std::fs::set_permissions(&exec, std::fs::Permissions::from_mode(0o755)).unwrap();
+
+        let path_var = std::env::join_paths([first.as_path(), second.as_path()]).unwrap();
+        assert_eq!(
+            resolve_shell_in_path("fish", Some(path_var.as_os_str())),
+            Some(exec)
+        );
     }
 
     #[test]

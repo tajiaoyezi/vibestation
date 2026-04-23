@@ -29,6 +29,12 @@
     "allow-git-log-query",
     "allow-git-log-commit-detail",
     "allow-git-log-cache-clear",
+    "allow-diff-compute",
+    "allow-diff-get-settings",
+    "allow-git-status-query",
+    "allow-git-status-refresh",
+    "allow-git-status-subscribe",
+    "allow-git-status-unsubscribe",
     "dialog:default"
   ]
 }

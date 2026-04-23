@@ -1,0 +1,21 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-git-status-query"
+description = "允许前端查询 workspace 的 staged / unstaged / untracked 状态"
+commands.allow = ["git_status_query"]
+
+[[permission]]
+identifier = "allow-git-status-refresh"
+description = "允许前端手动刷新 workspace 的 git status"
+commands.allow = ["git_status_refresh"]
+
+[[permission]]
+identifier = "allow-git-status-subscribe"
+description = "允许前端订阅 workspace 的 git status 更新事件"
+commands.allow = ["git_status_subscribe"]
+
+[[permission]]
+identifier = "allow-git-status-unsubscribe"
+description = "允许前端取消订阅 workspace 的 git status 更新事件"
+commands.allow = ["git_status_unsubscribe"]

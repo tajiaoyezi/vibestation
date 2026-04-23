@@ -14,9 +14,10 @@ use ts_rs::{Config, TS};
 use vibestation_core::{
     CommitAuthor, CommitDetail, CommitParent, DiffHunk, DiffLine, DiffLineType, DiffRequest,
     DiffResponse, FileChange, FileStatusEvent, GitLogEntry, GitLogQueryRequest,
-    GitLogQueryResponse, GitStatusRequest, GitStatusResponse, LayoutState, PtyExitedEvent,
-    PtySpawnRequest, PtyStdoutEvent, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabState, WorkspaceMetadata,
+    GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
+    GitStatusRequest, GitStatusResponse, LayoutState, PtyExitedEvent, PtySpawnRequest,
+    PtyStdoutEvent, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState,
+    WorkspaceMetadata,
 };
 
 fn main() {
@@ -65,6 +66,9 @@ fn main() {
     GitStatusRequest::export_all(&config).expect("export GitStatusRequest");
     GitStatusResponse::export_all(&config).expect("export GitStatusResponse");
     FileStatusEvent::export_all(&config).expect("export FileStatusEvent");
+    GitStatusPanelSettings::export_all(&config).expect("export GitStatusPanelSettings");
+    GitStatusCollapseRequest::export_all(&config).expect("export GitStatusCollapseRequest");
+    GitStatusGroup::export_all(&config).expect("export GitStatusGroup");
 
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
@@ -98,6 +102,9 @@ fn main() {
             "export type { GitStatusRequest } from \"./GitStatusRequest\";",
             "export type { GitStatusResponse } from \"./GitStatusResponse\";",
             "export type { FileStatusEvent } from \"./FileStatusEvent\";",
+            "export type { GitStatusPanelSettings } from \"./GitStatusPanelSettings\";",
+            "export type { GitStatusCollapseRequest } from \"./GitStatusCollapseRequest\";",
+            "export type { GitStatusGroup } from \"./GitStatusGroup\";",
             "",
         ]
         .join("\n"),

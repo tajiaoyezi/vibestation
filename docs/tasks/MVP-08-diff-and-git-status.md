@@ -67,13 +67,13 @@ MVP-08 估时 5d，拆 5 Phase 串行实施：
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · diff 算法 + IPC 后端 | `similar` crate 接入 + git2 `statuses()` + gix blob 读取 + 6 个 IPC commands（`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`）+ 8 个 ts-rs binding 生成 + 单元测试（diff 算法 + binary 检测 + 大文件 fallback）| ⏳ todo | — |
+| Phase A · diff 算法 + IPC 后端 | `similar` crate 接入 + git2 `statuses()` + gix blob 读取 + 6 个 IPC commands（`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`）+ 8 个 ts-rs binding 生成 + 单元测试（diff 算法 + binary 检测 + 大文件 fallback）| ✅ done | [#100](https://github.com/tajiaoyezi/vibestation/pull/100) |
 | Phase B · Status 面板前端 | SolidJS 组件 `web/src/panels/GitStatus/` + 3 分组折叠 + 文件 icon + 加减行数 + 持久化（rusqlite）| ⏳ todo | — |
 | Phase C · Diff 视图前端 | SolidJS 组件 `web/src/panels/Diff/` + split/unified 切换 + 行号 + 大文件 lazy load + binary 提示 + 帧时长 < 16ms 验证 | ⏳ todo | — |
 | Phase D · fs watch 自动刷新 | `notify` crate 集成 + 三平台测试（macOS FSEvents · Linux inotify · Windows ReadDirectoryChangesW）+ 防抖 200ms + IPC event 推送前端 | ⏳ todo | — |
 | Phase E · runtime 证据 + 性能量化 | ≥ 5 张截图 / 30s 录屏 · 覆盖 status 面板 / split diff / unified diff / 大文件 fallback / fs watch 实时刷新 · A.2/A.6/F 性能门槛实测 · 放 `docs/runtime-evidence/mvp-08/` | ⏳ todo | — |
 
-**下次 agent 起点**：Phase A · 依赖 MVP-07 已落地的 `crates/core/src/git_log.rs` + `web/src/bindings/` 7 个 binding（不要重写 git_log · 只复用 `FileChange` 等 binding · 见 §G.5）。
+**下次 agent 起点**：Phase B · 复用已落地的 `diff_compute` / `git_status_query` / `diff_get_settings` IPC 和 `web/src/bindings/` Phase A contract；尤其注意 `DiffRequest.allowLargeFile` + `DiffResponse.truncatedReason/lineCount` 已经为大文件 fallback 预留，不要在前端重复发明另一套协议。
 
 **依赖关系说明**：
 - MVP-08 整体依赖 MVP-07 done（已满足 · PR #83）

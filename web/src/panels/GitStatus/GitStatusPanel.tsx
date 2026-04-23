@@ -1,14 +1,17 @@
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   createEffect,
   createSignal,
   For,
   Match,
+  onCleanup,
   Show,
   Switch,
   type Component,
 } from "solid-js";
 import type {
   FileChange,
+  FileStatusEvent,
   GitStatusCollapseRequest,
   GitStatusGroup,
   GitStatusPanelSettings,
@@ -17,10 +20,13 @@ import type {
   WorkspaceMetadata,
 } from "../../bindings";
 import {
+  GIT_STATUS_UPDATED_EVENT,
   getPanelSettings,
   queryStatus,
   refreshStatus,
   setGroupCollapsed,
+  subscribeStatus,
+  unsubscribeStatus,
 } from "./gitStatusApi";
 
 interface GitStatusPanelProps {
@@ -62,10 +68,6 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
   const workspaceId = () => props.activeWorkspace()?.workspaceId ?? "";
   const hasGit = () => props.activeWorkspace()?.hasGit ?? false;
 
-  const request = (): GitStatusRequest => ({
-    workspaceId: workspaceId(),
-  });
-
   const groupItems = (group: GroupKey): FileChange[] => status()[group];
 
   const isCollapsed = (group: GroupKey): boolean => {
@@ -100,11 +102,29 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     setLastUpdated(null);
   };
 
-  const loadWorkspace = async (mode: "query" | "refresh" = "query") => {
-    if (!workspaceId() || !hasGit()) {
+  const applyStatusEvent = (event: FileStatusEvent) => {
+    setStatus({
+      staged: event.staged,
+      unstaged: event.unstaged,
+      untracked: event.untracked,
+    });
+    setError(null);
+    setLoading(false);
+    setLastUpdated(new Date());
+  };
+
+  const loadWorkspace = async (
+    targetWorkspaceId: string,
+    mode: "query" | "refresh" = "query",
+  ) => {
+    if (!targetWorkspaceId) {
       clearPanelState();
       return;
     }
+
+    const req: GitStatusRequest = {
+      workspaceId: targetWorkspaceId,
+    };
 
     setLoading(true);
     setError(null);
@@ -112,26 +132,94 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     try {
       const fetchStatus = mode === "refresh" ? refreshStatus : queryStatus;
       const [response, panelSettings] = await Promise.all([
-        fetchStatus(request()),
-        getPanelSettings(workspaceId()),
+        fetchStatus(req),
+        getPanelSettings(targetWorkspaceId),
       ]);
+      if (workspaceId() !== targetWorkspaceId) {
+        return;
+      }
       setStatus(response);
       setSettings(panelSettings);
       setLastUpdated(new Date());
     } catch (err) {
+      if (workspaceId() !== targetWorkspaceId) {
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
     } finally {
-      setLoading(false);
+      if (workspaceId() === targetWorkspaceId) {
+        setLoading(false);
+      }
     }
   };
 
   createEffect(() => {
-    void loadWorkspace();
+    const id = workspaceId();
+    const gitEnabled = hasGit();
+
+    if (!id) {
+      clearPanelState();
+      return;
+    }
+
+    if (!gitEnabled) {
+      clearPanelState();
+      return;
+    }
+
+    let disposed = false;
+    let unlisten: UnlistenFn | undefined;
+
+    void loadWorkspace(id);
+
+    void (async () => {
+      try {
+        const stopListening = await listen<FileStatusEvent>(
+          GIT_STATUS_UPDATED_EVENT,
+          (event) => {
+            if (event.payload.workspaceId !== id) {
+              return;
+            }
+            applyStatusEvent(event.payload);
+          },
+        );
+
+        if (disposed) {
+          stopListening();
+          return;
+        }
+
+        unlisten = stopListening;
+        await subscribeStatus(id);
+
+        if (disposed) {
+          unlisten?.();
+          void unsubscribeStatus(id);
+        }
+      } catch (err) {
+        if (!disposed) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
+        unlisten?.();
+        unlisten = undefined;
+      }
+    })();
+
+    onCleanup(() => {
+      disposed = true;
+      unlisten?.();
+      void unsubscribeStatus(id);
+    });
   });
 
   const handleRefresh = async () => {
-    await loadWorkspace("refresh");
+    const id = workspaceId();
+    if (!id) {
+      clearPanelState();
+      return;
+    }
+    await loadWorkspace(id, "refresh");
   };
 
   const handleToggleGroup = async (

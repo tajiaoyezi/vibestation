@@ -6,6 +6,8 @@ import type {
   GitStatusResponse,
 } from "../../bindings";
 
+export const GIT_STATUS_UPDATED_EVENT = "git_status_updated";
+
 export async function queryStatus(
   req: GitStatusRequest,
 ): Promise<GitStatusResponse> {
@@ -30,4 +32,12 @@ export async function setGroupCollapsed(
   req: GitStatusCollapseRequest,
 ): Promise<void> {
   return invoke("git_status_set_group_collapsed", { req });
+}
+
+export async function subscribeStatus(workspaceId: string): Promise<void> {
+  return invoke("git_status_subscribe", { workspaceId });
+}
+
+export async function unsubscribeStatus(workspaceId: string): Promise<void> {
+  return invoke("git_status_unsubscribe", { workspaceId });
 }

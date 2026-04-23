@@ -18,6 +18,7 @@ import { SecondarySidebar } from "./components/SecondarySidebar";
 import { BottomPanel } from "./components/BottomPanel";
 import { ActivityStrip } from "./components/ActivityStrip";
 import { MainContent } from "./components/MainContent";
+import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
@@ -51,6 +52,7 @@ const IpcIndicator: Component<{ state: IpcState }> = (props) => {
 const LayoutShell: Component<{
   workspaces: () => WorkspaceMetadata[];
   currentView: () => View;
+  activeDiff: () => DiffTarget | null;
   ipc: () => IpcState;
   version: () => string;
   dbReady: () => boolean;
@@ -63,6 +65,8 @@ const LayoutShell: Component<{
   onDeleteExecute: () => void;
   onDeleteCancel: () => void;
   onDismissError: () => void;
+  onOpenDiff: (target: DiffTarget) => void;
+  onCloseDiff: () => void;
   onCloseWorkspaceView: (workspaceId: string) => void;
 }> = (props) => {
   const { layout, dispatch, loadForWorkspace } = useLayout();
@@ -192,6 +196,8 @@ const LayoutShell: Component<{
 
         <MainContent
           activeWorkspace={activeWorkspace}
+          activeDiff={props.activeDiff}
+          onCloseDiff={props.onCloseDiff}
           onCloseWorkspaceView={props.onCloseWorkspaceView}
           workspaces={props.workspaces}
         />
@@ -204,6 +210,7 @@ const LayoutShell: Component<{
           onResizeStart={handleSecondaryResizeStart}
           onResizeReset={() => dispatch({ kind: "reset-secondary" })}
           activeWorkspace={activeWorkspace}
+          onOpenDiff={props.onOpenDiff}
         />
 
         <ActivityStrip />
@@ -217,6 +224,7 @@ const LayoutShell: Component<{
         onResizeStart={handleBottomResizeStart}
         onResizeReset={() => dispatch({ kind: "reset-bottom" })}
         activeWorkspace={activeWorkspace}
+        onOpenDiff={props.onOpenDiff}
       />
 
       <footer class="vs-status-bar" aria-label="Status bar">
@@ -278,6 +286,7 @@ const App: Component = () => {
   const [ipc, setIpc] = createSignal<IpcState>({ kind: "pending" });
   const [workspaces, setWorkspaces] = createSignal<WorkspaceMetadata[]>([]);
   const [currentView, setCurrentView] = createSignal<View>({ kind: "welcome" });
+  const [activeDiff, setActiveDiff] = createSignal<DiffTarget | null>(null);
   const [dbReady, setDbReady] = createSignal(false);
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -352,6 +361,7 @@ const App: Component = () => {
       });
       setWorkspaces((prev) => [ws, ...prev]);
       setCurrentView({ kind: "workspace", ws });
+      setActiveDiff(null);
       setLoading(false);
     } catch (err) {
       setLoading(false);
@@ -364,6 +374,7 @@ const App: Component = () => {
       const ws = await invoke<WorkspaceMetadata>("workspace_open", { id });
       setWorkspaces((prev) => prev.map((w) => (w.workspaceId === id ? ws : w)));
       setCurrentView({ kind: "workspace", ws });
+      setActiveDiff(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -384,6 +395,7 @@ const App: Component = () => {
             ? { kind: "workspace", ws: remaining[0] }
             : { kind: "welcome" },
         );
+        setActiveDiff(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -394,7 +406,18 @@ const App: Component = () => {
     const view = currentView();
     if (view.kind === "workspace" && view.ws.workspaceId === workspaceId) {
       setCurrentView({ kind: "welcome" });
+      setActiveDiff(null);
     }
+  };
+
+  const handleOpenDiff = (target: DiffTarget) => {
+    const workspace = workspaces().find(
+      (item) => item.workspaceId === target.workspaceId,
+    );
+    if (workspace) {
+      setCurrentView({ kind: "workspace", ws: workspace });
+    }
+    setActiveDiff(target);
   };
 
   return (
@@ -403,6 +426,7 @@ const App: Component = () => {
         <LayoutShell
           workspaces={workspaces}
           currentView={currentView}
+          activeDiff={activeDiff}
           ipc={ipc}
           version={version}
           dbReady={dbReady}
@@ -415,6 +439,8 @@ const App: Component = () => {
           onDeleteExecute={handleDeleteWorkspace}
           onDeleteCancel={() => setDeleteConfirm(null)}
           onDismissError={() => setError(null)}
+          onOpenDiff={handleOpenDiff}
+          onCloseDiff={() => setActiveDiff(null)}
           onCloseWorkspaceView={handleCloseWorkspaceView}
         />
       </LayoutProvider>

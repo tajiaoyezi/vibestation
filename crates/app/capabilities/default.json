@@ -31,6 +31,7 @@
     "allow-git-log-cache-clear",
     "allow-diff-compute",
     "allow-diff-get-settings",
+    "allow-diff-set-view-mode",
     "allow-git-status-query",
     "allow-git-status-refresh",
     "allow-git-status-get-settings",

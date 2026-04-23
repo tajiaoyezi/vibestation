@@ -18,7 +18,7 @@ reviewer: Kimi
 
 # MVP-04: 多 Tab 终端
 
-> **状态**：`draft`
+> **状态**：`ready`（Phase A/B/C/E/F 已完成 · 仅剩 Phase D shell 兼容）
 > **依赖**：MVP-03（主区布局）· SPIKE-05（PTY 架构锁定）· SPIKE-06（CLI 实机验证）/ **阻塞**：MVP-05（Pane 基于 Tab）· MVP-06（配置导入映射到终端）
 > **战略依据**：[`§10.1`](../implementation-plan.md) · `§10.6 终端正确性矩阵`
 

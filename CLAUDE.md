@@ -178,7 +178,7 @@ gh pr create
 
 本项目欢迎任意 agent 工具（Claude Code / Codex / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …）。**不绑定具体 agent 身份**。
 
-**当前阶段（Pre-code + Phase 2-4 文档期）规则**：
+**当前阶段（代码实施期）规则**：
 
 1. **禁止 push main**：任何变更走 feature 分支（命名 `<scope>/<slug>`，如 `docs/phase-2-tasks` · `feat/git-log`）+ PR + 独立评审
 2. **Commit trailer 标识 agent**：`Co-authored-by: <Agent Name> <email>`（例 `Co-authored-by: Claude Code <noreply@anthropic.com>` / `Co-authored-by: Codex CLI <noreply@openai.com>` / `Co-authored-by: OpenCode <noreply@opencode.ai>`）
@@ -190,22 +190,23 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（session 13 · MVP-04 PTY 实施前夜）
+## 🏁 当前可执行动作（session 17 · MVP-08 Phase C 起点）
 
-**代码已落地**（`crates/app/` + `crates/core/` · 首行代码自 PR #28 · 2026-04-19 session 8）。`pnpm tauri:dev` 可跑 macOS 版本（Phase A+B ✅ · Phase C Ubuntu runtime 待环境 · session 13 降为最低优先）。
+**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #99/#100/#101/#102`：`MVP-04` Phase F 证据收口、`MVP-08` Phase A/B 落地，以及 PR 级 GitHub Actions 自动运行关闭。
 
 **v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
 
-- MVP-02/03 done · MVP-01 ready + Phase A/B done · MVP-04 storage 层 done（PR #72 · Phase B PTY runtime 待）
-- MVP-05/07/08/09 spec ready · MVP-06 spec review 进行中（Kimi 异步 · session 13）
+- MVP-02/03/07 done
+- MVP-04 ready · Phase A/B/C/E/F 已完成，仅剩 Phase D shell 兼容（低优先）
+- MVP-05/06/08/09/10 ready · 其中 MVP-08 已完成 Phase A/B，当前主线 = Phase C Diff 视图前端
 - SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）· §A 已 done
 
 本阶段可做的 4 件事（按优先级）：
 
-1. **MVP-04 Phase B PTY runtime 实施**（主线 · 2-3d · 派 Codex/OpenCode）· 依赖 PR #72 TabsDao · 参考 SPIKE-05 归档代码
-2. **MVP-06 spec review 返回**（Kimi 异步 · 20-30 min · 回后 PR 翻转 ready · v0.1 所有 10 MVP spec 全 ready 里程碑）
-3. **帮 v0.2/v0.3/v1.0 draft spec 升级 ready**（MVP-11..20 + SPIKE-07 · 离 v0.1 关键路径远 · 低优先）
-4. **遇到新决策提议 ADR**（按 `docs/adr/_template.md` · 当前 13 ADR · accepted 13 / proposed 0）
+1. **MVP-08 Phase C · Diff 视图前端**（主线 · split/unified 切换 + 大文件 fallback + 从 Git Status / Git Log 打开 Diff）
+2. **MVP-08 Phase D/E · fs watch + runtime 证据量化**（紧接 Phase C · 把 Diff 主线收口）
+3. **MVP-09 · Stage/Unstage + Commit 写路径**（依赖 MVP-08 C/D/E 收口后继续）
+4. **MVP-04 Phase D · shell 兼容**（默认 shell / Claude CLI / Codex CLI 实机 · 低优先，不要和 MVP-08 主线抢顺序）
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
 

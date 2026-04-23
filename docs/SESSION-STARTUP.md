@@ -5,48 +5,46 @@
 
 ---
 
-## ⚠️ 当前阶段：Pre-code Phase 1-4 全交付 · Spike W0 可启动（2026-04-18 之后）
+## ⚠️ 当前阶段：session 17 · MVP-04 Phase F 收口 + MVP-08 Phase A/B 已落地（2026-04-23）
 
-**仓库仍无代码**（第一行代码在 SPIKE-01 启动时产生），但 Phase 1-4 全套规划 / spec / 治理 / CI 基础设施**已完整交付**：
+**仓库已进入代码实施中段**，`main` 当前已合入 `PR #99/#100/#101/#102`：
 
-- ✅ `docs/tasks/` × 27（7 SPIKE + 20 MVP，全 frontmatter 合法）
-- ✅ `docs/adr/` × 10（6 accepted + 4 proposed pending Spike）
-- ✅ `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` / `CHANGELOG.md`
-- ✅ `.github/` 全套（4 issue 模板 + PR 模板 + 3 workflows + dependabot）
-- ✅ `docs/spikes/` + `docs/spike-artifacts/` + `docs/session-history/` 三个 per-task 目录
-- ⚠️ `pnpm tauri dev` / `cargo build` 仍会失败（SPIKE-01 启动后才有骨架）
-- ⚠️ main 分支保护**未应用**（用户暂缓 · 见 `docs/BRANCH-PROTECTION.md`）
+- ✅ `crates/app/` + `crates/core/` + `web/` 生产代码已在仓库中
+- ✅ `pnpm tauri:dev` / `cargo build` / `pnpm typecheck` 为可执行路径，不再是 pre-code 空仓库
+- ✅ `MVP-02/03/07` 已 done
+- ✅ `MVP-04` 已完成 Phase A/B/C/E/F，仅剩 Phase D shell 兼容
+- ✅ `MVP-08` 已完成 Phase A/B，当前主线进入 Phase C（Diff 视图前端）
+- ⚠️ 外部阻塞仍是 Ubuntu 24 环境与 Apple Developer Program；不阻塞当前主线
+- ⚠️ main 分支保护仍未应用（用户暂缓 · 见 `docs/BRANCH-PROTECTION.md`）
 
 **先读 `docs/PROGRESS.md` 的"📍 当前位置"和"🔜 下一步"获取最新状态。**
 
 ---
 
-## 🏁 今天立即能做的（3 选 1）
+## 🏁 今天立即能做的（按优先级）
 
-### 选项 A · 启动 Spike W0 Day 1（推荐）
-认领 `docs/tasks/SPIKE-01-tauri-three-platform-boot.md`：
-- 在 mac + Ubuntu 24 Wayland + X11 三平台跑 Tauri 2 空壳启动
-- 量化测冷启动耗时（mac < 2s · Linux < 3s）+ IME 录屏
-- 产出 `docs/spikes/SPIKE-01-report.md` + `docs/spike-artifacts/SPIKE-01/*.mp4`
-- **如果只有单平台**：先做 mac 半边，标记 Ubuntu 部分 `pending-cross-platform` 等接力
+### 选项 A · 继续主线：MVP-08 Phase C（推荐）
+认领 `docs/tasks/MVP-08-diff-and-git-status.md`：
+- 复用已落地 `diff_compute` / `diff_get_settings` / Git Status 面板 contract
+- 主区接入 Diff 视图前端：split/unified 切换、行号、binary 提示、大文件 fallback
+- 把 Git Status / Git Log 的文件点击真正接到 Diff 视图
 
-### 选项 B · 帮 draft spec 升级 ready（不在 W0 关键路径上）
-当前 27 个 spec 大部分仍是 draft。挑 v0.2/v0.3/v1.0 的 MVP（如 MVP-12..20）做独立评审：
-- 走 `docs/tasks/README.md` 第 7 步流程
-- 演练 `draft → ready` 翻转 gate（reviewer push 翻转 commit 推荐）
+### 选项 B · 收口主线：MVP-08 Phase D/E
+- `notify` / polling 刷新方案
+- runtime 证据 + 性能量化
+- 让 MVP-08 达到可交付状态，为 MVP-09 写路径铺路
 
-### 选项 C · 遇到新决策时提议 ADR-011+
-按 `docs/adr/_template.md`：
-- ≥ 2 候选选项 + 正面/负面/风险
-- 独立评审 + **用户拍板 gate**（B → A 升级硬阻塞）
+### 选项 C · 低优先级收尾：MVP-04 Phase D
+- 默认 shell / Claude CLI / Codex CLI 实机兼容
+- 这是当前终端主链唯一剩余 Phase，但优先级低于 MVP-08 / MVP-09
 
 ---
 
 ## 📖 上手流程（phase-aware）
 
-### Pre-code · Spike W0 阶段（当前 · 2026-04-18 之后）
+### 当前阶段（代码已落地 · 2026-04-23）
 
-**权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补当前阶段的具体动作（认领 Spike / 写 spec PR / 翻转 gate）。
+**权威流程在 `CLAUDE.md` "🚀 新 Agent 首次启动（5 步）"**。本文件不复述，只补当前阶段的具体动作（认领主线 task / 实施 / 收尾）。
 
 ```
 阅读（对齐 AGENTS.md / CLAUDE.md 5 跳 onboarding）：
@@ -56,10 +54,10 @@
   4. docs/tasks/README.md         (3 分钟) — 任务索引 + 状态流转 + 翻转 gate
 
 动作（按 CLAUDE.md 第 5 步导游）：
-  5. 三选一：
-     A. 启动 SPIKE-01 Tauri 三平台空壳（status: ready · 直接 claim · PR #18 已翻转）
-     B. 帮某个 v0.2/v0.3/v1.0 draft spec（MVP-12..20）走独立评审升 ready
-     C. 提议新 ADR（按 docs/adr/_template.md · 含用户拍板 gate）
+  5. 按当前主线顺序挑任务：
+     A. MVP-08 Phase C（Diff 视图前端）
+     B. MVP-08 Phase D/E（刷新 + 证据量化）
+     C. MVP-09（写路径）或 MVP-04 Phase D（低优先）
 
   6. 实施：
      a. git checkout -b <scope>/<task-id>      # spike/SPIKE-01 / docs/spec-flip-MVP-15 / 等
@@ -79,30 +77,34 @@
 > ⚠️ **任何 commit 都走 PR，不直接 push main**。claim / 状态变更 / stale 释放等都走 PR。
 > ⚠️ 流程细节（状态机、blocked 恢复规则）以 `docs/tasks/README.md` "🔄 状态流转"为权威。
 
-### Code-ready 阶段（Spike W0 完成后）
-
 ```
 1. 读 CLAUDE.md + docs/PROGRESS.md
 2. 环境自检：rustc --version / node --version / pnpm --version
-3. pnpm install && pnpm tauri dev
-4. 去 docs/tasks/README.md 挑 status: ready 的任务
+3. 必要时：pnpm install && pnpm tauri:dev
+4. 去 docs/tasks/README.md 按 ready task + depends_on 已完成筛主线
 5. feat/<task-id> 分支 + 按 spec Acceptance 开发 → PR
 ```
 
 ---
 
-## 📁 当前仓库结构（Pre-code Phase 1-4 全交付）
+## 📁 当前仓库结构（代码已落地）
 
 ```
 vibestation/
 ├── AGENTS.md                     工具无关 agent 入口（路由到 CLAUDE.md）
 ├── CLAUDE.md                     项目权威单文件入口（规则 / 决策 / 禁区）
-├── README.md                     对外（规划期）
+├── README.md                     仓库首页状态说明
 ├── LICENSE / NOTICE              Apache 2.0
 ├── CONTRIBUTING.md               贡献指南 + 用户拍板 gate
 ├── CODE_OF_CONDUCT.md            Contributor Covenant 2.1 中文
 ├── CHANGELOG.md                  Keep a Changelog（release-please 维护）
 ├── .gitignore
+├── crates/
+│   ├── app/                      Tauri 启动层 / IPC / permissions / capabilities
+│   └── core/                     业务核心（workspace / PTY / git / diff / layout）
+├── web/
+│   ├── src/                      SolidJS 前端（Terminal / Git Log / Git Status）
+│   └── package.json
 ├── .github/
 │   ├── ISSUE_TEMPLATE/           4 模板（config / bug / feature / task_spec_proposal）
 │   ├── PULL_REQUEST_TEMPLATE.md  强制 Implemented by / Reviewed by / 翻转 gate
@@ -117,21 +119,20 @@ vibestation/
 │   ├── implementation-plan.md    v2 战略计划（14 章 + 附录）
 │   ├── codex-review-and-response.md
 │   ├── tech-research.md
-│   ├── tasks/                    27 task spec（3 ready: SPIKE-01/02/MVP-01 · 24 draft 按需翻转）
+│   ├── tasks/                    task spec 索引（当前共 30 个 task）
 │   │   ├── README.md · _template.md
 │   │   ├── SPIKE-01..07-*.md
 │   │   └── MVP-01..20-*.md
-│   ├── adr/                      10 ADR（6 accepted + 4 proposed pending Spike）
+│   ├── adr/                      accepted ADR + 模板
 │   │   ├── README.md · _template.md
-│   │   └── ADR-001..010-*.md
-│   ├── spikes/                   per-task SPIKE 报告目录（SPIKE-NN-report.md · 待 Spike 启动后产出）
-│   ├── spike-artifacts/          per-task 录屏/截图目录（<SPIKE-NN>/*.png/mp4 · 待 Spike 启动后产出）
+│   │   └── ADR-001..014-*.md
+│   ├── spikes/                   Spike 报告归档
+│   ├── spike-artifacts/          Spike 录屏 / 截图归档
+│   ├── runtime-evidence/         MVP / feature runtime 证据
 │   └── session-history/          session 归档（Phase 3 建立）
 └── design/
     ├── index.html · directions/ · logos/   Calm Studio 视觉定稿
 ```
-
-**Spike W0 启动后会新增**：`src-tauri/` + `web/` + `crates/`（实际代码骨架 · 由 SPIKE-01 / MVP-01 创建）+ `docs/ENV-SETUP.md`。
 
 ---
 
@@ -200,8 +201,8 @@ vibestation/
 已合并 main：
   gh pr create 一个 revert PR，git revert -m 1 <merge-commit-hash>
 
-redb 数据损坏：
-  cp ~/.config/vibestation/backups/*.redb ~/.config/vibestation/data.redb
+数据库异常：
+  先备份当前 app data 目录中的 SQLite 数据库，再新开 BUG task；当前存储已锁定为 rusqlite，不再使用 redb
 ```
 
 ### Spike Fail 切换 Fallback
@@ -213,10 +214,10 @@ Tauri on Wayland 失败（Day 2）：
   3. 更新 CLAUDE.md 决策表 #12 从 B 栏移 A 栏
   4. 更新 implementation-plan.md §3.1
 
-redb benchmark 输给 rusqlite（Day 6）：
-  1. docs/spikes/SPIKE-04-report.md 标 R27
-  2. ADR-005 supersede → rusqlite
-  3. 更新 CLAUDE.md #14
+rusqlite / git / PTY 这类 Spike 结论已锁定：
+  1. 查对应 SPIKE report 与 ADR
+  2. 不再把已 accepted ADR 当成待验证选项
+  3. 新变更走 ADR supersede，而不是重跑已完成 Spike
 
 git2 读慢（Day 4）：
   1. 引入 gix 0.70 混用
@@ -233,17 +234,17 @@ git2 读慢（Day 4）：
 
 ## ❓ FAQ（阶段导向）
 
-### Q1：为什么 `pnpm tauri dev` 会失败？
+### Q1：为什么 `pnpm tauri:dev` 可能会失败？
 
-仍处 **pre-code 阶段**（无 `package.json` / `src-tauri/` / `crates/`）。SPIKE-01 启动后会在 `spike-tmp/spike-01-tauri/` 建第一个 Tauri 骨架（`.gitignore` 已排除，作者本地 scratchpad），MVP-01 后才把生产骨架并入主仓库。
+当前已经不是 pre-code 阶段；若失败，通常是本地环境问题（Node / pnpm / Rust / Tauri 依赖）或运行时配置问题，而不是“仓库还没有代码”。先按 `CLAUDE.md` 的常用命令做环境自检，再看具体报错。
 
 ### Q2：我今天能做的第一件事是什么？
 
-三选一，见本文件顶部 **"🏁 今天立即能做的"**：启动 SPIKE-01 / 帮 draft spec 升 ready / 提议新 ADR。
+默认先接主线：`MVP-08 Phase C`。若不做主线，再看本文件顶部 **"🏁 今天立即能做的"** 里的 Phase D/E 或 MVP-04 Phase D。
 
 ### Q3：`CLAUDE.md` 里引用的 `docs/adr/ADR-NNN` 在哪？
 
-`docs/adr/` 目录已在 Phase 3 建立，当前 10 个 ADR（ADR-001..010）齐全。索引见 `docs/adr/README.md`。
+`docs/adr/` 目录已建立，当前 accepted ADR 已扩展到 `ADR-014`。索引见 `docs/adr/README.md`。
 
 ### Q4：我要修一个已锁决策（A 栏）怎么办？
 

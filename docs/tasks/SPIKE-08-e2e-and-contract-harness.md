@@ -15,7 +15,7 @@ reviewer: Claude Code (cross-agent review · Codex CLI implementer · 单人项�
 
 # SPIKE-08: E2E + IPC contract 双层防御 harness 选型 + POC
 
-> **状态**：`ready`（2026-04-20 · self-review 通过 · 单人项目 advisory gate · 可被认领）
+> **状态**：`done`（2026-04-20 · ts-rs 选型通过 · Playwright 作为 v0.1 runtime 补层）
 > **依赖**：MVP-02（真实 IPC 面 + rusqlite workspace 存储，作为 POC 的实验靶） / **阻塞**：无（session 11 并行 · 不卡 MVP-03 开工）
 > **战略依据**：[`implementation-plan.md §5.2 质量门`](../implementation-plan.md) · [`~/.claude/rules/15-runtime-verification-gate.md`](../../../../.claude/rules/15-runtime-verification-gate.md)
 

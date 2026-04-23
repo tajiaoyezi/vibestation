@@ -17,7 +17,7 @@ reviewer: Claude Code (cross-agent review · OpenCode implementer · 单人项�
 
 # MVP-03: Tool Windows 布局
 
-> **状态**：`ready`（2026-04-20 · MVP-02 done 解阻塞 · self-review 通过 · 可被认领）
+> **状态**：`done`（2026-04-20 · 5-zone 布局 / toggle / resize / theme 已交付）
 > **依赖**：MVP-01 · MVP-02 / **阻塞**：MVP-04（Tab 显示区域）· MVP-05（Pane 嵌入主区）· MVP-07（Git Log → Secondary Sidebar）
 
 ---

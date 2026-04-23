@@ -18,7 +18,7 @@ reviewer: Claude Code
 
 # SPIKE-02: Tauri 硬通过矩阵 + Electron fallback 验证
 
-> **状态**：`in-progress`（macOS Phase A PASS · 6 项硬通过判据 macOS 部分通过 · Ubuntu Phase C 待 Linux 环境 · ADR-006 仍 proposed）
+> **状态**：`blocked`（macOS Phase A PASS · Ubuntu 验证待环境 · 已降为最低优先）
 > **依赖**：SPIKE-01（空壳启动通过）/ **阻塞**：SPIKE-03..06（桌面框架锁定后才能做 git / storage / PTY / CLI 验证）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D2`](../implementation-plan.md)
 

@@ -3,7 +3,7 @@ id: MVP-08
 type: mvp
 title: Diff 基础视图（自绘）+ Git Status 只读面板
 status: ready
-owner:
+owner: Codex CLI
 phase: W9-W10
 depends_on: ["MVP-07"]
 blocks: ["MVP-09"]

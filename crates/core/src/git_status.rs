@@ -26,6 +26,25 @@ pub struct GitStatusResponse {
     pub untracked: Vec<FileChange>,
 }
 
+impl GitStatusResponse {
+    #[must_use]
+    pub fn to_event(&self, workspace_id: impl Into<String>) -> FileStatusEvent {
+        FileStatusEvent {
+            workspace_id: workspace_id.into(),
+            staged: self.staged.clone(),
+            unstaged: self.unstaged.clone(),
+            untracked: self.untracked.clone(),
+        }
+    }
+
+    #[must_use]
+    pub fn equivalent(&self, other: &Self) -> bool {
+        same_file_changes(&self.staged, &other.staged)
+            && same_file_changes(&self.unstaged, &other.unstaged)
+            && same_file_changes(&self.untracked, &other.untracked)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -215,6 +234,16 @@ fn status_panel_setting_key(workspace_id: &str, group: GitStatusGroup) -> String
         GitStatusGroup::Untracked => "untracked",
     };
     format!("status_panel_collapsed:{workspace_id}:{suffix}")
+}
+
+fn same_file_changes(left: &[FileChange], right: &[FileChange]) -> bool {
+    left.len() == right.len()
+        && left.iter().zip(right.iter()).all(|(left, right)| {
+            left.path == right.path
+                && left.status == right.status
+                && left.additions == right.additions
+                && left.deletions == right.deletions
+        })
 }
 
 fn open_repo(repo_path: &Path) -> Result<Git2Repository, GitStatusError> {
@@ -479,5 +508,70 @@ mod tests {
         assert!(!settings.staged_collapsed);
         assert!(!settings.unstaged_collapsed);
         assert!(settings.untracked_collapsed);
+    }
+
+    #[test]
+    fn response_equivalent_requires_matching_file_contents() {
+        let base = GitStatusResponse {
+            staged: vec![FileChange {
+                path: "tracked.txt".to_string(),
+                status: "M".to_string(),
+                additions: 2,
+                deletions: 1,
+            }],
+            unstaged: vec![],
+            untracked: vec![FileChange {
+                path: "new.txt".to_string(),
+                status: "?".to_string(),
+                additions: 0,
+                deletions: 0,
+            }],
+        };
+
+        let same = GitStatusResponse {
+            staged: base.staged.clone(),
+            unstaged: vec![],
+            untracked: base.untracked.clone(),
+        };
+        let changed = GitStatusResponse {
+            staged: vec![FileChange {
+                path: "tracked.txt".to_string(),
+                status: "M".to_string(),
+                additions: 3,
+                deletions: 1,
+            }],
+            unstaged: vec![],
+            untracked: base.untracked.clone(),
+        };
+
+        assert!(base.equivalent(&same));
+        assert!(!base.equivalent(&changed));
+    }
+
+    #[test]
+    fn response_to_event_keeps_workspace_and_groups() {
+        let response = GitStatusResponse {
+            staged: vec![FileChange {
+                path: "staged.txt".to_string(),
+                status: "A".to_string(),
+                additions: 4,
+                deletions: 0,
+            }],
+            unstaged: vec![FileChange {
+                path: "unstaged.txt".to_string(),
+                status: "M".to_string(),
+                additions: 1,
+                deletions: 2,
+            }],
+            untracked: vec![],
+        };
+
+        let event = response.to_event("ws-1");
+        assert_eq!(event.workspace_id, "ws-1");
+        assert_eq!(event.staged.len(), 1);
+        assert_eq!(event.staged[0].path, "staged.txt");
+        assert_eq!(event.unstaged.len(), 1);
+        assert_eq!(event.unstaged[0].path, "unstaged.txt");
+        assert!(event.untracked.is_empty());
     }
 }

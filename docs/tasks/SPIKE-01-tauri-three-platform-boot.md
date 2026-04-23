@@ -18,7 +18,7 @@ reviewer: Claude Code
 
 # SPIKE-01: Tauri 2 三平台空壳启动
 
-> **状态**：`in-progress`（macOS Phase A PR #28 PASS · Ubuntu Phase C 待 Linux 环境 · 关联 MVP-01 PR #28/#33）
+> **状态**：`blocked`（macOS Phase A PASS · Ubuntu 验证待环境 · 已降为最低优先）
 > **依赖**：— / **阻塞**：SPIKE-02..06 全部（Tauri 是所有后续 Spike 的载体）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D1`](../implementation-plan.md)
 

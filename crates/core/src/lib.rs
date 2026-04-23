@@ -20,7 +20,10 @@ pub use git_log::{
     CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogError,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
 };
-pub use git_status::{FileStatusEvent, GitStatusRequest, GitStatusResponse, GitStatusService};
+pub use git_status::{
+    FileStatusEvent, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
+    GitStatusRequest, GitStatusResponse, GitStatusService,
+};
 pub use layout::{LayoutState, LayoutStore};
 pub use pty::{
     PtyError, PtyEvent, PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest,

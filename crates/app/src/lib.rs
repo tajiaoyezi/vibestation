@@ -5,8 +5,13 @@
 
 mod fix_path_env;
 
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
     AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitLogQueryRequest,
@@ -18,9 +23,67 @@ use vibestation_core::{
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
+const GIT_STATUS_UPDATED_EVENT: &str = "git_status_updated";
+const GIT_STATUS_AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(2);
+
 struct AppState {
     pool: Mutex<Option<DbPool>>,
+    git_status: GitStatusAutoRefreshManager,
     pty: PtyManager,
+}
+
+struct GitStatusSubscription {
+    subscribers: usize,
+    stop: Arc<AtomicBool>,
+}
+
+struct GitStatusAutoRefreshManager {
+    subscriptions: Mutex<HashMap<String, GitStatusSubscription>>,
+}
+
+impl GitStatusAutoRefreshManager {
+    fn new() -> Self {
+        Self {
+            subscriptions: Mutex::new(HashMap::new()),
+        }
+    }
+
+    fn subscribe(&self, app: AppHandle, workspace_id: String, repo_path: PathBuf) -> Result<(), String> {
+        let mut subscriptions = self.subscriptions.lock().map_err(|e| e.to_string())?;
+        if let Some(existing) = subscriptions.get_mut(&workspace_id) {
+            existing.subscribers += 1;
+            return Ok(());
+        }
+
+        let stop = Arc::new(AtomicBool::new(false));
+        subscriptions.insert(
+            workspace_id.clone(),
+            GitStatusSubscription {
+                subscribers: 1,
+                stop: stop.clone(),
+            },
+        );
+        drop(subscriptions);
+
+        spawn_git_status_auto_refresh(app, workspace_id, repo_path, stop)?;
+        Ok(())
+    }
+
+    fn unsubscribe(&self, workspace_id: &str) -> Result<(), String> {
+        let mut subscriptions = self.subscriptions.lock().map_err(|e| e.to_string())?;
+        let Some(existing) = subscriptions.get_mut(workspace_id) else {
+            return Ok(());
+        };
+
+        if existing.subscribers > 1 {
+            existing.subscribers -= 1;
+            return Ok(());
+        }
+
+        existing.stop.store(true, Ordering::Relaxed);
+        subscriptions.remove(workspace_id);
+        Ok(())
+    }
 }
 
 #[tauri::command]
@@ -245,6 +308,65 @@ fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
     }
 }
 
+fn git_status_repo_path(pool: &DbPool, workspace_id: &str) -> Result<PathBuf, String> {
+    let workspace = WorkspaceStore::get_by_id(pool, workspace_id).map_err(|e| e.to_string())?;
+    Ok(PathBuf::from(workspace.path))
+}
+
+fn wait_for_stop(stop: &AtomicBool, duration: Duration) -> bool {
+    let deadline = Instant::now() + duration;
+    while Instant::now() < deadline {
+        if stop.load(Ordering::Relaxed) {
+            return true;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+    stop.load(Ordering::Relaxed)
+}
+
+fn spawn_git_status_auto_refresh(
+    app: AppHandle,
+    workspace_id: String,
+    repo_path: PathBuf,
+    stop: Arc<AtomicBool>,
+) -> Result<(), String> {
+    thread::Builder::new()
+        .name(format!("vibestation-git-status-{workspace_id}"))
+        .spawn(move || {
+            let req = GitStatusRequest {
+                workspace_id: workspace_id.clone(),
+            };
+            let mut last_status = GitStatusService::query(&repo_path, &req).ok();
+
+            loop {
+                if wait_for_stop(stop.as_ref(), GIT_STATUS_AUTO_REFRESH_INTERVAL) {
+                    break;
+                }
+
+                match GitStatusService::refresh(&repo_path, &req) {
+                    Ok(response) => {
+                        let changed = last_status
+                            .as_ref()
+                            .is_none_or(|previous| !previous.equivalent(&response));
+                        if changed {
+                            if let Err(error) =
+                                app.emit(GIT_STATUS_UPDATED_EVENT, response.to_event(workspace_id.clone()))
+                            {
+                                eprintln!("[mvp-08] emit git status update failed: {error}");
+                            }
+                            last_status = Some(response);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("[mvp-08] git status auto-refresh failed: {error}");
+                    }
+                }
+            }
+        })
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 fn git_log_query(
     state: State<'_, AppState>,
@@ -341,13 +463,28 @@ fn git_status_set_group_collapsed(
 }
 
 #[tauri::command]
-fn git_status_subscribe(workspace_id: String) {
+fn git_status_subscribe(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    workspace_id: String,
+) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let repo_path = git_status_repo_path(pool, &workspace_id)?;
+    drop(guard);
+
     GitStatusService::subscribe(&workspace_id);
+    state
+        .git_status
+        .subscribe(app, workspace_id, repo_path)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn git_status_unsubscribe(workspace_id: String) {
+fn git_status_unsubscribe(state: State<'_, AppState>, workspace_id: String) -> Result<(), String> {
     GitStatusService::unsubscribe(&workspace_id);
+    state.git_status.unsubscribe(&workspace_id)?;
+    Ok(())
 }
 
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
@@ -365,6 +502,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             pool: Mutex::new(None),
+            git_status: GitStatusAutoRefreshManager::new(),
             pty,
         })
         .invoke_handler(tauri::generate_handler![

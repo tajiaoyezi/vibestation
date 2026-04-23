@@ -1,12 +1,14 @@
 import { type Component } from "solid-js";
 import { GitLogPanel } from "../panels/GitLog";
 import type { WorkspaceMetadata } from "../bindings";
+import type { DiffTarget } from "./MainContent";
 
 interface SecondarySidebarProps {
   layout: () => { secondaryOpen: boolean; secondaryWidth: number };
   onResizeStart: (e: MouseEvent) => void;
   onResizeReset: () => void;
   activeWorkspace: () => WorkspaceMetadata | null;
+  onOpenDiff: (target: DiffTarget) => void;
 }
 
 export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
@@ -28,7 +30,10 @@ export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
         </div>
       </div>
       <div class="vs-panel-body">
-        <GitLogPanel activeWorkspace={props.activeWorkspace} />
+        <GitLogPanel
+          activeWorkspace={props.activeWorkspace}
+          onOpenDiff={props.onOpenDiff}
+        />
       </div>
       <div
         class="vs-resize-handle vs-resize-handle-w"

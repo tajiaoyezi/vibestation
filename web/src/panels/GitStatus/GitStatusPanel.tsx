@@ -28,9 +28,11 @@ import {
   subscribeStatus,
   unsubscribeStatus,
 } from "./gitStatusApi";
+import type { DiffTarget } from "../../components/MainContent";
 
 interface GitStatusPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
+  onOpenDiff?: (target: DiffTarget) => void;
 }
 
 type GroupKey = "staged" | "unstaged" | "untracked";
@@ -222,6 +224,15 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     await loadWorkspace(id, "refresh");
   };
 
+  const openDiff = (source: string, filePath: string) => {
+    if (!props.onOpenDiff || !workspaceId()) return;
+    props.onOpenDiff({
+      workspaceId: workspaceId(),
+      source,
+      filePath,
+    });
+  };
+
   const handleToggleGroup = async (
     group: GroupKey,
     binding: GitStatusGroup,
@@ -385,7 +396,19 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                         <div class="vs-git-status-items" role="list">
                           <For each={groupItems(group.key)}>
                             {(file) => (
-                              <div class="vs-git-status-item" role="listitem">
+                              <button
+                                type="button"
+                                class="vs-git-status-item"
+                                role="listitem"
+                                onClick={() =>
+                                  openDiff(
+                                    group.key === "staged"
+                                      ? "staged"
+                                      : "unstaged",
+                                    file.path,
+                                  )
+                                }
+                              >
                                 <span
                                   class={`vs-git-status-code ${statusClass(file.status)}`}
                                 >
@@ -404,7 +427,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                     </span>
                                   )}
                                 </Show>
-                              </div>
+                              </button>
                             )}
                           </For>
                         </div>

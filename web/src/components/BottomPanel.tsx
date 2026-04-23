@@ -1,12 +1,14 @@
 import { type Component } from "solid-js";
 import type { WorkspaceMetadata } from "../bindings";
 import { GitStatusPanel } from "../panels/GitStatus";
+import type { DiffTarget } from "./MainContent";
 
 interface BottomPanelProps {
   layout: () => { bottomOpen: boolean; bottomHeight: number };
   onResizeStart: (e: MouseEvent) => void;
   onResizeReset: () => void;
   activeWorkspace: () => WorkspaceMetadata | null;
+  onOpenDiff: (target: DiffTarget) => void;
 }
 
 export const BottomPanel: Component<BottomPanelProps> = (props) => {
@@ -38,7 +40,10 @@ export const BottomPanel: Component<BottomPanelProps> = (props) => {
         </div>
       </div>
       <div class="vs-bp-body">
-        <GitStatusPanel activeWorkspace={props.activeWorkspace} />
+        <GitStatusPanel
+          activeWorkspace={props.activeWorkspace}
+          onOpenDiff={props.onOpenDiff}
+        />
       </div>
     </div>
   );

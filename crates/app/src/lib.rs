@@ -48,7 +48,12 @@ impl GitStatusAutoRefreshManager {
         }
     }
 
-    fn subscribe(&self, app: AppHandle, workspace_id: String, repo_path: PathBuf) -> Result<(), String> {
+    fn subscribe(
+        &self,
+        app: AppHandle,
+        workspace_id: String,
+        repo_path: PathBuf,
+    ) -> Result<(), String> {
         let mut subscriptions = self.subscriptions.lock().map_err(|e| e.to_string())?;
         if let Some(existing) = subscriptions.get_mut(&workspace_id) {
             existing.subscribers += 1;
@@ -349,9 +354,10 @@ fn spawn_git_status_auto_refresh(
                             .as_ref()
                             .is_none_or(|previous| !previous.equivalent(&response));
                         if changed {
-                            if let Err(error) =
-                                app.emit(GIT_STATUS_UPDATED_EVENT, response.to_event(workspace_id.clone()))
-                            {
+                            if let Err(error) = app.emit(
+                                GIT_STATUS_UPDATED_EVENT,
+                                response.to_event(workspace_id.clone()),
+                            ) {
                                 eprintln!("[mvp-08] emit git status update failed: {error}");
                             }
                             last_status = Some(response);
@@ -413,6 +419,17 @@ fn diff_get_settings(state: State<'_, AppState>, workspace_id: String) -> Result
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
     DiffService::get_view_mode(pool, &workspace_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn diff_set_view_mode(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    view_mode: String,
+) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    DiffService::set_view_mode(pool, &workspace_id, &view_mode).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -532,6 +549,7 @@ pub fn run() {
             git_log_cache_clear,
             diff_compute,
             diff_get_settings,
+            diff_set_view_mode,
             git_status_query,
             git_status_refresh,
             git_status_get_settings,

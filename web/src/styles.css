@@ -212,6 +212,24 @@ body,
   background: var(--bg-1);
 }
 
+.vs-main-diff {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.vs-main-diff-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vs-main-diff-back {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
 /* ══════ ACTIVITY STRIP ══════ */
 
 .vs-activity-strip {
@@ -991,6 +1009,11 @@ body,
 }
 
 .vs-git-status-item {
+  appearance: none;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -1291,6 +1314,11 @@ body,
 }
 
 .vs-git-log-file {
+  appearance: none;
+  width: 100%;
+  border: none;
+  text-align: left;
+  background: transparent;
   display: flex;
   align-items: baseline;
   gap: var(--space-2);

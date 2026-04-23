@@ -44,40 +44,40 @@ export const MainContent: Component<MainContentProps> = (props) => {
           </div>
         }
       >
-        <Show
-          when={currentDiff()}
-          fallback={
-            <Terminal
-              activeWorkspace={props.activeWorkspace}
-              onCloseWorkspaceView={props.onCloseWorkspaceView}
-              workspaces={props.workspaces}
-            />
-          }
-        >
-          {(target) => (
-            <div class="vs-main-diff">
-              <div class="vs-panel-head">
-                <span class="vs-panel-title">Diff</span>
-                <div class="vs-panel-actions">
-                  <button
-                    type="button"
-                    class="vs-btn-secondary vs-main-diff-back"
-                    onClick={props.onCloseDiff}
-                  >
-                    Back to Terminal
-                  </button>
+        <div class="vs-main-stack">
+          <Terminal
+            activeWorkspace={props.activeWorkspace}
+            onCloseWorkspaceView={props.onCloseWorkspaceView}
+            workspaces={props.workspaces}
+          />
+          <Show when={currentDiff()}>
+            {(target) => (
+              <div class="vs-main-diff-overlay">
+                <div class="vs-main-diff">
+                  <div class="vs-panel-head">
+                    <span class="vs-panel-title">Diff</span>
+                    <div class="vs-panel-actions">
+                      <button
+                        type="button"
+                        class="vs-btn-secondary vs-main-diff-back"
+                        onClick={props.onCloseDiff}
+                      >
+                        Back to Terminal
+                      </button>
+                    </div>
+                  </div>
+                  <div class="vs-main-diff-body">
+                    <DiffPanel
+                      workspaceId={target().workspaceId}
+                      source={target().source}
+                      filePath={target().filePath}
+                    />
+                  </div>
                 </div>
               </div>
-              <div class="vs-main-diff-body">
-                <DiffPanel
-                  workspaceId={target().workspaceId}
-                  source={target().source}
-                  filePath={target().filePath}
-                />
-              </div>
-            </div>
-          )}
-        </Show>
+            )}
+          </Show>
+        </div>
       </Show>
     </section>
   );

@@ -7,11 +7,12 @@
 #   若是 required status check 则**永久阻塞合并**。
 #   → 解决方式：workflow 总是触发（无 paths filter），在 job 内用 git diff 判断是否需要跑校验 ·
 #     无相关变更直接 exit 0 (success)，保证 required check 永远产生终态结论（pass/fail，不 pending）。
+# 2026-04-23：为节省 GitHub Actions 免费时长，当前只在 `push main` + `workflow_dispatch`
+# 触发；脚本内保留 `pull_request` 分支逻辑，便于以后恢复 PR 触发。
 
 name: Task Spec Validator
 
 on:
-  pull_request:
   push:
     branches: [main]
   workflow_dispatch:

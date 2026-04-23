@@ -6,12 +6,11 @@
 #
 # 设计：每个 job 独立 · 失败一个不影响其他 job 继续跑 · 便于 PR 看到完整失败清单
 # 超时：每 job ≤ 10min（CI 成本 + 失败反馈速度）
+# 2026-04-23：为节省 GitHub Actions 免费时长，暂时只在 `push main` + `workflow_dispatch` 触发
 
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
   workflow_dispatch:

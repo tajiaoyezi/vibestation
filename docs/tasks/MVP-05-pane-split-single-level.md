@@ -314,6 +314,39 @@ pub struct PaneScrollbackFetchRequest {
 4. **`PaneState.scroll_back`** 从 IPC 排除，独立 `pane_scrollback_fetch` 拉取；复用 MVP-04 `TabState` 排除模式，保持 IPC contract 全局一致。
 5. **bindings 由 `build.rs` 生成**，前端禁止手写 TypeScript 类型；H2 regression proof 见 MVP-04 §G.3（临时重命名字段 → 期望 `pnpm typecheck` 失败）。
 
+### G.4 · 与 MVP-04 已落地 binding 的复用决策
+
+MVP-05 实施前必须明确复用 / 新增边界，避免和 MVP-04 Phase A/B 已生成 binding 冲突：
+
+| 已有 binding | MVP-05 §G.1 涉及 | 决策 | 理由 |
+|---|---|---|---|
+| `TabState`（MVP-04 Phase A 已生成）| §G.1 `PaneListResponse` 的 `tab_id` 字段 | ⛔ 不复用为输入 · 仅引用 `tab_id` | `TabState` 含 `scroll_back` · 不适合作为 Pane 上下文 · MVP-05 只需要 `tab_id` 引用 |
+| `PtySpawnRequest`（MVP-04 Phase B 已生成）| §H.6 锁 A 选项独立 `pane_pty_*` | ⛔ 不复用 · 新建 `PanePtySpawnRequest` | 改 `PtySpawnRequest` 会破坏 MVP-04 Phase B 已落地 binding（5 IPC + 前端调用）· 独立命名空间避免 |
+| `TabsDao`（MVP-04 Phase A）| MVP-05 Phase A `PanesDao` | ⛔ 不复用 · 新建 `PanesDao` 但仿 `TabsDao` 模式 | `TabsDao` 操作 `tabs` 表 · `PanesDao` 操作 `panes` 表 · 表不同 DAO 不混 |
+| `migrate_v5`（MVP-04 Phase A）| MVP-05 Phase A `migrate_v6` | ⛔ 不复用 · 新建 `migrate_v6` | migration 单调递增 · v5 已锁 `tabs` 表 · v6 加 `panes` 表 + `tabs` 2 列（§H.4 SQL 已写）|
+
+### G.5 · MVP-05 新增 binding 清单（明确数量）
+
+以下 **13 个 binding** 为 MVP-05 **新增** · 实施时 `web/src/bindings/` 应新增 13 个 `.ts` 文件：
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `PaneState` | Pane 状态同步 · 排除 `scroll_back` | `import type { PaneState } from "../bindings/PaneState"` |
+| `PaneCreateRequest` | 新建 Pane | `import type { PaneCreateRequest } from "../bindings/PaneCreateRequest"` |
+| `PaneCloseRequest` | 关闭 Pane | `import type { PaneCloseRequest } from "../bindings/PaneCloseRequest"` |
+| `LayoutNode` | 布局树节点 · 递归 tagged union | `import type { LayoutNode } from "../bindings/LayoutNode"` |
+| `SplitDir` | 分割方向 · string union | `import type { SplitDir } from "../bindings/SplitDir"` |
+| `LayoutApplyRequest` | 应用 Smart Layout | `import type { LayoutApplyRequest } from "../bindings/LayoutApplyRequest"` |
+| `SplitRatioUpdateRequest` | 更新分割比例 | `import type { SplitRatioUpdateRequest } from "../bindings/SplitRatioUpdateRequest"` |
+| `PaneFocusRequest` | 切换焦点 | `import type { PaneFocusRequest } from "../bindings/PaneFocusRequest"` |
+| `PaneListResponse` | Pane 列表 + 当前布局 | `import type { PaneListResponse } from "../bindings/PaneListResponse"` |
+| `PaneScrollbackFetchRequest` | 拉取 scrollback | `import type { PaneScrollbackFetchRequest } from "../bindings/PaneScrollbackFetchRequest"` |
+| `PanePtySpawnRequest` | Pane PTY spawn · 独立命名 | `import type { PanePtySpawnRequest } from "../bindings/PanePtySpawnRequest"` |
+| `PanePtyStdoutEvent` | Pane PTY stdout event | `import type { PanePtyStdoutEvent } from "../bindings/PanePtyStdoutEvent"` |
+| `PanePtyExitedEvent` | Pane PTY exited event | `import type { PanePtyExitedEvent } from "../bindings/PanePtyExitedEvent"` |
+
+> 加上引用 MVP-04 的 `TabState`（不重新生成）= 实施时 bindings 目录共新增 **13 个 `.ts` 文件**。
+
 ---
 
 ## §H. Pane 布局模型约束

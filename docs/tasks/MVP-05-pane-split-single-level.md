@@ -135,9 +135,12 @@ reviewer: Kimi
 
 ### F. 性能
 
-- [ ] 4 Pane 并存不额外显著增加内存：每 Pane ≈ MVP-04 单 Tab PTY 开销（SPIKE-05 单 Tab 10MB RSS 基准），4 Pane ≈ 40MB；总 10 Tab × 4 Pane = 40 个 PTY，RSS 上限 500MB（对齐 MVP-04 §E 性能目标）
-- [ ] 拖拽分隔条 60FPS：同 D 条，帧时长 < 16ms，测 3 次取 P99
-- [ ] 分屏 / 关 Pane 动画 < 150ms：从快捷键按下到 Pane DOM 绘制完成，`performance.now()` 差值，测 3 次取 P99；无动画时不测量动画时长，改为测量 "操作完成到 DOM 稳定" < 100ms
+- [ ] F.1 4 Pane 内存：每 Pane ≈ MVP-04 单 Tab PTY 开销（SPIKE-05 单 Tab 10MB RSS 基准）· 4 Pane ≈ 40MB · 总 10 Tab × 4 Pane = 40 PTY < 500MB · 用 `ps -o rss` + 4 Pane fixture · 测 3 次取 P99
+- [ ] F.2 拖拽水平分隔条 60FPS：DevTools Performance 录 1s 水平拖拽 · 帧时长 < 16ms · 测 3 次取 P99
+- [ ] F.3 拖拽垂直分隔条 60FPS：同 F.2 · 垂直方向独立测一次 · 帧时长 < 16ms · 测 3 次取 P99
+- [ ] F.4 分屏快捷键 → DOM 绘制完成 < 150ms：`performance.now()` 测 `⌘\` keydown 到 SolidJS 新 Pane DOM commit · 测 3 次取 P99
+- [ ] F.5 关 Pane 快捷键 → 剩余 Pane 重排完成 < 100ms：`performance.now()` 测 `⌘⌃W` keydown 到剩余 Pane 重排 DOM commit · 测 3 次取 P99
+- [ ] F.6 Smart Layouts apply（Solo / AI+Runner）→ 关闭 N Pane + 新 Pane 完成 < 200ms：fixture 4 Pane → Solo · `performance.now()` 测命令面板确认到最终布局 DOM commit · 测 3 次取 P99
 
 ## 🧪 测试策略
 

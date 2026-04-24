@@ -66,6 +66,26 @@ reviewer: Kimi
 | Phase C · 前端分屏 UI | SolidJS 组件 + 分隔条拖拽 + focus 切换 + Smart Layouts 菜单 + 双击复位 | ⏳ todo | — |
 | Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo | — |
 
+**Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
+
+- [ ] `crates/core/Cargo.toml` 已含 `git2` / `rusqlite` / `serde` / `ts-rs`（继承 MVP-04 · 不需要新增依赖）
+- [ ] migration v6 路径锁定（§H.4 SQL 已写好）：`crates/core/src/db.rs` 加 `migrate_v6` 函数 · 复用 `migrate_v5` 模式（PR #72）
+- [ ] `PanesDao` CRUD（仿 MVP-04 `TabsDao` 模式 · PR #72 line 119 起）：
+  - `insert(pane: PaneState) -> Result<()>`
+  - `update(pane: PaneState) -> Result<()>`
+  - `delete(pane_id: &str) -> Result<()>`
+  - `list_by_tab(tab_id: &str) -> Result<Vec<PaneState>>`
+  - `get(pane_id: &str) -> Result<Option<PaneState>>`
+- [ ] `LayoutNode` 序列化 / 反序列化测试（`serde_json` + ts-rs tagged union）
+- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `pane_split` / `pane_close` / `pane_focus` / `pane_layout_apply` / `pane_split_ratio_update`
+  - `pane_pty_spawn` / `pane_pty_stdin` / `pane_pty_resize` / `pane_pty_signal` / `pane_pty_kill`
+  - 总 **10 个新 IPC commands**（5 layout + 5 pty）
+- [ ] permission toml：`crates/app/permissions/panes.toml` + `pane-pty.toml` 新建（10 个 `allow-{name}`）
+- [ ] capability `default.json` 引用上述 permission
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 13 个 struct 见 §G.5）
+- [ ] fixture：用 `tempfile` crate 运行时生成 sqlite + tabs 行 · 不要硬编码本地路径（仿 MVP-09 §C.1）
+
 **下次 agent 起点**：Phase A · 依赖 MVP-04 Phase A 已落地的 `tabs` 表 + `TabsDao`（见 PR #72）· **不要重写** `tabs` 表 · 只加 `panes` 新表 + `tabs` 2 新列。
 
 **依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。

@@ -151,6 +151,70 @@ reviewer: Kimi
 | E2E | 完整流程：分屏 → 拖拽 → 关 → 应用 Layout → 二次确认取消/确认 |
 | 手动 QA | 多屏不同 DPI 下分隔条精度 |
 
+#### C.1 · fixture 准备脚本 + Criterion bench 模板
+
+所有 fixture 用 `tempfile::TempDir` + `rusqlite::Connection` in-memory · 不依赖本地文件系统：
+
+```rust
+// tests/fixtures/mvp_05_helpers.rs（新建）
+use rusqlite::Connection;
+use tempfile::TempDir;
+
+fn create_fixture_solo_layout() -> (TempDir, Connection) {
+    let dir = tempfile::tempdir().unwrap();
+    let conn = Connection::open(dir.path().join("test.db")).unwrap();
+    crates_core::db::migrate(&conn).unwrap();  // 跑到 v6
+    // 插入 1 tab + 1 pane（Solo 布局）
+    (dir, conn)
+}
+
+fn create_fixture_horizontal_2pane() -> (TempDir, Connection) { /* 1 tab + 2 panes 水平 */ }
+fn create_fixture_vertical_2pane() -> (TempDir, Connection) { /* 1 tab + 2 panes 垂直 */ }
+fn create_fixture_2x2_layout() -> (TempDir, Connection) { /* 1 tab + 4 panes 2×2 */ }
+fn create_fixture_invalid_3horizontal() -> Vec<LayoutNode> { /* 用于测 §H.2 非法布局拒绝 */ }
+fn create_fixture_invalid_3vertical() -> Vec<LayoutNode> { /* 同上 */ }
+```
+
+每个 helper 返回 `(TempDir, Connection)` 元组 · 测试用 `let (_dir, conn) = create_fixture_solo_layout();` 持有 · 测试结束 `dir` drop 自动清理。
+
+**Criterion bench 模板**（`crates/core/benches/pane_bench.rs`）：
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion};
+
+fn bench_split_pane(c: &mut Criterion) {
+    c.bench_function("split_solo_to_horizontal", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_solo_layout();
+            // call vibestation_core::pane::split(...)
+        });
+    });
+}
+
+fn bench_layout_apply_solo(c: &mut Criterion) {
+    c.bench_function("layout_apply_2x2_to_solo", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_2x2_layout();
+            // call vibestation_core::pane::apply_layout(Solo, ...)
+        });
+    });
+}
+
+fn bench_close_pane_atomic(c: &mut Criterion) {
+    c.bench_function("close_pane_atomic", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_horizontal_2pane();
+            // call vibestation_core::pane::close(...)
+        });
+    });
+}
+
+criterion_group!(benches, bench_split_pane, bench_layout_apply_solo, bench_close_pane_atomic);
+criterion_main!(benches);
+```
+
+跑 `cargo bench --bench pane_bench` 验证 P99 数字。
+
 ## 💾 数据模型变更
 
 详见：

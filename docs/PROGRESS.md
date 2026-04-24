@@ -25,13 +25,15 @@
 
 ## 📍 当前位置
 
-**阶段**：🏗️ **session 17 · MVP-04 Phase F 收口 + MVP-08 Phase A/B 落地**（2026-04-23 · PR #99/#100/#101/#102 已合入）· `MVP-04` 已完成 Phase A/B/C/E/F，当前只剩 Phase D shell 兼容（低优先）· `MVP-08` 已完成 Phase A 后端 contract + Phase B Git Status Bottom Panel，主线进入 Phase C Diff 视图前端 · PR 级 GitHub Actions 自动运行已关闭（仅保留 `push main` + `workflow_dispatch`）· 14 ADR accepted · v2-D.1 规则稳态运行
-**日期**：2026-04-23（session 17 · `main` 已领先于 session 16 快照 · 主线从“终端证据收口”切到“Diff 视图 + Git 写路径”）
+**阶段**：🏗️ **session 18 起点 · MVP-08 Phase C done · 主线进入 Phase D/E**（2026-04-25 · PR #99/#100/#101/#102/#103/#105 已合入 main）· `MVP-04` 已完成 Phase A/B/C/E/F，当前只剩 Phase D shell 兼容（低优先）· `MVP-08` 已完成 Phase A 后端 contract + Phase B Git Status Bottom Panel + Phase C Diff 视图前端（含 Git Status/Git Log → Diff 接通 + view mode 持久化 + Git Status 自动刷新 + Terminal/Diff 主区切换不重挂），主线进入 Phase D fs watch（`notify` 6.x · 替换 polling）或 Phase E runtime 证据 · PR 级 GitHub Actions 自动运行已关闭（仅保留 `push main` + `workflow_dispatch`）· 14 ADR accepted · v2-D.1 规则稳态运行
+**日期**：2026-04-25（session 18 起点 · session 17 主交付 PR #105 已 merge · 本次 session 起手做文档同步追上 main）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留最近 2 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 17（2026-04-23 · MVP-04 Phase F 收口 + MVP-08 Phase A/B 落地 + PR Actions 分钟节流）
+### Session 17（2026-04-23 · MVP-04 Phase F 收口 + MVP-08 Phase A/B/C 落地 + PR Actions 分钟节流）
 
+- **PR #105 `471349f`**（**MVP-08 Phase C Diff 视图前端集成 done · 主线里程碑**）· Codex CLI · 4 路并行成果整合：OpenCode core `diff_set_view_mode` + Kimi 隔离的 `web/src/panels/Diff/`（DiffPanel 303 行 + diffApi + styles 299 行）+ Git Status 自动刷新 subscription/polling 接通 + shell PATH 修复（PTY 启动）· `crates/app/permissions/diff.toml` 加 `diff_set_view_mode` permission · `App.tsx` + `MainContent.tsx` 加主区 Diff/Terminal 切换 state（Terminal 不重挂）· Git Status 文件行 + Git Log 文件行 → 点击打开 Diff 主区 · supersede PR #104（孤立 Diff 面板分支）· Implemented + Reviewed by Codex CLI self-review · Arbiter approval 2026-04-23 22:07 CST
+- **PR #103 `fb2d755`**（**入口文档对齐 main 真实进度**）· Codex CLI · 在 PR #100/#101 落地后同步 PROGRESS / CLAUDE / 入口指针 · 防止下次 agent 误读
 - **PR #102 `d1c5489`**（**PR 级 GitHub Actions 自动运行关闭 · 只保留 `push main` + `workflow_dispatch`**）· Codex CLI · `.github/workflows/ci.yml` / `secret-scan.yml` / `task-spec-validator.yml` 去掉 `pull_request` 触发 · `secret-scan` 删除 `pull-requests: read` 权限 · `task-spec-validator` 保留脚本内 PR 分支逻辑便于未来恢复 · 结果：新 PR 不再消耗 GitHub Actions 分钟数，但后续 agent 必须本地先跑 gate，merge 后再回看 `main` 的 check runs
 - **PR #101 `e09b9df`**（**MVP-08 Phase B Git Status Bottom Panel done**）· Codex CLI · Bottom Panel 真正承载 Git Status 只读面板 · 3 分组 `Staged / Unstaged / Untracked` + 状态码 / 相对路径 / 加减行数 + `Refresh` · 非 git workspace / 错误态有明确提示 · 新增 `GitStatusPanelSettings` / `GitStatusCollapseRequest` / `GitStatusGroup` + `git_status_get_settings` / `git_status_set_group_collapsed` · 分组折叠态写入 `app_settings` · 后续 Phase C 直接消费稳定面板状态 contract
 - **PR #100 `424e894`**（**MVP-08 Phase A diff/status IPC 后端 done**）· Codex CLI · `crates/core/src/diff.rs` + `git_status.rs` 落地 · `similar` 负责文本 diff 计算 · `gix` 读取 commit / parent blob · `git2` 读取 staged / unstaged 对照源 · 6 个 Tauri commands + 8 个 ts-rs bindings + ACL/permission 补齐 · `DiffRequest.allowLargeFile` + `DiffResponse.truncatedReason/lineCount` 预留 large-file confirm 与 hard stop 协议 · `git_status_subscribe` / `git_status_unsubscribe` 先占位给 Phase D
@@ -210,7 +212,7 @@
 
 - **MVP-03 ✅ done · Tool Windows 布局已交付**（PR #61 merged · session 11 开场 · OpenCode 主交付 · 5-zone + toggle + resize + theme · 29/29 Rust 测试 + 5 张 runtime 截图 · ADR-011 R4 符合）
 - **MVP-04 🟡 终端主链只剩 Phase D**（PR #72/#82/#91/#95/#99 已合入 · Phase A/B/C/E/F 全部落地 · 当前只剩默认 shell / Claude CLI / Codex CLI 实机兼容验证 · 低优先）
-- **MVP-08 🟡 Phase A/B 已完成**（PR #100/#101 已合入 · 后端 diff/status contract + Bottom Panel Git Status 面板已接通 · 当前主线 = Phase C Diff 视图前端，随后 Phase D fs watch + Phase E 证据量化）
+- **MVP-08 🟡 Phase A/B/C 已完成**（PR #100/#101/#105 已合入 · 后端 diff/status contract + Bottom Panel Git Status 面板 + Diff 视图前端 + Git Status/Git Log → Diff 接通已落地 · 当前主线 = Phase D fs watch（`notify` 6.x 三平台 · 替换当前 polling）+ Phase E 证据量化（5 截图 + A.2/A.6/F 性能门槛实测））
 - **PR 级 GitHub Actions 自动运行已关闭**（PR #102 · 只保留 `push main` + `workflow_dispatch` · 新 PR 不会自动跑 CI，后续 agent 必须本地先跑 gate，并在 merge 后核对 `main` 的 check runs）
 - **SPIKE-08 ✅ done · E2E + IPC contract harness 选型**（PR #60 merged · session 11 开场 · Codex 主交付 · §A ts-rs PASS · §B Playwright runtime FAIL · §C hybrid gate · 下一步 ts-rs 推广 MVP-02 现有 IPC contract · 闭合 H2 根因制度化）
 - **ADR-006 accepted + CLAUDE.md v2-D**（PR #50 merged · session 10 末 · "self-review + Arbiter approval" 单人项目术语澄清 · 未来升级 v2-strict 触发条件显式化）
@@ -244,7 +246,7 @@
 | 🟡 Spike W0 全平台通过      | SPIKE-01/02 Phase B Ubuntu（阻塞环境）+ SPIKE-06 36 样本 + Apple 申请                                                                                                                                                                             |
 | 🔴 Spike 任一 CRITICAL Fail | 触发 fallback + ADR supersede                                                                                                                                                                                                                     |
 | ✅ MVP 实施启动             | **已达成**（session 8 · MVP-01 Phase A · ADR-003/005/006/007 全 accepted）                                                                                                                                                                        |
-| 🟡 MVP v0.1 进度            | **3/10 done + 7/10 ready**（MVP-02/03/07 done · MVP-01/04/05/06/08/09/10 ready）· 其中 MVP-04 已完成 Phase A/B/C/E/F 仅剩 D，MVP-08 已完成 Phase A/B 正进入 Phase C · 主线已收敛到 Diff 视图 + Git 写路径 + 打包发布 |
+| 🟡 MVP v0.1 进度            | **3/10 done + 7/10 ready**（MVP-02/03/07 done · MVP-01/04/05/06/08/09/10 ready）· 其中 MVP-04 已完成 Phase A/B/C/E/F 仅剩 D，MVP-08 已完成 Phase A/B/C 主线进入 Phase D/E · 主线已收敛到 fs watch + Git 写路径 + 打包发布 |
 | 🎯 v0.1 GA                  | MVP-01..10 全过 §10.1 + §10.6 终端正确性矩阵 + §10.3 跨平台                                                                                                                                                                                       |
 | 🔴 连续 2 周 < 5h 投入      | 触发 hibernation（`implementation-plan.md §10.5`）                                                                                                                                                                                                |
 

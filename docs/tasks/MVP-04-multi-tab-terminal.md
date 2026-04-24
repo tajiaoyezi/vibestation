@@ -241,6 +241,96 @@ pub struct TabState {
 - MVP-04 不实现 tmux control mode（看 tmux 作为普通程序跑即可）
 - Claude/Codex CLI 的协议解析留给 v1.0 AI-Aware（SPIKE-07 parser spike）
 
+## §I. 测试矩阵
+
+> **目的**：让 Phase D 实施 agent 接到本 spec 后 5 min 内能起手，不用现场设计 22 用例、通过判定、fail 处理路径。
+> **位置**：追加在 §Notes 之后、§相关 之前。
+> **原则**：纯追加，零删除，不改前面已 accepted 段。
+
+### §I.1 默认 shell 矩阵（macOS · 3 shell × 4 测试项 = 12 用例）
+
+| 测试组 | 测试项 | 通过判定 | 失败处理 |
+|---|---|---|---|
+| **zsh**（macOS 默认）| 启动 → 显示 prompt | < 3 s 内 prompt 可见，无 panic / 白屏 | **blocker** · 阻塞 v0.1 GA |
+| zsh | `echo $TERM` | 输出 `"xterm-256color"`（一致性测）| **blocker** |
+| zsh | Tab 补全 `ls /u` + Tab → `/usr/` | 候选列表显示；单一时直接补全 | **blocker** |
+| zsh | 中文 IME 输入 + 输出 | 输入"你好"显示"你好"，无乱码 | **blocker** · UTF-8 是 v0.1 必需 |
+| **bash** | 启动 → 显示 prompt | < 3 s | **blocker** |
+| bash | `echo $TERM` | `"xterm-256color"` | **blocker** |
+| bash | Tab 补全 | 候选列表 | **blocker** |
+| bash | history 上下箭头 | 显示历史命令 | **blocker** |
+| **fish** | 启动 → 显示 prompt | < 3 s，fish 风格 prompt 显示 | **non-blocker** · 推 v0.2 若 fail |
+| fish | autosuggestion 灰字 | 输入 `ec` → 灰字 `echo` 提示 | **non-blocker** |
+| fish | Tab 补全 | fish 风格补全（含描述）| **non-blocker** |
+| fish | 中文 IME | 显示正确 | **non-blocker** |
+
+### §I.2 CLI 实机矩阵（Claude CLI + Codex CLI · 每个 5 测试项 = 10 用例）
+
+| CLI | 测试项 | 通过判定 | 失败处理 |
+|---|---|---|---|
+| **Claude CLI**（`claude`）| 启动 → login flow（已登录则跳过）| 启动 < 5 s，显示登录提示或 ready prompt | **blocker**（v0.1 核心 use case）|
+| Claude CLI | 输入"你好" → 流式回复 | 流式 stream 显示中文，无乱码，完整结束 | **blocker** |
+| Claude CLI | Ctrl+C 中断流式输出中途 | 流式 stop，进入 prompt，无残帧污染下一条 prompt | **blocker** · 残帧污染是 R1 风险 |
+| Claude CLI | 退出（`exit` / Ctrl+D）| shell 回到当前 Tab，PTY 进程清理 | **blocker** |
+| Claude CLI | 长输出（5000+ token 回复）滚动 | 滚动流畅，scrollback 全保留 | **blocker**（覆盖 §Acceptance E 性能）|
+| **Codex CLI**（`codex`）| 启动 → login flow | < 5 s，ready | **blocker** |
+| Codex CLI | 单轮对话输入/输出 | 显示正确 | **blocker** |
+| Codex CLI | Ctrl+C 中断 | stop，prompt，无残帧 | **blocker** |
+| Codex CLI | 退出 | shell 回 prompt | **blocker** |
+| Codex CLI | 长输出滚动 | 流畅，scrollback 保留 | **blocker** |
+
+### §I.3 Ubuntu / Windows 跳过条款（明确 macOS-first）
+
+> **Ubuntu Phase D 后续补**（spec frontmatter 已显示 SPIKE-01/02 Phase B Ubuntu blocked）：
+> - 所有 §I.1 / §I.2 用例，Ubuntu 平台标 **deferred**，v0.1 macOS-first GA 后再补
+> - blocker 用例，Ubuntu fail 推 v0.2，不阻塞 v0.1
+> - non-blocker 用例，Ubuntu fail 推 v0.3
+>
+> **Windows skip**：
+> - MVP-04 spec line 8 明确 Windows 推 v0.4
+> - §I 测试矩阵不涵盖 Windows
+> - Windows shell（PowerShell / cmd / WSL）测试矩阵 v0.4 单独 spec
+
+### §I.4 测试执行流程（Phase D 实施 agent 用）
+
+**Phase D 实施 agent 按以下流程执行 §I 矩阵**：
+
+1. **环境准备**（macOS）：
+   - 安装 zsh（macOS 默认有）、bash（macOS 默认有）、fish（`brew install fish`）
+   - Claude CLI（`npm install -g @anthropic-ai/claude-cli` 或官方安装方式）
+   - Codex CLI（按 OpenAI 官方安装方式）
+   - Vibestation app 本地编译 + `pnpm tauri:dev` 启动
+
+2. **执行顺序**：
+   - 先 §I.1 默认 shell 矩阵（12 用例），每用例独立新 Tab 测
+   - 再 §I.2 CLI 矩阵（10 用例），每用例独立新 Tab 测
+   - 总计 22 用例，估时 1–1.5 h（含测试 + 截图 + 记录）
+
+3. **录证据**：
+   - 每用例 1 张截图（Tab 内画面），放 `docs/runtime-evidence/mvp-04/phase-d/`
+   - 22 张截图按 ADR-011 R3 命名：`shell-zsh-01-startup.jpg`、`cli-claude-03-ctrl-c.jpg` 等
+   - 关键流式行为录 30 s 录屏（如 Claude CLI 流式回复、Ctrl+C 中断）
+
+4. **记录通过率**：
+   - PR body 列 22 行用例表，每行 ✅ / ❌ / ⏭️（skip 注明原因）
+   - blocker fail ≥ 1 → **BLOCK PR merge**，实施 agent 必须修
+   - non-blocker fail → 推 v0.2 / v0.3（在 spec §已知风险 段加技术债条目）
+
+### §I.5 fail 处理流程（实施 agent 卡壳时）
+
+实施 agent 跑 §I 矩阵，遇 fail 按以下决策：
+
+| Fail 类型 | 处理 |
+|---|---|
+| zsh / bash 启动 fail | **blocker** · 修代码 · 不交 PR |
+| fish 启动 fail | **non-blocker** · §已知风险加条目 · spec 标 v0.2 修 · PR 可交 |
+| Claude CLI 残帧污染 | **blocker** · R1 风险 · 修代码（PTY 输出处理 / xterm reset 序列）· 不交 PR |
+| Claude CLI Ctrl+C fail | **blocker** · 修信号传递（PTY signal 链路）· 不交 PR |
+| 中文 IME 乱码 | **blocker** · UTF-8 编码问题 · 修 PTY / xterm encoding · 不交 PR |
+| 长输出滚动卡顿 | **non-blocker**（若 §Acceptance E 性能已过）· §已知风险加条目 |
+| Codex CLI 退出残留进程 | **blocker** · 修 PTY 进程清理 · 不交 PR |
+| 不在 §I 矩阵的新发现 fail | 实施 agent 判断 · blocker 在 spec §已知风险 段加新条目 + Arbiter approve 后推后 |
+
 ## 🔗 相关
 
 - `CLAUDE.md` #15 · #6 · ⚠️ CLI 警告（R1）

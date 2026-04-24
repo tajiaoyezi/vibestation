@@ -135,6 +135,46 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] Commit < 500ms（典型仓库 · 测 3 次取 P99 · fixture：vibestation 自身 repo）
 - [ ] Stage All 1000 文件 < 2s（测 3 次取 P99 · fixture：linux kernel 复制 1000 文件变更）
 
+#### D.1 · Criterion bench 模板
+
+新建 `crates/core/benches/git_ops_bench.rs`：
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion};
+
+fn bench_stage_single_file(c: &mut Criterion) {
+    c.bench_function("stage_single_file", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_normal_commit();
+            // call vibestation_core::git_ops::stage_files(...)
+        });
+    });
+}
+
+fn bench_commit(c: &mut Criterion) {
+    c.bench_function("commit_typical", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_normal_commit();
+            // call vibestation_core::git_ops::commit(...)
+        });
+    });
+}
+
+fn bench_stage_all_1000_files(c: &mut Criterion) {
+    c.bench_function("stage_all_1000", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_1000_files();
+            // call vibestation_core::git_ops::stage_files(... all ...)
+        });
+    });
+}
+
+criterion_group!(benches, bench_stage_single_file, bench_commit, bench_stage_all_1000_files);
+criterion_main!(benches);
+```
+
+验证：`cargo bench --bench git_ops_bench` · P99 数字写入 PR description。
+
 ### E. 测试 fixture
 
 - [ ] 正常 commit（单文件 / 多文件）

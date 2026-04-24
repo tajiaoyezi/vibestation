@@ -257,6 +257,34 @@ MVP-09 实施前必须明确复用 / 新增边界，避免和 MVP-07 / MVP-08 �
 | `FileChange { path, status, additions, deletions }`（MVP-07 已生成 · MVP-08 §G.5 已锁复用）| Commit 面板输入来源 | **复用** · 不造平行类型 | MVP-09 Stage/Unstage 操作的对象来自 MVP-08 Status 面板；禁止新建 `StagedFile` / `StatusFile` / `GitStatusItem` 等平行 struct |
 | `GitStatusResponse`（MVP-08 将生成）| Commit 面板 staged 文件列表来源 | **复用** · 不重新定义 | MVP-09 只消费 `GitStatusResponse.staged` 数组，不重新查询 status |
 
+#### G.5.0 · MVP-08 Phase A 实际生成的 binding（2026-04-23 · PR #100）
+
+MVP-08 Phase A（PR #100）已实际落地以下 binding · 本表锁定 MVP-09 的复用 / 排除决策：
+
+| Binding | 来源 | MVP-09 复用决策 |
+|---|---|---|
+| `FileChange { path: string, status: string, additions: number, deletions: number }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
+| `GitStatusResponse { staged: FileChange[], unstaged: FileChange[], untracked: FileChange[], error?: string }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
+| `DiffRequest` / `DiffResponse` / `DiffLine` / `DiffLineType` / `GitStatusPanelSettings` / `GitStatusGroup` | MVP-08 Phase A/B | ⛔ 不复用（语义无关 · MVP-09 不涉及 diff / panel 设置） |
+
+> 以上 6 个 Diff/Panel 相关 binding 明确排除 · 防止 Phase A agent 误 import。
+
+#### G.5.4 · MVP-09 新增 binding 清单（明确数量）
+
+以下 7 个 binding 为 MVP-09 **新增** · 实施时 `web/src/bindings/` 应新增 7 个 `.ts` 文件：
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `StageRequest` / `UnstageRequest` | 输入侧 · 含 `workspace_id + file_paths` | `import type { StageRequest } from "../bindings/StageRequest"` |
+| `CommitRequest` | 输入侧 · 含 `workspace_id + message + amend` | `import type { CommitRequest } from "../bindings/CommitRequest"` |
+| `CommitResponse` | 输出侧 · 含 `sha + short_sha + message + author + timestamp` · **复用** `CommitAuthor` from MVP-07 | `import type { CommitResponse } from "../bindings/CommitResponse"` |
+| `StageResult` | 输出侧 · 含 `staged_count + failed: { path, error }[]` | `import type { StageResult } from "../bindings/StageResult"` |
+| `CommitError` | 错误枚举 · 含 `NoStagedFiles / IdentityMissing / HookFailed { stderr, exit_code } / DetachedHead / Git2Error { message }` | `import type { CommitError } from "../bindings/CommitError"` |
+| `GitConfigIdentity` | 读 · 含 `name + email` · 不含 timestamp · 与 `CommitAuthor` 区分 | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"` |
+| `SetGitIdentityRequest` | 写 · 含 `name + email + scope: "local" \| "global"` | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
+
+> 加上复用 2 个（`FileChange` / `GitStatusResponse` / `CommitAuthor`）· 实施时 bindings 目录共新增 7 个 `.ts` 文件。
+
 #### G.5.1 保持独立的类型
 
 以下类型因语义不同，**不**复用现有 binding，保持为 MVP-09 新增：

@@ -190,22 +190,22 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（session 17 · MVP-08 Phase C 起点）
+## 🏁 当前可执行动作（session 18 · MVP-08 Phase D/E 起点）
 
-**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #99/#100/#101/#102`：`MVP-04` Phase F 证据收口、`MVP-08` Phase A/B 落地，以及 PR 级 GitHub Actions 自动运行关闭。
+**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #99/#100/#101/#102/#103/#105`：`MVP-04` Phase F 证据收口、`MVP-08` Phase A/B/C 落地（含 Diff 视图 + Git Status/Git Log → Diff 接通 + view mode 持久化 + Git Status 自动刷新），以及 PR 级 GitHub Actions 自动运行关闭。
 
 **v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
 
 - MVP-02/03/07 done
 - MVP-04 ready · Phase A/B/C/E/F 已完成，仅剩 Phase D shell 兼容（低优先）
-- MVP-05/06/08/09/10 ready · 其中 MVP-08 已完成 Phase A/B，当前主线 = Phase C Diff 视图前端
+- MVP-05/06/08/09/10 ready · 其中 MVP-08 已完成 Phase A/B/C，当前主线 = Phase D fs watch（或 Phase E runtime 证据收口）
 - SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）· §A 已 done
 
 本阶段可做的 4 件事（按优先级）：
 
-1. **MVP-08 Phase C · Diff 视图前端**（主线 · split/unified 切换 + 大文件 fallback + 从 Git Status / Git Log 打开 Diff）
-2. **MVP-08 Phase D/E · fs watch + runtime 证据量化**（紧接 Phase C · 把 Diff 主线收口）
-3. **MVP-09 · Stage/Unstage + Commit 写路径**（依赖 MVP-08 C/D/E 收口后继续）
+1. **MVP-08 Phase D · fs watch 自动刷新**（主线 · `notify` 6.x 三平台 + 防抖 200ms + IPC event 替换当前 Git Status polling）
+2. **MVP-08 Phase E · runtime 证据 + 性能量化**（≥ 5 张截图 / 30s 录屏 · A.2/A.6/F 性能门槛实测 · 放 `docs/runtime-evidence/mvp-08/`）
+3. **MVP-09 · Stage/Unstage + Commit 写路径**（依赖 MVP-08 D/E 收口后继续）
 4. **MVP-04 Phase D · shell 兼容**（默认 shell / Claude CLI / Codex CLI 实机 · 低优先，不要和 MVP-08 主线抢顺序）
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。

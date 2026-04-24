@@ -69,6 +69,22 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 | Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
 
+**Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
+
+- [ ] `crates/core/Cargo.toml` 加 `git2` 已存在（继承 MVP-07）· 不需要新增依赖
+- [ ] 新建 `crates/core/src/git_ops.rs`（不和 `git_status.rs` 混 · 写路径独立模块）
+- [ ] git2 API 调用链 ready-to-use（参考 §H.4 表）：
+  - Stage：`Repository::index()` → `Index::add_path()` → `Index::write()`
+  - Unstage：`Repository::head()` → tree 对应 path → `Index::remove_path()` / `add_tree_entry()` → `Index::write()`
+  - Commit：`Repository::signature_default()` → `Repository::commit(parents, author, committer, message, tree, ...)`
+  - Amend：`Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))`
+- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `stage` / `unstage` / `commit` / `amend` / `get_git_identity` / `set_git_identity`
+- [ ] permission toml：`crates/app/permissions/git_ops.toml` 新建 · 含 6 个 `allow-{name}`
+- [ ] capability `default.json` 引用上述 permission
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发）
+- [ ] fixture：`tests/fixtures/mvp-09/` 用 `tempfile` crate 运行时生成（不要硬编码本地路径）
+
 **下次 agent 起点**：Phase A
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
@@ -85,7 +101,11 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] Unstaged 组每行有 ✓ 按钮 → 点击 stage 该文件
 - [ ] Staged 组每行有 ✗ 按钮 → 点击 unstage 该文件
 - [ ] 组标题有 "Stage All" / "Unstage All" 批量按钮
-- [ ] 操作后 Status 面板立即刷新：点击到 UI 反馈 < 50ms（乐观 UI）· git call 后 < 100ms 校正完成（测 3 次取 P99）· 失败 revert + toast error 文案（如 `"无法 stage：{file} 已被删除"`）
+- [ ] A.4.1 前端 optimistic update（点击 → UI 反馈）< 5ms（`performance.now()` 测前端 `setState` 到 DOM commit · 不含 IPC）
+- [ ] A.4.2 IPC roundtrip（前端 invoke 到 Rust 响应）< 30ms（Tauri devtools 测 · 单文件 stage 场景）
+- [ ] A.4.3 git2 stage 操作（Rust `Repository::index().add_path().write()`）< 50ms（Criterion bench · 1 文件 fixture）
+- [ ] A.4.4 总和：A.4.1 + A.4.2 + A.4.3 < 85ms（< 100ms spec 上限 · 留 15ms 余量）
+- [ ] A.4.5 失败 revert + toast error 文案（如 `"无法 stage：{file} 已被删除"`）· 失败路径不 timing（错误 UX 优先）
 - [ ] Stage All 批量操作显示 spinner / progress indicator · 1000 文件场景不阻塞 UI（参考 D 段 Stage All < 2s 目标）
 
 ### B. Commit
@@ -115,6 +135,46 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] Commit < 500ms（典型仓库 · 测 3 次取 P99 · fixture：vibestation 自身 repo）
 - [ ] Stage All 1000 文件 < 2s（测 3 次取 P99 · fixture：linux kernel 复制 1000 文件变更）
 
+#### D.1 · Criterion bench 模板
+
+新建 `crates/core/benches/git_ops_bench.rs`：
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion};
+
+fn bench_stage_single_file(c: &mut Criterion) {
+    c.bench_function("stage_single_file", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_normal_commit();
+            // call vibestation_core::git_ops::stage_files(...)
+        });
+    });
+}
+
+fn bench_commit(c: &mut Criterion) {
+    c.bench_function("commit_typical", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_normal_commit();
+            // call vibestation_core::git_ops::commit(...)
+        });
+    });
+}
+
+fn bench_stage_all_1000_files(c: &mut Criterion) {
+    c.bench_function("stage_all_1000", |b| {
+        b.iter(|| {
+            let _dir = create_fixture_1000_files();
+            // call vibestation_core::git_ops::stage_files(... all ...)
+        });
+    });
+}
+
+criterion_group!(benches, bench_stage_single_file, bench_commit, bench_stage_all_1000_files);
+criterion_main!(benches);
+```
+
+验证：`cargo bench --bench git_ops_bench` · P99 数字写入 PR description。
+
 ### E. 测试 fixture
 
 - [ ] 正常 commit（单文件 / 多文件）
@@ -124,6 +184,34 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] `.gitignore` 外的 untracked 文件 stage
 - [ ] 已 staged 后 working tree 又改 → Status 正确显示两份（staged 和 unstaged 同文件）：测样本为 stage 后再改同文件 · `git status --porcelain` 输出 `'MM path'` · MVP-09 Status 面板应在 Staged 和 Unstaged 两组都显示该文件
 - [ ] Fixture 管理：`tests/fixtures/mvp-09/` 下准备 6 个小 fixture repo（.git 含）· 或用 `tempfile` crate 运行时创建 · 测试结束清理
+
+#### C.1 · fixture 准备脚本
+
+所有 fixture 用 `tempfile::TempDir` + `git2::Repository::init()` 在测试运行时生成 · **不要**新建 `tests/fixtures/mvp-09/` 物理目录（不进 git）：
+
+```rust
+// tests/fixtures/mvp_09_helpers.rs（新建）
+use git2::Repository;
+use tempfile::TempDir;
+
+fn create_fixture_normal_commit() -> TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = Repository::init(dir.path()).unwrap();
+    // 1. config user.name + user.email（避免 IdentityMissing）
+    // 2. write hello.txt
+    // 3. stage + initial commit
+    // 4. modify hello.txt（用于测 stage / commit）
+    dir
+}
+
+fn create_fixture_detached_head() -> TempDir { /* init → checkout detach → modify */ }
+fn create_fixture_chinese_filename() -> TempDir { /* UTF-8 文件名 + 中文 message */ }
+fn create_fixture_pre_commit_hook() -> TempDir { /* .git/hooks/pre-commit 可执行 */ }
+fn create_fixture_with_hook_fail() -> TempDir { /* pre-commit exit 1 + stderr */ }
+fn create_fixture_1000_files() -> TempDir { /* for 循环 generate 1000 文件 · 用于 D.3 性能 */ }
+```
+
+每个 helper 返回 `TempDir` · 测试用 `let _dir = create_fixture_normal_commit();` 持有 · 测试结束 `dir` drop 自动清理。
 
 ## 🧪 测试策略
 
@@ -240,6 +328,34 @@ MVP-09 实施前必须明确复用 / 新增边界，避免和 MVP-07 / MVP-08 �
 | `CommitAuthor { name, email, timestamp }`（MVP-07 已生成）| §G.1 `CommitAuthor` | **复用** · 不在 MVP-09 重新定义 | `CommitResponse.author / committer` 直接引用现有 binding；字段含 `timestamp: number`（对齐 MVP-07 derive 模式 `#[ts(type = "number")]`） |
 | `FileChange { path, status, additions, deletions }`（MVP-07 已生成 · MVP-08 §G.5 已锁复用）| Commit 面板输入来源 | **复用** · 不造平行类型 | MVP-09 Stage/Unstage 操作的对象来自 MVP-08 Status 面板；禁止新建 `StagedFile` / `StatusFile` / `GitStatusItem` 等平行 struct |
 | `GitStatusResponse`（MVP-08 将生成）| Commit 面板 staged 文件列表来源 | **复用** · 不重新定义 | MVP-09 只消费 `GitStatusResponse.staged` 数组，不重新查询 status |
+
+#### G.5.0 · MVP-08 Phase A 实际生成的 binding（2026-04-23 · PR #100）
+
+MVP-08 Phase A（PR #100）已实际落地以下 binding · 本表锁定 MVP-09 的复用 / 排除决策：
+
+| Binding | 来源 | MVP-09 复用决策 |
+|---|---|---|
+| `FileChange { path: string, status: string, additions: number, deletions: number }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
+| `GitStatusResponse { staged: FileChange[], unstaged: FileChange[], untracked: FileChange[], error?: string }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
+| `DiffRequest` / `DiffResponse` / `DiffLine` / `DiffLineType` / `GitStatusPanelSettings` / `GitStatusGroup` | MVP-08 Phase A/B | ⛔ 不复用（语义无关 · MVP-09 不涉及 diff / panel 设置） |
+
+> 以上 6 个 Diff/Panel 相关 binding 明确排除 · 防止 Phase A agent 误 import。
+
+#### G.5.4 · MVP-09 新增 binding 清单（明确数量）
+
+以下 7 个 binding 为 MVP-09 **新增** · 实施时 `web/src/bindings/` 应新增 7 个 `.ts` 文件：
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `StageRequest` / `UnstageRequest` | 输入侧 · 含 `workspace_id + file_paths` | `import type { StageRequest } from "../bindings/StageRequest"` |
+| `CommitRequest` | 输入侧 · 含 `workspace_id + message + amend` | `import type { CommitRequest } from "../bindings/CommitRequest"` |
+| `CommitResponse` | 输出侧 · 含 `sha + short_sha + message + author + timestamp` · **复用** `CommitAuthor` from MVP-07 | `import type { CommitResponse } from "../bindings/CommitResponse"` |
+| `StageResult` | 输出侧 · 含 `staged_count + failed: { path, error }[]` | `import type { StageResult } from "../bindings/StageResult"` |
+| `CommitError` | 错误枚举 · 含 `NoStagedFiles / IdentityMissing / HookFailed { stderr, exit_code } / DetachedHead / Git2Error { message }` | `import type { CommitError } from "../bindings/CommitError"` |
+| `GitConfigIdentity` | 读 · 含 `name + email` · 不含 timestamp · 与 `CommitAuthor` 区分 | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"` |
+| `SetGitIdentityRequest` | 写 · 含 `name + email + scope: "local" \| "global"` | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
+
+> 加上复用 2 个（`FileChange` / `GitStatusResponse` / `CommitAuthor`）· 实施时 bindings 目录共新增 7 个 `.ts` 文件。
 
 #### G.5.1 保持独立的类型
 

@@ -145,6 +145,34 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] 已 staged 后 working tree 又改 → Status 正确显示两份（staged 和 unstaged 同文件）：测样本为 stage 后再改同文件 · `git status --porcelain` 输出 `'MM path'` · MVP-09 Status 面板应在 Staged 和 Unstaged 两组都显示该文件
 - [ ] Fixture 管理：`tests/fixtures/mvp-09/` 下准备 6 个小 fixture repo（.git 含）· 或用 `tempfile` crate 运行时创建 · 测试结束清理
 
+#### C.1 · fixture 准备脚本
+
+所有 fixture 用 `tempfile::TempDir` + `git2::Repository::init()` 在测试运行时生成 · **不要**新建 `tests/fixtures/mvp-09/` 物理目录（不进 git）：
+
+```rust
+// tests/fixtures/mvp_09_helpers.rs（新建）
+use git2::Repository;
+use tempfile::TempDir;
+
+fn create_fixture_normal_commit() -> TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    let repo = Repository::init(dir.path()).unwrap();
+    // 1. config user.name + user.email（避免 IdentityMissing）
+    // 2. write hello.txt
+    // 3. stage + initial commit
+    // 4. modify hello.txt（用于测 stage / commit）
+    dir
+}
+
+fn create_fixture_detached_head() -> TempDir { /* init → checkout detach → modify */ }
+fn create_fixture_chinese_filename() -> TempDir { /* UTF-8 文件名 + 中文 message */ }
+fn create_fixture_pre_commit_hook() -> TempDir { /* .git/hooks/pre-commit 可执行 */ }
+fn create_fixture_with_hook_fail() -> TempDir { /* pre-commit exit 1 + stderr */ }
+fn create_fixture_1000_files() -> TempDir { /* for 循环 generate 1000 文件 · 用于 D.3 性能 */ }
+```
+
+每个 helper 返回 `TempDir` · 测试用 `let _dir = create_fixture_normal_commit();` 持有 · 测试结束 `dir` drop 自动清理。
+
 ## 🧪 测试策略
 
 | 层次 | 范围 |

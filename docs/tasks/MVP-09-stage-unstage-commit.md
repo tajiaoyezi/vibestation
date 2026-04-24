@@ -69,6 +69,22 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 | Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
 
+**Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
+
+- [ ] `crates/core/Cargo.toml` 加 `git2` 已存在（继承 MVP-07）· 不需要新增依赖
+- [ ] 新建 `crates/core/src/git_ops.rs`（不和 `git_status.rs` 混 · 写路径独立模块）
+- [ ] git2 API 调用链 ready-to-use（参考 §H.4 表）：
+  - Stage：`Repository::index()` → `Index::add_path()` → `Index::write()`
+  - Unstage：`Repository::head()` → tree 对应 path → `Index::remove_path()` / `add_tree_entry()` → `Index::write()`
+  - Commit：`Repository::signature_default()` → `Repository::commit(parents, author, committer, message, tree, ...)`
+  - Amend：`Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))`
+- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `stage` / `unstage` / `commit` / `amend` / `get_git_identity` / `set_git_identity`
+- [ ] permission toml：`crates/app/permissions/git_ops.toml` 新建 · 含 6 个 `allow-{name}`
+- [ ] capability `default.json` 引用上述 permission
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发）
+- [ ] fixture：`tests/fixtures/mvp-09/` 用 `tempfile` crate 运行时生成（不要硬编码本地路径）
+
 **下次 agent 起点**：Phase A
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。

@@ -101,7 +101,11 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [ ] Unstaged 组每行有 ✓ 按钮 → 点击 stage 该文件
 - [ ] Staged 组每行有 ✗ 按钮 → 点击 unstage 该文件
 - [ ] 组标题有 "Stage All" / "Unstage All" 批量按钮
-- [ ] 操作后 Status 面板立即刷新：点击到 UI 反馈 < 50ms（乐观 UI）· git call 后 < 100ms 校正完成（测 3 次取 P99）· 失败 revert + toast error 文案（如 `"无法 stage：{file} 已被删除"`）
+- [ ] A.4.1 前端 optimistic update（点击 → UI 反馈）< 5ms（`performance.now()` 测前端 `setState` 到 DOM commit · 不含 IPC）
+- [ ] A.4.2 IPC roundtrip（前端 invoke 到 Rust 响应）< 30ms（Tauri devtools 测 · 单文件 stage 场景）
+- [ ] A.4.3 git2 stage 操作（Rust `Repository::index().add_path().write()`）< 50ms（Criterion bench · 1 文件 fixture）
+- [ ] A.4.4 总和：A.4.1 + A.4.2 + A.4.3 < 85ms（< 100ms spec 上限 · 留 15ms 余量）
+- [ ] A.4.5 失败 revert + toast error 文案（如 `"无法 stage：{file} 已被删除"`）· 失败路径不 timing（错误 UX 优先）
 - [ ] Stage All 批量操作显示 spinner / progress indicator · 1000 文件场景不阻塞 UI（参考 D 段 Stage All < 2s 目标）
 
 ### B. Commit

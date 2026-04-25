@@ -1,0 +1,405 @@
+/* MVP-10 Phase A · Settings Panel styles
+ * Token 源：design/directions/1-calm-studio.html + web/src/styles.css
+ */
+
+/* ─── Overlay & Drawer ─── */
+.vs-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  background: oklch(0.05 0.01 255 / 0.45);
+  backdrop-filter: blur(4px);
+  animation: vs-settings-fade-in 120ms var(--ease);
+}
+
+@keyframes vs-settings-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.vs-settings-drawer {
+  width: 420px;
+  max-width: 90vw;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border-left: 1px solid var(--line-soft);
+  animation: vs-settings-slide-in 240ms var(--panel-ease);
+}
+
+@keyframes vs-settings-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+/* ─── Header ─── */
+.vs-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.vs-settings-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-1);
+  letter-spacing: -0.01em;
+}
+
+.vs-settings-close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--space-1);
+  border-radius: var(--r-4);
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.vs-settings-close:hover {
+  color: var(--text-1);
+  background: var(--bg-2);
+}
+
+/* ─── Body ─── */
+.vs-settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+}
+
+/* ─── Group ─── */
+.vs-settings-group {
+  margin-bottom: var(--space-2);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+
+.vs-settings-group-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-1);
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-settings-group-header:hover {
+  background: var(--bg-2);
+}
+
+.vs-settings-group-chevron {
+  display: inline-block;
+  font-size: 0.625rem;
+  color: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.vs-settings-group-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.vs-settings-group-content {
+  padding: var(--space-2) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ─── Fields ─── */
+.vs-settings-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.vs-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.vs-settings-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vs-settings-field-labels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.vs-settings-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.vs-settings-sublabel {
+  font-size: 0.75rem;
+  color: var(--text-4);
+}
+
+.vs-settings-value {
+  font-weight: 400;
+  color: var(--text-3);
+  margin-left: var(--space-1);
+}
+
+/* ─── Inputs ─── */
+.vs-settings-input,
+.vs-settings-select {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-6);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
+}
+
+.vs-settings-input:focus,
+.vs-settings-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.vs-settings-select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.vs-settings-slider {
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  outline: none;
+}
+
+.vs-settings-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-1);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+
+/* ─── Radio ─── */
+.vs-settings-radio-row {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.vs-settings-radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.vs-settings-radio {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--bg-2);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease);
+  position: relative;
+}
+
+.vs-settings-radio:checked {
+  border-color: var(--accent);
+}
+
+.vs-settings-radio:checked::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ─── Toggle ─── */
+.vs-settings-toggle {
+  appearance: none;
+  border: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--line);
+  cursor: pointer;
+  position: relative;
+  padding: 0;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-settings-toggle.active {
+  background: var(--success);
+}
+
+.vs-settings-toggle.neutral {
+  background: var(--warning);
+}
+
+.vs-settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.vs-settings-toggle.active .vs-settings-toggle-knob,
+.vs-settings-toggle.neutral .vs-settings-toggle-knob {
+  transform: translateX(18px);
+}
+
+/* ─── Link ─── */
+.vs-settings-link {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vs-settings-link:hover {
+  color: var(--text-1);
+}
+
+.vs-settings-link-inline {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── Detail overlay ("View what we collect") ─── */
+.vs-settings-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0.05 0.01 255 / 0.5);
+  backdrop-filter: blur(4px);
+  animation: vs-settings-fade-in 120ms var(--ease);
+}
+
+.vs-settings-detail-card {
+  width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-12);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 0.35);
+  overflow: hidden;
+}
+
+.vs-settings-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+  flex-shrink: 0;
+}
+
+.vs-settings-detail-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.vs-settings-detail-body {
+  padding: var(--space-4) var(--space-5);
+  overflow-y: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.vs-settings-detail-body h4 {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.vs-settings-detail-body h4:first-child {
+  margin-top: 0;
+}
+
+.vs-settings-detail-body ul {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+}
+
+.vs-settings-detail-body li {
+  margin-bottom: var(--space-1);
+}
+
+.vs-settings-detail-note {
+  margin: var(--space-3) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-3);
+  font-size: 0.75rem;
+}

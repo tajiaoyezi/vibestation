@@ -74,13 +74,13 @@ MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期�
 
 | Phase | 范围 | 依赖 | 状态 | PR |
 |---|---|---|---|---|
-| Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ts-rs binding 6 IPC struct + 实时生效（< 100 ms）+ 持久化（rusqlite `app_settings` KV）+ ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| ⏳ todo | — |
+| Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| 🟡 部分 done（前端 UI + store 已落地 · IPC 接通 + 实时生效 Rust 端推 Phase B）| 本 PR |
 | Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成（Spike 后锁定 · 见 §H.1）+ PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle）| ⏳ todo | — |
 | Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
 | Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
 | Phase E · 非功能文件 + GitHub Release | README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + Release page assets | Phase A–D done | ⏳ todo | — |
 
-**下次 agent 起点**：Phase A · 不依赖任何其他 MVP · 可在 v0.1 收尾期间立即启动（与 MVP-04/05/06/08/09 实施并行）。
+**下次 agent 起点**：Phase B（Telemetry opt-in 对话框 + Sentry SDK 集成 + IPC commands 实现）· Phase A 前端 UI + store 已落地。
 
 **依赖关系说明**：
 - Phase A/B 文件域：`crates/core/src/app_settings.rs`（已存在 · MVP-03 Phase A 建）+ `crates/app/src/lib.rs`（IPC 注册）+ `web/src/panels/Settings/`（新建）+ `web/src/dialogs/TelemetryOptIn/`（新建）
@@ -89,17 +89,17 @@ MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期�
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
-- [ ] `crates/core/src/app_settings.rs` 已存在（MVP-03 Phase A · KV 表 + `AppSettingsStore::get/set`）· 不需要新建 · 仅扩展
-- [ ] migration 不新建（§数据模型变更已锁 · MVP-10 纯 KV 写入 · 无 schema 变更 · 仿 YAGNI）· 新增 8 个 KV key（`telemetry_opt_in` / `paste_protection` / `default_shell` / `font_family` / `font_size` / `theme` / `git_user_name` / `git_user_email`）
-- [ ] `AppSettings` struct（§G.2 已写完整）→ `AppSettingsStore::get_all()` 实现 · 用 SQL `SELECT key, value FROM app_settings` 一次拉所有 KV · Rust 侧组装 `AppSettings` struct
-- [ ] `SettingsUpdateRequest` 实现 partial update · 仅含 `Some` 字段触发 `SET` · `None` 字段跳过
+- [x] `crates/core/src/app_settings.rs` 已存在（MVP-03 Phase A · KV 表 + `AppSettingsStore::get/set`）· 不需要新建 · 仅扩展
+- [x] migration 不新建（§数据模型变更已锁 · MVP-10 纯 KV 写入 · 无 schema 变更 · 仿 YAGNI）· 新增 8 个 KV key（`telemetry_opt_in` / `paste_protection` / `default_shell` / `font_family` / `font_size` / `theme` / `git_user_name` / `git_user_email`）
+- [ ] `AppSettings` struct（§G.2 已写完整）→ `AppSettingsStore::get_all()` 实现 · 用 SQL `SELECT key, value FROM app_settings` 一次拉所有 KV · Rust 侧组装 `AppSettings` struct · **推 Phase B**（需 IPC `settings_get` 接通）
+- [ ] `SettingsUpdateRequest` 实现 partial update · 仅含 `Some` 字段触发 `SET` · `None` 字段跳过 · **推 Phase B**（需 IPC `settings_update` 接通）
 - [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
-  - `settings_get` / `settings_update` / `telemetry_opt_in_set` / `telemetry_status_get` / `app_version_get`
-- [ ] permission toml：`crates/app/permissions/settings.toml` + `telemetry.toml` 新建（5 个 permission）
-- [ ] capability `default.json` 引用上述 permission
-- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 6 个 struct 见 §G.1）
-- [ ] SolidJS Settings 组件结构：`web/src/panels/Settings/SettingsPanel.tsx`（4 分组）+ `AppearanceGroup.tsx` + `TerminalGroup.tsx` + `GitGroup.tsx` + `PrivacyGroup.tsx`
-- [ ] 实时生效路径：Settings UI 修改 → `invoke('settings_update', { theme: 'dark' })` → Rust 侧写 KV → emit Tauri event `'settings_changed'` → 全局 SolidJS store 更新 → 主题 CSS 变量切换（< 100 ms）
+  - `settings_get` / `settings_update` / `telemetry_opt_in_set` / `telemetry_status_get` / `app_version_get` · **推 Phase B**
+- [ ] permission toml：`crates/app/permissions/settings.toml` + `telemetry.toml` 新建（5 个 permission）· **推 Phase B**
+- [ ] capability `default.json` 引用上述 permission · **推 Phase B**
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 6 个 struct 见 §G.1）· **推 Phase B**
+- [x] SolidJS Settings 组件结构：`web/src/panels/Settings/SettingsPanel.tsx`（4 分组）+ `AppearanceGroup.tsx` + `TerminalGroup.tsx` + `GitGroup.tsx` + `PrivacyGroup.tsx`
+- [ ] 实时生效路径：Settings UI 修改 → `invoke('settings_update', { theme: 'dark' })` → Rust 侧写 KV → emit Tauri event `'settings_changed'` → 全局 SolidJS store 更新 → 主题 CSS 变量切换（< 100 ms）· **Phase A store level 已实现（theme 切 `useTheme`）· Rust KV 持久化推 Phase B**
 
 ## 🖼 UI 引用
 

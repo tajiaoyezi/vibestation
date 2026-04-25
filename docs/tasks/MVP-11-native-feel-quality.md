@@ -64,7 +64,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 | Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
 |---|---|---|---|---|---|
-| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · **不是** Cargo feature）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `web/src/index.css` · `web/src/main.tsx` | MVP-10 Phase A（已 done） | ✅ done | — |
+| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true` · `Cargo.toml` 加 `tauri features = ["macos-private-api"]`（**Tauri 2 build-time 强制 conf + Cargo feature 双启用一致性** · session 19 PR #123 实测 · 缺 Cargo feature 时报 `dependency features does not match the allowlist`）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `crates/app/Cargo.toml` · `web/src/styles.css` · `web/src/index.tsx` | MVP-10 Phase A（已 done） | 🟡 部分 done（代码 done · A.2/07 manual capture 待补 · 见 R-PHASE-1） | [#123](https://github.com/tajiaoyezi/vibestation/pull/123) |
 | **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`-webkit-app-region: drag`）· sidebar 延伸到 title bar 区 · Linux `#[cfg(target_os = "macos")]` 分支保留默认 title bar | `crates/app/tauri.conf.json` · `web/src/App.tsx` · `web/src/layouts/*.tsx` · `web/src/index.css` | Phase 1（Vibrancy 生效才能看到 overlay） | ⏳ todo | — |
 | **Phase 3 · Native Context Menu + 快捷键** | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用 | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx` | Phase 1 | ⏳ todo | — |
 | **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 6 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink）· `app_settings` KV 扩 6 keys · CSS vars 消费 · Unfocused Pane Opacity 单独在 Terminal 组 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（6 新 KV key · YAGNI 无 migration）· `crates/app/src/lib.rs` IPC（复用 MVP-10 `settings_update`） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ⏳ todo | — |
@@ -96,7 +96,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 ### A. Phase 1 · Vibrancy + 禁 webview 行为
 
-- [ ] A.1 `tauri.conf.json` 加：`app.macOSPrivateApi: true` + `windows[0].transparent: true` + `windows[0].windowEffects: { effects: ["hudWindow"], state: "followsWindowActiveState", radius: 12 }`（Tauri 2 通过 conf 启用 macos-private-api · **不是** Cargo feature · radius 是窗口圆角 · 不是 blur 强度）
+- [ ] A.1 `tauri.conf.json` 加：`app.macOSPrivateApi: true` + `windows[0].transparent: true` + `windows[0].windowEffects: { effects: ["hudWindow"], state: "followsWindowActiveState", radius: 12 }` · **同时** `Cargo.toml` 加 `tauri = { features = ["macos-private-api"] }`（Tauri 2 build-time 强制 conf + Cargo feature 双启用一致性 · 缺 Cargo feature 时报 `dependency features on the Cargo.toml file does not match the allowlist defined under tauri.conf.json` · session 19 PR #123 实测验证 · radius 是窗口圆角 · 不是 blur 强度）
 - [ ] A.2 macOS 启动后窗口背景透出桌面壁纸（毛玻璃效果可见）· 截图 `docs/runtime-evidence/mvp-11/01-vibrancy-macos.png`
 - [ ] A.3 CSS 全局 `html, body { background: transparent }` · 主 container 半透明背景（light `rgba(250,250,250,0.85)` / dark `rgba(28,28,30,0.75)`）
 - [ ] A.4 禁用 webview 行为（release build）：右键无 inspector / Cmd+R 不刷新 / Cmd+- / Cmd+= 不缩放 / Ctrl+A 不全选页面（terminal/diff/editor 单独保留 text selection）
@@ -273,8 +273,10 @@ pub struct AppSettings {
 - **R31（新增）Native Feel Quality 回归**：Phase 1 `transparent: true` 可能降低终端滚屏性能 → MVP-04 Phase F bench 回归 · 测试覆盖 A.6 硬门槛（> 10% 回归则回退）
 - **Linux Vibrancy 缺失**：Linux WebKitGTK 不支持 Vibrancy → 明示 "Linux 降级为纯色" · 不阻塞
 - **Title bar Overlay drag bug**：Tauri 官方 issue #4316 · 不 focus 时 drag 失败 → Acceptance B.3 明示 "注意已知限制"
-- **macOS Private API 审核风险**：`tauri.conf.json` 的 `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · 不是 Cargo feature · 见 A.1）可能触发 Mac App Store 拒审 → Vibestation v0.1 不上 App Store（只走 .dmg + notarization · MVP-10）· 无影响
+- **macOS Private API 审核风险**：`tauri.conf.json` 的 `app.macOSPrivateApi: true` + `Cargo.toml` 的 `tauri features = ["macos-private-api"]`（Tauri 2 build-time 强制双启用 · 见 A.1）· 可能触发 Mac App Store 拒审 → Vibestation v0.1 不上 App Store（只走 .dmg + notarization · MVP-10）· 无影响
 - **字体加载延迟**：系统字体 `SF Pro Display` 在新机首次加载可能 100-200ms → 全局 `font-display: swap` CSS 兜底
+- **R-PHASE-1 · Phase 1 manual capture 待补**（PR #123 round 1 · 2026-04-25）：A.2 macOS Vibrancy 截图（`01-vibrancy-macos.png`）+ A.4 webview 行为禁用录屏（`07-webview-disabled-behaviors.mp4`）· OpenCode CLI agent 无法操作 macOS 屏幕截图工具 · 标 manual capture 待 Arbiter 本地 30 min 补 · 或推 v0.2 GA 前置补齐 · **不影响 Phase 1 实际功能**：Vibrancy + 禁 webview 行为代码已落地（PR #123 ab44bbe）· A.6 性能回归 metrics 已实测 git_status_bench -6.3%（更优）· diff_bench 持平 · 见 `docs/runtime-evidence/mvp-11/metrics-mvp-11.md`
+- **R-PHASE-1.linux · Linux transparent 行为不确定**：`tauri.conf.json` 的 `transparent: true` 在 Linux WebKitGTK / 不同 compositor 下行为不一致（部分支持真透明 · 部分 silently ignore）· spec A.5 原建议 Rust `#[cfg(target_os = "linux")]` 不启 transparent · PR #123 实施改用 JS runtime 检测（`navigator.platform` + `.platform-linux` CSS class）+ 0.98 近不透明 fallback · 已知限制：Linux without compositor transparency 显示纯色（可接受 · macOS-first v0.1 GA 策略）· `#[cfg]` Rust 侧统一控制推 Phase 2（一并处理 macOS-only `titleBarStyle`）
 
 ## 📝 Notes
 

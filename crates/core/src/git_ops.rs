@@ -533,8 +533,8 @@ mod tests {
         // 若全局 git config 已设置 identity · commit 可能成功 · 这是预期行为
         // 本测试验证：当 repo config identity 为空时 · 系统尝试 fallback 到全局 config
         // 若全局 config 也未设 · 则必须返回 IdentityMissing
-        if result.is_err() {
-            match result.unwrap_err() {
+        if let Err(err) = result {
+            match err {
                 GitOpsError::IdentityMissing => {}
                 GitOpsError::Git2(ref e)
                     if e.message().contains("identity") || e.message().contains("config") => {}

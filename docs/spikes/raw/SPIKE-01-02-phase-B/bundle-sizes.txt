@@ -1,0 +1,9 @@
+# Bundle Sizes - SPIKE-01-02 Phase B
+# Generated: $(date -Iseconds)
+# Note: tauri.conf.json bundle.targets = ["dmg", "appimage"] (no deb target configured)
+
+## AppImage
+-rwxr-xr-x 1 leafiel leafiel 81410552 Apr 25 17:13 target/release/bundle/appimage/Vibestation_0.1.0_amd64.AppImage
+
+## deb
+(no deb target in tauri.conf.json)

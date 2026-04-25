@@ -452,6 +452,57 @@ MVP-05 实施前必须明确复用 / 新增边界，避免和 MVP-04 Phase A/B �
 - 使用 rusqlite `transaction()` 包裹；任何步骤失败 → 完整回滚，禁止出现 "layout 改了一半、panes 没删" 的脏状态。
 - 前端状态（SolidJS store）与后端状态同步：操作成功后通过 Tauri event 推送 `PaneListResponse`，前端以服务端状态为准覆写本地。
 
+#### H.3.1 · 原子性测试 case（Phase A 实施时必加）
+
+3 类操作 × 2 类失败注入 = **6 个测试 case**，验证 transaction 回滚不留脏数据：
+
+```rust
+#[test]
+fn split_atomicity_fails_during_panes_insert() {
+    let (_dir, conn) = create_fixture_solo_layout();
+    // 注入失败：mock PanesDao::insert 返回 Err
+    let result = pane::split_with_mock_failure(&conn, "panes_insert");
+    assert!(result.is_err());
+    // 验证回滚：tabs.layout 仍是 Solo · panes 表无新行
+    let layout_json: String = conn.query_row(
+        "SELECT layout FROM tabs WHERE tab_id=?", ["t1"], |r| r.get(0)
+    ).unwrap();
+    let layout: LayoutNode = serde_json::from_str(&layout_json).unwrap();
+    assert!(matches!(layout, LayoutNode::Single { .. }));
+    let panes_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM panes WHERE tab_id=?", ["t1"], |r| r.get(0)
+    ).unwrap();
+    assert_eq!(panes_count, 1);  // 原 1 pane · 没新增
+}
+
+#[test]
+fn split_atomicity_fails_during_layout_update() {
+    // 注入 tabs.layout UPDATE 失败 · 验证 panes 表无新行 + layout 不变
+}
+
+#[test]
+fn close_atomicity_fails_during_panes_delete() {
+    // 注入 panes DELETE 失败 · 验证原 pane 仍在 + layout 不变
+}
+
+#[test]
+fn close_atomicity_fails_during_layout_update() {
+    // 注入 tabs.layout UPDATE 失败 · 验证 panes 表行数不变
+}
+
+#[test]
+fn layout_apply_atomicity_fails_during_panes_batch_delete() {
+    // Smart Layout 批量关闭中途失败 · 验证所有 pane 仍在 + layout 不变
+}
+
+#[test]
+fn layout_apply_atomicity_fails_during_focused_pane_update() {
+    // focused_pane_id 写入失败 · 验证 panes + layout 均不变
+}
+```
+
+每个 case 验证：**操作前后** `tabs.layout` JSON / `panes` 表行数 / `focused_pane_id` 三者状态完全一致（不留脏数据）。
+
 ### H.4 布局持久化存储
 
 - **`tabs.layout`** TEXT 字段：存储 JSON 序列化的 `LayoutNode`（tagged union 格式）。

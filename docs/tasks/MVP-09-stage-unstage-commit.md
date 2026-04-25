@@ -65,7 +65,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | 本 PR |
-| Phase B · Status 面板操作接线 | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 | ⏳ todo | — |
+| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）| ✅ done | 本 PR |
 | Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
 
@@ -85,7 +85,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [x] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 + 手动同步 9 个文件）
 - [x] fixture：`git_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录
 
-**下次 agent 起点**：Phase B（Status 面板操作接线 · 前端 optimistic UI + IPC invoke）
+**下次 agent 起点**：Phase C（Commit UI 补齐错误流 · pre-commit hook stderr 渲染 / Detached HEAD 确认 / Identity dialog 交互细节打磨）或 Phase D（runtime 证据 + 性能量化 · 如果 Phase B 已覆盖 Stage/Commit 核心 UI）
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 
@@ -126,7 +126,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 
 - [ ] git2 调用失败 → 明确错误提示 + **保留消息框内容不清空**
 - [ ] 没有 identity（`user.name` 未设）→ 弹对话框：字段 Name + Email + `"保存到 local git config"` 复选框（默认勾选）· 取消 → 退出 commit · 确认 → 写入 `<repo>/.git/config` · **不污染 `~/.gitconfig`**
-- [ ] Detached HEAD → 弹确认对话框：`"当前处于 detached HEAD 状态 · commit 将不会关联到任何分支 · 继续？"` · 二选一（取消 / 继续提交）
+- [ ] Detached HEAD → 弹提示对话框（单按钮 "OK"）· 文案：`"当前处于 detached HEAD · commit 暂不支持 · 请先 git checkout <branch> 到分支"` · v0.1 降级 · v0.2 补后端 `allow_detached` 字段支持（见 §已知风险）
 - [ ] Pre-commit hook 失败（exit code != 0）→ commit 回退 · 显示 hook stderr **最后 20 行** · 可复制 · 消息框保留
 
 ### D. 性能
@@ -241,6 +241,7 @@ Commit UI 状态（message 草稿 / Amend 勾选态）持久化到现有 `app_se
 - **中文 commit message 编码**：SPIKE-04 §C 已验证 git2 0.20 UTF-8 支持（见 `docs/spikes/SPIKE-04-report.md`）
 - **Pre-commit hooks**：若 repo 有 pre-commit hook 可能拖慢 commit → 不改 git2 行为 · UI 显示 `"提交中…"` 转圈 · hook 失败显示 stderr 最后 20 行
 - **Detached HEAD commit**：允许但弹警告（见 Acceptance C）· commit 后 HEAD 指向新 commit · 不关联任何分支
+- **Detached HEAD commit v0.1 不支持**：Phase A 后端 `git_ops.rs` 检测 `!head.is_branch()` 直接返回 `CommitError::DetachedHead` · `CommitRequest` 无 `allow_detached` 字段 · v0.1 前端降级为单按钮提示（见 §C.3）· v0.2 规划：后端加 `allow_detached: bool` + `Repository::commit` 跳过 HEAD 分支检查（需权衡 · detached HEAD commit 会 orphan）· 决策延后
 
 ## 📝 Notes
 

@@ -12,6 +12,7 @@ import {
   type Component,
 } from "solid-js";
 import type {
+  LayoutApplyRequest,
   PaneCloseRequest,
   PaneCreateRequest,
   PaneFocusRequest,
@@ -28,6 +29,7 @@ import type {
 } from "../../bindings";
 import { PaneSplitView } from "./PaneSplitView";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
+import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
 import { TerminalPane } from "./TerminalPane";
 import { usePaneShortcuts } from "./usePaneShortcuts";
@@ -106,6 +108,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [panesByTabId, setPanesByTabId] = createSignal<
     Record<string, PaneListResponse>
   >({});
+  /**
+   * MVP-05 Phase C §C · Smart Layouts 命令面板开关 · ⌘⇧P 触发。
+   */
+  const [smartLayoutOpen, setSmartLayoutOpen] = createSignal(false);
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
@@ -530,6 +536,52 @@ export const Terminal: Component<TerminalProps> = (props) => {
       void handlePaneClose(focusedPaneId);
     },
     shouldSuppress: () => pendingPaste() !== null,
+  });
+
+  /**
+   * MVP-05 Phase C §C · Smart Layouts 应用 · 调 pane_layout_apply IPC。
+   * preset 直接传给 backend（"solo" / "aiAndRunner" 是 backend pane_service.rs 直接 match 的字符串）·
+   * onApply 抛 Error 由 SmartLayoutMenu 内部 alert 显示 · 不向上传播。
+   */
+  const handleSmartLayoutApply = async (preset: SmartLayoutPreset) => {
+    const tabId = currentActiveTabId();
+    if (!tabId) {
+      throw new Error("没有 active tab");
+    }
+    const response = await invoke<PaneListResponse>("pane_layout_apply", {
+      req: {
+        tabId,
+        preset,
+        confirmed: true,
+      } satisfies LayoutApplyRequest,
+    });
+    setPaneListForTab(tabId, response);
+  };
+
+  /**
+   * MVP-05 Phase C §C · ⌘⇧P 快捷键打开 Smart Layouts 命令面板。
+   * 仅 pane mode 生效（active tab 在 panesByTabId）· pendingPaste 时不触发。
+   */
+  onMount(() => {
+    const isMac =
+      typeof navigator !== "undefined" &&
+      navigator.platform.toUpperCase().includes("MAC");
+    const handler = (event: KeyboardEvent) => {
+      if (pendingPaste()) return;
+      const mod = isMac ? event.metaKey : event.ctrlKey;
+      if (mod && event.shiftKey && event.key.toLowerCase() === "p") {
+        event.preventDefault();
+        if (activePaneList()) {
+          setSmartLayoutOpen(true);
+        } else {
+          showToast("Smart Layouts 仅支持 pane 模式 tab · 请新建 tab", "info");
+        }
+      }
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    onCleanup(() =>
+      window.removeEventListener("keydown", handler, { capture: true }),
+    );
   });
 
   const renameTab = async (tabId: string, name: string) => {
@@ -1031,6 +1083,19 @@ export const Terminal: Component<TerminalProps> = (props) => {
               focusActivePane();
             }}
             onConfirm={confirmPaste}
+          />
+        )}
+      </Show>
+
+      <Show when={smartLayoutOpen() && activePaneList()}>
+        {(list) => (
+          <SmartLayoutMenu
+            open={true}
+            panes={list().panes}
+            layout={list().layout}
+            focusedPaneId={list().focusedPaneId}
+            onApply={handleSmartLayoutApply}
+            onClose={() => setSmartLayoutOpen(false)}
           />
         )}
       </Show>

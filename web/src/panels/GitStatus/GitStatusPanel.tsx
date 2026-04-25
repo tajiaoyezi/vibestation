@@ -23,9 +23,12 @@ import {
   queryStatus,
   refreshStatus,
   setGroupCollapsed,
+  stageFiles,
   subscribeGitStatus,
   unsubscribeGitStatus,
+  unstageFiles,
 } from "./gitStatusApi";
+import { CommitBar } from "../CommitBar";
 import type { DiffTarget } from "../../components/MainContent";
 
 interface GitStatusPanelProps {
@@ -221,6 +224,130 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     await loadWorkspace(id, "refresh");
   };
 
+  // ── Optimistic Stage / Unstage ──
+
+  const moveFileOptimistically = (
+    filePath: string,
+    from: GroupKey,
+    to: GroupKey,
+  ) => {
+    setStatus((prev) => {
+      const fromItems = prev[from].filter((f) => f.path !== filePath);
+      const moved = prev[from].find((f) => f.path === filePath);
+      if (!moved) return prev;
+
+      const toItems = [...prev[to], moved];
+      return { ...prev, [from]: fromItems, [to]: toItems };
+    });
+  };
+
+  const handleStage = async (filePath: string) => {
+    const id = workspaceId();
+    if (!id) return;
+
+    // 判断文件当前在哪个组
+    const current = status();
+    let fromGroup: GroupKey | null = null;
+    if (current.unstaged.some((f) => f.path === filePath))
+      fromGroup = "unstaged";
+    else if (current.untracked.some((f) => f.path === filePath))
+      fromGroup = "untracked";
+    if (!fromGroup) return;
+
+    const t0 = performance.now();
+    moveFileOptimistically(filePath, fromGroup, "staged");
+    const optimisticMs = performance.now() - t0;
+    console.log(`[mvp-09] optimistic stage: ${optimisticMs.toFixed(2)}ms`);
+
+    try {
+      const result = await stageFiles({
+        workspaceId: id,
+        filePaths: [filePath],
+      });
+      if (result.failed.length > 0) {
+        throw new Error(result.failed[0]?.error ?? "stage failed");
+      }
+    } catch (err) {
+      // revert
+      moveFileOptimistically(filePath, "staged", fromGroup);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`无法 stage：${msg}`);
+    }
+  };
+
+  const handleUnstage = async (filePath: string) => {
+    const id = workspaceId();
+    if (!id) return;
+
+    const t0 = performance.now();
+    moveFileOptimistically(filePath, "staged", "unstaged");
+    const optimisticMs = performance.now() - t0;
+    console.log(`[mvp-09] optimistic unstage: ${optimisticMs.toFixed(2)}ms`);
+
+    try {
+      await unstageFiles({
+        workspaceId: id,
+        filePaths: [filePath],
+      });
+    } catch (err) {
+      moveFileOptimistically(filePath, "unstaged", "staged");
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`无法 unstage：${msg}`);
+    }
+  };
+
+  const handleStageAll = async (group: GroupKey) => {
+    const id = workspaceId();
+    if (!id) return;
+
+    const files = status()[group].map((f) => f.path);
+    if (files.length === 0) return;
+
+    // optimistic：全部移到 staged
+    setStatus((prev) => ({
+      ...prev,
+      [group]: [],
+      staged: [...prev.staged, ...prev[group]],
+    }));
+
+    try {
+      const result = await stageFiles({
+        workspaceId: id,
+        filePaths: files,
+      });
+      if (result.failed.length > 0) {
+        setError(`${result.failed.length} 个文件 stage 失败`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Stage All 失败：${msg}`);
+    }
+  };
+
+  const handleUnstageAll = async () => {
+    const id = workspaceId();
+    if (!id) return;
+
+    const files = status().staged.map((f) => f.path);
+    if (files.length === 0) return;
+
+    setStatus((prev) => ({
+      ...prev,
+      staged: [],
+      unstaged: [...prev.unstaged, ...prev.staged],
+    }));
+
+    try {
+      await unstageFiles({
+        workspaceId: id,
+        filePaths: files,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Unstage All 失败：${msg}`);
+    }
+  };
+
   const openDiff = (source: string, filePath: string) => {
     if (!props.onOpenDiff || !workspaceId()) return;
     props.onOpenDiff({
@@ -379,6 +506,34 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                       <span class="vs-git-status-group-count">
                         {groupItems(group.key).length}
                       </span>
+                      <Show when={groupItems(group.key).length > 0}>
+                        <Show
+                          when={group.key !== "staged"}
+                          fallback={
+                            <button
+                              type="button"
+                              class="vs-git-status-group-action"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleUnstageAll();
+                              }}
+                            >
+                              Unstage All
+                            </button>
+                          }
+                        >
+                          <button
+                            type="button"
+                            class="vs-git-status-group-action"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleStageAll(group.key);
+                            }}
+                          >
+                            Stage All
+                          </button>
+                        </Show>
+                      </Show>
                     </button>
 
                     <Show when={!isCollapsed(group.key)}>
@@ -424,6 +579,34 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                     </span>
                                   )}
                                 </Show>
+                                <Show
+                                  when={group.key !== "staged"}
+                                  fallback={
+                                    <button
+                                      type="button"
+                                      class="vs-git-status-action vs-git-status-action-unstage"
+                                      title="Unstage"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void handleUnstage(file.path);
+                                      }}
+                                    >
+                                      ✗
+                                    </button>
+                                  }
+                                >
+                                  <button
+                                    type="button"
+                                    class="vs-git-status-action vs-git-status-action-stage"
+                                    title="Stage"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      void handleStage(file.path);
+                                    }}
+                                  >
+                                    ✓
+                                  </button>
+                                </Show>
                               </button>
                             )}
                           </For>
@@ -435,6 +618,17 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
               </For>
             </Show>
           </div>
+
+          <CommitBar
+            workspaceId={workspaceId}
+            stagedCount={() => status().staged.length}
+            onCommitSuccess={() => {
+              // commit 成功后触发一次 status 刷新
+              const id = workspaceId();
+              if (id) void loadWorkspace(id, "refresh");
+            }}
+            onError={(msg) => setError(msg)}
+          />
         </div>
       </Match>
     </Switch>

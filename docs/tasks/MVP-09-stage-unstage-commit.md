@@ -65,7 +65,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | 本 PR |
-| Phase B · Status 面板操作接线 | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 | ⏳ todo | — |
+| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）| ✅ done | 本 PR |
 | Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
 
@@ -85,7 +85,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [x] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 + 手动同步 9 个文件）
 - [x] fixture：`git_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录
 
-**下次 agent 起点**：Phase B（Status 面板操作接线 · 前端 optimistic UI + IPC invoke）
+**下次 agent 起点**：Phase C（Commit UI 补齐错误流 · pre-commit hook stderr 渲染 / Detached HEAD 确认 / Identity dialog 交互细节打磨）或 Phase D（runtime 证据 + 性能量化 · 如果 Phase B 已覆盖 Stage/Commit 核心 UI）
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 

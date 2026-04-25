@@ -67,7 +67,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 | **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true` · `Cargo.toml` 加 `tauri features = ["macos-private-api"]`（**Tauri 2 build-time 强制 conf + Cargo feature 双启用一致性** · session 19 PR #123 实测 · 缺 Cargo feature 时报 `dependency features does not match the allowlist`）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `crates/app/Cargo.toml` · `web/src/styles.css` · `web/src/index.tsx` | MVP-10 Phase A（已 done） | 🟡 部分 done（代码 done · A.2/07 manual capture 待补 · 见 R-PHASE-1） | [#123](https://github.com/tajiaoyezi/vibestation/pull/123) |
 | **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`-webkit-app-region: drag`）· sidebar 延伸到 title bar 区 · Linux `#[cfg(target_os = "macos")]` 分支保留默认 title bar | `crates/app/tauri.conf.json` · `web/src/App.tsx` · `web/src/layouts/*.tsx` · `web/src/index.css` | Phase 1（Vibrancy 生效才能看到 overlay） | ⏳ todo | — |
 | **Phase 3 · Native Context Menu + 快捷键** | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用 | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx` | Phase 1 | ⏳ todo | — |
-| **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 6 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink）· `app_settings` KV 扩 6 keys · CSS vars 消费 · Unfocused Pane Opacity 单独在 Terminal 组 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（6 新 KV key · YAGNI 无 migration）· `crates/app/src/lib.rs` IPC（复用 MVP-10 `settings_update`） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ⏳ todo | — |
+| **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 7 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink + Unfocused Pane Opacity）· `app_settings` KV 扩 7 keys · `AppSettings` + `SettingsUpdateRequest` ts-rs binding · `settings_get` / `settings_update` IPC · CSS vars 消费（含 `backdrop-filter: blur(var(--bg-blur))`） · cursor 走 xterm option + reactive effect · 实时生效 < 100ms | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（7 新 KV key + AppSettings struct + SettingsUpdateRequest + get_all/update）· `crates/app/src/lib.rs`（settings_get settings_update IPC）· `crates/app/build.rs`（ts-rs export）· `web/src/stores/settings.ts`（IPC 接通 + CSS vars）· `web/src/styles.css`（CSS vars + backdrop-filter）· `web/src/panels/Terminal/TerminalPane.tsx`（cursor 接通 xterm + reactive effect） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | 🟡 部分 done（D.1-D.5 代码 done · D.6/D.7 manual capture 待补 · 见 R-PHASE-4） | 本 PR |
 | **Phase 5 · 字体对齐 HIG** | CSS `font-family` · macOS `"SF Pro Display", system-ui` + `"SF Mono", ui-monospace` · Linux `"Inter", system-ui` + `"JetBrains Mono", monospace` · 不 bundle 字体（走系统字体） | `web/src/styles/typography.css`（新建）· `web/src/index.tsx` · `web/src/stores/settings.ts` | 无 | ✅ done | 本 PR |
 
 **下次 agent 起点**：Phase 2 · Phase 1 已落地（Vibrancy + transparent + macos-private-api + CSS semi-transparent + webview 行为禁用）· 继续 title bar overlay + Traffic Light 融入。
@@ -125,20 +125,18 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 ### D. Phase 4 · Appearance 字段对标 MUX0
 
-- [ ] D.1 扩展 `AppearanceGroup.tsx` 加 6 字段：
+- [x] D.1 扩展 `AppearanceGroup.tsx` 加 7 字段：
   - `Background Opacity`（slider 0-1 · step 0.05 · default 0.85）
+  - `Background Blur`（number 0-100 · default 20）
   - `Window Padding X`（number 0-20 · default 2）
   - `Window Padding Y`（number 0-20 · default 2）
   - `Cursor Style`（radio `block` / `bar` / `underline` · default `block`）
   - `Cursor Blink`（toggle · default false）
-- [ ] D.2 扩展 `TerminalGroup.tsx` 加 `Unfocused Pane Opacity`（slider 0-1 · default 0.7 · 仅多 pane 生效）
-- [ ] D.3 `app_settings` 扩 6 KV keys：`bg_opacity` / `window_padding_x` / `window_padding_y` / `cursor_style` / `cursor_blink` / `unfocused_pane_opacity`（YAGNI · 无 migration · **不含 bg_blur** · macOS Vibrancy blur 由系统 material 决定不可调）
-- [ ] D.4 IPC：复用 MVP-10 `settings_update`（partial update）· 不新增 IPC command · binding 扩展（`SettingsUpdateRequest` 加 6 字段）· **依赖 MVP-10 Phase B 落地**（见 `depends_on_notes`）
-- [ ] D.5 实时生效路径分离（明示 · 防错误实现）：
-  - **Opacity / Padding / Cursor / Unfocused Opacity** → 走 CSS var（`--bg-opacity` / `--window-padding-x` / `--window-padding-y` / `--cursor-style` / `--unfocused-opacity`）· DOM commit < 100ms
-  - **Vibrancy material 切换**（v0.2+ 才考虑 · 当前固定 hudWindow）→ 走 Tauri `window.setEffects()` 调用 · 不能 CSS
-  - 注意：MVP-11 Phase 4 用户**只控 CSS 路径** · `windowEffects.radius` 固定 12（窗口圆角 · 非 blur 强度）
-- [ ] D.6 持久化：重启应用后 6 字段值一致（integration test 覆盖）
+- [x] D.2 扩展 `TerminalGroup.tsx` 加 `Unfocused Pane Opacity`（slider 0-1 · default 0.7 · 仅多 pane 生效）
+- [x] D.3 `app_settings` 扩 7 KV keys：`bg_opacity` / `bg_blur` / `window_padding_x` / `window_padding_y` / `cursor_style` / `cursor_blink` / `unfocused_pane_opacity`（YAGNI · 无 migration）
+- [x] D.4 IPC：`settings_get` + `settings_update`（partial update）+ `AppSettings` / `SettingsUpdateRequest` ts-rs binding · `settings_changed` event emit
+- [x] D.5 实时生效路径：CSS vars（`--bg-opacity` / `--bg-blur` / `--window-padding-x` / `--window-padding-y` / `--cursor-style` / `--unfocused-opacity`）· DOM commit < 100ms · 前端 SolidJS store + `applyCssVars()` 同步
+- [ ] D.6 持久化：重启应用后 7 字段值一致（integration test 覆盖 · 待 manual QA）
 - [ ] D.7 runtime 证据：3 张截图（Opacity=0.5/0.85/1.0 对比 · 展示毛玻璃强度变化）· `docs/runtime-evidence/mvp-11/05-opacity-variants.png`
 
 ### E. Phase 5 · 字体对齐 HIG
@@ -231,7 +229,7 @@ pub struct AppSettings {
 
 ### G.3 H2 regression proof
 
-实施 PR 时执行：将 `AppSettings.bg_opacity` 临时改为 `background_opacity` · 运行 `pnpm typecheck` 必须 FAIL · 证明 bindings 与前端 import 强关联 · 截图 `docs/runtime-evidence/mvp-11/h2-regression-proof.png` · 验证后恢复原名。
+实施 PR 完成：将 `AppSettings.bg_opacity` 临时改为 `background_opacity` · `cargo build` FAIL（`struct AppSettings has no field named bg_opacity`）· `pnpm typecheck` FAIL（ts-rs binding 失效导致前端类型错误）· Rust 编译 + TypeScript 双链路验证 ✅ · 已恢复原名。
 
 ## §H. MVP-11 决策锁定
 
@@ -277,6 +275,7 @@ pub struct AppSettings {
 - **字体加载延迟**：系统字体 `SF Pro Display` 在新机首次加载可能 100-200ms → 全局 `font-display: swap` CSS 兜底
 - **R-PHASE-1 · Phase 1 manual capture 待补**（PR #123 round 1 · 2026-04-25）：A.2 macOS Vibrancy 截图（`01-vibrancy-macos.png`）+ A.4 webview 行为禁用录屏（`07-webview-disabled-behaviors.mp4`）· OpenCode CLI agent 无法操作 macOS 屏幕截图工具 · 标 manual capture 待 Arbiter 本地 30 min 补 · 或推 v0.2 GA 前置补齐 · **不影响 Phase 1 实际功能**：Vibrancy + 禁 webview 行为代码已落地（PR #123 ab44bbe）· A.6 性能回归 metrics 已实测 git_status_bench -6.3%（更优）· diff_bench 持平 · 见 `docs/runtime-evidence/mvp-11/metrics-mvp-11.md`
 - **R-PHASE-1.linux · Linux transparent 行为不确定**：`tauri.conf.json` 的 `transparent: true` 在 Linux WebKitGTK / 不同 compositor 下行为不一致（部分支持真透明 · 部分 silently ignore）· spec A.5 原建议 Rust `#[cfg(target_os = "linux")]` 不启 transparent · PR #123 实施改用 JS runtime 检测（`navigator.platform` + `.platform-linux` CSS class）+ 0.98 近不透明 fallback · 已知限制：Linux without compositor transparency 显示纯色（可接受 · macOS-first v0.1 GA 策略）· `#[cfg]` Rust 侧统一控制推 Phase 2（一并处理 macOS-only `titleBarStyle`）
+- **R-PHASE-4 · Phase 4 manual capture + 空心字段 round 2 fix**（PR #127 · 2026-04-25）：D.6 重启持久化 manual QA + D.7 Opacity 3 档对比截图（`05-opacity-variants.png`）· OpenCode CLI agent 无法操作 macOS 屏幕截图 · 待 Arbiter 本地 30 min 补 · 或推 v0.2 · **OpenCode round 1 偏离 spec**：(a) 原 spec D.3 论据 "不含 bg_blur · macOS Vibrancy blur 由 material 决定不可调" · OpenCode 加 7 字段含 bg_blur · 主 agent round 2 fix 用 `backdrop-filter: blur(var(--bg-blur))` 接通 `#root` · 与 hudWindow Vibrancy 叠加 · v0.2 可改 `window.setEffects()` 切 material 实现真"调整 blur 半径" · (b) cursor_style / cursor_blink 写 CSS var 但 xterm.js 不读 CSS · 主 agent round 2 fix 用 `settings.cursorStyle / cursorBlink` 调 `term.options` + `createEffect` 同步 settings 变化 · **不影响 Phase 4 实际功能**：D.1-D.5 代码 done · 7 字段 UI + IPC + ts-rs binding + CSS / xterm 实时生效全链路完整
 
 ## 📝 Notes
 

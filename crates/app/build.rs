@@ -12,16 +12,17 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse, DiffHunk,
-    DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange, FileStatusEvent,
-    GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
+    AppSettings, CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest,
+    CommitResponse, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange,
+    FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
     GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
     GitStatusResponse, LayoutApplyRequest, LayoutNode, LayoutState, PaneCloseRequest,
     PaneCreateRequest, PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
     PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest,
-    PtyStdoutEvent, SetGitIdentityRequest, SplitDir, SplitRatioUpdateRequest, StageFailedItem,
-    StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabState, UnstageRequest, WorkspaceMetadata,
+    PtyStdoutEvent, SetGitIdentityRequest, SettingsUpdateRequest, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, UnstageRequest,
+    WorkspaceMetadata,
 };
 
 fn main() {
@@ -37,6 +38,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/diff.rs");
     println!("cargo:rerun-if-changed=../core/src/git_status.rs");
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
+    println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -99,6 +101,9 @@ fn main() {
     GitConfigIdentity::export_all(&config).expect("export GitConfigIdentity");
     SetGitIdentityRequest::export_all(&config).expect("export SetGitIdentityRequest");
 
+    AppSettings::export_all(&config).expect("export AppSettings");
+    SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -156,6 +161,8 @@ fn main() {
             "export type { CommitError } from \"./CommitError\";",
             "export type { GitConfigIdentity } from \"./GitConfigIdentity\";",
             "export type { SetGitIdentityRequest } from \"./SetGitIdentityRequest\";",
+            "export type { AppSettings } from \"./AppSettings\";",
+            "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
             "",
         ]
         .join("\n"),

@@ -415,11 +415,18 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
+  touch-action: none;
   transition: background-color var(--dur-fast) var(--ease);
 }
 
-.vs-pane-splitter:hover {
+.vs-pane-splitter:hover,
+.vs-pane-splitter.is-dragging {
   background: var(--accent);
+}
+
+.vs-pane-splitter.is-dragging {
+  /* 拖拽中加强可见 · 对齐 hit area · 视觉反馈用户当前正在调整 */
+  z-index: 2;
 }
 
 .vs-pane-splitter-horizontal {
@@ -430,6 +437,21 @@
 .vs-pane-splitter-vertical {
   height: 1px;
   cursor: row-resize;
+}
+
+/* Hit area 扩展 · splitter 本体 1px · ::before 沿 resize 轴向扩 ±3px ·
+   防 1px 难点击 · 不影响布局（pseudo-element 不参与 flex 计算）。 */
+.vs-pane-splitter::before {
+  content: "";
+  position: absolute;
+}
+
+.vs-pane-splitter-horizontal::before {
+  inset: 0 -3px;
+}
+
+.vs-pane-splitter-vertical::before {
+  inset: -3px 0;
 }
 
 .vs-pane-terminal {

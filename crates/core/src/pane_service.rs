@@ -349,7 +349,12 @@ fn read_pane_list(pool: &DbPool, tab_id: &str) -> Result<PaneListResponse, PaneE
     let panes = PanesDao::list_by_tab(pool, tab_id)?;
     let conn = pool.get().map_err(DbError::from)?;
     let layout = read_tab_layout(&conn, tab_id)?;
-    Ok(PaneListResponse { panes, layout })
+    let focused_pane_id = read_focused_pane(&conn, tab_id)?;
+    Ok(PaneListResponse {
+        panes,
+        layout,
+        focused_pane_id,
+    })
 }
 
 fn collect_pane_ids(layout: &LayoutNode) -> Vec<String> {

@@ -31,6 +31,8 @@ libc = "0.2"
 gix = { version = "0.70", default-features = false, features = ["max-performance-safe", "revparse-regex"] }
 git2 = "0.20"
 similar = "2"
+# MVP-08 Phase D Git Status fs watch（notify 6.x stable line）
+notify = "6.1.1"
 
 [dev-dependencies]
 tempfile.workspace = true

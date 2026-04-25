@@ -7,41 +7,38 @@ mod fix_path_env;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
-use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
     AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitLogQueryRequest,
     GitLogQueryResponse, GitLogReader, GitStatusCollapseRequest, GitStatusPanelSettings,
-    GitStatusRequest, GitStatusResponse, GitStatusService, LayoutState, LayoutStore, PtyEvent,
-    PtyEventReceiver, PtyManager, PtySpawnRequest, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabState, TabsDao, WorkspaceMetadata, WorkspaceStore,
+    GitStatusRequest, GitStatusResponse, GitStatusService, GitStatusWatcher, LayoutState,
+    LayoutStore, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest, TabCloseRequest,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao, WorkspaceMetadata,
+    WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
-const GIT_STATUS_UPDATED_EVENT: &str = "git_status_updated";
-const GIT_STATUS_AUTO_REFRESH_INTERVAL: Duration = Duration::from_secs(2);
+const GIT_STATUS_CHANGED_EVENT: &str = "git_status:changed";
 
 struct AppState {
     pool: Mutex<Option<DbPool>>,
-    git_status: GitStatusAutoRefreshManager,
+    git_status: GitStatusWatchManager,
     pty: PtyManager,
 }
 
 struct GitStatusSubscription {
     subscribers: usize,
-    stop: Arc<AtomicBool>,
+    _watcher: GitStatusWatcher,
 }
 
-struct GitStatusAutoRefreshManager {
+struct GitStatusWatchManager {
     subscriptions: Mutex<HashMap<String, GitStatusSubscription>>,
 }
 
-impl GitStatusAutoRefreshManager {
+impl GitStatusWatchManager {
     fn new() -> Self {
         Self {
             subscriptions: Mutex::new(HashMap::new()),
@@ -60,17 +57,13 @@ impl GitStatusAutoRefreshManager {
             return Ok(());
         }
 
-        let stop = Arc::new(AtomicBool::new(false));
         subscriptions.insert(
             workspace_id.clone(),
             GitStatusSubscription {
                 subscribers: 1,
-                stop: stop.clone(),
+                _watcher: spawn_git_status_watcher(app, workspace_id, repo_path)?,
             },
         );
-        drop(subscriptions);
-
-        spawn_git_status_auto_refresh(app, workspace_id, repo_path, stop)?;
         Ok(())
     }
 
@@ -85,7 +78,6 @@ impl GitStatusAutoRefreshManager {
             return Ok(());
         }
 
-        existing.stop.store(true, Ordering::Relaxed);
         subscriptions.remove(workspace_id);
         Ok(())
     }
@@ -318,59 +310,38 @@ fn git_status_repo_path(pool: &DbPool, workspace_id: &str) -> Result<PathBuf, St
     Ok(PathBuf::from(workspace.path))
 }
 
-fn wait_for_stop(stop: &AtomicBool, duration: Duration) -> bool {
-    let deadline = Instant::now() + duration;
-    while Instant::now() < deadline {
-        if stop.load(Ordering::Relaxed) {
-            return true;
-        }
-        thread::sleep(Duration::from_millis(100));
-    }
-    stop.load(Ordering::Relaxed)
-}
-
-fn spawn_git_status_auto_refresh(
+fn spawn_git_status_watcher(
     app: AppHandle,
     workspace_id: String,
     repo_path: PathBuf,
-    stop: Arc<AtomicBool>,
-) -> Result<(), String> {
-    thread::Builder::new()
-        .name(format!("vibestation-git-status-{workspace_id}"))
-        .spawn(move || {
-            let req = GitStatusRequest {
-                workspace_id: workspace_id.clone(),
-            };
-            let mut last_status = GitStatusService::query(&repo_path, &req).ok();
+) -> Result<GitStatusWatcher, String> {
+    let req = GitStatusRequest {
+        workspace_id: workspace_id.clone(),
+    };
+    let mut last_status = GitStatusService::query(&repo_path, &req).ok();
 
-            loop {
-                if wait_for_stop(stop.as_ref(), GIT_STATUS_AUTO_REFRESH_INTERVAL) {
-                    break;
-                }
-
-                match GitStatusService::refresh(&repo_path, &req) {
-                    Ok(response) => {
-                        let changed = last_status
-                            .as_ref()
-                            .is_none_or(|previous| !previous.equivalent(&response));
-                        if changed {
-                            if let Err(error) = app.emit(
-                                GIT_STATUS_UPDATED_EVENT,
-                                response.to_event(workspace_id.clone()),
-                            ) {
-                                eprintln!("[mvp-08] emit git status update failed: {error}");
-                            }
-                            last_status = Some(response);
-                        }
+    GitStatusWatcher::spawn(repo_path.clone(), move || {
+        match GitStatusService::refresh(&repo_path, &req) {
+            Ok(response) => {
+                let changed = last_status
+                    .as_ref()
+                    .is_none_or(|previous| !previous.equivalent(&response));
+                if changed {
+                    if let Err(error) = app.emit(
+                        GIT_STATUS_CHANGED_EVENT,
+                        response.to_event(workspace_id.clone()),
+                    ) {
+                        eprintln!("[mvp-08] emit git status change failed: {error}");
                     }
-                    Err(error) => {
-                        eprintln!("[mvp-08] git status auto-refresh failed: {error}");
-                    }
+                    last_status = Some(response);
                 }
             }
-        })
-        .map(|_| ())
-        .map_err(|error| error.to_string())
+            Err(error) => {
+                eprintln!("[mvp-08] git status fs watch refresh failed: {error}");
+            }
+        }
+    })
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -519,7 +490,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState {
             pool: Mutex::new(None),
-            git_status: GitStatusAutoRefreshManager::new(),
+            git_status: GitStatusWatchManager::new(),
             pty,
         })
         .invoke_handler(tauri::generate_handler![

@@ -70,10 +70,10 @@ MVP-08 估时 5d，拆 5 Phase 串行实施：
 | Phase A · diff 算法 + IPC 后端 | `similar` crate 接入 + git2 `statuses()` + gix blob 读取 + 6 个 IPC commands（`diff_compute` / `git_status_query` / `git_status_subscribe` / `git_status_unsubscribe` / `git_status_refresh` / `diff_get_settings`）+ 8 个 ts-rs binding 生成 + 单元测试（diff 算法 + binary 检测 + 大文件 fallback）| ✅ done | [#100](https://github.com/tajiaoyezi/vibestation/pull/100) |
 | Phase B · Status 面板前端 | SolidJS 组件 `web/src/panels/GitStatus/` + 3 分组折叠 + 文件 icon + 加减行数 + 持久化（rusqlite）| ✅ done | [#101](https://github.com/tajiaoyezi/vibestation/pull/101) |
 | Phase C · Diff 视图前端 | SolidJS 组件 `web/src/panels/Diff/` + split/unified 切换 + 行号 + 大文件 lazy load + binary 提示 + 帧时长 < 16ms 验证 + Git Status/Git Log → Diff 接通 + view mode 持久化（rusqlite） | ✅ done | [#105](https://github.com/tajiaoyezi/vibestation/pull/105) |
-| Phase D · fs watch 自动刷新 | `notify` crate 集成 + 三平台测试（macOS FSEvents · Linux inotify · Windows ReadDirectoryChangesW）+ 防抖 200ms + IPC event 推送前端 | ⏳ todo | — |
-| Phase E · runtime 证据 + 性能量化 | Criterion bench 2 个（git_status_bench + diff_bench）+ F.1 17ms ✅ + F.2 55µs ✅ + F.4 1.07ms ✅ + F.5 39.2ms ✅ + E.3 100k 行硬 stop ✅ + 截图 4/5（第 5 张等 Phase D）+ metrics-phase-e.md · 放 `docs/runtime-evidence/mvp-08/phase-e/` | 🟡 4/5 done（第 5 张截图待 Codex Phase D）| this PR |
+| Phase D · fs watch 自动刷新 | `notify` 6.x crate 集成 + 三平台测试（macOS FSEvents · Linux inotify · Windows ReadDirectoryChangesW skip）+ 200ms debounce + IPC event 推送前端 + `.git/index.lock` 排除 + 4 测试覆盖（2 单元 + 2 集成）| ✅ done | 本 PR |
+| Phase E · runtime 证据 + 性能量化 | Criterion bench 2 个（git_status_bench + diff_bench）+ F.1 17ms ✅ + F.2 55µs ✅ + F.4 1.07ms ✅ + F.5 39.2ms ✅ + E.3 100k 行硬 stop ✅ + 截图 4/5（第 5 张 fs watch 实时刷新待 Phase D done 后补）+ metrics-phase-e.md · 放 `docs/runtime-evidence/mvp-08/phase-e/` | 🟡 4/5 done（第 5 张截图 + A.6/F.3 DevTools 测量待 follow-up）| [#109](https://github.com/tajiaoyezi/vibestation/pull/109) |
 
-**下次 agent 起点**：Phase D · 在已落地的 Git Status subscription/polling 基础上 · 接入 `notify` 6.x 三平台 fs watch（macOS FSEvents 2s 下限 + 2 fallback 路径见 spec §H.6 · Linux inotify · Windows ReadDirectoryChangesW skip）· 防抖 200ms（spec §H.7 测试要求）· 通过 IPC event 替换当前 polling。Phase E 截图第 5 张（fs watch 实时刷新）需 Phase D 完成后补拍 · 其余 Criterion bench + metrics 已落地。
+**下次 agent 起点**：Phase E 收尾 · Phase D 已落地（`notify` 6.1.1 + 200ms debounce + IPC event 推送 · 后续不要恢复 polling）· 继续补 ≥ 5 张截图（含 fs watch 实时刷新录屏 · 现 Phase D done 可拍）+ A.2 端到端 < 200ms / A.6 帧时长 < 16ms / F.3 1k 文件前端渲染 < 70ms 等 DevTools 测量 · 放 `docs/runtime-evidence/mvp-08/phase-e/`。Phase D runtime 证据（`docs/runtime-evidence/mvp-08/phase-d/` · 7 张 `current-screen*.png` 自动命名）建议 follow-up 重命名为 ADR-011 R3 语义化命名。
 
 **依赖关系说明**：
 - MVP-08 整体依赖 MVP-07 done（已满足 · PR #83）

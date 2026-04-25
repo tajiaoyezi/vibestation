@@ -1,12 +1,14 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  FileStatusEvent,
   GitStatusCollapseRequest,
   GitStatusPanelSettings,
   GitStatusRequest,
   GitStatusResponse,
 } from "../../bindings";
 
-export const GIT_STATUS_UPDATED_EVENT = "git_status_updated";
+export const GIT_STATUS_CHANGED_EVENT = "git_status:changed";
 
 export async function queryStatus(
   req: GitStatusRequest,
@@ -34,10 +36,25 @@ export async function setGroupCollapsed(
   return invoke("git_status_set_group_collapsed", { req });
 }
 
-export async function subscribeStatus(workspaceId: string): Promise<void> {
-  return invoke("git_status_subscribe", { workspaceId });
+export async function subscribeGitStatus(
+  workspaceId: string,
+  callback: (event: FileStatusEvent) => void,
+): Promise<UnlistenFn> {
+  const unlisten = await listen<FileStatusEvent>(
+    GIT_STATUS_CHANGED_EVENT,
+    (event) => callback(event.payload),
+  );
+
+  try {
+    await invoke("git_status_subscribe", { workspaceId });
+  } catch (err) {
+    unlisten();
+    throw err;
+  }
+
+  return unlisten;
 }
 
-export async function unsubscribeStatus(workspaceId: string): Promise<void> {
+export async function unsubscribeGitStatus(workspaceId: string): Promise<void> {
   return invoke("git_status_unsubscribe", { workspaceId });
 }

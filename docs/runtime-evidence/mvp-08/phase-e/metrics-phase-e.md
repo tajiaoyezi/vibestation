@@ -97,8 +97,8 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 
 | Run | Click target | First-changed-frame latency | Notes |
 |-----|--------------|------------------------------|-------|
-| 1 | `exec-approvals.json` | **404 ms** | Visible Diff title swap captured（见 `screenshots/a2-run1-004-after-404ms.jpg`）· 跨过初始 selection update |
-| 2 | `openclaw.json` | **131 ms** | 首先抓到的是 commit-list selection highlight 变化（见 `screenshots/a2-run2-002-after-131ms.jpg`） |
+| 1 | `exec-approvals.json` | **404 ms** | Visible Diff title swap captured（见 `screenshots/05-a2-run1-after-404ms.jpg`）· 跨过初始 selection update |
+| 2 | `openclaw.json` | **131 ms** | 首先抓到的是 commit-list selection highlight 变化（见 `screenshots/06-a2-run2-after-131ms.jpg`） |
 | 3 | `.gitignore` | **134 ms** | 同 run 2 · 多为 selection highlight |
 | 4 | `exec-approvals.json` | **143 ms** | 同 |
 | 5 | `openclaw.json` | **247 ms** | 介于 selection 和 Diff render 之间 |
@@ -117,7 +117,14 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 
 **Pass status**: 🟡 marginal · 4/5 within spec · 1/5 outlier · 需更精确测法验证
 
-> **Source**: burst screencapture 2026-04-25 17:23 · 见 `screenshots/a2-run1-000-before-click.jpg` (initial state) + `a2-run1-004-after-404ms.jpg` (404ms 后 Diff title 已变 exec-approvals.json) + `a2-run2-002-after-131ms.jpg` (131ms 后 commit list selection 已变).
+> **Source**: burst screencapture 2026-04-25 17:23 · 见 `screenshots/04-a2-run1-before-click.jpg` (initial state) + `05-a2-run1-after-404ms.jpg` (404ms 后 Diff title 已变 exec-approvals.json) + `06-a2-run2-after-131ms.jpg` (131ms 后 commit list selection 已变).
+
+> **⚠️ 测量局限性（PR #136 round 3 fix · code-reviewer 发现）**：
+>
+> 1. **Before/after 截图非同一 burst sequence**：`04-a2-run1-before-click.jpg` 时间戳 17:21:54 · `05-a2-run1-after-404ms.jpg` 时间戳 17:23:19 · 跨越 **85 秒**。`04` 截图实为 burst 采集前的全局 baseline state · 不是 run 1 burst 的 t=0 严格帧。run 1 的 404ms 数字基于 burst 内 frame index 计算（25 帧 burst · ~110-150ms 间隔 · frame 4 落在 ~440ms 后 · 取 first-changed-frame 在 frame 4 推导 404ms）· **不可独立通过 04 截图核实**。
+> 2. **Raw burst 帧已清理**：`/tmp/m4-burst-*/` 在任务结束前清理（§2.8 子进程 cleanup 硬约束）· 仅 git 提交人工挑选的代表帧 · 完整 burst sequence 已不可恢复 · 数字基于 sub-agent A 当时的 burst frame index 推导。
+> 3. **A.2 outlier 实际场景**：截图显示 `exec-approvals.json` Diff overlay 内容为 "No changes"（commit 对该文件 diff 为空）· 实际测的是 **diff 为空场景** 的 click→DOM 响应 · 不是 spec A.2 要求的 "1k 行 diff" 真实负载。spec 期望的精确 P99 需 v0.2 用 DevTools Performance panel + 真 1k 行 fixture 重测。
+> 4. **F.3 同样非 spec 期望场景**：F.3 spec 要求 1000 文件 Status 列表渲染 · round 2 测的是 clean workspace refresh 时间戳更新（159-288ms）· 完全不同指标。表格中数字保留作为"refresh 路径活跃"证据 · 但不能作为 F.3 spec compliance 证明。
 
 ### A.6: 10k 行 diff 滚动帧时长 < 16ms（未测 · 缺 fixture）
 
@@ -164,7 +171,7 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 
 **Pass status**: ⏸️ **deferred** · 同 A.6 · 需独立 1k 文件 fixture workspace + DevTools
 
-> **Source**: `screenshots/f3-run1-000-before-refresh.jpg` (Status panel idle) + `f3-run1-002-after-159ms.jpg` (159ms 后时间戳 / 元信息更新).
+> **Source**: `screenshots/07-f3-run1-before-refresh.jpg` (Status panel idle) + `08-f3-run1-after-159ms.jpg` (159ms 后时间戳 / 元信息更新).
 
 ### F.6: fs watch 实时刷新 < 500ms（已 Phase D 录像验证 · 不重测）
 
@@ -202,16 +209,16 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 
 | # | File | Description |
 |---|------|-------------|
-| - | `screenshots/a2-run1-000-before-click.jpg` | Run 1 burst t=0 · click 前状态 |
-| - | `screenshots/a2-run1-004-after-404ms.jpg` | Run 1 burst t+404ms · Diff title 已 swap 到 `exec-approvals.json` · 完整 click→DOM 渲染完成 |
-| - | `screenshots/a2-run2-002-after-131ms.jpg` | Run 2 burst t+131ms · commit list selection highlight 已变 · 但 Diff overlay 内容尚未完全 swap · 显示 selection-only update 阶段 |
+| - | `screenshots/04-a2-run1-before-click.jpg` | Run 1 burst t=0 · click 前状态 |
+| - | `screenshots/05-a2-run1-after-404ms.jpg` | Run 1 burst t+404ms · Diff title 已 swap 到 `exec-approvals.json` · 完整 click→DOM 渲染完成 |
+| - | `screenshots/06-a2-run2-after-131ms.jpg` | Run 2 burst t+131ms · commit list selection highlight 已变 · 但 Diff overlay 内容尚未完全 swap · 显示 selection-only update 阶段 |
 
 ### F.3 timing 证据（2 张 · 部分有效）
 
 | # | File | Description |
 |---|------|-------------|
-| - | `screenshots/f3-run1-000-before-refresh.jpg` | Refresh 点击前 · 工作区 clean · Status panel 0 staged / 0 unstaged / 0 untracked |
-| - | `screenshots/f3-run1-002-after-159ms.jpg` | Refresh 点击 159ms 后 · 时间戳 / 元信息更新 · workspace 仍 clean（spec F.3 期待 1k 文件场景 · 此 run 测的是空场景 refresh latency） |
+| - | `screenshots/07-f3-run1-before-refresh.jpg` | Refresh 点击前 · 工作区 clean · Status panel 0 staged / 0 unstaged / 0 untracked |
+| - | `screenshots/08-f3-run1-after-159ms.jpg` | Refresh 点击 159ms 后 · 时间戳 / 元信息更新 · workspace 仍 clean（spec F.3 期待 1k 文件场景 · 此 run 测的是空场景 refresh latency） |
 
 ---
 

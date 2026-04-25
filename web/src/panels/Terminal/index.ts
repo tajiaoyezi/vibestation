@@ -8,3 +8,8 @@ export { PaneTerminal, type PaneTerminalApi } from "./PaneTerminal";
 export { PaneSplitView } from "./PaneSplitView";
 export { PaneSplitter } from "./PaneSplitter";
 export { usePaneShortcuts } from "./usePaneShortcuts";
+export {
+  SmartLayoutMenu,
+  type SmartLayoutPreset,
+  type SmartLayoutMenuProps,
+} from "./SmartLayoutMenu";

@@ -1,0 +1,45 @@
+
+## cargo-bloat install
+
+```text
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cargo-bloat v0.12.1
+  Installing cargo-bloat v0.12.1
+    Updating crates.io index
+warning: package `libc v0.2.154` in Cargo.lock is yanked in registry `crates-io`, consider running without --locked
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded multimap v0.10.0
+  Downloaded fallible-iterator v0.2.0
+  Downloaded binfarce v0.2.1
+  Downloaded memmap2 v0.9.4
+  Downloaded json v0.12.4
+  Downloaded term_size v0.3.2
+  Downloaded scroll v0.11.0
+  Downloaded uuid v1.8.0
+  Downloaded memchr v2.7.2
+  Downloaded pdb v0.8.0
+  Downloaded regex v1.10.4
+  Downloaded regex-syntax v0.8.3
+  Downloaded regex-automata v0.4.6
+  Downloaded libc v0.2.154
+   Compiling libc v0.2.154
+   Compiling regex-syntax v0.8.3
+   Compiling scroll v0.11.0
+   Compiling uuid v1.8.0
+   Compiling fallible-iterator v0.2.0
+   Compiling json v0.12.4
+   Compiling pico-args v0.5.0
+   Compiling multimap v0.10.0
+   Compiling binfarce v0.2.1
+   Compiling pdb v0.8.0
+   Compiling regex-automata v0.4.6
+   Compiling regex v1.10.4
+   Compiling term_size v0.3.2
+   Compiling memmap2 v0.9.4
+   Compiling cargo-bloat v0.12.1
+    Finished `release` profile [optimized] target(s) in 22.40s
+  Installing /Users/leaf/.cargo/bin/cargo-bloat
+   Installed package `cargo-bloat v0.12.1` (executable `cargo-bloat`)
+```

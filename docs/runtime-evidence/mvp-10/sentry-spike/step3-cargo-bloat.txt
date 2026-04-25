@@ -1,0 +1,405 @@
+# Step 3 · bundle size via cargo bloat
+
+Command: `cargo bloat --release --crates -n 30 --package vibestation-core`
+
+```text
+   Compiling proc-macro2 v1.0.106
+   Compiling libc v0.2.185
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.45
+   Compiling cfg-if v1.0.4
+   Compiling serde_core v1.0.228
+   Compiling memchr v2.8.0
+   Compiling smallvec v1.15.1
+   Compiling serde v1.0.228
+   Compiling thiserror v2.0.18
+   Compiling log v0.4.29
+   Compiling once_cell v1.21.4
+   Compiling itoa v1.0.18
+   Compiling regex-syntax v0.8.10
+   Compiling bitflags v2.11.1
+   Compiling zerocopy v0.8.48
+   Compiling fastrand v2.4.1
+   Compiling parking_lot_core v0.9.12
+   Compiling scopeguard v1.2.0
+   Compiling adler2 v2.0.1
+   Compiling simd-adler32 v0.3.9
+   Compiling lock_api v0.4.14
+   Compiling tinyvec_macros v0.1.1
+   Compiling miniz_oxide v0.8.9
+   Compiling regex-automata v0.4.14
+   Compiling getrandom v0.4.2
+   Compiling rand_core v0.10.1
+   Compiling tinyvec v1.11.0
+   Compiling crossbeam-utils v0.8.21
+   Compiling gix-trace v0.1.18
+   Compiling syn v2.0.117
+   Compiling unicode-normalization v0.1.25
+   Compiling stable_deref_trait v1.2.1
+   Compiling crc32fast v1.5.0
+   Compiling bstr v1.12.1
+   Compiling gix-utils v0.1.14
+   Compiling same-file v1.0.6
+   Compiling synstructure v0.13.2
+   Compiling walkdir v2.5.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling shlex v1.3.0
+   Compiling sha1_smol v1.0.1
+   Compiling version_check v0.9.5
+   Compiling allocator-api2 v0.2.21
+   Compiling litemap v0.8.2
+   Compiling writeable v0.6.3
+   Compiling utf8_iter v1.0.4
+   Compiling ahash v0.8.12
+   Compiling thiserror-impl v2.0.18
+   Compiling serde_derive v1.0.228
+   Compiling zerofrom-derive v0.1.7
+   Compiling yoke-derive v0.8.2
+   Compiling parking_lot v0.12.5
+   Compiling zerovec-derive v0.11.3
+   Compiling prodash v29.0.2
+   Compiling displaydoc v0.2.5
+   Compiling icu_normalizer_data v2.2.0
+   Compiling icu_properties_data v2.2.0
+   Compiling zerofrom v0.1.7
+   Compiling crossbeam-channel v0.5.15
+   Compiling errno v0.3.14
+   Compiling pkg-config v0.3.33
+   Compiling rustix v1.1.4
+   Compiling percent-encoding v2.3.2
+   Compiling equivalent v1.0.2
+   Compiling jiff v0.2.23
+   Compiling flate2 v1.1.9
+   Compiling hashbrown v0.14.5
+   Compiling vcpkg v0.2.15
+   Compiling jobserver v0.1.34
+   Compiling winnow v0.6.26
+   Compiling gix-validate v0.10.1
+   Compiling gix-validate v0.9.4
+   Compiling cc v1.2.60
+   Compiling gix-path v0.10.22
+   Compiling form_urlencoded v1.2.2
+   Compiling yoke v0.8.2
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.11.1
+   Compiling memmap2 v0.9.10
+   Compiling futures-core v0.3.32
+   Compiling getrandom v0.3.4
+   Compiling socket2 v0.6.3
+   Compiling mio v1.2.0
+   Compiling chacha20 v0.10.0
+   Compiling zmij v1.0.21
+   Compiling futures-sink v0.3.32
+   Compiling hashbrown v0.17.0
+   Compiling gix-date v0.9.4
+   Compiling tokio v1.52.1
+   Compiling rand v0.10.1
+   Compiling serde_json v1.0.149
+   Compiling gix-actor v0.33.2
+   Compiling indexmap v2.14.0
+   Compiling powerfmt v0.2.0
+   Compiling core-foundation-sys v0.8.7
+   Compiling faster-hex v0.9.0
+   Compiling deranged v0.5.8
+   Compiling gix-hash v0.16.0
+   Compiling uuid v1.23.1
+   Compiling gix-features v0.40.0
+   Compiling gix-hashtable v0.7.0
+   Compiling http v1.4.0
+   Compiling gix-chunk v0.4.12
+   Compiling zerovec v0.11.6
+   Compiling zerotrie v0.2.4
+   Compiling ppv-lite86 v0.2.21
+   Compiling gix-object v0.47.0
+   Compiling gix-fs v0.13.0
+   Compiling num-conv v0.2.1
+   Compiling tempfile v3.27.0
+   Compiling slab v0.4.12
+   Compiling time-core v0.1.8
+   Compiling rand_core v0.9.5
+   Compiling fnv v1.0.7
+   Compiling http-body v1.0.1
+   Compiling debugid v0.8.0
+   Compiling openssl-sys v0.9.114
+   Compiling time v0.3.47
+   Compiling rand_chacha v0.9.0
+   Compiling libz-sys v1.1.28
+   Compiling gix-tempfile v16.0.0
+   Compiling tracing-core v0.1.36
+   Compiling hex v0.4.3
+   Compiling futures-task v0.3.32
+   Compiling gix-lock v16.0.0
+   Compiling tinystr v0.8.3
+   Compiling potential_utf v0.1.5
+   Compiling rand v0.9.4
+   Compiling httparse v1.10.1
+   Compiling futures-io v0.3.32
+   Compiling tracing v0.1.44
+   Compiling tokio-util v0.7.18
+   Compiling gix-commitgraph v0.26.0
+   Compiling icu_locale_core v2.2.0
+   Compiling icu_collections v2.2.0
+   Compiling futures-util v0.3.32
+   Compiling security-framework-sys v2.17.0
+   Compiling core-foundation v0.10.1
+   Compiling atomic-waker v1.1.2
+   Compiling native-tls v0.2.18
+   Compiling tower-service v0.3.3
+   Compiling try-lock v0.2.5
+   Compiling object v0.37.3
+   Compiling icu_provider v2.2.0
+   Compiling security-framework v3.7.0
+   Compiling h2 v0.4.13
+   Compiling gix-revwalk v0.18.0
+   Compiling want v0.3.1
+   Compiling icu_properties v2.2.0
+   Compiling icu_normalizer v2.2.0
+   Compiling futures-channel v0.3.32
+   Compiling libssh2-sys v0.3.1
+   Compiling gix-sec v0.10.12
+   Compiling shell-words v1.1.1
+   Compiling base64 v0.22.1
+   Compiling semver v1.0.28
+   Compiling gimli v0.32.3
+   Compiling idna_adapter v1.2.1
+   Compiling foldhash v0.2.0
+   Compiling rustversion v1.0.22
+   Compiling hyper v1.9.0
+   Compiling gix-ref v0.50.0
+   Compiling rustc_version v0.4.1
+   Compiling findshlibs v0.10.2
+   Compiling idna v1.1.0
+   Compiling hashbrown v0.16.1
+   Compiling libsqlite3-sys v0.28.0
+   Compiling url v2.5.8
+   Compiling sync_wrapper v1.0.2
+   Compiling gix-quote v0.4.15
+   Compiling addr2line v0.25.1
+   Compiling regex v1.12.3
+   Compiling autocfg v1.5.0
+   Compiling rustc-demangle v0.1.27
+   Compiling arrayvec v0.7.6
+   Compiling sentry-types v0.47.0
+   Compiling cfg_aliases v0.1.1
+   Compiling ipnet v2.12.0
+   Compiling tower-layer v0.3.3
+   Compiling thiserror v1.0.69
+   Compiling rustix v0.38.44
+   Compiling nix v0.28.0
+   Compiling num-traits v0.2.19
+   Compiling tower v0.5.3
+   Compiling backtrace v0.3.76
+   Compiling hyper-util v0.1.20
+   Compiling uluru v3.1.0
+   Compiling gix-url v0.29.0
+   Compiling clru v0.6.3
+   Compiling sentry-contexts v0.47.0
+   Compiling tokio-native-tls v0.3.1
+   Compiling sentry-core v0.47.0
+   Compiling gix-command v0.4.1
+   Compiling http-body-util v0.1.3
+   Compiling gix-packetline v0.18.4
+   Compiling libgit2-sys v0.18.3+1.9.2
+   Compiling thiserror-impl v1.0.69
+   Compiling filetime v0.2.27
+   Compiling lazy_static v1.5.0
+   Compiling cfg_aliases v0.2.1
+   Compiling anyhow v1.0.102
+   Compiling zeroize v1.8.2
+   Compiling iri-string v0.7.12
+   Compiling sentry v0.47.0
+   Compiling hyper-tls v0.6.0
+   Compiling rustls-pki-types v1.14.1
+   Compiling gix-transport v0.45.0
+   Compiling sentry-backtrace v0.47.0
+   Compiling tower-http v0.6.8
+   Compiling arc-swap v1.9.1
+   Compiling gix-pack v0.57.0
+   Compiling gix-traverse v0.44.0
+   Compiling gix-revision v0.32.0
+   Compiling gix-shallow v0.2.0
+   Compiling gix-glob v0.18.0
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.3
+   Compiling gix-config-value v0.14.12
+   Compiling hashlink v0.9.1
+   Compiling gix-bitmap v0.2.16
+   Compiling scheduled-thread-pool v0.2.7
+   Compiling maybe-async v0.2.10
+   Compiling uname v0.1.1
+   Compiling hostname v0.4.2
+   Compiling termcolor v1.4.1
+   Compiling fallible-iterator v0.3.0
+   Compiling fallible-streaming-iterator v0.1.9
+   Compiling winnow v0.5.40
+   Compiling unicode-bom v2.0.3
+   Compiling gix-config v0.43.0
+   Compiling ts-rs-macros v12.0.1
+   Compiling gix-protocol v0.48.0
+   Compiling filedescriptor v0.8.3
+   Compiling r2d2 v0.8.10
+   Compiling gix-index v0.38.0
+   Compiling gix-refspec v0.28.0
+   Compiling toml_edit v0.20.2
+   Compiling gix-odb v0.67.0
+   Compiling reqwest v0.13.2
+   Compiling sentry-panic v0.47.0
+   Compiling sentry-debug-images v0.47.0
+   Compiling gix-discover v0.38.0
+   Compiling gix-diff v0.50.0
+   Compiling iana-time-zone v0.1.65
+   Compiling fsevent-sys v4.1.0
+   Compiling serial2 v0.2.36
+   Compiling quick-xml v0.38.4
+   Compiling downcast-rs v1.2.1
+   Compiling unsafe-libyaml v0.2.11
+   Compiling ryu v1.0.23
+   Compiling httpdate v1.0.3
+   Compiling gix v0.70.0
+   Compiling plist v1.8.0
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling portable-pty v0.9.0
+   Compiling toml v0.8.2
+   Compiling notify v6.1.1
+   Compiling chrono v0.4.44
+   Compiling ts-rs v12.0.1
+   Compiling similar v2.7.0
+   Compiling dunce v1.0.5
+   Compiling rusqlite v0.31.0
+   Compiling r2d2_sqlite v0.24.0
+   Compiling git2 v0.20.4
+   Compiling vibestation-core v0.1.0 (/private/tmp/mvp-10-phase-b-sentry-spike-work/crates/core)
+    Finished `release` profile [optimized] target(s) in 55.76s
+Error: only 'bin', 'dylib' and 'cdylib' crate types are supported.
+
+Fallback command because vibestation-core is an rlib and cargo-bloat only supports bin/dylib/cdylib targets:
+`cargo bloat --release --crates -n 30 --package vibestation-core --example sentry_smoke`
+
+```text
+   Compiling serde_core v1.0.228
+   Compiling serde v1.0.228
+   Compiling zerocopy v0.8.48
+   Compiling crossbeam-utils v0.8.21
+   Compiling zerocopy-derive v0.8.48
+   Compiling num-traits v0.2.19
+   Compiling rayon-core v1.13.0
+   Compiling either v1.15.0
+   Compiling clap_lex v1.1.0
+   Compiling ciborium-io v0.2.2
+   Compiling anstyle v1.0.14
+   Compiling plotters-backend v0.3.7
+   Compiling cast v0.3.0
+   Compiling itertools v0.10.5
+   Compiling clap_builder v4.6.0
+   Compiling plotters-svg v0.3.7
+   Compiling is-terminal v0.4.17
+   Compiling anes v0.1.6
+   Compiling oorandom v11.1.5
+   Compiling criterion-plot v0.5.0
+   Compiling clap v4.6.1
+   Compiling crossbeam-channel v0.5.15
+   Compiling crossbeam-epoch v0.9.18
+   Compiling crossbeam-deque v0.8.6
+   Compiling notify v6.1.1
+   Compiling serde_json v1.0.149
+   Compiling uuid v1.23.1
+   Compiling rayon v1.12.0
+   Compiling faster-hex v0.9.0
+   Compiling url v2.5.8
+   Compiling debugid v0.8.0
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.3
+   Compiling plist v1.8.0
+   Compiling tinytemplate v1.2.1
+   Compiling serde_yaml v0.9.34+deprecated
+   Compiling gix-hash v0.16.0
+   Compiling gix-packetline v0.18.4
+   Compiling toml_edit v0.20.2
+   Compiling gix-features v0.40.0
+   Compiling reqwest v0.13.2
+   Compiling git2 v0.20.4
+   Compiling gix-fs v0.13.0
+   Compiling gix-commitgraph v0.26.0
+   Compiling gix-url v0.29.0
+   Compiling gix-tempfile v16.0.0
+   Compiling gix-glob v0.18.0
+   Compiling chrono v0.4.44
+   Compiling gix-lock v16.0.0
+   Compiling gix-transport v0.45.0
+   Compiling gix-shallow v0.2.0
+   Compiling plotters v0.3.7
+   Compiling toml v0.8.2
+   Compiling ahash v0.8.12
+   Compiling ppv-lite86 v0.2.21
+   Compiling half v2.7.1
+   Compiling hashbrown v0.14.5
+   Compiling rand_chacha v0.9.0
+   Compiling ciborium-ll v0.2.2
+   Compiling rand v0.9.4
+   Compiling ciborium v0.2.2
+   Compiling gix-hashtable v0.7.0
+   Compiling hashlink v0.9.1
+   Compiling gix-object v0.47.0
+   Compiling rusqlite v0.31.0
+   Compiling criterion v0.5.1
+   Compiling sentry-types v0.47.0
+   Compiling gix-revwalk v0.18.0
+   Compiling gix-ref v0.50.0
+   Compiling gix-pack v0.57.0
+   Compiling gix-diff v0.50.0
+   Compiling gix-revision v0.32.0
+   Compiling gix-traverse v0.44.0
+   Compiling r2d2_sqlite v0.24.0
+   Compiling gix-refspec v0.28.0
+   Compiling gix-index v0.38.0
+   Compiling gix-odb v0.67.0
+   Compiling gix-protocol v0.48.0
+   Compiling gix-config v0.43.0
+   Compiling gix-discover v0.38.0
+   Compiling sentry-core v0.47.0
+   Compiling gix v0.70.0
+   Compiling sentry-backtrace v0.47.0
+   Compiling sentry-debug-images v0.47.0
+   Compiling sentry-contexts v0.47.0
+   Compiling sentry-panic v0.47.0
+   Compiling sentry v0.47.0
+   Compiling vibestation-core v0.1.0 (/private/tmp/mvp-10-phase-b-sentry-spike-work/crates/core)
+    Finished `release` profile [optimized] target(s) in 40.17s
+    Analyzing target/release/examples/sentry_smoke
+
+ File  .text     Size Crate
+17.3%  31.3% 574.6KiB std
+ 3.9%   7.1% 130.7KiB h2
+ 3.6%   6.6% 120.6KiB regex_syntax
+ 2.6%   4.7%  85.5KiB hyper
+ 2.5%   4.5%  83.2KiB regex_automata
+ 2.5%   4.5%  82.9KiB hyper_util
+ 2.2%   3.9%  72.3KiB sentry
+ 2.0%   3.6%  66.4KiB reqwest
+ 1.8%   3.2%  58.9KiB sentry_core
+ 1.7%   3.0%  56.0KiB http
+ 1.4%   2.5%  46.7KiB tokio
+ 1.4%   2.5%  45.9KiB gimli
+ 1.4%   2.5%  45.7KiB url
+ 1.4%   2.5%  45.1KiB sentry_types
+ 1.2%   2.2%  40.5KiB rustc_demangle
+ 1.2%   2.2%  39.7KiB backtrace
+ 1.1%   2.0%  37.4KiB serde_json
+ 0.7%   1.3%  23.7KiB addr2line
+ 0.6%   1.0%  18.7KiB idna
+ 0.5%   1.0%  17.6KiB futures_util
+ 0.4%   0.8%  14.4KiB iri_string
+ 0.4%   0.7%  13.1KiB hyper_tls
+ 0.4%   0.6%  11.9KiB security_framework
+ 0.3%   0.5%   9.4KiB bytes
+ 0.3%   0.5%   9.3KiB icu_normalizer
+ 0.3%   0.5%   9.0KiB http_body_util
+ 0.2%   0.4%   8.0KiB sentry_smoke
+ 0.2%   0.4%   7.5KiB regex
+ 0.2%   0.4%   6.5KiB object
+ 0.2%   0.3%   5.9KiB sentry_backtrace
+ 2.0%   3.5%  65.0KiB And 34 more crates. Use -n N to show more.
+55.3% 100.0%   1.8MiB .text section size, the file size is 3.2MiB
+
+Note: numbers above are a result of guesswork. They are not 100% correct and never will be.
+```

@@ -376,3 +376,92 @@
     padding: var(--space-2);
   }
 }
+
+/* MVP-05 Phase C · Pane multi-split UI */
+
+.vs-pane-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.vs-pane-split-horizontal {
+  flex-direction: row;
+}
+
+.vs-pane-split-vertical {
+  flex-direction: column;
+}
+
+.vs-pane-split-first {
+  flex: var(--vs-pane-ratio, 0.5);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-pane-split-second {
+  flex: calc(1 - var(--vs-pane-ratio, 0.5));
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-pane-splitter {
+  background: var(--line-soft);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-pane-splitter:hover {
+  background: var(--accent);
+}
+
+.vs-pane-splitter-horizontal {
+  width: 1px;
+  cursor: col-resize;
+}
+
+.vs-pane-splitter-vertical {
+  height: 1px;
+  cursor: row-resize;
+}
+
+.vs-pane-terminal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  border: 1px solid transparent;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+
+.vs-pane-terminal.is-focused {
+  border-color: var(--accent);
+}
+
+.vs-pane-terminal-host {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.vs-pane-terminal-error {
+  color: var(--danger);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  background: var(--bg-1);
+}
+
+.vs-pane-missing {
+  color: var(--text-3);
+  padding: var(--space-3);
+  font-size: 0.8125rem;
+}

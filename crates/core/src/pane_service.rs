@@ -6,8 +6,9 @@
 //! §H.3 atomicity：任何中间步骤失败 → 整个 transaction rollback · 不留半成品（部分 panes
 //! 已插但 layout 没更新 等）· 由 rusqlite `Transaction` 保证。
 //!
-//! ## 5 commands
+//! ## 6 commands
 //!
+//! - [`apply_pane_init_for_tab`] · 为 layout 为空（paneId == ""）的 tab 初始化第一个 Pane · idempotent
 //! - [`apply_pane_split`] · §H.2 split + INSERT panes + UPDATE layout/focused_pane_id
 //! - [`apply_pane_close`] · §H.2 close + DELETE panes + UPDATE layout/focused_pane_id
 //! - [`apply_pane_focus`] · 仅 UPDATE focused_pane_id（无 layout 改动）
@@ -21,7 +22,66 @@ use crate::panes::{
     PanesDao, SmartLayoutKind, SplitRatioUpdateRequest,
 };
 use rusqlite::params;
+use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use uuid::Uuid;
+
+/// 为 tab 初始化第一个 Pane（layout 为 `Single { paneId: "" }` 时调用 · idempotent）。
+///
+/// 触发场景：MVP-04 创建 tab 时 layout 默认为空 paneId · MVP-05 Phase C 前端在第一次激活 tab
+/// 时调用此命令 · 把 tab 切换到 Pane 模式（创建一个 Pane row + 改 layout 为指向 Pane 的 Single
+/// + 设置 focused_pane_id）。
+///
+/// 若 tab 已有 Pane（layout.paneId 非空 + panes 表有对应行）· 返回当前 PaneListResponse · 不重复创建。
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneInitRequest {
+    pub tab_id: String,
+    pub shell: String,
+    pub cwd: String,
+}
+
+pub fn apply_pane_init_for_tab(
+    pool: &DbPool,
+    req: &PaneInitRequest,
+) -> Result<PaneListResponse, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    let current_layout = read_tab_layout(&tx, &req.tab_id)?;
+
+    // idempotent: 已初始化过则直接返回当前状态
+    if let LayoutNode::Single { pane_id } = &current_layout {
+        if !pane_id.is_empty() {
+            drop(tx);
+            return read_pane_list(pool, &req.tab_id);
+        }
+    }
+
+    let new_pane_id = Uuid::new_v4().to_string();
+    let created_at = chrono::Utc::now().timestamp();
+    let new_layout = LayoutNode::Single {
+        pane_id: new_pane_id.clone(),
+    };
+
+    tx.execute(
+        "INSERT INTO panes (pane_id, tab_id, shell, cwd, scroll_back, created_at)
+         VALUES (?1, ?2, ?3, ?4, '[]', ?5)",
+        params![new_pane_id, req.tab_id, req.shell, req.cwd, created_at],
+    )
+    .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    write_tab_layout(&tx, &req.tab_id, &new_layout)?;
+    write_focused_pane(&tx, &req.tab_id, Some(&new_pane_id))?;
+
+    tx.commit()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    read_pane_list(pool, &req.tab_id)
+}
 
 /// 在 [`PaneCreateRequest::parent_pane_id`] 处发起一次 split · 生成新 Pane 并写入 panes 表 ·
 /// 同步更新 `tabs.layout` + `tabs.focused_pane_id`（新 Pane 获得焦点）。
@@ -379,6 +439,72 @@ mod tests {
 
     fn pane_count(pool: &DbPool, tab_id: &str) -> usize {
         PanesDao::list_by_tab(pool, tab_id).unwrap().len()
+    }
+
+    #[test]
+    fn pane_init_creates_first_pane_for_empty_tab() {
+        let (_dir, pool, tab_id) = setup();
+        // 默认状态：tab.layout = {single, paneId: ""} · 没有 pane row
+        assert_eq!(pane_count(&pool, &tab_id), 0);
+
+        let response = apply_pane_init_for_tab(
+            &pool,
+            &PaneInitRequest {
+                tab_id: tab_id.clone(),
+                shell: "/bin/zsh".to_string(),
+                cwd: "/tmp".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(response.panes.len(), 1);
+        assert_eq!(pane_count(&pool, &tab_id), 1);
+        assert!(
+            matches!(response.layout, LayoutNode::Single { ref pane_id } if !pane_id.is_empty())
+        );
+        let pane_id = match &response.layout {
+            LayoutNode::Single { pane_id } => pane_id.clone(),
+            _ => panic!("expected Single layout"),
+        };
+        assert_eq!(
+            assert_persisted_focus(&pool, &tab_id).as_deref(),
+            Some(pane_id.as_str())
+        );
+    }
+
+    #[test]
+    fn pane_init_is_idempotent() {
+        let (_dir, pool, tab_id) = setup();
+        let r1 = apply_pane_init_for_tab(
+            &pool,
+            &PaneInitRequest {
+                tab_id: tab_id.clone(),
+                shell: "/bin/zsh".to_string(),
+                cwd: "/tmp".to_string(),
+            },
+        )
+        .unwrap();
+        let pane_id_1 = match &r1.layout {
+            LayoutNode::Single { pane_id } => pane_id.clone(),
+            _ => panic!("expected Single"),
+        };
+
+        // 二次调用 · 应返回相同 PaneListResponse · 不创建新 pane
+        let r2 = apply_pane_init_for_tab(
+            &pool,
+            &PaneInitRequest {
+                tab_id: tab_id.clone(),
+                shell: "/bin/zsh".to_string(),
+                cwd: "/tmp".to_string(),
+            },
+        )
+        .unwrap();
+        let pane_id_2 = match &r2.layout {
+            LayoutNode::Single { pane_id } => pane_id.clone(),
+            _ => panic!("expected Single"),
+        };
+        assert_eq!(pane_id_1, pane_id_2);
+        assert_eq!(pane_count(&pool, &tab_id), 1);
     }
 
     #[test]

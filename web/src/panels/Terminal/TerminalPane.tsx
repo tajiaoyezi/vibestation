@@ -15,6 +15,7 @@ import {
   type Component,
 } from "solid-js";
 import type { PtyExitedEvent, PtyStdoutEvent, TabState } from "../../bindings";
+import { useSettings } from "../../stores/settings";
 import {
   DEFAULT_PTY_COLS,
   DEFAULT_PTY_ROWS,
@@ -24,6 +25,13 @@ import {
   type TabRuntimeState,
   writeScrollbackToTerm,
 } from "./hooks";
+
+type XTermCursorStyle = "block" | "underline" | "bar";
+
+const toCursorStyle = (s: string): XTermCursorStyle => {
+  if (s === "bar" || s === "underline") return s;
+  return "block";
+};
 
 type PaneApi = {
   focus: () => void;
@@ -123,6 +131,7 @@ const hasPrintableOutput = (data: string): boolean => {
 };
 
 export const TerminalPane: Component<TerminalPaneProps> = (props) => {
+  const { settings } = useSettings();
   const [hasVisibleOutput, setHasVisibleOutput] = createSignal(false);
   let paneRef: HTMLDivElement | undefined;
   let hostRef: HTMLDivElement | undefined;
@@ -175,6 +184,15 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     term?.focus();
   });
 
+  createEffect(() => {
+    const blink = settings.cursorBlink;
+    const style = toCursorStyle(settings.cursorStyle);
+    if (term) {
+      term.options.cursorBlink = blink;
+      term.options.cursorStyle = style;
+    }
+  });
+
   onMount(async () => {
     handlePasteCapture = (event: ClipboardEvent) => {
       const text = event.clipboardData?.getData("text") ?? "";
@@ -189,7 +207,8 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     term = new XTerm({
       allowProposedApi: true,
       convertEol: false,
-      cursorBlink: true,
+      cursorBlink: settings.cursorBlink,
+      cursorStyle: toCursorStyle(settings.cursorStyle),
       fontFamily:
         "JetBrains Mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace",
       fontSize: 13,

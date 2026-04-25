@@ -141,6 +141,8 @@ body,
   --root-bg: rgb(250 250 250 / var(--bg-opacity));
   background: var(--root-bg);
   padding: var(--window-padding-y) var(--window-padding-x);
+  -webkit-backdrop-filter: blur(var(--bg-blur));
+  backdrop-filter: blur(var(--bg-blur));
 }
 
 @media (prefers-color-scheme: dark) {

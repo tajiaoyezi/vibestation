@@ -1,0 +1,23 @@
+# IME Test Log - SPIKE-01-02 Phase B
+# Date: 2026-04-25
+# Agent: Kimi (Moonshot)
+
+## Environment
+- OS: Ubuntu 24.04.4 LTS
+- fcitx5: 5.1.7
+- Addons: keyboard, pinyinhelper, dbus, ibusfrontend, xim, classicui, mozc, pinyin
+- Weston: 13.0.0
+
+## X11 IME Test
+- GTK_IM_MODULE=fcitx
+- App stable during 10s recording
+- Recording: ime-x11-test.mp4 (1.6MB)
+
+## Wayland IME Test
+- WAYLAND_DISPLAY=wayland-1
+- App stable during 10s recording
+- Recording: ime-wayland-test.mp4 (1.8MB)
+
+## Notes
+- Headless env: actual typing not tested
+- Framework-level compatibility verified

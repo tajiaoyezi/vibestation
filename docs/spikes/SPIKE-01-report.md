@@ -12,12 +12,11 @@
 | 平台 | 冷启动中位数 | 目标 | 结果 | 窗口渲染 | resize | IME 中文 | 稳定性 5min |
 |---|---|---|---|---|---|---|---|
 | macOS 26.3.1 (M 系列) | **202ms** | < 2000ms | ✅ PASS (10× 余量) | ✅ | ✅ | ✅ | ✅ |
-| Ubuntu 24 X11 | **108ms** | < 3000ms | ✅ PASS (10/10) | ✅ | ✅ | ⚠️ 待 fcitx5 | ✅ 5min |
-| Ubuntu 24 Wayland | **107ms** | < 3000ms | ✅ PASS (5/5) | ✅ | ✅ | ⚠️ 待 fcitx5 | ✅ 5min |
+| Ubuntu 24 X11 | — | < 3000ms | **TBD**（Phase B） | — | — | — | — |
+| Ubuntu 24 Wayland | — | < 3000ms | **TBD**（Phase B） | — | — | — | — |
 
 **Phase A 整体判定**：✅ **PASS** · macOS 上 Tauri 2 冷启动 / 渲染 / IME / 稳定性 4 维度全过 · 远超目标。
-**Phase B 整体判定**：🟡 **CONDITIONAL PASS** · 冷启动 / 渲染 / 稳定性 3 维度全过 · IME 因环境限制待补（fcitx5）· 不影响 Tauri 2 在 Ubuntu 的基本可用性判定。
-**SPIKE-01 整体 status**：`in-progress` → 建议翻 `done`（冷启动/渲染/稳定性核心判据全过 · IME 是独立变量 · 已记录为已知限制）· 最终由 Arbiter 决定。
+**SPIKE-01 整体 status**：保持 `in-progress` · Phase B Ubuntu 未补完前不翻 `done`（按 spec 3 平台全过才算通过）。
 
 ---
 
@@ -206,72 +205,11 @@ Range:  50 ms (Max - Min)
 
 ### 6.1 X11
 
-**环境**（2026-04-25 · Kimi @ Ubuntu 24.04.4 LTS）
-| 维度 | 数据 |
-|---|---|
-| OS | Ubuntu 24.04.4 LTS (Noble Numbat) |
-| Kernel | 6.17.0-22-generic |
-| CPU | x86_64 |
-| GPU | NVIDIA GeForce RTX 5070 Ti (EGL + OpenGL ES 3.2) |
-| Display | X.Org 21.1.11 · DISPLAY=:0 · XDG_SESSION_TYPE=x11 |
-| Rust | rustc 1.95.0 · cargo 1.95.0 |
-| Node | v20.x LTS · pnpm 9.15.9 |
-| Tauri | 2.10.3 |
-
-**冷启动测量**（10 次 · 进程进入 multi-threaded 状态计时）
-
-```
-Run 1:  108 ms  ✅
-Run 2:  108 ms  ✅
-Run 3:  108 ms  ✅
-Run 4:  108 ms  ✅
-Run 5:  108 ms  ✅
-Run 6:  108 ms  ✅
-Run 7:  108 ms  ✅
-Run 8:  108 ms  ✅
-Run 9:  109 ms  ✅
-Run 10: 108 ms  ✅
-
-Summary: 10/10 success · 0 fail
-Median: 108 ms · Range: 1 ms
-```
-
-**Raw 数据**：`docs/spikes/raw/SPIKE-01-02-phase-B/cold-boot-x11-1777107824.csv`
-
-**窗口渲染**：应用窗口正常出现 · 无黑屏/白屏 ✅
-**Resize / 最小化 / 关闭**：正常 ✅
-**IME 中文**：⚠️ **BLOCKED** · fcitx5 未安装（sudo 需密码）· 见 §6.3 已知限制
-**稳定性 5min**：✅ 启动后持续运行 5 分钟无 panic / segfault
+<!-- 等 Ubuntu 测试完成回填 -->
 
 ### 6.2 Wayland
 
-**环境**：Weston 13.0.0 · x11-backend.so · wayland-1 socket · 1280×720
-
-**冷启动测量**（5 次）
-
-```
-Run 1:  108 ms  ✅
-Run 2:  108 ms  ✅
-Run 3:  107 ms  ✅
-Run 4:  107 ms  ✅
-Run 5:  107 ms  ✅
-
-Summary: 5/5 success · 0 fail
-Median: 107 ms · Range: 1 ms
-```
-
-**Raw 数据**：`docs/spikes/raw/SPIKE-01-02-phase-B/cold-boot-wayland-1777107849.csv`
-
-**窗口渲染**：应用窗口在 Weston 下正常出现 · 无黑屏/白屏 ✅
-**Resize / 最小化 / 关闭**：正常 ✅
-**IME 中文**：⚠️ **BLOCKED** · 同上
-**稳定性 5min**：✅ 启动后持续运行 5 分钟无 panic / segfault
-
-### 6.3 已知限制（Ubuntu Phase B）
-
-1. **IME 测试 BLOCKED**：fcitx5 未安装 · `sudo apt install` 需要密码 · 当前环境无法交互输入
-2. **测量方法**：冷启动计时采用"进程进入 multi-threaded 状态"作为代理指标 · 非 webview 完全渲染时间 · 但 108ms 远低于 3s 阈值 · 结论安全
-3. **Wayland 环境**：使用 Weston (x11-backend) 而非原生 Wayland session · Tauri 的 Wayland 支持通过 Weston 验证有效 · 但原生 GNOME/Wayland 组合未测
+<!-- 等 Ubuntu 测试完成回填 -->
 
 ---
 

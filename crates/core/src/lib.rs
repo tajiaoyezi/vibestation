@@ -39,8 +39,8 @@ pub use git_status::{
 pub use layout::{LayoutState, LayoutStore};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use pane_service::{
-    apply_layout_preset, apply_pane_close, apply_pane_focus, apply_pane_split,
-    apply_split_ratio_update,
+    apply_layout_preset, apply_pane_close, apply_pane_focus, apply_pane_init_for_tab,
+    apply_pane_split, apply_split_ratio_update, PaneInitRequest,
 };
 pub use panes::{
     LayoutApplyRequest, LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError,

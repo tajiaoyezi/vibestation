@@ -13,6 +13,7 @@ export type { PtyExitedEvent } from "./PtyExitedEvent";
 export type { PtySpawnRequest } from "./PtySpawnRequest";
 export type { PaneState } from "./PaneState";
 export type { PaneCreateRequest } from "./PaneCreateRequest";
+export type { PaneInitRequest } from "./PaneInitRequest";
 export type { PaneCloseRequest } from "./PaneCloseRequest";
 export type { LayoutNode } from "./LayoutNode";
 export type { SplitDir } from "./SplitDir";

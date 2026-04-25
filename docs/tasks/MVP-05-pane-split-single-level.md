@@ -61,7 +61,7 @@ reviewer: Kimi
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ⏳ todo | — |
+| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ✅ done | 本 PR |
 | Phase B · Pane runtime | `pane_pty_*` 5 IPC commands（复刻 `tab_pty_*` 架构）+ 分屏 / 关 Pane 的后端逻辑 + 深度检查 Rust 侧硬编码 `MAX_LAYOUT_DEPTH = 2` | ⏳ todo | — |
 | Phase C · 前端分屏 UI | SolidJS 组件 + 分隔条拖拽 + focus 切换 + Smart Layouts 菜单 + 双击复位 | ⏳ todo | — |
 | Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo | — |
@@ -86,7 +86,7 @@ reviewer: Kimi
 - [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 13 个 struct 见 §G.5）
 - [ ] fixture：用 `tempfile` crate 运行时生成 sqlite + tabs 行 · 不要硬编码本地路径（仿 MVP-09 §C.1）
 
-**下次 agent 起点**：Phase A · 依赖 MVP-04 Phase A 已落地的 `tabs` 表 + `TabsDao`（见 PR #72）· **不要重写** `tabs` 表 · 只加 `panes` 新表 + `tabs` 2 新列。
+**下次 agent 起点**：Phase B · 实现 `pane_pty_*` 5 IPC commands + pane layout 5 IPC commands · 仿 `tab_pty_*` 模式接入运行时；继续遵守 §G.4，不复用 `PtySpawnRequest` / `TabsDao` / `migrate_v5`。
 
 **依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。
 

@@ -11,6 +11,7 @@
   },
   "app": {
     "withGlobalTauri": false,
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Vibestation",
@@ -19,7 +20,17 @@
         "minWidth": 800,
         "minHeight": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "transparent": true,
+        "windowEffects": {
+          "effects": ["hudWindow"],
+          "state": "followsWindowActiveState",
+          "radius": 12
+        },
+        "trafficLightPosition": {
+          "x": 20,
+          "y": 20
+        }
       }
     ],
     "security": {

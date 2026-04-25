@@ -137,31 +137,40 @@ body,
   user-select: none;
 }
 
+/*
+ * #root 透明度 = whole-tree opacity（MUX0 风格 · 整个 UI 包括文字一起半透明）
+ * 不用 background rgba（fully-opaque children 会 cover 父背景导致视觉无效）
+ * background 保持 fully opaque · opacity property 让整树透明 · vibrancy material 透过来
+ */
 #root {
-  --root-bg: rgb(250 250 250 / var(--bg-opacity));
+  --root-bg: rgb(250 250 250);
   background: var(--root-bg);
   padding: var(--window-padding-y) var(--window-padding-x);
+  opacity: var(--bg-opacity);
   -webkit-backdrop-filter: blur(var(--bg-blur));
   backdrop-filter: blur(var(--bg-blur));
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) #root {
-    --root-bg: rgb(28 28 30 / var(--unfocused-opacity));
+    --root-bg: rgb(28 28 30);
   }
 }
 
 [data-theme="dark"] #root {
-  --root-bg: rgb(28 28 30 / var(--unfocused-opacity));
+  --root-bg: rgb(28 28 30);
 }
 
+/* Linux WebKitGTK · transparent 不可靠 · 强制不透明 fallback */
 .platform-linux #root {
-  --root-bg: rgb(250 250 250 / 0.98);
+  --root-bg: rgb(250 250 250);
+  opacity: 1;
 }
 
 .platform-linux[data-theme="dark"] #root,
 .platform-linux [data-theme="dark"] #root {
-  --root-bg: rgb(28 28 30 / 0.98);
+  --root-bg: rgb(28 28 30);
+  opacity: 1;
 }
 
 .xterm,

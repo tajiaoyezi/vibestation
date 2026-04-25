@@ -206,6 +206,339 @@ pub enum PaneError {
     Db(#[from] DbError),
 }
 
+/// MVP-05 §C · Smart Layout 预设种类。
+///
+/// - `Solo`：保留当前聚焦 Pane · 关闭其他所有 Pane。
+/// - `AiAndRunner`：保留当前聚焦 Pane + 第一个非聚焦 Pane · 强制右分屏 50/50 · 关闭其他。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SmartLayoutKind {
+    Solo,
+    AiAndRunner,
+}
+
+/// MVP-05 §H.2 · 在指定 Pane 处右分 / 下分一个新 Pane（pure function · 不修改原 layout）。
+///
+/// 在 `layout` 中找到 `parent_pane_id` 对应的 `Single` 节点 · 用 `Split { direction, ratio: 0.5,
+/// first: Single(parent), second: Single(new) }` 替换。新布局通过 `validate_mvp_05()` 校验：
+/// 若深度 / 同向嵌套 / pane 数量超限 · 返回 `Err(PaneError::InvalidLayout(_))`。
+///
+/// 入参：
+/// - `layout`：当前布局（不被修改）
+/// - `parent_pane_id`：在哪个 Pane 上发起 split（必须为现有 `Single` 节点）
+/// - `direction`：分割方向（`Horizontal` 右分 · `Vertical` 下分）
+/// - `new_pane_id`：新 Pane 的 ID（caller 生成 · 通常 UUID）
+///
+/// 出参：
+/// - `Ok(LayoutNode)`：split 后的新布局
+/// - `Err(PaneError::NotFound)`：`parent_pane_id` 不存在于 layout 中
+/// - `Err(PaneError::InvalidLayout)`：split 会导致深度 / 嵌套 / 数量超限 · 或 `new_pane_id`
+///   已存在于 layout 中
+pub fn split_layout(
+    layout: &LayoutNode,
+    parent_pane_id: &str,
+    direction: SplitDir,
+    new_pane_id: String,
+) -> Result<LayoutNode, PaneError> {
+    if !layout_contains_pane(layout, parent_pane_id) {
+        return Err(PaneError::NotFound(parent_pane_id.to_string()));
+    }
+    if layout_contains_pane(layout, &new_pane_id) {
+        return Err(PaneError::InvalidLayout(format!(
+            "new pane id {new_pane_id} already exists in layout"
+        )));
+    }
+    let new_layout = replace_single(
+        layout,
+        parent_pane_id,
+        LayoutNode::Split {
+            direction,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Single {
+                pane_id: parent_pane_id.to_string(),
+            }),
+            second: Box::new(LayoutNode::Single {
+                pane_id: new_pane_id,
+            }),
+        },
+    );
+    new_layout.validate_mvp_05()?;
+    Ok(new_layout)
+}
+
+/// MVP-05 §H.2 · 关闭指定 Pane · 重排 layout（pure function）。
+///
+/// 在 layout tree 中找到包含 `pane_id` 的 `Single` 节点 · 把它的父 `Split` 替换为 sibling 子树
+/// （即 sibling 占满 split 空间 · 新 layout 减少一个 Split 层）。
+///
+/// 入参：
+/// - `layout`：当前布局
+/// - `pane_id`：要关闭的 Pane
+///
+/// 出参：
+/// - `Ok(LayoutNode)`：关闭后的新布局
+/// - `Err(PaneError::NotFound)`：`pane_id` 不在 layout
+/// - `Err(PaneError::InvalidLayout)`：layout 顶层只剩此 Pane（caller 应该转去关 Tab）
+pub fn close_pane_in_layout(layout: &LayoutNode, pane_id: &str) -> Result<LayoutNode, PaneError> {
+    if let LayoutNode::Single { pane_id: existing } = layout {
+        if existing == pane_id {
+            return Err(PaneError::InvalidLayout(format!(
+                "cannot close last pane {pane_id}; close the tab instead"
+            )));
+        }
+    }
+    if !layout_contains_pane(layout, pane_id) {
+        return Err(PaneError::NotFound(pane_id.to_string()));
+    }
+    // 调用 helper · 已确保 pane_id 存在 · 必返回 Some
+    let new_layout = remove_pane(layout, pane_id).expect("pane existence checked above");
+    new_layout.validate_mvp_05()?;
+    Ok(new_layout)
+}
+
+/// MVP-05 §D · 调整指定 Split 节点的分割比例（pure function）。
+///
+/// 找到 `first` 子树包含 `parent_pane_id` 的 `Split` 节点 · 把它的 `ratio` 改为 `new_ratio`。
+/// 这与 UI 拖拽分隔条的语义对齐：每个 Split 用其 first 子树代表 Pane 作为 dragger 关联点。
+///
+/// 入参：
+/// - `layout`：当前布局
+/// - `parent_pane_id`：first 子树包含此 Pane 的 Split 节点是目标
+/// - `new_ratio`：新比例 · 必须在 (0.0, 1.0) 开区间
+///
+/// 出参：
+/// - `Ok(LayoutNode)`：ratio 已更新的新布局
+/// - `Err(PaneError::NotFound)`：找不到匹配的 Split 节点
+/// - `Err(PaneError::InvalidLayout)`：`new_ratio` 不在 (0, 1) 区间
+pub fn update_split_ratio(
+    layout: &LayoutNode,
+    parent_pane_id: &str,
+    new_ratio: f32,
+) -> Result<LayoutNode, PaneError> {
+    if !(new_ratio > 0.0 && new_ratio < 1.0) {
+        return Err(PaneError::InvalidLayout(format!(
+            "split ratio must be between 0 and 1, got {new_ratio}"
+        )));
+    }
+    update_ratio_inner(layout, parent_pane_id, new_ratio)
+        .ok_or_else(|| PaneError::NotFound(parent_pane_id.to_string()))
+}
+
+/// MVP-05 §C · 应用 Smart Layout 预设（pure function）。
+///
+/// - `Solo`：返回 `Single { focused_pane_id }` · 关闭所有非聚焦 Pane。
+/// - `AiAndRunner`：保留聚焦 Pane + 第一个非聚焦 Pane（按 layout DFS 顺序）· 强制水平右分屏
+///   50/50 · 关闭其他。若 layout 只有一个 Pane（即聚焦 Pane）· 返回 `Err(PaneError::InvalidLayout)` ·
+///   caller 应先 spawn 第二个 Pane 后再调用。
+///
+/// 入参：
+/// - `layout`：当前布局
+/// - `kind`：预设类型
+/// - `focused_pane_id`：当前聚焦的 Pane（必须存在于 layout）
+///
+/// 出参：
+/// - `Ok((LayoutNode, Vec<String>))`：新布局 + 被关闭的 pane_ids（caller 用于 PTY cleanup）
+/// - `Err(PaneError::NotFound)`：`focused_pane_id` 不在 layout
+/// - `Err(PaneError::InvalidLayout)`：AiAndRunner 在单 Pane 布局上调用
+pub fn apply_smart_layout(
+    layout: &LayoutNode,
+    kind: SmartLayoutKind,
+    focused_pane_id: &str,
+) -> Result<(LayoutNode, Vec<String>), PaneError> {
+    let all_pane_ids = collect_pane_ids(layout);
+    if !all_pane_ids.iter().any(|id| id == focused_pane_id) {
+        return Err(PaneError::NotFound(focused_pane_id.to_string()));
+    }
+
+    match kind {
+        SmartLayoutKind::Solo => {
+            let closed: Vec<String> = all_pane_ids
+                .into_iter()
+                .filter(|id| id != focused_pane_id)
+                .collect();
+            let new_layout = LayoutNode::Single {
+                pane_id: focused_pane_id.to_string(),
+            };
+            new_layout.validate_mvp_05()?;
+            Ok((new_layout, closed))
+        }
+        SmartLayoutKind::AiAndRunner => {
+            let secondary = all_pane_ids
+                .iter()
+                .find(|id| id.as_str() != focused_pane_id)
+                .cloned()
+                .ok_or_else(|| {
+                    PaneError::InvalidLayout(
+                        "AI+Runner requires at least 2 panes; spawn a second pane first".into(),
+                    )
+                })?;
+            let closed: Vec<String> = all_pane_ids
+                .into_iter()
+                .filter(|id| id != focused_pane_id && id != &secondary)
+                .collect();
+            let new_layout = LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Single {
+                    pane_id: focused_pane_id.to_string(),
+                }),
+                second: Box::new(LayoutNode::Single { pane_id: secondary }),
+            };
+            new_layout.validate_mvp_05()?;
+            Ok((new_layout, closed))
+        }
+    }
+}
+
+// === pure function 内部辅助 ============================================
+
+/// 检查 layout 中是否存在某 pane_id。
+fn layout_contains_pane(layout: &LayoutNode, pane_id: &str) -> bool {
+    match layout {
+        LayoutNode::Single { pane_id: existing } => existing == pane_id,
+        LayoutNode::Split { first, second, .. } => {
+            layout_contains_pane(first, pane_id) || layout_contains_pane(second, pane_id)
+        }
+    }
+}
+
+/// 收集 layout 中所有 pane_id（DFS · 保留遍历顺序）。
+fn collect_pane_ids(layout: &LayoutNode) -> Vec<String> {
+    let mut ids = Vec::new();
+    collect_pane_ids_inner(layout, &mut ids);
+    ids
+}
+
+fn collect_pane_ids_inner(layout: &LayoutNode, ids: &mut Vec<String>) {
+    match layout {
+        LayoutNode::Single { pane_id } => ids.push(pane_id.clone()),
+        LayoutNode::Split { first, second, .. } => {
+            collect_pane_ids_inner(first, ids);
+            collect_pane_ids_inner(second, ids);
+        }
+    }
+}
+
+/// 把 layout 中所有 `Single { pane_id == target }` 替换为 `replacement`（递归 deep-copy）。
+fn replace_single(layout: &LayoutNode, target: &str, replacement: LayoutNode) -> LayoutNode {
+    match layout {
+        LayoutNode::Single { pane_id } if pane_id == target => replacement,
+        LayoutNode::Single { pane_id } => LayoutNode::Single {
+            pane_id: pane_id.clone(),
+        },
+        LayoutNode::Split {
+            direction,
+            ratio,
+            first,
+            second,
+        } => LayoutNode::Split {
+            direction: direction.clone(),
+            ratio: *ratio,
+            first: Box::new(replace_single(first, target, replacement.clone())),
+            second: Box::new(replace_single(second, target, replacement)),
+        },
+    }
+}
+
+/// 从 layout 中删除指定 pane_id · 把其父 Split 折叠为 sibling 子树。
+///
+/// **前置条件**：caller 必须先用 `layout_contains_pane` 确认 pane_id 存在。
+///
+/// 返回值：
+/// - `Some(new_layout)`：删除成功 · 新 layout（首层 Split 折叠为 sibling 子树）
+/// - `None`：仅当传入的 layout 整体就是 `Single { pane_id }`（caller 的 close 入口已处理此场景）
+fn remove_pane(layout: &LayoutNode, pane_id: &str) -> Option<LayoutNode> {
+    match layout {
+        LayoutNode::Single { pane_id: existing } if existing == pane_id => None,
+        LayoutNode::Single { .. } => {
+            // 不该到这（caller 已 layout_contains_pane 检查）· 但保留 clone 以防直接调用
+            Some(layout.clone())
+        }
+        LayoutNode::Split {
+            direction,
+            ratio,
+            first,
+            second,
+        } => {
+            // 直接子节点命中（无论 Single 还是 Split 命中）· 折叠为 sibling
+            if first_layout_contains_only_target(first, pane_id) {
+                return Some((**second).clone());
+            }
+            if first_layout_contains_only_target(second, pane_id) {
+                return Some((**first).clone());
+            }
+            // 否则递归到含 pane_id 那一边
+            if layout_contains_pane(first, pane_id) {
+                let new_first =
+                    remove_pane(first, pane_id).expect("pane known to exist in first subtree");
+                return Some(LayoutNode::Split {
+                    direction: direction.clone(),
+                    ratio: *ratio,
+                    first: Box::new(new_first),
+                    second: second.clone(),
+                });
+            }
+            if layout_contains_pane(second, pane_id) {
+                let new_second =
+                    remove_pane(second, pane_id).expect("pane known to exist in second subtree");
+                return Some(LayoutNode::Split {
+                    direction: direction.clone(),
+                    ratio: *ratio,
+                    first: first.clone(),
+                    second: Box::new(new_second),
+                });
+            }
+            // pane_id 不在任何子树（前置条件违反）· 原样返回
+            Some(layout.clone())
+        }
+    }
+}
+
+/// 判断子树是否就是 `Single { pane_id }`（即关掉它后该 split 折叠为 sibling）。
+fn first_layout_contains_only_target(subtree: &LayoutNode, pane_id: &str) -> bool {
+    matches!(subtree, LayoutNode::Single { pane_id: id } if id == pane_id)
+}
+
+/// 在 layout 中找到 first 子树包含 `parent_pane_id` 的 Split 节点 · 改它的 ratio。
+/// 返回 `None` 表示找不到。
+fn update_ratio_inner(
+    layout: &LayoutNode,
+    parent_pane_id: &str,
+    new_ratio: f32,
+) -> Option<LayoutNode> {
+    match layout {
+        LayoutNode::Single { .. } => None,
+        LayoutNode::Split {
+            direction,
+            ratio,
+            first,
+            second,
+        } => {
+            if layout_contains_pane(first, parent_pane_id) {
+                // first 子树含目标 · 命中本节点 → 改 ratio · 不动子树（dragger 关联本节点）
+                return Some(LayoutNode::Split {
+                    direction: direction.clone(),
+                    ratio: new_ratio,
+                    first: first.clone(),
+                    second: second.clone(),
+                });
+            }
+            if layout_contains_pane(second, parent_pane_id) {
+                // first 子树不含 · 但 second 含 → 递归到 second 找下一层 Split
+                if let Some(updated_second) = update_ratio_inner(second, parent_pane_id, new_ratio)
+                {
+                    return Some(LayoutNode::Split {
+                        direction: direction.clone(),
+                        ratio: *ratio,
+                        first: first.clone(),
+                        second: Box::new(updated_second),
+                    });
+                }
+            }
+            None
+        }
+    }
+}
+
 pub struct PanesDao;
 
 impl PanesDao {
@@ -771,5 +1104,319 @@ mod tests {
         let result = layout_apply_with_mock_failure(&mut conn, FailurePoint::FocusedPaneUpdate);
         assert!(result.is_err());
         assert_eq!(persisted_state(&conn), before);
+    }
+
+    // ============================================================
+    // MVP-05 Phase B Step 2 · pure function 单元测试
+    // ============================================================
+    //
+    // 涵盖：
+    // - §H.2 6 case：split 合法 4 + split 非法 2
+    // - §H.3.1 pure function 等价 6 case：split / close / 边界
+    // - §C Smart Layout 3 case：Solo / AiAndRunner / 单 Pane Err
+    // - §D update_split_ratio 2 case：legal + invalid ratio
+
+    fn solo_layout(pane_id: &str) -> LayoutNode {
+        LayoutNode::Single {
+            pane_id: pane_id.to_string(),
+        }
+    }
+
+    fn horizontal_2pane(left: &str, right: &str) -> LayoutNode {
+        LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout(left)),
+            second: Box::new(solo_layout(right)),
+        }
+    }
+
+    fn vertical_2pane(top: &str, bottom: &str) -> LayoutNode {
+        LayoutNode::Split {
+            direction: SplitDir::Vertical,
+            ratio: 0.5,
+            first: Box::new(solo_layout(top)),
+            second: Box::new(solo_layout(bottom)),
+        }
+    }
+
+    // --- §H.2 case 1-4 · 合法 split -----------------------------------
+
+    #[test]
+    fn split_layout_horizontal_2_pane_legal() {
+        let layout = solo_layout("p1");
+        let result = split_layout(&layout, "p1", SplitDir::Horizontal, "p2".to_string()).unwrap();
+        assert_eq!(result.pane_count(), 2);
+        result.validate_mvp_05().unwrap();
+        assert_eq!(result, horizontal_2pane("p1", "p2"));
+        // 原 layout 未被修改（pure function 不变性）
+        assert_eq!(layout, solo_layout("p1"));
+    }
+
+    #[test]
+    fn split_layout_vertical_2_pane_legal() {
+        let layout = solo_layout("p1");
+        let result = split_layout(&layout, "p1", SplitDir::Vertical, "p2".to_string()).unwrap();
+        assert_eq!(result.pane_count(), 2);
+        result.validate_mvp_05().unwrap();
+        assert_eq!(result, vertical_2pane("p1", "p2"));
+        assert_eq!(layout, solo_layout("p1"));
+    }
+
+    #[test]
+    fn split_layout_2x2_legal() {
+        // 起点：水平 2 pane → 在右 pane (p2) 下分一个新 p3 → 应得 horizontal { left=p1, right=vertical{p2, p3}}
+        let layout = horizontal_2pane("p1", "p2");
+        let result = split_layout(&layout, "p2", SplitDir::Vertical, "p3".to_string()).unwrap();
+        assert_eq!(result.pane_count(), 3);
+        result.validate_mvp_05().unwrap();
+        let expected = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(vertical_2pane("p2", "p3")),
+        };
+        assert_eq!(result, expected);
+
+        // 再在 p1 下分 p4 → 真正的 2×2
+        let result_2x2 = split_layout(&result, "p1", SplitDir::Vertical, "p4".to_string()).unwrap();
+        assert_eq!(result_2x2.pane_count(), 4);
+        result_2x2.validate_mvp_05().unwrap();
+    }
+
+    #[test]
+    fn split_layout_solo_legal() {
+        // 起始单 pane · 只能分一次（horizontal 或 vertical）· 验证最简场景
+        let layout = solo_layout("only");
+        let result =
+            split_layout(&layout, "only", SplitDir::Horizontal, "new".to_string()).unwrap();
+        assert_eq!(result.pane_count(), 2);
+        assert_eq!(result, horizontal_2pane("only", "new"));
+    }
+
+    // --- §H.2 case 5-6 · 非法 split ----------------------------------
+
+    #[test]
+    fn split_layout_3_horizontal_illegal() {
+        // 在水平 2 pane 的 right pane 上再右分 → 同向嵌套 · 触发 InvalidLayout
+        let layout = horizontal_2pane("p1", "p2");
+        let result = split_layout(&layout, "p2", SplitDir::Horizontal, "p3".to_string());
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // 原 layout 不变
+        assert_eq!(layout, horizontal_2pane("p1", "p2"));
+    }
+
+    #[test]
+    fn split_layout_3_vertical_illegal() {
+        // 在垂直 2 pane 的 bottom pane 上再下分 → 同向嵌套 · 触发 InvalidLayout
+        let layout = vertical_2pane("p1", "p2");
+        let result = split_layout(&layout, "p2", SplitDir::Vertical, "p3".to_string());
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        assert_eq!(layout, vertical_2pane("p1", "p2"));
+    }
+
+    // --- §H.3.1 pure function 等价 6 case --------------------------
+
+    #[test]
+    fn atomic_split_success_returns_new_layout() {
+        // case 1 · 正常 split + 验证新 layout · 原 layout 不变
+        let layout = solo_layout("p1");
+        let new_layout =
+            split_layout(&layout, "p1", SplitDir::Horizontal, "p2".to_string()).unwrap();
+        assert_eq!(new_layout, horizontal_2pane("p1", "p2"));
+        assert_eq!(layout, solo_layout("p1"));
+    }
+
+    #[test]
+    fn atomic_split_depth_exceeded_returns_unchanged() {
+        // case 2 · 深度超限 · pure function 返回 Err · layout 不变
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(vertical_2pane("p2", "p3")),
+        };
+        let original = layout.clone();
+        // 在 p3 上再下分（已经在 vertical split 的 second 子树 · 再下分会触发 depth 3）
+        // 因为 split_layout 内部会先校验同向嵌套；这里 vertical 2pane 的 p3 再 vertical split
+        // 会触发"3 vertical illegal"分支（同向嵌套）· 也属于 InvalidLayout
+        let result = split_layout(&layout, "p3", SplitDir::Vertical, "p4".to_string());
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        assert_eq!(layout, original);
+
+        // 反向：在 p3 上 horizontal 分 → 会让 vertical{p2, horizontal{p3, p4}} · depth 3 → 超限
+        let result_h = split_layout(&layout, "p3", SplitDir::Horizontal, "p4".to_string());
+        assert!(matches!(result_h, Err(PaneError::InvalidLayout(_))));
+        assert_eq!(layout, original);
+    }
+
+    #[test]
+    fn atomic_close_success_returns_new_layout() {
+        // case 3 · 正常 close + 验证 layout 重排（Split 折叠为 Single）
+        let layout = horizontal_2pane("p1", "p2");
+        let new_layout = close_pane_in_layout(&layout, "p2").unwrap();
+        assert_eq!(new_layout, solo_layout("p1"));
+        // 原 layout 不变
+        assert_eq!(layout, horizontal_2pane("p1", "p2"));
+    }
+
+    #[test]
+    fn atomic_close_last_pane_errors() {
+        // case 4 · close 最后一个 pane · Err
+        let layout = solo_layout("p1");
+        let result = close_pane_in_layout(&layout, "p1");
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        assert_eq!(layout, solo_layout("p1"));
+    }
+
+    #[test]
+    fn atomic_invalid_pane_id_errors() {
+        // case 5 · pane_id 不存在 · Err
+        let layout = horizontal_2pane("p1", "p2");
+        let result = close_pane_in_layout(&layout, "ghost");
+        assert!(matches!(result, Err(PaneError::NotFound(id)) if id == "ghost"));
+        assert_eq!(layout, horizontal_2pane("p1", "p2"));
+
+        // 同样验证 split_layout 的 NotFound
+        let split_result = split_layout(&layout, "ghost", SplitDir::Horizontal, "new".to_string());
+        assert!(matches!(split_result, Err(PaneError::NotFound(id)) if id == "ghost"));
+    }
+
+    #[test]
+    fn atomic_split_then_close_roundtrip() {
+        // case 6 · split 后 close · layout 还原 Solo
+        let layout = solo_layout("p1");
+        let after_split =
+            split_layout(&layout, "p1", SplitDir::Horizontal, "p2".to_string()).unwrap();
+        assert_eq!(after_split.pane_count(), 2);
+        let after_close = close_pane_in_layout(&after_split, "p2").unwrap();
+        assert_eq!(after_close, solo_layout("p1"));
+        // 整个 roundtrip 后回到起点
+        assert_eq!(after_close, layout);
+    }
+
+    // --- §C Smart Layout 3 case --------------------------------------
+
+    #[test]
+    fn smart_layout_solo_keeps_focused_pane() {
+        // 起始 2×2 → Solo focus p3 → 仅剩 p3
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(vertical_2pane("p1", "p2")),
+            second: Box::new(vertical_2pane("p3", "p4")),
+        };
+        let (new_layout, closed) =
+            apply_smart_layout(&layout, SmartLayoutKind::Solo, "p3").unwrap();
+        assert_eq!(new_layout, solo_layout("p3"));
+        let closed_set: std::collections::HashSet<_> = closed.into_iter().collect();
+        let expected: std::collections::HashSet<_> =
+            ["p1", "p2", "p4"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(closed_set, expected);
+    }
+
+    #[test]
+    fn smart_layout_solo_returns_closed_pane_ids() {
+        // 起始水平 2 pane · focus p1 · Solo → 关 p2 · closed = ["p2"]
+        let layout = horizontal_2pane("p1", "p2");
+        let (new_layout, closed) =
+            apply_smart_layout(&layout, SmartLayoutKind::Solo, "p1").unwrap();
+        assert_eq!(new_layout, solo_layout("p1"));
+        assert_eq!(closed, vec!["p2".to_string()]);
+
+        // 起始 Solo · focus 自己 · 无 pane 可关 · closed = []
+        let solo = solo_layout("alone");
+        let (new_layout, closed) =
+            apply_smart_layout(&solo, SmartLayoutKind::Solo, "alone").unwrap();
+        assert_eq!(new_layout, solo_layout("alone"));
+        assert!(closed.is_empty());
+
+        // focused pane 不存在 · Err
+        let layout = horizontal_2pane("p1", "p2");
+        let result = apply_smart_layout(&layout, SmartLayoutKind::Solo, "ghost");
+        assert!(matches!(result, Err(PaneError::NotFound(id)) if id == "ghost"));
+    }
+
+    #[test]
+    fn smart_layout_ai_runner_creates_horizontal_split_50_50() {
+        // 起始 2×2 · focus p1 · AiAndRunner → horizontal{p1, p2}（second = first non-focused = p2）
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(vertical_2pane("p1", "p2")),
+            second: Box::new(vertical_2pane("p3", "p4")),
+        };
+        let (new_layout, closed) =
+            apply_smart_layout(&layout, SmartLayoutKind::AiAndRunner, "p1").unwrap();
+        assert_eq!(new_layout, horizontal_2pane("p1", "p2"));
+        let closed_set: std::collections::HashSet<_> = closed.into_iter().collect();
+        let expected: std::collections::HashSet<_> =
+            ["p3", "p4"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(closed_set, expected);
+
+        // 起始 vertical 2 · focus top · AiAndRunner → 强制水平 50/50
+        let vert = vertical_2pane("top", "bottom");
+        let (h_layout, closed) =
+            apply_smart_layout(&vert, SmartLayoutKind::AiAndRunner, "top").unwrap();
+        assert_eq!(h_layout, horizontal_2pane("top", "bottom"));
+        assert!(closed.is_empty());
+
+        // 单 Pane · AiAndRunner → Err（caller 应先 spawn 第二个 Pane）
+        let solo = solo_layout("only");
+        let result = apply_smart_layout(&solo, SmartLayoutKind::AiAndRunner, "only");
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+    }
+
+    // --- §D update_split_ratio 2 case --------------------------------
+
+    #[test]
+    fn update_split_ratio_changes_target_split_only() {
+        // 起始 2×2 · 改最外层 horizontal split 的 ratio（first 子树含 p1）
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(vertical_2pane("p1", "p2")),
+            second: Box::new(vertical_2pane("p3", "p4")),
+        };
+        let new_layout = update_split_ratio(&layout, "p1", 0.7).unwrap();
+        if let LayoutNode::Split { ratio, .. } = &new_layout {
+            assert!((ratio - 0.7).abs() < 1e-6);
+        } else {
+            panic!("expected Split at root, got {new_layout:?}");
+        }
+        // 原 layout 不变
+        if let LayoutNode::Split { ratio, .. } = &layout {
+            assert!((ratio - 0.5).abs() < 1e-6);
+        }
+
+        // 改 second 子树内的 vertical split ratio（first 子树含 p3）
+        let new_layout = update_split_ratio(&layout, "p3", 0.3).unwrap();
+        if let LayoutNode::Split { second, .. } = &new_layout {
+            if let LayoutNode::Split { ratio, .. } = second.as_ref() {
+                assert!((ratio - 0.3).abs() < 1e-6);
+            } else {
+                panic!("expected nested Split in second");
+            }
+        }
+    }
+
+    #[test]
+    fn update_split_ratio_rejects_invalid_ratio_and_unknown_pane() {
+        let layout = horizontal_2pane("p1", "p2");
+        // ratio = 0 · 区间外
+        let result = update_split_ratio(&layout, "p1", 0.0);
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // ratio = 1 · 区间外
+        let result = update_split_ratio(&layout, "p1", 1.0);
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // ratio < 0
+        let result = update_split_ratio(&layout, "p1", -0.1);
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // ratio > 1
+        let result = update_split_ratio(&layout, "p1", 1.5);
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // unknown pane
+        let result = update_split_ratio(&layout, "ghost", 0.5);
+        assert!(matches!(result, Err(PaneError::NotFound(id)) if id == "ghost"));
     }
 }

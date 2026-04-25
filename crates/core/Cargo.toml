@@ -53,3 +53,7 @@ harness = false
 [[bench]]
 name = "git_ops_bench"
 harness = false
+
+[[bench]]
+name = "pane_layout_bench"
+harness = false

@@ -56,6 +56,15 @@ function applyCssVars(s: AppSettings): void {
 
   const fallback = 'ui-monospace, "SF Mono", "Menlo", "Consolas", monospace';
   root.setProperty("--font-mono", `"${s.fontFamily}", ${fallback}`);
+
+  // 同步 data-theme attribute · 避免 ThemeProvider race · settings_changed 一并生效
+  const resolvedTheme =
+    s.theme === "auto"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light"
+      : s.theme;
+  document.documentElement.dataset.theme = resolvedTheme;
 }
 
 export function useSettings() {

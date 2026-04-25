@@ -54,6 +54,7 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
   - `release: Some("vibestation@<version>")`
   - `environment` 显式来自 app setting 或构建环境
   - `before_send` 保留为最终防线，只允许白名单字段通过
+- **Phase B `before_send` 回调必须删除 `event.contexts.trace`**（`span_id` / `trace_id` · 默认 SDK 注入 · pseudonymous session profiling 风险 · v0.2 自托管时可重新评估是否保留）。
 - Vibestation 先构造 `CrashReportPayload { version, os_type, stack_trace_hash }`，再上报；禁止把原始 panic 字符串、终端内容、repo path 或 git metadata 传入 SDK。
 - MVP-10 Phase B 可以先实现 SDK 初始化 + mock/test transport；真实 endpoint 实收事件必须在 Phase B done 前或 Phase C release gate 前补测。
 
@@ -65,7 +66,7 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Step 1 · SDK 集成 | `cargo add sentry` + `cargo build`/example 编译通过；本轮无 DSN/Auth Token，未验证 Web UI 实收事件                                                                                                            |
 | Step 2 · PII 脱敏 | 4 个测试通过；payload 只保留 `version` / `os_type` / `stack_trace_hash`；`default_integrations = false` 时捕获事件无路径、终端内容、IP、commit 信息                                                           |
-| Step 3 · 体积     | `cargo bloat --release --crates -n 30 --package vibestation-core` 对 `sentry_smoke` example 显示 `.text` 1.8 MiB、file size 3.2 MiB；Sentry/transport 依赖可接受，但最终 AppImage/dmg 仍需 release build 复测 |
+| Step 3 · 体积     | `cargo bloat --release --crates -n 30 --package vibestation-core` 对 `sentry_smoke` example 显示 `.text` 1.8 MiB（`sentry_smoke` example 整体 binary 大小 · 非纯 sentry 增量；纯 sentry 三 crate ≈ 176 KiB · 加 transport 层 ≈ 500-700 KiB · 在 < 2 MB 门槛内有充足 margin）、file size 3.2 MiB；Sentry/transport 依赖可接受，但最终 AppImage/dmg 仍需 release build 复测 |
 | Step 5 · 清理     | `cargo remove sentry` 后恢复 `Cargo.toml` / `Cargo.lock`；本 ADR 不把 SDK 依赖带入正式代码                                                                                                                    |
 
 本地源码确认：
@@ -86,6 +87,7 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 ### 负面
 
 - 默认 feature 临时集成拉入 81 个依赖，含 `reqwest` / `hyper` / `tokio` / TLS 相关包；Phase B 正式引入时需要审查 feature set。
+- Phase B 实施时需在 `vibestation-core` 二进制实测 sentry 启用前后增量，验证不爆 AppImage < 80 MB 总目标（spec §10.2）。
 - 本轮没有真实 DSN，未验证 Sentry Web UI 实收事件。
 - `default_integrations` 默认开启，未来维护者若删掉显式配置会重新打开 PII 风险面。
 
@@ -96,6 +98,7 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 - **R3 · sentry.io 数据出域**：若 Arbiter 不接受云端出域，Phase B 只允许 self-hosted endpoint；否则 fallback 到自建 HTTP POST。
 - **R4 · bundle 体积超预算**：Phase B 引入依赖后必须对最终 Tauri artifact 复测；若增量不可接受，先裁剪 features，再 fallback 自建 HTTP POST。
 - **R5 · endpoint 未实测**：Phase B done 前补一条真实 endpoint smoke；没有凭证时记录为 release blocker，而不是默默通过。
+- **R-trace · trace context 关联风险**：sanitized event 默认含 `contexts.trace` 字段；需在 `before_send` 显式删除；Phase B 实施 PII unit test 必须断言 trace 字段不在 final payload。
 
 ## 与 `implementation-plan.md` 的映射
 

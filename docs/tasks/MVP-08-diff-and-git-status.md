@@ -17,7 +17,7 @@ reviewer: Kimi
 
 # MVP-08: Diff 基础视图 + Git Status 只读
 
-> **状态**：`ready`
+> **状态**：`ready`（Phase A/B/C/D 全部完成 · Phase E 🟡 部分 done · 见 §🛠 实施进度 + §已知风险）
 > **依赖**：MVP-07（commit 详情触发 Diff）
 > **阻塞**：MVP-09（Stage/Unstage 基于 Status 面板）
 
@@ -71,9 +71,9 @@ MVP-08 估时 5d，拆 5 Phase 串行实施：
 | Phase B · Status 面板前端 | SolidJS 组件 `web/src/panels/GitStatus/` + 3 分组折叠 + 文件 icon + 加减行数 + 持久化（rusqlite）| ✅ done | [#101](https://github.com/tajiaoyezi/vibestation/pull/101) |
 | Phase C · Diff 视图前端 | SolidJS 组件 `web/src/panels/Diff/` + split/unified 切换 + 行号 + 大文件 lazy load + binary 提示 + 帧时长 < 16ms 验证 + Git Status/Git Log → Diff 接通 + view mode 持久化（rusqlite） | ✅ done | [#105](https://github.com/tajiaoyezi/vibestation/pull/105) |
 | Phase D · fs watch 自动刷新 | `notify` 6.x crate 集成 + 三平台测试（macOS FSEvents · Linux inotify · Windows ReadDirectoryChangesW skip）+ 200ms debounce + IPC event 推送前端 + `.git/index.lock` 排除 + 4 测试覆盖（2 单元 + 2 集成）| ✅ done | 本 PR |
-| Phase E · runtime 证据 + 性能量化 | Criterion bench 2 个（git_status_bench + diff_bench）+ F.1 17ms ✅ + F.2 55µs ✅ + F.4 1.07ms ✅ + F.5 39.2ms ✅ + E.3 100k 行硬 stop ✅ + 截图 4/5（第 5 张 fs watch 实时刷新待 Phase D done 后补）+ metrics-phase-e.md · 放 `docs/runtime-evidence/mvp-08/phase-e/` | 🟡 4/5 done（第 5 张截图 + A.6/F.3 DevTools 测量待 follow-up）| [#109](https://github.com/tajiaoyezi/vibestation/pull/109) |
+| Phase E · runtime 证据 + 性能量化 | Criterion bench 2 个（git_status_bench + diff_bench）· F.1 17ms ✅ + F.2 55µs ✅ + F.4 1.07ms ✅ + F.5 39.2ms ✅ + E.3 100k 行硬 stop ✅（后端硬指标全过 · 见 metrics-phase-e.md）· Phase D 7 PNG 按 ADR-011 R3 重命名 ✅ · **待补**：A.2 端到端 / A.6 帧时长 / F.3 1k 文件渲染 三项**精确 DevTools P99**（当前用 Criterion + 经验估算证明数量级满足 spec · 见 metrics §F.3 & A.2 段 procedure）+ 4 截图（01-04 静态 UI）+ 1 段 fs watch 录屏（05）· 见 §已知风险 R-PHASE-E | 🟡 部分 done | [#117](https://github.com/tajiaoyezi/vibestation/pull/117) |
 
-**下次 agent 起点**：Phase E 收尾 · Phase D 已落地（`notify` 6.1.1 + 200ms debounce + IPC event 推送 · 后续不要恢复 polling）· 继续补 ≥ 5 张截图（含 fs watch 实时刷新录屏 · 现 Phase D done 可拍）+ A.2 端到端 < 200ms / A.6 帧时长 < 16ms / F.3 1k 文件前端渲染 < 70ms 等 DevTools 测量 · 放 `docs/runtime-evidence/mvp-08/phase-e/`。Phase D runtime 证据（`docs/runtime-evidence/mvp-08/phase-d/` · 7 张 `current-screen*.png` 自动命名）建议 follow-up 重命名为 ADR-011 R3 语义化命名。
+**下次 agent 起点**：Phase E 部分 done · 待补 4 张静态 UI 截图（01-04）+ 1 段 fs watch 录屏（05）+ 3 项精确 DevTools P99（A.2/A.6/F.3）· follow-up 可主 agent 本地补 · 或列为 v0.2 GA 前置补齐项 · **不阻塞下游**：MVP-09/10/11 不依赖 Phase E 证据 · MVP-08 实际功能（A/B/C/D）已生产可用。
 
 **依赖关系说明**：
 - MVP-08 整体依赖 MVP-07 done（已满足 · PR #83）
@@ -163,6 +163,7 @@ Status 面板折叠态 + Diff split/unified 偏好持久化到现有 `app_settin
 - **fs watch 跨平台**：`notify` crate 抽象三平台 · macOS FSEvents 有 2s 延迟下限 · Linux inotify 实时 · 差异在 E 段可接受范围
 - **fs watch macOS FSEvents 延迟**：macOS FSEvents 系统 API 有 2s 延迟下限 · 实测可能无法达到 §D < 500ms 目标 → 备选：(a) macOS 目标放宽到 < 2s（见 §H.6）或 (b) polling 1s fallback（CPU 上升）
 - **gix/git2 混用 bundle 体积**：git2 + gix + similar = 推算 +5-7MB（已在 MVP-07 §H 预算内）· 若 release 超限 → fallback single lib（rename detection 质量可能下降）
+- **R-PHASE-E · 精确 DevTools P99 v0.2 补**（PR #117 round 1 · 2026-04-25）：spec §A.2（1k diff 端到端 < 200ms）/ §A.6（10k 行滚动帧时长 < 16ms）/ §F.3（1k 文件列表渲染 < 70ms）三项要求 Chrome DevTools Performance 面板实测 P99 · CLI agent 无法自动化（需视觉操作 DevTools UI）· **当前 PR #117 仅给 Criterion 后端数据 + 经验估算**（推算依据见 `docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md` "Procedure" + "Expected result based on Criterion data" 段 · 数量级满足 spec 阈值）· **不影响 MVP-08 实际功能**（A/B/C/D 全 done · 用户可以正常用 Diff + Status + fs watch）· 4 张静态 UI 截图（01-04 截 Status / split / unified / large file）+ 1 段 fs watch 录屏（05）同样为 manual capture · 推 v0.2 GA 前置补齐 · 或主 agent / 用户本地 30 min 内可补
 
 ## 📝 Notes
 

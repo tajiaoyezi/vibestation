@@ -585,6 +585,21 @@ fn git_ops_set_identity(
         .map_err(|e| e.to_string())
 }
 
+#[cfg(target_os = "macos")]
+fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
+    let Some(window) = app.get_webview_window("main") else {
+        eprintln!("[mvp-11] main window not found for title bar setup");
+        return;
+    };
+
+    if let Err(error) = window.set_title_bar_style(tauri::TitleBarStyle::Overlay) {
+        eprintln!("[mvp-11] title bar overlay setup failed: {error}");
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn configure_title_bar<R: tauri::Runtime>(_app: &tauri::App<R>) {}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -652,6 +667,8 @@ pub fn run() {
             menu::menu_item_clicked,
         ])
         .setup(move |app| {
+            configure_title_bar(app);
+
             let handle = app.handle().clone();
             thread::Builder::new()
                 .name("vibestation-pty-events".to_string())

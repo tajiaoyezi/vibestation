@@ -12,6 +12,7 @@ pub mod git_log;
 pub mod git_ops;
 pub mod git_status;
 pub mod layout;
+pub mod pane_pty;
 pub mod panes;
 pub mod pty;
 pub mod tabs;
@@ -35,6 +36,7 @@ pub use git_status::{
     GitStatusRequest, GitStatusResponse, GitStatusService,
 };
 pub use layout::{LayoutState, LayoutStore};
+pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use panes::{
     LayoutApplyRequest, LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError,
     PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,

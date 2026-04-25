@@ -7,6 +7,7 @@ import {
   type Component,
 } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./styles.css";
@@ -174,12 +175,22 @@ const LayoutShell: Component<{
     }
   };
 
-  onMount(() => {
+  let unlistenMenu: UnlistenFn | undefined;
+
+  onMount(async () => {
     document.addEventListener("keydown", handleKeyDown);
+    unlistenMenu = await listen<{ action: string }>("menu:action", (event) => {
+      switch (event.payload.action) {
+        case "preferences":
+          setSettingsVisible((v) => !v);
+          break;
+      }
+    });
   });
 
   onCleanup(() => {
     document.removeEventListener("keydown", handleKeyDown);
+    unlistenMenu?.();
   });
 
   return (

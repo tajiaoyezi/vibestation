@@ -2,4 +2,4 @@
 import type { LayoutNode } from "./LayoutNode";
 import type { PaneState } from "./PaneState";
 
-export type PaneListResponse = { panes: Array<PaneState>, layout: LayoutNode, };
+export type PaneListResponse = { panes: Array<PaneState>, layout: LayoutNode, focusedPaneId: string | null, };

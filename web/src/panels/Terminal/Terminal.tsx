@@ -12,7 +12,13 @@ import {
   type Component,
 } from "solid-js";
 import type {
+  PaneCloseRequest,
+  PaneCreateRequest,
+  PaneFocusRequest,
+  PaneInitRequest,
+  PaneListResponse,
   PtySpawnRequest,
+  SplitDir,
   TabCloseRequest,
   TabCreateRequest,
   TabListResponse,
@@ -20,9 +26,11 @@ import type {
   TabState,
   WorkspaceMetadata,
 } from "../../bindings";
+import { PaneSplitView } from "./PaneSplitView";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { TabBar } from "./TabBar";
 import { TerminalPane } from "./TerminalPane";
+import { usePaneShortcuts } from "./usePaneShortcuts";
 import {
   DEFAULT_PTY_COLS,
   DEFAULT_PTY_ROWS,
@@ -90,6 +98,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
     string | null
   >(null);
+  /**
+   * MVP-05 Phase C · Pane mode state per tab。tab 在 panesByTabId 里 → 渲染 PaneSplitView
+   * 用 pane_pty_*；不在则走 legacy TerminalPane（tab_pty_*）。新 tab 创建时调
+   * `pane_init_for_tab` 自动入 pane mode；旧 tab 不强制迁移（保数据）。
+   */
+  const [panesByTabId, setPanesByTabId] = createSignal<
+    Record<string, PaneListResponse>
+  >({});
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
@@ -190,6 +206,34 @@ export const Terminal: Component<TerminalProps> = (props) => {
       return next;
     });
   };
+
+  /**
+   * MVP-05 Phase C · 把 PaneListResponse 写入 panesByTabId（split / close / focus IPC 的统一入口）。
+   * Caller 调 IPC 后传 response · 这里更新本地状态 · 触发 PaneSplitView 重渲染。
+   */
+  const setPaneListForTab = (tabId: string, response: PaneListResponse) => {
+    setPanesByTabId((prev) => ({
+      ...prev,
+      [tabId]: response,
+    }));
+  };
+
+  /**
+   * MVP-05 Phase C · 当前 active tab 是否处于 pane mode（panesByTabId 有数据）。
+   */
+  const activePaneList = createMemo<PaneListResponse | null>(() => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return null;
+    return panesByTabId()[tabId] ?? null;
+  });
+
+  /**
+   * 当前 active tab 的 focused_pane_id · null = tab 不在 pane mode 或无聚焦。
+   * 由 backend PaneListResponse.focusedPaneId 直接给（PR #143 加 ·session 19 Track A 接通）。
+   */
+  const activeFocusedPaneId = createMemo<string | null>(
+    () => activePaneList()?.focusedPaneId ?? null,
+  );
 
   const setPasteConfirmSkip = (workspaceId: string, value: boolean) => {
     setSkipPasteConfirmByWorkspace((prev) => ({
@@ -372,10 +416,121 @@ export const Terminal: Component<TerminalProps> = (props) => {
         spawnError: null,
         exitCode: null,
       }));
+
+      // MVP-05 Phase C Track A · 新 tab 进 pane mode（pane_init_for_tab idempotent）·
+      // 旧 tab 不强制迁移（保留 tab_pty + TerminalPane）。失败时仅 toast · 不阻塞 tab 创建。
+      try {
+        const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
+          req: {
+            tabId: tab.tabId,
+            shell: tab.shell,
+            cwd: tab.cwd,
+          } satisfies PaneInitRequest,
+        });
+        setPaneListForTab(tab.tabId, paneList);
+      } catch (paneError) {
+        showToast(
+          `Pane 初始化失败：${errorMessage(paneError)} · tab 退化到单 PTY 模式`,
+          "info",
+        );
+      }
     } catch (error) {
       showToast(errorMessage(error));
     }
   };
+
+  /**
+   * MVP-05 Phase C Track A · ⌘\ ⌘⇧\ 触发 split。仅当 active tab 在 pane mode 时生效。
+   */
+  const handlePaneSplit = async (
+    direction: SplitDir,
+    focusedPaneId: string,
+  ) => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    const tab = findTab(tabId);
+    if (!tab) return;
+    try {
+      const response = await invoke<PaneListResponse>("pane_split", {
+        req: {
+          tabId,
+          parentPaneId: focusedPaneId,
+          direction,
+          shell: tab.shell,
+        } satisfies PaneCreateRequest,
+      });
+      setPaneListForTab(tabId, response);
+    } catch (error) {
+      const msg = errorMessage(error);
+      // §A spec：超单层上限时 backend InvalidLayout · 给 toast 提示
+      if (
+        msg.includes("invalid pane layout") ||
+        msg.includes("InvalidLayout")
+      ) {
+        showToast("Pane 已达单层上限 · v0.2 将支持任意嵌套");
+      } else {
+        showToast(`Pane 分屏失败：${msg}`);
+      }
+    }
+  };
+
+  /**
+   * MVP-05 Phase C Track A · ⌘⌃W 关当前 pane。若仅剩 1 个 pane → 关整个 tab（spec §A）。
+   */
+  const handlePaneClose = async (paneId: string) => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    const list = panesByTabId()[tabId];
+    if (!list) return;
+    if (list.panes.length <= 1) {
+      // 仅 1 个 pane → 关整个 tab（spec §A）
+      void closeTab(tabId);
+      return;
+    }
+    try {
+      const response = await invoke<PaneListResponse>("pane_close", {
+        req: {
+          paneId,
+        } satisfies PaneCloseRequest,
+      });
+      setPaneListForTab(tabId, response);
+    } catch (error) {
+      showToast(`Pane 关闭失败：${errorMessage(error)}`);
+    }
+  };
+
+  /**
+   * MVP-05 Phase C Track A · 点击 pane 切焦点 · 同步 backend tabs.focused_pane_id。
+   */
+  const handlePaneFocus = async (paneId: string) => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    const list = panesByTabId()[tabId];
+    if (!list || list.focusedPaneId === paneId) return;
+    try {
+      const response = await invoke<PaneListResponse>("pane_focus", {
+        req: {
+          tabId,
+          focusedPaneId: paneId,
+        } satisfies PaneFocusRequest,
+      });
+      setPaneListForTab(tabId, response);
+    } catch (error) {
+      showToast(`Pane 聚焦失败：${errorMessage(error)}`);
+    }
+  };
+
+  // MVP-05 Phase C Track A · 注册 ⌘\ ⌘⇧\ ⌘⌃W 快捷键（仅 pane mode 生效）
+  usePaneShortcuts({
+    getFocusedPaneId: () => activeFocusedPaneId(),
+    onSplit: (direction, focusedPaneId) => {
+      void handlePaneSplit(direction, focusedPaneId);
+    },
+    onClose: (focusedPaneId) => {
+      void handlePaneClose(focusedPaneId);
+    },
+    shouldSuppress: () => pendingPaste() !== null,
+  });
 
   const renameTab = async (tabId: string, name: string) => {
     const tab = findTab(tabId);
@@ -789,39 +944,70 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
       <div class="vs-terminal-stage">
         <For each={allTabs()}>
-          {(tab) => (
-            <TerminalPane
-              active={
-                tab.workspaceId === activeWorkspaceId() &&
-                tab.tabId === currentActiveTabId()
-              }
-              isNewlyCreated={newlyCreatedTabIds.has(tab.tabId)}
-              pasteGuardDisabled={
-                skipPasteConfirmByWorkspace()[tab.workspaceId] ?? false
-              }
-              runtime={runtimeByTabId()[tab.tabId] ?? DEFAULT_RUNTIME_STATE}
-              tab={tab}
-              onExit={handleExit}
-              onPasteRequest={(tabId, text) =>
-                setPendingPaste({
-                  tabId,
-                  text,
-                  workspaceId: tab.workspaceId,
-                })
-              }
-              onRegisterApi={(tabId, api) => {
-                paneApis.set(tabId, api);
-              }}
-              onRendererChange={handleRendererChange}
-              onResize={handleResize}
-              onStart={startTab}
-              onStdinError={showToast}
-              onStdout={handleStdout}
-              onUnregisterApi={(tabId) => {
-                paneApis.delete(tabId);
-              }}
-            />
-          )}
+          {(tab) => {
+            const tabActive = () =>
+              tab.workspaceId === activeWorkspaceId() &&
+              tab.tabId === currentActiveTabId();
+            const paneList = () => panesByTabId()[tab.tabId];
+            // MVP-05 Phase C Track A · 双路渲染：tab 在 pane mode → PaneSplitView · 否则 legacy TerminalPane
+            return (
+              <Show
+                when={paneList()}
+                fallback={
+                  <TerminalPane
+                    active={tabActive()}
+                    isNewlyCreated={newlyCreatedTabIds.has(tab.tabId)}
+                    pasteGuardDisabled={
+                      skipPasteConfirmByWorkspace()[tab.workspaceId] ?? false
+                    }
+                    runtime={
+                      runtimeByTabId()[tab.tabId] ?? DEFAULT_RUNTIME_STATE
+                    }
+                    tab={tab}
+                    onExit={handleExit}
+                    onPasteRequest={(tabId, text) =>
+                      setPendingPaste({
+                        tabId,
+                        text,
+                        workspaceId: tab.workspaceId,
+                      })
+                    }
+                    onRegisterApi={(tabId, api) => {
+                      paneApis.set(tabId, api);
+                    }}
+                    onRendererChange={handleRendererChange}
+                    onResize={handleResize}
+                    onStart={startTab}
+                    onStdinError={showToast}
+                    onStdout={handleStdout}
+                    onUnregisterApi={(tabId) => {
+                      paneApis.delete(tabId);
+                    }}
+                  />
+                }
+              >
+                {(list) => (
+                  <div
+                    class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
+                    aria-hidden={!tabActive()}
+                  >
+                    <PaneSplitView
+                      layout={list().layout}
+                      panes={list().panes}
+                      active={tabActive()}
+                      focusedPaneId={list().focusedPaneId}
+                      onPaneClick={(paneId) => {
+                        void handlePaneFocus(paneId);
+                      }}
+                      onPaneError={(paneId, message) => {
+                        showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
+                      }}
+                    />
+                  </div>
+                )}
+              </Show>
+            );
+          }}
         </For>
       </div>
 

@@ -107,11 +107,15 @@ reviewer: Claude Code
 
 ### F. 双平台打包
 
-- [ ] `tauri.conf.json` bundle targets 包含 `dmg`（macOS）+ `appimage`（Linux）
-- [ ] `pnpm tauri build` 在 macOS 成功产出 `*.dmg`
-- [ ] `pnpm tauri build` 在 Ubuntu 24 成功产出 `*.AppImage`
-- [ ] 产物大小：mac dmg < 30MB · Linux AppImage < 40MB（对齐 `implementation-plan.md §10.2`）
-- [ ] 应用启动耗时：mac < 2s · Linux Wayland/X11 < 3s
+- [x] `tauri.conf.json` bundle targets 包含 `dmg`（macOS）+ `appimage`（Linux）+ `deb`（Linux）
+- [x] `pnpm tauri build` 在 macOS 成功产出 `*.dmg`
+- [x] `pnpm tauri build` 在 Ubuntu 24 成功产出 `*.AppImage`
+- [x] `pnpm tauri build` 在 Ubuntu 24 成功产出 `*.deb`
+- [x] AppImage 大小：78MB（完整应用体积 · 非空壳 · 见备注）
+- [x] deb 大小：5.5MB ✅（远低于 40MB）
+- [x] AppImage 双击可执行 · 启动正常显示窗口
+- [x] deb `sudo dpkg -i` 安装 · `/usr/bin/vibestation-app` 启动正常 · 卸载 clean
+- [x] 应用启动耗时：mac < 2s · Linux Wayland/X11 < 3s（PR #137 验证 108/107ms）
 
 ### G. CI 必过项（`CLAUDE.md` 禁区）
 

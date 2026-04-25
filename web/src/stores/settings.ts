@@ -37,6 +37,16 @@ export function useSettings() {
     updateSettings(partial: Partial<AppSettings>) {
       setSettings(partial);
       // Phase B: invoke('settings_update', partial) → Rust KV write → emit 'settings_changed'
+
+      // E.5 · MVP-10 Font Family 设置实时覆盖 typography.css 默认
+      if (partial.fontFamily !== undefined) {
+        const fallback =
+          'ui-monospace, "SF Mono", "Menlo", "Consolas", monospace';
+        document.documentElement.style.setProperty(
+          "--font-mono",
+          `"${partial.fontFamily}", ${fallback}`,
+        );
+      }
     },
   };
 }

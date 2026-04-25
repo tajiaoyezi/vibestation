@@ -48,6 +48,9 @@ type PendingPaste = {
 type PaneApi = {
   focus: () => void;
   paste: (text: string) => void;
+  clear: () => void;
+  copy: () => void;
+  selectAll: () => void;
 };
 
 type TerminalProps = {
@@ -641,11 +644,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
           if (!tabId) {
             break;
           }
-          for (const t of tabs) {
-            if (t.tabId !== tabId) {
-              void closeTab(t.tabId);
+          // 串行 await · 防止并发 ask() 弹多对话框 / IPC tab_close 后端竞态（round 2 fix WARN-2）
+          (async () => {
+            for (const t of tabs) {
+              if (t.tabId !== tabId) {
+                await closeTab(t.tabId);
+              }
             }
-          }
+          })().catch(() => {});
           break;
         }
         case "close_tabs_to_right": {
@@ -654,9 +660,12 @@ export const Terminal: Component<TerminalProps> = (props) => {
           }
           const idx = tabs.findIndex((t) => t.tabId === tabId);
           if (idx >= 0) {
-            for (let i = idx + 1; i < tabs.length; i++) {
-              void closeTab(tabs[i].tabId);
-            }
+            // 同 close_other_tabs · 串行避免并发竞态
+            (async () => {
+              for (let i = idx + 1; i < tabs.length; i++) {
+                await closeTab(tabs[i].tabId);
+              }
+            })().catch(() => {});
           }
           break;
         }
@@ -702,13 +711,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "clear_terminal":
           if (tabId) {
-            const api = paneApis.get(tabId);
-            if (api) {
-              // xterm reset via api not exposed; use PTY signal instead
-              void invoke("tab_pty_signal", { tabId, signal: "SIGINT" }).catch(
-                () => {},
-              );
-            }
+            paneApis.get(tabId)?.clear();
+          }
+          break;
+        case "copy":
+          if (tabId) {
+            paneApis.get(tabId)?.copy();
+          }
+          break;
+        case "paste":
+          if (tabId) {
+            void navigator.clipboard.readText().then((text) => {
+              if (text) {
+                paneApis.get(tabId)?.paste(text);
+              }
+            });
+          }
+          break;
+        case "select_all":
+          if (tabId) {
+            paneApis.get(tabId)?.selectAll();
           }
           break;
       }

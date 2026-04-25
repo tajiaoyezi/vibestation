@@ -17,9 +17,9 @@ use vibestation_core::{
     FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
     GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
     GitStatusResponse, LayoutApplyRequest, LayoutNode, LayoutState, PaneCloseRequest,
-    PaneCreateRequest, PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
-    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest,
-    PtyStdoutEvent, SetGitIdentityRequest, SettingsUpdateRequest, SplitDir,
+    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyExitedEvent,
+    PanePtySpawnRequest, PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent,
+    PtySpawnRequest, PtyStdoutEvent, SetGitIdentityRequest, SettingsUpdateRequest, SplitDir,
     SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
     TabCreateRequest, TabListResponse, TabRenameRequest, TabState, UnstageRequest,
     WorkspaceMetadata,
@@ -61,6 +61,7 @@ fn main() {
     PaneState::export_all(&config).expect("export PaneState");
     PaneCreateRequest::export_all(&config).expect("export PaneCreateRequest");
     PaneCloseRequest::export_all(&config).expect("export PaneCloseRequest");
+    PaneInitRequest::export_all(&config).expect("export PaneInitRequest");
     LayoutNode::export_all(&config).expect("export LayoutNode");
     SplitDir::export_all(&config).expect("export SplitDir");
     LayoutApplyRequest::export_all(&config).expect("export LayoutApplyRequest");
@@ -123,6 +124,7 @@ fn main() {
             "export type { PtySpawnRequest } from \"./PtySpawnRequest\";",
             "export type { PaneState } from \"./PaneState\";",
             "export type { PaneCreateRequest } from \"./PaneCreateRequest\";",
+            "export type { PaneInitRequest } from \"./PaneInitRequest\";",
             "export type { PaneCloseRequest } from \"./PaneCloseRequest\";",
             "export type { LayoutNode } from \"./LayoutNode\";",
             "export type { SplitDir } from \"./SplitDir\";",

@@ -456,6 +456,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) return;
     const tab = findTab(tabId);
     if (!tab) return;
+    // MVP-05 Phase C §F.4 instrumentation · keydown → DOM commit P99 < 150ms 目标
+    const t0 = performance.now();
     try {
       const response = await invoke<PaneListResponse>("pane_split", {
         req: {
@@ -466,6 +468,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies PaneCreateRequest,
       });
       setPaneListForTab(tabId, response);
+      // 等下一帧 · 让 SolidJS 把新 pane DOM commit · 更接近"渲染完成"语义
+      requestAnimationFrame(() => {
+        const dt = performance.now() - t0;
+        // eslint-disable-next-line no-console
+        console.info(
+          `[mvp-05][F.4] pane_split ${direction} → DOM commit: ${dt.toFixed(1)}ms`,
+        );
+      });
     } catch (error) {
       const msg = errorMessage(error);
       // §A spec：超单层上限时 backend InvalidLayout · 给 toast 提示
@@ -493,6 +503,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
       void closeTab(tabId);
       return;
     }
+    // MVP-05 Phase C §F.5 instrumentation · keydown → 重排 DOM commit P99 < 100ms 目标
+    const t0 = performance.now();
     try {
       const response = await invoke<PaneListResponse>("pane_close", {
         req: {
@@ -500,6 +512,13 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies PaneCloseRequest,
       });
       setPaneListForTab(tabId, response);
+      requestAnimationFrame(() => {
+        const dt = performance.now() - t0;
+        // eslint-disable-next-line no-console
+        console.info(
+          `[mvp-05][F.5] pane_close → 重排 DOM commit: ${dt.toFixed(1)}ms`,
+        );
+      });
     } catch (error) {
       showToast(`Pane 关闭失败：${errorMessage(error)}`);
     }
@@ -548,6 +567,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) {
       throw new Error("没有 active tab");
     }
+    // MVP-05 Phase C §F.6 instrumentation · 命令面板确认 → 最终布局 DOM commit P99 < 200ms 目标
+    const t0 = performance.now();
     const response = await invoke<PaneListResponse>("pane_layout_apply", {
       req: {
         tabId,
@@ -556,6 +577,13 @@ export const Terminal: Component<TerminalProps> = (props) => {
       } satisfies LayoutApplyRequest,
     });
     setPaneListForTab(tabId, response);
+    requestAnimationFrame(() => {
+      const dt = performance.now() - t0;
+      // eslint-disable-next-line no-console
+      console.info(
+        `[mvp-05][F.6] pane_layout_apply ${preset} → DOM commit: ${dt.toFixed(1)}ms`,
+      );
+    });
   };
 
   /**

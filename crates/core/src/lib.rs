@@ -7,6 +7,7 @@ pub mod app_settings;
 pub mod config_import;
 pub mod db;
 pub mod diff;
+pub mod fs_watch;
 pub mod git_log;
 pub mod git_status;
 pub mod layout;
@@ -18,6 +19,7 @@ pub use app_settings::AppSettingsStore;
 pub use diff::{
     DiffError, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService,
 };
+pub use fs_watch::{GitStatusWatchError, GitStatusWatcher, GIT_STATUS_WATCH_DEBOUNCE};
 pub use git_log::{
     CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogError,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader,

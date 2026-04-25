@@ -25,3 +25,7 @@ vibestation-core = { path = "../core" }
 r2d2.workspace = true
 r2d2_sqlite.workspace = true
 chrono.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+git2 = "0.20"

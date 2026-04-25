@@ -1,4 +1,3 @@
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   createEffect,
   createSignal,
@@ -20,13 +19,12 @@ import type {
   WorkspaceMetadata,
 } from "../../bindings";
 import {
-  GIT_STATUS_UPDATED_EVENT,
   getPanelSettings,
   queryStatus,
   refreshStatus,
   setGroupCollapsed,
-  subscribeStatus,
-  unsubscribeStatus,
+  subscribeGitStatus,
+  unsubscribeGitStatus,
 } from "./gitStatusApi";
 import type { DiffTarget } from "../../components/MainContent";
 
@@ -171,19 +169,19 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     }
 
     let disposed = false;
-    let unlisten: UnlistenFn | undefined;
+    let unlisten: (() => void) | undefined;
 
     void loadWorkspace(id);
 
     void (async () => {
       try {
-        const stopListening = await listen<FileStatusEvent>(
-          GIT_STATUS_UPDATED_EVENT,
-          (event) => {
-            if (event.payload.workspaceId !== id) {
+        const stopListening = await subscribeGitStatus(
+          id,
+          (event: FileStatusEvent) => {
+            if (event.workspaceId !== id) {
               return;
             }
-            applyStatusEvent(event.payload);
+            applyStatusEvent(event);
           },
         );
 
@@ -193,11 +191,10 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         }
 
         unlisten = stopListening;
-        await subscribeStatus(id);
 
         if (disposed) {
           unlisten?.();
-          void unsubscribeStatus(id);
+          void unsubscribeGitStatus(id);
         }
       } catch (err) {
         if (!disposed) {
@@ -211,7 +208,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     onCleanup(() => {
       disposed = true;
       unlisten?.();
-      void unsubscribeStatus(id);
+      void unsubscribeGitStatus(id);
     });
   });
 

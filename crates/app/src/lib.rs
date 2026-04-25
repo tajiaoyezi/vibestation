@@ -14,13 +14,14 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
 use vibestation_core::{
-    AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService,
+    pane_pty, AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService,
     GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService,
     GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest, GitStatusResponse,
-    GitStatusService, GitStatusWatcher, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver,
-    PtyManager, PtySpawnRequest, SetGitIdentityRequest, SettingsUpdateRequest, StageRequest,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
-    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    GitStatusService, GitStatusWatcher, LayoutState, LayoutStore, PanePtyEvent,
+    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    SetGitIdentityRequest, SettingsUpdateRequest, StageRequest, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabState, TabsDao, UnstageRequest, WorkspaceMetadata,
+    WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -31,6 +32,9 @@ struct AppState {
     pool: Mutex<Option<DbPool>>,
     git_status: GitStatusWatchManager,
     pty: PtyManager,
+    /// MVP-05 Phase B · 独立 PTY manager for pane（独立 sessions HashMap +
+    /// 独立 reader/scrollback thread · 避免 tab/pane id collision）
+    pane_pty: PtyManager,
 }
 
 struct GitStatusSubscription {
@@ -338,6 +342,44 @@ fn tab_pty_kill(state: State<'_, AppState>, tab_id: String) -> Result<(), String
         .map_err(|e| e.to_string())
 }
 
+// ─── MVP-05 Phase B · Pane PTY IPC（5 commands · 独立命名空间 §H.6 锁 A） ───
+
+#[tauri::command]
+fn pane_pty_spawn(state: State<'_, AppState>, req: PanePtySpawnRequest) -> Result<(), String> {
+    pane_pty::spawn(&state.pane_pty, req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_pty_stdin(state: State<'_, AppState>, pane_id: String, data: String) -> Result<(), String> {
+    pane_pty::stdin(&state.pane_pty, &pane_id, &data).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_pty_resize(
+    state: State<'_, AppState>,
+    pane_id: String,
+    cols: u16,
+    rows: u16,
+) -> Result<(), String> {
+    pane_pty::resize(&state.pane_pty, &pane_id, cols, rows).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_pty_signal(
+    state: State<'_, AppState>,
+    pane_id: String,
+    signal: String,
+) -> Result<(), String> {
+    pane_pty::signal(&state.pane_pty, &pane_id, &signal).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_pty_kill(state: State<'_, AppState>, pane_id: String) -> Result<(), String> {
+    pane_pty::kill(&state.pane_pty, &pane_id)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
     while let Ok(event) = events.recv() {
         let result = match event {
@@ -347,6 +389,20 @@ fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
 
         if let Err(error) = result {
             eprintln!("[mvp-04] emit PTY event failed: {error}");
+        }
+    }
+}
+
+fn emit_pane_pty_events(app: AppHandle, events: PtyEventReceiver) {
+    while let Ok(event) = events.recv() {
+        let mapped = pane_pty::map_event(event);
+        let result = match mapped {
+            PanePtyEvent::Stdout(payload) => app.emit("pane_pty_stdout", payload),
+            PanePtyEvent::Exited(payload) => app.emit("pane_pty_exited", payload),
+        };
+
+        if let Err(error) = result {
+            eprintln!("[mvp-05] emit pane PTY event failed: {error}");
         }
     }
 }
@@ -610,6 +666,10 @@ pub fn run() {
     let pty_events = pty
         .take_event_receiver()
         .expect("PTY event receiver should be taken exactly once");
+    let pane_pty = PtyManager::new();
+    let pane_pty_events = pane_pty
+        .take_event_receiver()
+        .expect("Pane PTY event receiver should be taken exactly once");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -617,6 +677,7 @@ pub fn run() {
             pool: Mutex::new(None),
             git_status: GitStatusWatchManager::new(),
             pty,
+            pane_pty,
         })
         .invoke_handler(tauri::generate_handler![
             greet,
@@ -644,6 +705,11 @@ pub fn run() {
             tab_pty_resize,
             tab_pty_signal,
             tab_pty_kill,
+            pane_pty_spawn,
+            pane_pty_stdin,
+            pane_pty_resize,
+            pane_pty_signal,
+            pane_pty_kill,
             git_log_query,
             git_log_commit_detail,
             git_log_cache_clear,
@@ -673,6 +739,12 @@ pub fn run() {
             thread::Builder::new()
                 .name("vibestation-pty-events".to_string())
                 .spawn(move || emit_pty_events(handle, pty_events))
+                .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?;
+
+            let pane_handle = app.handle().clone();
+            thread::Builder::new()
+                .name("vibestation-pane-pty-events".to_string())
+                .spawn(move || emit_pane_pty_events(pane_handle, pane_pty_events))
                 .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?;
 
             menu::setup_menu_events(app.handle());

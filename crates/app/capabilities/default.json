@@ -33,6 +33,7 @@
     "allow-pane-pty-resize",
     "allow-pane-pty-signal",
     "allow-pane-pty-kill",
+    "allow-pane-init-for-tab",
     "allow-pane-split",
     "allow-pane-close",
     "allow-pane-focus",

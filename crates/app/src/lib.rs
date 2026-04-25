@@ -18,11 +18,11 @@ use vibestation_core::{
     DiffService, GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
     GitOpsService, GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest,
     GitStatusResponse, GitStatusService, GitStatusWatcher, LayoutApplyRequest, LayoutState,
-    LayoutStore, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneListResponse,
-    PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
-    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    LayoutStore, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
+    PaneListResponse, PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager,
+    PtySpawnRequest, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
+    StageRequest, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState,
+    TabsDao, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -381,7 +381,19 @@ fn pane_pty_kill(state: State<'_, AppState>, pane_id: String) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
-// ─── MVP-05 Phase B Step 2 · Pane layout IPC（5 commands · §H.3 atomicity） ───
+// ─── MVP-05 Phase B Step 2 · Pane layout IPC（6 commands · §H.3 atomicity） ───
+
+#[tauri::command]
+fn pane_init_for_tab(
+    state: State<'_, AppState>,
+    req: PaneInitRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_pane_init_for_tab(pool, &req).map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 fn pane_split(
@@ -773,6 +785,7 @@ pub fn run() {
             pane_pty_resize,
             pane_pty_signal,
             pane_pty_kill,
+            pane_init_for_tab,
             pane_split,
             pane_close,
             pane_focus,

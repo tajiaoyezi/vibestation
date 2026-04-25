@@ -1,7 +1,12 @@
 "$schema" = "../gen/schemas/default_permissions.json"
 
 # MVP-05 Phase B Step 2 · Pane layout IPC permissions
-# §H.3 atomicity · 5 commands · 调用 panes 模块的 4 pure functions + 包 transaction
+# §H.3 atomicity · 6 commands · 调用 panes 模块的 4 pure functions + 包 transaction
+
+[[permission]]
+identifier = "allow-pane-init-for-tab"
+description = "允许前端为 layout 为空的 tab 初始化第一个 Pane（idempotent · MVP-05 Phase C 首次激活 tab 时调用）"
+commands.allow = ["pane_init_for_tab"]
 
 [[permission]]
 identifier = "allow-pane-split"

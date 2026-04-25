@@ -247,6 +247,28 @@ pub struct TabState {
 > **位置**：追加在 §Notes 之后、§相关 之前。
 > **原则**：纯追加，零删除，不改前面已 accepted 段。
 
+### §I.0 实施进度（2026-04-25 · cargo test 化 · 本 PR）
+
+22 用例已在 [`crates/app/tests/shell_compat.rs`](../../crates/app/tests/shell_compat.rs) 编写为 integration test · 严格 1:1 映射 §I.1 + §I.2 全部 case · 函数名前缀 `<shell>_<NN>_*` / `<cli>_<NN>_*` 直接对应下表行。
+
+实测分布（macOS 本地 · zsh + bash 可用 · fish 未装 silent skip）：
+
+| 状态 | 数量 | 含义 |
+|---|---|---|
+| ✅ PASS（cargo test 真实 PTY 后端验证） | 7 | shell 启动 sentinel · `$TERM=xterm-256color` 一致性 · UTF-8 中文 round-trip |
+| ⏭️ IGNORE-runtime（标 `#[ignore]` · 需 Tauri runtime + xterm 渲染 + 用户交互） | 15 | Tab 补全 · history 上下箭头 · fish autosuggestion · CLI login flow / 流式 / Ctrl+C 残帧 / 退出 / 长输出滚动 |
+| ❌ FAIL | 0 | — |
+
+**ignore 的 15 case 不算未做** · 它们覆盖的是 spec §I.4 明确归到运行态截图 / 录屏的范畴（Tab 补全交互 · xterm 灰字渲染 · CLI login + LLM endpoint）· cargo test 层无法稳定模拟 · 必须靠 `pnpm tauri:dev` 手动验证 + `docs/runtime-evidence/mvp-04/phase-d/<case>.{jpg,mp4}` 截图归档。
+
+**Linux ignore**（沿袭 PR #82 / `pty.rs` mod tests）：所有真实 PTY case 在 Linux 标 `#[cfg_attr(target_os = "linux", ignore)]` · 根因是 GitHub Actions Ubuntu runner 上 mio epoll 对 PTY close event 的 timing 不稳定 · macOS kqueue 稳定 · MVP-04 Phase D Ubuntu runtime 验证时统一深挖。
+
+**fish 缺失策略**：本机无 fish 时 cases 09 / 12 走 `eprintln! + return` 模式 silent skip · 不 panic · 不阻塞 PR（spec §I.5 明确 fish 是 non-blocker）。CI 装了 fish 自动跑。
+
+**仍需 follow-up**：
+- 22 张截图 + 2 段 30s 录屏（`docs/runtime-evidence/mvp-04/phase-d/`）· 按 ADR-011 R3 命名 · 需 Tauri runtime 手动捕获
+- Phase D 整体 done 翻转判据：本 §I.0 + 22 张截图 + 2 录屏 全到位
+
 ### §I.1 默认 shell 矩阵（macOS · 3 shell × 4 测试项 = 12 用例）
 
 | 测试组 | 测试项 | 通过判定 | 失败处理 |

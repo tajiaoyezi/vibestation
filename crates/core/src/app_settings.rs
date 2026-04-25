@@ -303,4 +303,41 @@ mod tests {
         let val = AppSettingsStore::get(&pool, "bg_opacity").unwrap();
         assert!((val.parse::<f32>().unwrap() - 0.9).abs() < f32::EPSILON);
     }
+
+    #[test]
+    fn settings_persist_across_pool_reopen() {
+        // MVP-11 Phase 4 §D.6 · 模拟应用重启 · pool drop 后重新打开同一 db
+        // 必须读回先前写入的 7 字段（不依赖 in-memory · 走真实 sqlite 文件）
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("persist_settings.db");
+
+        {
+            let pool = db::open_pool(&db_path).unwrap();
+            let req = SettingsUpdateRequest {
+                theme: Some("light".into()),
+                font_size: Some(16),
+                bg_opacity: Some(0.5),
+                bg_blur: Some(40),
+                window_padding_x: Some(8),
+                window_padding_y: Some(6),
+                cursor_style: Some("bar".into()),
+                cursor_blink: Some(true),
+                unfocused_pane_opacity: Some(0.3),
+                ..Default::default()
+            };
+            AppSettingsStore::update(&pool, &req).unwrap();
+        } // pool drop · sqlite file handle close
+
+        let pool2 = db::open_pool(&db_path).unwrap();
+        let s = AppSettingsStore::get_all(&pool2);
+        assert_eq!(s.theme, "light");
+        assert_eq!(s.font_size, 16);
+        assert!((s.bg_opacity - 0.5).abs() < f32::EPSILON);
+        assert_eq!(s.bg_blur, 40);
+        assert_eq!(s.window_padding_x, 8);
+        assert_eq!(s.window_padding_y, 6);
+        assert_eq!(s.cursor_style, "bar");
+        assert!(s.cursor_blink);
+        assert!((s.unfocused_pane_opacity - 0.3).abs() < f32::EPSILON);
+    }
 }

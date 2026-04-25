@@ -1,0 +1,19 @@
+
+## Step 2 · PII sanitization and sentry payload capture (final)
+
+```text
+   Compiling vibestation-core v0.1.0 (/private/tmp/mvp-10-phase-b-sentry-spike-work/crates/core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.79s
+     Running tests/sentry_pii_spike.rs (target/debug/deps/sentry_pii_spike-45108ec5c6e84632)
+
+running 4 tests
+sanitized_payload={"version":"0.1.0","os_type":"macos","stack_trace_hash":"3d71b5e83f1e012a3d71b5e83f1e012a3d71b5e83f1e012a3d71b5e83f1e012a"}
+test capture_panic_handles_repo_path ... ok
+test capture_panic_handles_terminal_content ... ok
+test capture_panic_strips_pii ... ok
+sanitized_sentry_event={"event_id":"bbd537fafb1e4a46886b724971d4ef57","message":"{\"version\":\"0.1.0\",\"os_type\":\"macos\",\"stack_trace_hash\":\"addb8af150421a07addb8af150421a07addb8af150421a07addb8af150421a07\"}","platform":"native","timestamp":1777084284.828382,"release":"vibestation-core@0.1.0","environment":"development","contexts":{"trace":{"type":"trace","span_id":"5eb65e2df9b71af0","trace_id":"88b6f25de8069f69a565db20770c069c"}},"sdk":{"name":"sentry.rust","version":"0.47.0","packages":[{"name":"cargo:sentry","version":"0.47.0"}]}}
+test sentry_payload_with_default_integrations_disabled_has_no_pii ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+```

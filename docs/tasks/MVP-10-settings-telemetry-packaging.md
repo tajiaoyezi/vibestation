@@ -75,12 +75,12 @@ MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期�
 | Phase | 范围 | 依赖 | 状态 | PR |
 |---|---|---|---|---|
 | Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| 🟡 部分 done（前端 UI + store 已落地 · IPC 接通 + 实时生效 Rust 端推 Phase B）| 本 PR |
-| Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成（Spike 后锁定 · 见 §H.1）+ PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle）| ⏳ todo | — |
+| Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成（Spike 后锁定 · 见 §H.1）+ PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle）| 🟡 local spike done（ADR-015 proposed · Sentry UI endpoint smoke pending · 待 Arbiter approve 后编码）| [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) |
 | Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
 | Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
 | Phase E · 非功能文件 + GitHub Release | README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + Release page assets | Phase A–D done | ⏳ todo | — |
 
-**下次 agent 起点**：Phase B（Telemetry opt-in 对话框 + Sentry SDK 集成 + IPC commands 实现）· Phase A 前端 UI + store 已落地。
+**下次 agent 起点**：先处理 [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) Arbiter approval；若 Arbiter 要求 full §H.1.1 acceptance，则先提供 DSN 并补 Sentry Web UI 实收事件截图。ADR accepted 后再进入 Phase B 编码（Telemetry opt-in 对话框 + Sentry SDK 集成 + IPC commands 实现）。Phase A 前端 UI + store 已落地；ADR proposed 期间禁止把 `sentry` 依赖正式加入 `Cargo.toml`。
 
 **依赖关系说明**：
 - Phase A/B 文件域：`crates/core/src/app_settings.rs`（已存在 · MVP-03 Phase A 建）+ `crates/app/src/lib.rs`（IPC 注册）+ `web/src/panels/Settings/`（新建）+ `web/src/dialogs/TelemetryOptIn/`（新建）
@@ -399,7 +399,7 @@ pub struct CrashReportPayload {
 
 ### H.1 · Telemetry 技术栈
 
-**状态**：延后到 Phase 4 CI workflow 建立前调研 + Spike 决策 · 当前 draft 建议 Sentry SDK 为默认候选 · 锁定权在 Arbiter
+**状态**：Phase B local pre-spike 已完成（2026-04-25）· [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) 已提出 `sentry` 0.47.0 + sanitized payload 方案 · Sentry Web UI 实收事件因无 DSN/Auth Token 未测 · 锁定权仍在 Arbiter；ADR accepted 前不得进入 Phase B SDK 编码。
 
 | 候选 | 成本 | 隐私 / 数据主权 | SDK 体积 | 备注 |
 |---|---|---|---|---|
@@ -408,7 +408,7 @@ pub struct CrashReportPayload {
 | PostHog free tier | Cloud 免费 tier 限 1M 事件/月 | 数据出域到 PostHog Cloud | ~500 KB | 功能最全 · 但 free tier 有 event 上限 |
 | 自建 HTTP POST | 零第三方依赖 | 完全主权 | 0 KB | 需自建收集端 + 符号化 + 聚合 UI · 工作量最大 |
 
-- **当前建议**：Sentry SDK 为默认候选（理由：Rust 原生 + crash 场景最成熟 + 自托管零成本）
+- **当前建议**：Sentry SDK 仍为默认候选（理由：Rust 原生 + crash 场景成熟 + 可自托管），但只作为 ADR-015 proposed 结论；不是已锁定决策。
 - **禁止**：直接 commit 收集端 API key / DSN 到仓库（走 `.env` + GitHub Actions secret）
 - **禁止**：使用闭源且无法自托管的方案（如 Google Analytics）
 - **决策时点**：Phase 4 CI workflow 建立前完成 Spike（≤ 2h benchmark）· 若 Arbiter 提前拍板则立即锁定
@@ -434,6 +434,13 @@ pub struct CrashReportPayload {
 
 **Spike 失败 fallback**：
 - 若 sentry-rust 集成失败 / payload 含 PII 无法禁用 / bundle > 2 MB · 立即 fallback 到 §H.1 候选 4（自建 HTTP POST）· 走另一份 ADR-NNN
+
+**2026-04-25 Spike 结果**：
+- Step 1 SDK 本地集成通过；本轮环境无 `SENTRY_DSN` / `SENTRY_AUTH_TOKEN`，未验证 Sentry Web UI 实收事件。
+- Step 2 PII 脱敏 4 测试通过；`default_integrations = false` 下捕获事件未含路径 / 终端内容 / IP / commit 信息。
+- Step 3 `cargo bloat` 对 `sentry_smoke` release example 显示 `.text` 1.8 MiB、file size 3.2 MiB；最终 Tauri artifact 仍需 Phase B/C 复测。
+- Step 5 已清理临时依赖，正式 `Cargo.toml` / `Cargo.lock` 不含 `sentry`。
+- 证据目录：[docs/runtime-evidence/mvp-10/sentry-spike](../runtime-evidence/mvp-10/sentry-spike/README.md)。
 
 **禁止**：
 - 跳过 Spike 直接 `cargo add sentry` 进入 Phase B 编码 · 必须 ADR 走 Arbiter approve 后再编码

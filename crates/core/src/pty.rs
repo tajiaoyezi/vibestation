@@ -3,6 +3,7 @@
 //! 架构依据：SPIKE-05 / SPIKE-05.5 + ADR-003 accepted。
 //! 这里保留单 shared-reader + mio poll，避免回落到 per-session reader thread。
 
+use crate::app_settings::AppSettingsStore;
 use crate::db::DbPool;
 use crate::tabs::TabsDao;
 use crossbeam_channel::{self, Receiver, Sender, TryRecvError, TrySendError};
@@ -805,6 +806,12 @@ fn default_shell_path() -> &'static str {
     }
 }
 
+pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
+    pool.and_then(|p| AppSettingsStore::get(p, "default_shell").ok())
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| default_shell_path().to_string())
+}
+
 fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
     let requested = requested.trim();
     let env_shell = env_shell
@@ -821,6 +828,13 @@ fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String
     }
 
     requested.to_string()
+}
+
+pub fn check_shell_exists(shell: &str) -> Result<(), PtyError> {
+    if resolve_shell(shell).is_none() {
+        return Err(PtyError::ShellNotFound(shell.to_string()));
+    }
+    Ok(())
 }
 
 fn resolve_shell(shell: &str) -> Option<PathBuf> {
@@ -1236,5 +1250,66 @@ mod tests {
         spawn_shell(&manager, "tab-dup").unwrap();
         let error = spawn_shell(&manager, "tab-dup").unwrap_err();
         assert!(matches!(error, PtyError::AlreadyRunning(value) if value == "tab-dup"));
+    }
+
+    #[test]
+    fn resolve_default_shell_returns_platform_default_when_no_db() {
+        let shell = resolve_default_shell(None);
+        if cfg!(target_os = "macos") {
+            assert_eq!(shell, "/bin/zsh");
+        } else {
+            assert_eq!(shell, "/bin/bash");
+        }
+    }
+
+    #[test]
+    fn resolve_default_shell_reads_from_app_settings() {
+        use crate::db;
+        let dir = tempfile::TempDir::new().unwrap();
+        let db_path = dir.path().join("test_shell_settings.db");
+        let pool = db::open_pool(&db_path).unwrap();
+        AppSettingsStore::set(&pool, "default_shell", "/opt/homebrew/bin/fish").unwrap();
+        let shell = resolve_default_shell(Some(&pool));
+        assert_eq!(shell, "/opt/homebrew/bin/fish");
+    }
+
+    #[test]
+    fn resolve_default_shell_falls_back_when_key_missing() {
+        use crate::db;
+        let dir = tempfile::TempDir::new().unwrap();
+        let db_path = dir.path().join("test_shell_missing.db");
+        let pool = db::open_pool(&db_path).unwrap();
+        let shell = resolve_default_shell(Some(&pool));
+        if cfg!(target_os = "macos") {
+            assert_eq!(shell, "/bin/zsh");
+        } else {
+            assert_eq!(shell, "/bin/bash");
+        }
+    }
+
+    #[test]
+    fn resolve_default_shell_ignores_empty_value() {
+        use crate::db;
+        let dir = tempfile::TempDir::new().unwrap();
+        let db_path = dir.path().join("test_shell_empty.db");
+        let pool = db::open_pool(&db_path).unwrap();
+        AppSettingsStore::set(&pool, "default_shell", "  ").unwrap();
+        let shell = resolve_default_shell(Some(&pool));
+        if cfg!(target_os = "macos") {
+            assert_eq!(shell, "/bin/zsh");
+        } else {
+            assert_eq!(shell, "/bin/bash");
+        }
+    }
+
+    #[test]
+    fn check_shell_exists_accepts_valid_shell() {
+        assert!(check_shell_exists("/bin/sh").is_ok());
+    }
+
+    #[test]
+    fn check_shell_exists_rejects_invalid_path() {
+        let result = check_shell_exists("/bin/does-not-exist-vibestation-test");
+        assert!(matches!(result, Err(PtyError::ShellNotFound(_))));
     }
 }

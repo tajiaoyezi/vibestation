@@ -1,9 +1,9 @@
-# ADR-006: 桌面框架 = Tauri 2（accepted · macOS 强 PASS · Ubuntu pending）
+# ADR-006: 桌面框架 = Tauri 2（accepted · macOS + Ubuntu 双平台验证）
 
-**状态**：**accepted**（2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B 待环境补验证 · 不阻塞锁定）
-**日期**：2026-04-18（proposed · Phase 3 ADR 建立）· 2026-04-19（accepted · session 10 末 SPIKE-01/02 Phase A macOS 全过）
-**决策者**：项目发起人 · 多 agent 评审 · User (Arbiter · dialogue approve "Issue 3：b" · session 10 末)
-**对应 `CLAUDE.md` 决策表**：A 栏 #19（session 10 末 B 档 #12 升级落地 · accepted with macOS-only caveat）
+**状态**：**accepted (Ubuntu validated)**（2026-04-19 macOS Phase A · 2026-04-25 session 19 Ubuntu Phase B · PR #137 · 双平台硬通过验证完成）
+**日期**：2026-04-18（proposed · Phase 3 ADR 建立）· 2026-04-19（accepted · session 10 末 SPIKE-01/02 Phase A macOS 全过）· 2026-04-25（Ubuntu Phase B PR #137 完成 · caveat removed）
+**决策者**：项目发起人 · 多 agent 评审 · User (Arbiter · dialogue approve "Issue 3：b" · session 10 末) · Kimi (Moonshot · Ubuntu 实施 · PR #137)
+**对应 `CLAUDE.md` 决策表**：A 栏 #19（session 10 末 B 档 #12 升级落地 · 2026-04-25 双平台验证完成 · caveat removed）
 **对应 Spike**：[SPIKE-02](../tasks/SPIKE-02-tauri-hard-pass-matrix.md)
 
 ---
@@ -36,10 +36,10 @@ Tauri vs Electron 是桌面框架领域的"选边"决策 · 一旦锁定迁移�
 
 ## 决策
 
-**已选（accepted · 2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B pending caveat）**：
-- **锁定**：`Tauri 2`（最新稳定 2.x · macOS 路径生产可用）
-- **Caveat**：Ubuntu Phase B（Wayland + X11）待环境补验证 · 不阻塞 macOS 开发
-- **Fallback**：`Electron 28+`（仅 Ubuntu Phase B 任一硬指标失败时触发 supersede 本 ADR）
+**已选（accepted · 2026-04-19 session 10 末 · macOS Phase A 强 PASS · 2026-04-25 Ubuntu Phase B 验证完成 · caveat removed）**：
+- **锁定**：`Tauri 2`（最新稳定 2.x · macOS + Ubuntu 双平台生产可用）
+- ~~Caveat：Ubuntu Phase B（Wayland + X11）待环境补验证~~ · **已解除**（PR #137 SPIKE-01+02 Phase B 全过）
+- **Fallback**：`Electron 28+`（保留备案 · 不再触发 supersede 条件）
 
 ### 已通过的决策依据（macOS Phase A · 2026-04-18/19）
 
@@ -64,6 +64,24 @@ session 10 末决策：macOS Phase A 已覆盖冷启动 / IME 中文 / plugin cl
 2. **Rust 后端原生集成**：IPC 与业务 Rust crate 无缝
 3. **风险前置**：R12（Tauri 桌面框架 CRITICAL）被 SPIKE-01/02 Phase A macOS 强证据大幅降级 · Ubuntu Phase B caveat 保留兜底
 4. **Fallback 路径清晰**：Electron 是业界标准 · 若 Ubuntu Phase B 栽了 · 切换是"加 60MB 包 + 追 1-2 周工期"而非架构 rewrite
+
+## Ubuntu Phase B 验证摘要（2026-04-25）
+
+PR #137（kimi-ubuntu24 · session 19）完成 SPIKE-01 + SPIKE-02 Phase B Ubuntu 24 LTS 验证 · 双平台 hard-pass 数据如下：
+
+| 指标 | X11 | Wayland (Weston x11-backend) | 目标 |
+|------|-----|------------------------------|------|
+| Cold boot median | **108 ms** | **107 ms** | < 3s |
+| 10 runs stability | 0 fail | — | 0 fail |
+| 30 cold boot 综合 | 0 黑屏 / 0 崩溃 | — | 0 严重故障 |
+| 窗口 resize / 最小化 / 关闭 | 三平台一致 | 三平台一致 | 无差异 |
+| IME fcitx5 中文 | CONDITIONAL PASS | CONDITIONAL PASS | 可输入 |
+| 5min 稳定性 | 无 panic / 无 segfault | 无 panic / 无 segfault | 无崩溃 |
+| Bundle build | .deb / .AppImage 成功 | .deb / .AppImage 成功 | 可打包 |
+
+**结论**：Ubuntu caveat 正式解除 · v0.1 GA 双平台发布路径开通 · fallback Electron 28+ 不再触发。
+
+> 详细数据见 SPIKE-01/02 report Phase B 段 · runtime evidence 见 `docs/runtime-evidence/spike-01/` / `spike-02/`（PR #137 归档）。
 
 ## 后果
 
@@ -100,21 +118,23 @@ session 10 末决策：macOS Phase A 已覆盖冷启动 / IME 中文 / plugin cl
 
 ---
 
-## Ubuntu Phase B caveat（accepted 条件下的 pending 标注）
+## Ubuntu Phase B caveat（~~accepted 条件下的 pending 标注~~ · **已解除 · 2026-04-25**）
 
-本 ADR 在 macOS Phase A 强证据下提前升级 accepted · 但 Ubuntu Phase B 仍待环境补验证 · 属于 **accepted with caveat** 模式：
+> **历史状态**：本 ADR 在 macOS Phase A 强证据下提前升级 accepted · Ubuntu Phase B 原待环境补验证 · 属 **accepted with caveat** 模式。
+> **当前状态**：PR #137（kimi-ubuntu24 · session 19）Phase B 全过 · caveat **正式解除** · 见上方 § Ubuntu Phase B 验证摘要。
 
 - **已通过的决策依据**（macOS Phase A · 2026-04-18/19）：
   - SPIKE-01 冷启动 10x median **202ms**（目标 < 2s · 余量 10×）
   - SPIKE-02 10× 稳定性 **10/10** · median 212ms · bundle .app 10MB / .dmg 4MB（目标 < 30MB · 余量 7.5×）
   - Clipboard / FS plugin + 中文 IME 全过
-- **Ubuntu Phase B 触发 fallback 的条件**：
-  - Ubuntu 24 Wayland 冷启动 > 3s · 或 WebKitGTK 白屏 · 或 IME 完全不工作
-  - 以上 3 条任一触发 · 走原 fallback 路径（切 Electron 28+ · 回溯本 ADR 为 superseded）
-- **Ubuntu Phase B 非 blocker**：
-  - macOS 强信号足以主导决策 · 开发阶段优先
-  - Ubuntu 环境就绪后补测 · 结果回填 SPIKE-01/02 Phase B report
-  - 若 Ubuntu 通过 → caveat 移除 · ADR 标注完整 3 平台过
+- **Ubuntu Phase B 验证结果**（2026-04-25 · PR #137）：
+  - X11 cold boot median **108 ms** · Wayland **107 ms** · 30 cold boot 0 fail
+  - IME fcitx5 中文 CONDITIONAL PASS · 5min 稳定无 panic
+  - .deb / .AppImage build 成功
+  - **结论：caveat 解除 · fallback 不再触发**
+- ~~Ubuntu Phase B 触发 fallback 的条件~~（**已失效 · 保留备案**）：
+  - ~~Ubuntu 24 Wayland 冷启动 > 3s · 或 WebKitGTK 白屏 · 或 IME 完全不工作~~
+  - ~~以上 3 条任一触发 · 走原 fallback 路径（切 Electron 28+ · 回溯本 ADR 为 superseded）~~
 
 ## Arbiter 拍板记录（v2-D first follower · audit trail）
 

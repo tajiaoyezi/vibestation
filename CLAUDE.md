@@ -73,7 +73,7 @@
 | 14 | 本地存储 = **`rusqlite` 0.31+ + r2d2_sqlite**（SPIKE-04 benchmark · 2026-04-19 accepted · redb 2.6.3 B.2 坏库检测 FAIL · supersede · SPIKE-04.5 B.1-5 全过 · A.3 方案(a) MVP 接受 220ms）| [ADR-005](./docs/adr/ADR-005-local-storage.md) · [SPIKE-04-report](./docs/spikes/SPIKE-04-report.md) · [SPIKE-04.5-report](./docs/spikes/SPIKE-04.5-report.md) |
 | 15 | PTY 方案 = **`portable-pty` + 共享读线程 + bounded mpsc + `drop-oldest`**（SPIKE-05 HOL/boundedness PASS · SPIKE-05.5 证明 visible throughput 瓶颈不在 reader）| [ADR-003](./docs/adr/ADR-003-pty-architecture.md) · [SPIKE-05-report](./docs/spikes/SPIKE-05-report.md) · [SPIKE-05.5-report](./docs/spikes/SPIKE-05.5-report.md) |
 | 18 | Runtime 证据路径 = **`docs/runtime-evidence/<task-id>/`**（MVP / feature · 进 git · Spike 走独立 4 样齐全归档）| [ADR-011](./docs/adr/ADR-011-runtime-evidence-location.md) · [`.claude/rules/runtime-evidence-location.md`](./.claude/rules/runtime-evidence-location.md) |
-| 19 | 桌面框架 = **Tauri 2**（2026-04-19 session 10 末 · **macOS Phase A 强 PASS**：冷启动 202ms · 10/10 稳定 · bundle 10MB/4MB · IME + plugin 全过 · **Ubuntu Phase B 待环境补测** · 不阻塞锁定 · fallback = Electron 28+）| [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md) |
+| 19 | 桌面框架 = **Tauri 2**（**2026-04-25 session 19 双平台验证完成** · macOS Phase A 冷启动 202ms / 10 稳定 · Ubuntu Phase B X11 108ms + Wayland 107ms / 30 stable · IME fcitx5 conditional PASS · plugin smoke 全过 · ADR-006 accepted Ubuntu validated · fallback Electron 28+ 不再触发） | [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md) |
 
 ### B. 默认已选 + Spike 后最终锁定
 

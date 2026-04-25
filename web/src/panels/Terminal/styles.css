@@ -487,3 +487,252 @@
   padding: var(--space-3);
   font-size: 0.8125rem;
 }
+
+/* MVP-05 Phase C · Smart Layouts 菜单（Solo / AI+Runner 预设 + dry-run 预览） */
+
+.vs-smart-layout-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 0.6);
+  backdrop-filter: blur(8px);
+  outline: none;
+}
+
+.vs-smart-layout-card {
+  width: min(480px, calc(100% - 2 * var(--space-5)));
+  max-height: calc(100% - 2 * var(--space-5));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-12);
+  background: var(--bg-1);
+  box-shadow: 0 24px 72px rgb(0 0 0 / 0.4);
+  overflow: hidden;
+}
+
+.vs-smart-layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.vs-smart-layout-header h2 {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.vs-smart-layout-close {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-6);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-smart-layout-close:hover {
+  border-color: var(--line);
+  color: var(--text-1);
+}
+
+.vs-smart-layout-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.vs-smart-layout-preset {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+
+.vs-smart-layout-preset:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--bg-0) 80%, var(--accent));
+}
+
+.vs-smart-layout-preset.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+.vs-smart-layout-preset:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vs-smart-layout-preset-icon {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: var(--text-1);
+  letter-spacing: 0.04em;
+}
+
+.vs-smart-layout-preset-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.vs-smart-layout-preset-desc {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.vs-smart-layout-preview {
+  padding: 0 var(--space-5) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.vs-smart-layout-preview-header {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.vs-smart-layout-preview-list {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  background: var(--bg-0);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.vs-smart-layout-preview-list li {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-3);
+}
+
+.vs-smart-layout-preview-list code {
+  color: var(--text-2);
+  font-family: var(--font-mono);
+}
+
+.vs-smart-layout-preview-shell {
+  color: var(--accent);
+}
+
+.vs-smart-layout-preview-cwd {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-smart-layout-preview-warning {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  background: var(--bg-0);
+  color: var(--text-3);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.vs-smart-layout-error {
+  margin: 0 var(--space-5) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-6);
+  background: color-mix(in oklch, var(--bg-0) 80%, var(--danger));
+  color: var(--danger);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.vs-smart-layout-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--line-soft);
+}
+
+.vs-smart-layout-btn {
+  appearance: none;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-smart-layout-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vs-smart-layout-btn-cancel {
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  color: var(--text-2);
+}
+
+.vs-smart-layout-btn-cancel:hover:not(:disabled) {
+  border-color: var(--text-3);
+  color: var(--text-1);
+}
+
+/* "确认应用" 红色按钮 · UX 决策替代嵌套二次确认 dialog
+   红色警示 + dry-run 预览齐全等价 spec 要求的二次确认（见 PR body UX 决策） */
+.vs-smart-layout-btn-apply {
+  border: 1px solid var(--danger);
+  background: color-mix(in oklch, var(--bg-0) 70%, var(--danger));
+  color: var(--danger);
+}
+
+.vs-smart-layout-btn-apply:hover:not(:disabled) {
+  background: color-mix(in oklch, var(--bg-0) 50%, var(--danger));
+}

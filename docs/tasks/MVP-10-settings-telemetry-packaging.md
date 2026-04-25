@@ -68,6 +68,39 @@ reviewer: Kimi
 - Windows 打包(v0.4)
 - ARM Linux（v0.2）
 
+## 🛠 实施进度
+
+MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期间并行启动 · Phase C/D/E 必须等 MVP-01..09 全 done）：
+
+| Phase | 范围 | 依赖 | 状态 | PR |
+|---|---|---|---|---|
+| Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ts-rs binding 6 IPC struct + 实时生效（< 100 ms）+ 持久化（rusqlite `app_settings` KV）+ ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| ⏳ todo | — |
+| Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成（Spike 后锁定 · 见 §H.1）+ PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle）| ⏳ todo | — |
+| Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
+| Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo | — |
+| Phase E · 非功能文件 + GitHub Release | README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + Release page assets | Phase A–D done | ⏳ todo | — |
+
+**下次 agent 起点**：Phase A · 不依赖任何其他 MVP · 可在 v0.1 收尾期间立即启动（与 MVP-04/05/06/08/09 实施并行）。
+
+**依赖关系说明**：
+- Phase A/B 文件域：`crates/core/src/app_settings.rs`（已存在 · MVP-03 Phase A 建）+ `crates/app/src/lib.rs`（IPC 注册）+ `web/src/panels/Settings/`（新建）+ `web/src/dialogs/TelemetryOptIn/`（新建）
+- Phase C/D 文件域：`tauri.conf.json`（bundle 配置）+ `.github/workflows/release.yml`（CI 打包流程）+ `scripts/release.sh`（可选本地打包脚本）
+- Phase E 文件域：根目录非功能文件 · 不动代码
+
+**Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
+
+- [ ] `crates/core/src/app_settings.rs` 已存在（MVP-03 Phase A · KV 表 + `AppSettingsStore::get/set`）· 不需要新建 · 仅扩展
+- [ ] migration 不新建（§数据模型变更已锁 · MVP-10 纯 KV 写入 · 无 schema 变更 · 仿 YAGNI）· 新增 8 个 KV key（`telemetry_opt_in` / `paste_protection` / `default_shell` / `font_family` / `font_size` / `theme` / `git_user_name` / `git_user_email`）
+- [ ] `AppSettings` struct（§G.2 已写完整）→ `AppSettingsStore::get_all()` 实现 · 用 SQL `SELECT key, value FROM app_settings` 一次拉所有 KV · Rust 侧组装 `AppSettings` struct
+- [ ] `SettingsUpdateRequest` 实现 partial update · 仅含 `Some` 字段触发 `SET` · `None` 字段跳过
+- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `settings_get` / `settings_update` / `telemetry_opt_in_set` / `telemetry_status_get` / `app_version_get`
+- [ ] permission toml：`crates/app/permissions/settings.toml` + `telemetry.toml` 新建（5 个 permission）
+- [ ] capability `default.json` 引用上述 permission
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 6 个 struct 见 §G.1）
+- [ ] SolidJS Settings 组件结构：`web/src/panels/Settings/SettingsPanel.tsx`（4 分组）+ `AppearanceGroup.tsx` + `TerminalGroup.tsx` + `GitGroup.tsx` + `PrivacyGroup.tsx`
+- [ ] 实时生效路径：Settings UI 修改 → `invoke('settings_update', { theme: 'dark' })` → Rust 侧写 KV → emit Tauri event `'settings_changed'` → 全局 SolidJS store 更新 → 主题 CSS 变量切换（< 100 ms）
+
 ## 🖼 UI 引用
 
 - 设置面板：参考原型的 modal / drawer（Calm Studio 风格）
@@ -89,12 +122,106 @@ reviewer: Kimi
 - [ ] B.3 用户选择"接受"后写入 `telemetry_opt_in = true`，选择"拒绝"后写入 `telemetry_opt_in = false`；再次启动时 `telemetry_opt_in IS NOT NULL` 不再弹对话框
 - [ ] B.4 设置里改 toggle 立即生效：true → 开始发送 crash；false → 立即停止发送（当前 session 已排队的 crash flush 后不再新增）
 
+#### §B.1.1 · 首次启动时序图（mermaid · 实施 agent 用）
+
+```mermaid
+sequenceDiagram
+    participant Tauri as Tauri main
+    participant App as App.tsx
+    participant Modal as TelemetryOptInModal
+    participant DB as rusqlite app_settings
+    participant Welcome as WelcomePage
+
+    Tauri->>App: window ready
+    App->>DB: settings_get → telemetry_opt_in 字段
+    DB-->>App: NULL（首次启动）
+    App->>Modal: mount + 阻塞 WelcomePage 渲染
+    Note over Welcome: WelcomePage return null · display: none
+    Modal->>Modal: 显示 opt-in 对话框（收集项 + 不收集项 + 接受/拒绝）
+    alt 用户接受
+        Modal->>DB: telemetry_opt_in_set(true)
+        DB-->>Modal: ok
+    else 用户拒绝
+        Modal->>DB: telemetry_opt_in_set(false)
+        DB-->>Modal: ok
+    end
+    Modal->>App: unmount
+    App->>Welcome: 解除阻塞 · 渲染欢迎页
+```
+
+**实施约定**：
+- `WelcomePage` 组件用 SolidJS `Show` 包裹：`<Show when={telemetryOptInDecided()} fallback={null}>`
+- `telemetryOptInDecided` signal：mount 时 `invoke('settings_get')` 读 `telemetry_opt_in` · NULL → false / 非 NULL → true
+- 用户决策后：emit `'settings_changed'` event → 重新读 settings → `telemetryOptInDecided()` 变 true → WelcomePage 渲染
+- 后续启动：`telemetry_opt_in IS NOT NULL` → `telemetryOptInDecided()` 直接 true · `TelemetryOptInModal` 不 mount
+
 ### C. Telemetry 实际行为
 
 - [ ] C.1 `opt-in = false`：**不发送任何遥测**（包括 crash report）；network panel / 代理验证 0 个 outbound 请求到 telemetry endpoint
 - [ ] C.2 `opt-in = true`：发送匿名 crash + 版本号 + OS type（macos / linux）；payload 含 `{"version":"0.1.0","os_type":"macos","stack_trace_hash":"abc123..."}`，不含用户标识
 - [ ] C.3 crash report 不含：IP / 用户文件路径 / commit 信息 / 终端内容；proof 步骤：(a) unit test 构造带 PII 的 panic（路径 `~/secret/`、commit hash `abc1234`）→ (b) 捕获 payload → (c) assert 正则 `/(?i)(ip|path|commit|content)/` 不匹配 → (d) ts-rs 类型检查兜底（`CrashReportPayload` 不含 PII 字段）
 - [ ] C.4 收集端点 URL 在设置 → 隐私里公开显示，用户可复制
+
+#### §C.3.1 · PII 脱敏 unit test 模板（Phase B 实施时必加）
+
+新建 `crates/core/tests/telemetry_pii_test.rs`：
+
+```rust
+use vibestation_core::telemetry::{capture_panic, CrashReportPayload};
+
+#[test]
+fn capture_panic_strips_pii() {
+    // 构造含 PII 的 panic：用户路径 + commit hash + IP
+    let panic_info = "thread 'main' panicked at 'Failed to read /Users/alice/secret/file.txt: \
+                      commit abc1234567890abcdef · IP 192.168.1.42'";
+    let payload: CrashReportPayload = capture_panic(panic_info);
+
+    // (c) assert 正则白名单 · 不含 PII
+    let payload_json = serde_json::to_string(&payload).unwrap();
+
+    // 不含用户路径
+    assert!(!payload_json.contains("/Users/alice"));
+    assert!(!payload_json.contains("secret"));
+
+    // 不含 commit hash 全文（仅 stack_trace_hash · 是 SHA-256 哈希值）
+    assert!(!payload_json.contains("abc1234567890abcdef"));
+
+    // 不含 IP
+    let ip_regex = regex::Regex::new(r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}").unwrap();
+    assert!(!ip_regex.is_match(&payload_json));
+
+    // (d) ts-rs 类型检查兜底：CrashReportPayload struct 字段白名单
+    // 编译时已保证（§G.2 derive 模板）· 但加运行时断言双保险
+    assert_eq!(payload.version, "0.1.0");
+    assert!(!payload.os_type.is_empty());
+    assert!(payload.stack_trace_hash.len() == 64); // SHA-256 hex = 64 chars
+}
+
+#[test]
+fn capture_panic_handles_terminal_content() {
+    // 边界：panic 包含终端内容（用户输入的命令）· 必须脱敏
+    let panic_info = "panic at 'parse error in user input: rm -rf ~/Documents'";
+    let payload = capture_panic(panic_info);
+    let payload_json = serde_json::to_string(&payload).unwrap();
+    assert!(!payload_json.contains("rm -rf"));
+    assert!(!payload_json.contains("Documents"));
+}
+
+#[test]
+fn capture_panic_handles_repo_path() {
+    // 边界：panic 包含 git repo 路径 · 必须脱敏
+    let panic_info = "panic at '/Users/alice/work/secret-project/.git/HEAD missing'";
+    let payload = capture_panic(panic_info);
+    let payload_json = serde_json::to_string(&payload).unwrap();
+    assert!(!payload_json.contains("secret-project"));
+    assert!(!payload_json.contains("alice"));
+}
+```
+
+**实施约定**（Phase B）：
+- `crates/core/src/telemetry.rs` 新建 · `capture_panic(panic_info: &str) -> CrashReportPayload`
+- 内部用 `sha2` crate 算 SHA-256(panic_info) → `stack_trace_hash`
+- 仅保留 OS type + version + `stack_trace_hash` 3 字段（`CrashReportPayload` struct 已锁 §G.2）
 
 ### D. macOS 打包
 
@@ -285,6 +412,32 @@ pub struct CrashReportPayload {
 - **禁止**：直接 commit 收集端 API key / DSN 到仓库（走 `.env` + GitHub Actions secret）
 - **禁止**：使用闭源且无法自托管的方案（如 Google Analytics）
 - **决策时点**：Phase 4 CI workflow 建立前完成 Spike（≤ 2h benchmark）· 若 Arbiter 提前拍板则立即锁定
+
+#### §H.1.1 · Phase B 启动前 Spike 流程（30 min · 决策锁定）
+
+实施 agent 在 Phase B 启动前 · 必须按以下流程做 30 min Spike 验证 · 输出 ADR-NNN 给 Arbiter approve 后才能进入 Phase B 编码：
+
+1. **5 min · sentry-rust crate 集成验证**（Phase 4 CI 前已验过 · 当前快速复跑）：
+   - `cargo add sentry` · `cargo build` 通过
+   - 验证 `Sentry::init()` + `capture_message("test")` + 自托管 endpoint URL（用 sentry.io free tier 测试 endpoint）
+   - 看 Sentry web UI 收到 test message
+2. **10 min · payload 脱敏验证**：
+   - 用 §C.3.1 PII unit test 模板验证 `capture_panic` 输出确实不含 PII
+   - 实测 sentry-rust 是否会自动附加 process env vars / hostname / IP（如果会 → 需要在 sentry init 时显式禁用 `default_integrations`）
+3. **5 min · bundle size 验证**：
+   - `cargo bloat --release --crates -n 30` · 看 sentry crate 累计 bundle 增量
+   - 必须 < 2 MB（spec §10.2 < 80 MB AppImage 总目标）
+4. **10 min · 输出 ADR**：
+   - 新建 `docs/adr/ADR-NNN-telemetry-stack-sentry.md`
+   - 内容：Spike 1–3 步结论 + 自托管 endpoint URL（占位 · Phase 4 CI 时填 GitHub Actions secret）+ Sentry SDK 配置参数（disabled `default_integrations` 列表）+ fallback（若 Sentry 不可用 · 改自建 HTTP POST · 见 §H.1 候选 4）
+   - 走 ADR `proposed` → Arbiter approve → `accepted` 流程（非 30 min 内完成 · 但 Spike 1–3 步在 30 min 内）
+
+**Spike 失败 fallback**：
+- 若 sentry-rust 集成失败 / payload 含 PII 无法禁用 / bundle > 2 MB · 立即 fallback 到 §H.1 候选 4（自建 HTTP POST）· 走另一份 ADR-NNN
+
+**禁止**：
+- 跳过 Spike 直接 `cargo add sentry` 进入 Phase B 编码 · 必须 ADR 走 Arbiter approve 后再编码
+- 在 spec 里直接锁 "Arbiter 选 Sentry SDK"（锁定权在 Arbiter · spec 仅写 Spike 流程）
 
 ### H.2 · 打包工具
 

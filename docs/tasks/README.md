@@ -119,8 +119,8 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 估时 | 依赖 | 风险 |
 |----|------|------|------|------|------|
-| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| blocked（Phase A macOS done · PR #20 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | — | R12 |
-| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| blocked（Phase A macOS done · PR #22 · §B 等 Ubuntu 24 环境 · 已降为最低优先 · session 13 audit horizontal scan @ 2026-04-21）| 1d | SPIKE-01 | **R12 CRITICAL** |
+| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md) | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）| **done**（Phase A macOS PR #20 · Phase B Ubuntu PR #137 · session 19 · X11 108ms / Wayland 107ms / 30 stable · ADR-006 升级 Ubuntu validated PR #138）| 1d | — | R12 |
+| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md) | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）| **done**（Phase A macOS PR #22 · Phase B Ubuntu PR #137 · v0.1 GA 双平台路径解锁）| 1d | SPIKE-01 | **R12 CRITICAL** |
 | [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md) | git2 读 log + gix 对比 benchmark（linux kernel）| done | 1d | SPIKE-02 | R3 |
 | [SPIKE-04](./SPIKE-04-storage-benchmark.md) | redb 2 vs rusqlite benchmark + git2 写 commit | done | 1d | SPIKE-02 | R27 |
 | [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md) | rusqlite 数据安全 B.1-5 + A.3 性能补测 | done | 1d | SPIKE-04 | R27 |
@@ -134,22 +134,23 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 估时 | 依赖 |
 |----|------|------|------|------|
-| [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | ready（Phase A + B ✅ · Phase C Ubuntu runtime 待）| 5d | SPIKE-02 |
+| [MVP-01](./MVP-01-tauri-app-shell.md) | Tauri 应用骨架 + 启动流程 + 基础崩溃恢复 | **done**（Phase A + B + Phase C Ubuntu installer · PR #139 deb 5.5MB / AppImage 78MB · §F 双平台打包 acceptance 全勾）| 5d | SPIKE-02 |
 | [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | done | 4d | MVP-01 |
 | [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| done | 4d | MVP-01/02 |
 | [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| ready（Phase A PR #72 · Phase B PR #82 · Phase C PR #91 · Phase E PR #95 · Phase F PR #99 · 仅 Phase D shell 兼容待）| 8d | MVP-03 · SPIKE-05/06 |
-| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| ready（PR #74）| 4d | MVP-04 |
+| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| in-progress（spec PR #74 · Phase A storage prep done · Phase B 全 done · PR #141-#143 4 pure functions + 5 layout IPC + 5 PTY IPC + 30 tests · Phase C scaffolding done PR #144 · 集成完整版 todo 估 2-3h）| 4d | MVP-04 |
 | [MVP-06](./MVP-06-config-import.md) | 配置导入（Ghostty + iTerm2 + Alacritty）| ready（spec PR #77 · **parser 层 Phase A PR #80 + A+ PR #81 · Kimi × 2** · Phase B IPC/UI 待 MVP-04 Phase B-F done 后）| 3d | MVP-04 |
 | [MVP-07](./MVP-07-git-log-readonly.md) | Git Log 只读视图 + Commit 详情 | **done**（spec PR #66 · 实施 **PR #83 · OpenCode** · gix 0.70 读路径 + SolidJS panel + H2 regression proof · 92 tests · UI 截图 + kernel benchmark GA gate 补）| 5d | MVP-02/03 · SPIKE-03 |
-| [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | ready（spec PR #70 · Phase A PR #100 · Phase B PR #101 · Phase C/D/E 待）| 5d | MVP-07 |
+| [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | ready（spec PR #70 · Phase A PR #100 · Phase B PR #101 · Phase C/D done · Phase E partial · v0.2 fixture generator 进 git PR #140 · R-PHASE-E 3 DevTools P99 待 0.5d 主 agent 顺手）| 5d | MVP-07 |
 | [MVP-09](./MVP-09-stage-unstage-commit.md) | Stage/Unstage + Commit 操作（git2 写）| ready（PR #73）| 4d | MVP-08 · SPIKE-04 |
-| [MVP-10](./MVP-10-settings-telemetry-packaging.md) | 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）| ready（spec PR #88 · v0.1 GA 终点 task）| 5d | MVP-01..09 全部 |
+| [MVP-10](./MVP-10-settings-telemetry-packaging.md) | 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）| ready（spec PR #88 · v0.1 GA 终点 task · Phase A done · Phase B Sentry Spike done PR #120 · ADR-015 proposed 待 Arbiter approve）| 5d | MVP-01..09 全部 |
+| [MVP-11](./MVP-11-native-feel-quality.md) | Native Feel Quality · 对标 MUX0 · 治"web 套壳"观感 | **done**（spec PR #119/#125 · Phase 1 Vibrancy ✅ PR #123/#130/#131 · Phase 2 Title bar Overlay ✅ PR #129 · Phase 3 Native Menu ✅ PR #124/#126 · Phase 4 Appearance ✅ PR #127/#128/#130 · Phase 5 Typography ✅ PR #122 · Linux fallback PR #139 · 5/5 全 done · v0.1 用户感知质量补强）| 6d | MVP-10 |
 
 **占位 spec（v0.2 / v0.3 / v1.0 范围 · `implementation-plan.md §10.1` 砍到后续版本）**：
 
 | ID | 标题 | 状态 | 目标版本 | 估时 | 依赖 |
 |----|------|------|---------|------|------|
-| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft | v0.2 | 5d | MVP-09 |
+| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft（⚠ id 与 v0.1 MVP-11 Native Feel Quality 冲突 · v0.2 实施前需 rename 或换号） | v0.2 | 5d | MVP-09 |
 | [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft | v0.2 | 8d | MVP-07 |
 | [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete | draft | v0.2 | 4d | MVP-07/09 |
 | [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |

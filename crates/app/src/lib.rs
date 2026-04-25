@@ -14,13 +14,13 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
 use vibestation_core::{
-    AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitConfigIdentity,
-    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
-    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
-    GitStatusWatcher, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager,
-    PtySpawnRequest, SetGitIdentityRequest, StageRequest, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabState, TabsDao, UnstageRequest, WorkspaceMetadata,
-    WorkspaceStore,
+    AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService,
+    GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService,
+    GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest, GitStatusResponse,
+    GitStatusService, GitStatusWatcher, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver,
+    PtyManager, PtySpawnRequest, SetGitIdentityRequest, SettingsUpdateRequest, StageRequest,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -204,6 +204,32 @@ fn default_shell_set(state: State<'_, AppState>, shell: String) -> Result<(), St
     let pool = guard.as_ref().ok_or("database not initialized")?;
     vibestation_core::check_shell_exists(&shell).map_err(|e| e.to_string())?;
     AppSettingsStore::set(pool, "default_shell", &shell).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn settings_get(state: State<'_, AppState>) -> Result<AppSettings, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    Ok(AppSettingsStore::get_all(pool))
+}
+
+#[tauri::command]
+fn settings_update(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SettingsUpdateRequest,
+) -> Result<AppSettings, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    AppSettingsStore::update(pool, &req).map_err(|e| e.to_string())?;
+    drop(guard);
+    let updated = {
+        let guard = state.pool.lock().map_err(|e| e.to_string())?;
+        let pool = guard.as_ref().ok_or("database not initialized")?;
+        AppSettingsStore::get_all(pool)
+    };
+    let _ = app.emit("settings_changed", &updated);
+    Ok(updated)
 }
 
 #[tauri::command]
@@ -591,6 +617,8 @@ pub fn run() {
             theme_set,
             default_shell_get,
             default_shell_set,
+            settings_get,
+            settings_update,
             tab_list,
             tab_create,
             tab_close,

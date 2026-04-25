@@ -51,3 +51,5 @@ export type { StageFailedItem } from "./StageFailedItem";
 export type { CommitError } from "./CommitError";
 export type { GitConfigIdentity } from "./GitConfigIdentity";
 export type { SetGitIdentityRequest } from "./SetGitIdentityRequest";
+export type { AppSettings } from "./AppSettings";
+export type { SettingsUpdateRequest } from "./SettingsUpdateRequest";

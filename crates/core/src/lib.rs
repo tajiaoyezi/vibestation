@@ -17,7 +17,7 @@ pub mod pty;
 pub mod tabs;
 pub mod workspace;
 
-pub use app_settings::AppSettingsStore;
+pub use app_settings::{AppSettings, AppSettingsStore, SettingsUpdateRequest};
 pub use diff::{
     DiffError, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService,
 };

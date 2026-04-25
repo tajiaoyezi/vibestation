@@ -403,3 +403,8 @@
   color: var(--text-3);
   font-size: 0.75rem;
 }
+
+/* MVP-11 Phase 4 · Narrow number input for compact fields */
+.vs-settings-input--narrow {
+  width: 80px;
+}

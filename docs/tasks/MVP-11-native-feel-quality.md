@@ -6,13 +6,13 @@ status: draft
 owner:
 phase: W12+
 depends_on: ["MVP-10"]
-depends_on_notes: "MVP-10 Phase A 设置面板 UI 已 done（PR #114）· MVP-11 Phase 4 扩展 Appearance 字段复用该 UI · 与 MVP-10 Phase B/C/D/E 文件域不冲突 · 可与 MVP-10 Phase B+ 并行。"
+depends_on_notes: "MVP-10 Phase A 设置面板 UI 已 done（PR #114）· MVP-11 Phase 1/2/3/5 不依赖 MVP-10 Phase B · **MVP-11 Phase 4（Appearance 字段扩展）必须等 MVP-10 Phase B IPC + ts-rs binding 交付后才能实施**（settings_update IPC + AppSettings/SettingsUpdateRequest binding 是 Phase B 产物 · Phase A 仅有 UI mock + AppSettingsStore KV 工具类 · 见 MVP-10 spec §G.1）· 文件域和 MVP-10 Phase B/C/D/E 不冲突 · 可并行。"
 blocks: []
 blocked_by: []
 blocked_note:
 estimate: 6d
-plan_ref: implementation-plan.md §3.1 · §3.2 · §10.4
-risk_ref: R31
+plan_ref: implementation-plan.md §10.1（功能清单 · v0.1 GA · 用户感知质量补强 · 无直接上位 plan_ref · session 19 用户反馈驱动 · MUX0 对标）
+risk_ref: R31（新增·本 MVP 自定义·待 implementation-plan §9 追加）
 reviewer:
 ---
 
@@ -48,7 +48,7 @@ reviewer:
 - Tauri native context menu（走 AppKit NSMenu · 替换 web div 伪装）
 - 自定义 title bar（`titleBarStyle: "Overlay"` + `hiddenTitle: true` · traffic light 融入内容区）
 - 对齐 macOS HIG 字体（SF Pro Display UI + SF Mono terminal · Linux fallback Inter + JetBrains Mono）
-- Appearance 设置面板扩展（`Background Opacity` / `Background Blur` / `Window Padding X/Y` / `Cursor Style` / `Cursor Blink` / `Unfocused Pane Opacity` 6 字段 · 对标 MUX0）
+- Appearance 设置面板扩展（`Background Opacity` / `Window Padding X/Y` / `Cursor Style` / `Cursor Blink` / `Unfocused Pane Opacity` 5 字段 · 对标 MUX0 · **不含 Background Blur**：Tauri `windowEffects.radius` 是窗口圆角不是 blur 强度 · macOS Vibrancy blur 由系统 material 决定不可调）
 - Linux / Windows 降级（Linux 纯色兜底 · Windows 推 v0.4）
 
 **Don't**：
@@ -64,7 +64,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 | Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
 |---|---|---|---|---|---|
-| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent` · Cargo.toml 加 `macos-private-api` feature · 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `crates/app/Cargo.toml` · `web/src/index.css` · `web/src/main.tsx` | MVP-10 Phase A（已 done） | ⏳ todo | — |
+| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · **不是** Cargo feature）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `web/src/index.css` · `web/src/main.tsx` | MVP-10 Phase A（已 done） | ⏳ todo | — |
 | **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`-webkit-app-region: drag`）· sidebar 延伸到 title bar 区 · Linux `#[cfg(target_os = "macos")]` 分支保留默认 title bar | `crates/app/tauri.conf.json` · `web/src/App.tsx` · `web/src/layouts/*.tsx` · `web/src/index.css` | Phase 1（Vibrancy 生效才能看到 overlay） | ⏳ todo | — |
 | **Phase 3 · Native Context Menu + 快捷键** | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用 | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx` | Phase 1 | ⏳ todo | — |
 | **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 6 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink）· `app_settings` KV 扩 6 keys · CSS vars 消费 · Unfocused Pane Opacity 单独在 Terminal 组 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（6 新 KV key · YAGNI 无 migration）· `crates/app/src/lib.rs` IPC（复用 MVP-10 `settings_update`） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ⏳ todo | — |
@@ -96,7 +96,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 ### A. Phase 1 · Vibrancy + 禁 webview 行为
 
-- [ ] A.1 `tauri.conf.json` 加 `windowEffects: { effects: ["hudWindow"], state: "followsWindowActiveState", radius: 12 }` · `transparent: true` · Cargo.toml `features = ["macos-private-api"]`
+- [ ] A.1 `tauri.conf.json` 加：`app.macOSPrivateApi: true` + `windows[0].transparent: true` + `windows[0].windowEffects: { effects: ["hudWindow"], state: "followsWindowActiveState", radius: 12 }`（Tauri 2 通过 conf 启用 macos-private-api · **不是** Cargo feature · radius 是窗口圆角 · 不是 blur 强度）
 - [ ] A.2 macOS 启动后窗口背景透出桌面壁纸（毛玻璃效果可见）· 截图 `docs/runtime-evidence/mvp-11/01-vibrancy-macos.png`
 - [ ] A.3 CSS 全局 `html, body { background: transparent }` · 主 container 半透明背景（light `rgba(250,250,250,0.85)` / dark `rgba(28,28,30,0.75)`）
 - [ ] A.4 禁用 webview 行为（release build）：右键无 inspector / Cmd+R 不刷新 / Cmd+- / Cmd+= 不缩放 / Ctrl+A 不全选页面（terminal/diff/editor 单独保留 text selection）
@@ -117,7 +117,8 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 - [ ] C.1 新建 `crates/app/src/menu.rs` · 使用 Tauri v2 `tauri::menu::Menu` API · 走 AppKit NSMenu
 - [ ] C.2 标签栏右键菜单：`Close Tab` / `Close Other Tabs` / `Close Tabs to the Right` / `Rename Tab` / `Duplicate Tab`（5 项 · 符合 macOS HIG）
 - [ ] C.3 终端右键菜单：`Copy` / `Paste` / `Clear Terminal` / `Select All`（4 项）
-- [ ] C.4 快捷键注册：`⌘T` 新 tab · `⌘W` 关 tab · `⌘D` 水平 split · `⌘⇧D` 垂直 split · `⌘,` 打开 Preferences（已存在 · MVP-10）
+- [ ] C.4 快捷键注册：`⌘T` 新 tab · `⌘W` 关 tab · `⌘D` 水平 split · `⌘⇧D` 垂直 split
+- [x] C.4.0 `⌘,` 打开 Preferences（已落地 · MVP-10 Phase A · `web/src/App.tsx:164` `case ","` · 仅回归验证 · 不重实现）
 - [ ] C.5 permission toml + capability 引用（按 tauri-v2-patterns rule）
 - [ ] C.6 Linux 降级：Linux GTK Menu 自动 fallback（Tauri v2 Menu API 跨平台 · 无需额外代码）
 - [ ] C.7 runtime 证据：macOS 截图 `docs/runtime-evidence/mvp-11/03-context-menu-tab.png` + `04-context-menu-terminal.png`
@@ -126,15 +127,17 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 - [ ] D.1 扩展 `AppearanceGroup.tsx` 加 6 字段：
   - `Background Opacity`（slider 0-1 · step 0.05 · default 0.85）
-  - `Background Blur`（number input 0-100 · default 20 · macOS 有效）
   - `Window Padding X`（number 0-20 · default 2）
   - `Window Padding Y`（number 0-20 · default 2）
   - `Cursor Style`（radio `block` / `bar` / `underline` · default `block`）
   - `Cursor Blink`（toggle · default false）
 - [ ] D.2 扩展 `TerminalGroup.tsx` 加 `Unfocused Pane Opacity`（slider 0-1 · default 0.7 · 仅多 pane 生效）
-- [ ] D.3 `app_settings` 扩 7 KV keys：`bg_opacity` / `bg_blur` / `window_padding_x` / `window_padding_y` / `cursor_style` / `cursor_blink` / `unfocused_pane_opacity`（YAGNI · 无 migration）
-- [ ] D.4 IPC：复用 MVP-10 `settings_update`（partial update）· 不新增 IPC command · binding 扩展（`SettingsUpdateRequest` 加 7 字段）
-- [ ] D.5 实时生效：改 Opacity → CSS var `--bg-opacity` 更新 · `<100ms` UI 可见变化
+- [ ] D.3 `app_settings` 扩 6 KV keys：`bg_opacity` / `window_padding_x` / `window_padding_y` / `cursor_style` / `cursor_blink` / `unfocused_pane_opacity`（YAGNI · 无 migration · **不含 bg_blur** · macOS Vibrancy blur 由系统 material 决定不可调）
+- [ ] D.4 IPC：复用 MVP-10 `settings_update`（partial update）· 不新增 IPC command · binding 扩展（`SettingsUpdateRequest` 加 6 字段）· **依赖 MVP-10 Phase B 落地**（见 `depends_on_notes`）
+- [ ] D.5 实时生效路径分离（明示 · 防错误实现）：
+  - **Opacity / Padding / Cursor / Unfocused Opacity** → 走 CSS var（`--bg-opacity` / `--window-padding-x` / `--window-padding-y` / `--cursor-style` / `--unfocused-opacity`）· DOM commit < 100ms
+  - **Vibrancy material 切换**（v0.2+ 才考虑 · 当前固定 hudWindow）→ 走 Tauri `window.setEffects()` 调用 · 不能 CSS
+  - 注意：MVP-11 Phase 4 用户**只控 CSS 路径** · `windowEffects.radius` 固定 12（窗口圆角 · 非 blur 强度）
 - [ ] D.6 持久化：重启应用后 6 字段值一致（integration test 覆盖）
 - [ ] D.7 runtime 证据：3 张截图（Opacity=0.5/0.85/1.0 对比 · 展示毛玻璃强度变化）· `docs/runtime-evidence/mvp-11/05-opacity-variants.png`
 
@@ -173,6 +176,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 - `05-opacity-variants.png`（Opacity 0.5 / 0.85 / 1.0 三档对比）
 - `06-linux-font.png`（Ubuntu 24 字体 fallback · 可选）
 - `07-webview-disabled-behaviors.mp4`（30s 录屏 · 展示 Cmd+R / Cmd+- / 右键 无效）
+- `00-linux-fallback.png`（A.5 Ubuntu 24 启动验证 · 主线 macOS 之外可选 · 若 Ubuntu 环境就绪推荐补 · v0.1 GA macOS-only 策略下可 SKIP + 记 known limitation）
 - `metrics-mvp-11.md`（MVP-04 Phase F bench 回归对比 · Phase 1 前后 scrollback throughput）
 
 单目录总体积 ≤ 10 MB（ADR-011 R4）· 超则压缩。
@@ -184,14 +188,13 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 | key | value 编码 | default | 含义 |
 |---|---|---|---|
 | `bg_opacity` | `"0.85"`（string · f32 解析）| `"0.85"` | 窗口半透明度（影响 container bg alpha） |
-| `bg_blur` | `"20"`（string · u32）| `"20"` | 毛玻璃 blur 半径（macOS Vibrancy radius） |
 | `window_padding_x` | `"2"` | `"2"` | 窗口内容 X 边距（px） |
 | `window_padding_y` | `"2"` | `"2"` | 窗口内容 Y 边距（px） |
 | `cursor_style` | `"block"` / `"bar"` / `"underline"` | `"block"` | 终端光标形状 |
 | `cursor_blink` | `"true"` / `"false"` | `"false"` | 终端光标闪烁 |
 | `unfocused_pane_opacity` | `"0.7"` | `"0.7"` | 非聚焦 pane 透明度 |
 
-Rust `AppSettings` struct 扩 7 字段 · ts-rs binding 自动更新 · `SettingsUpdateRequest` partial update 扩 7 `Option<>` 字段。
+Rust `AppSettings` struct 扩 6 字段 · ts-rs binding 自动更新 · `SettingsUpdateRequest` partial update 扩 6 `Option<>` 字段。
 
 ## §G. IPC Contract（ts-rs）
 
@@ -201,8 +204,8 @@ Rust `AppSettings` struct 扩 7 字段 · ts-rs binding 自动更新 · `Setting
 
 | Rust struct | 用途 | 变化 |
 |---|---|---|
-| `AppSettings`（MVP-10）| 全量 settings 查询 | **扩 7 字段**（bg_opacity / bg_blur / window_padding_x / window_padding_y / cursor_style / cursor_blink / unfocused_pane_opacity） |
-| `SettingsUpdateRequest`（MVP-10）| partial update | **扩 7 `Option<>` 字段** |
+| `AppSettings`（MVP-10）| 全量 settings 查询 | **扩 6 字段**（bg_opacity / window_padding_x / window_padding_y / cursor_style / cursor_blink / unfocused_pane_opacity · 不含 bg_blur） |
+| `SettingsUpdateRequest`（MVP-10）| partial update | **扩 6 `Option<>` 字段** |
 
 ### G.2 derive 扩展（示例）
 
@@ -215,8 +218,6 @@ pub struct AppSettings {
     // ... MVP-10 原有 8 字段（theme / font_family / font_size / default_shell / paste_protection / telemetry_opt_in / git_user_name / git_user_email）
     #[ts(type = "number")]
     pub bg_opacity: f32,
-    #[ts(type = "number")]
-    pub bg_blur: u32,
     #[ts(type = "number")]
     pub window_padding_x: u32,
     #[ts(type = "number")]
@@ -240,7 +241,7 @@ pub struct AppSettings {
 - **候选记录**：
   - `"sidebar"`（MUX0 同款 · 更浅）
   - `"underWindowBackground"`（最深 · 可能过度）
-- **用户可改**：Phase 4 `Background Blur` 字段虽然不直接切 material · 但 `Background Opacity` 可调节视觉强度 · 等 v0.2+ 再考虑加 material 切换
+- **用户可改 vs 不可改**：Phase 4 `Background Opacity`（CSS rgba alpha）是用户可调的"视觉强度"代理 · macOS Vibrancy blur 由系统 material 决定不可调（Tauri/AppKit 都没有 API 调 NSVisualEffectView blur 强度）· `windowEffects.radius` 是窗口圆角 · 不是 blur · 已固定 12 不暴露 · v0.2+ 才考虑加 material 切换 UI
 - **禁止**：使用 deprecated material（`light` / `dark` / `appearanceBased` / `mediumLight` / `ultraDark`）
 
 ### H.2 · Title bar 策略
@@ -272,7 +273,7 @@ pub struct AppSettings {
 - **R31（新增）Native Feel Quality 回归**：Phase 1 `transparent: true` 可能降低终端滚屏性能 → MVP-04 Phase F bench 回归 · 测试覆盖 A.6 硬门槛（> 10% 回归则回退）
 - **Linux Vibrancy 缺失**：Linux WebKitGTK 不支持 Vibrancy → 明示 "Linux 降级为纯色" · 不阻塞
 - **Title bar Overlay drag bug**：Tauri 官方 issue #4316 · 不 focus 时 drag 失败 → Acceptance B.3 明示 "注意已知限制"
-- **macOS Private API 审核风险**：`macos-private-api` feature 可能触发 Mac App Store 拒审 → Vibestation v0.1 不上 App Store（只走 .dmg + notarization · MVP-10）· 无影响
+- **macOS Private API 审核风险**：`tauri.conf.json` 的 `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · 不是 Cargo feature · 见 A.1）可能触发 Mac App Store 拒审 → Vibestation v0.1 不上 App Store（只走 .dmg + notarization · MVP-10）· 无影响
 - **字体加载延迟**：系统字体 `SF Pro Display` 在新机首次加载可能 100-200ms → 全局 `font-display: swap` CSS 兜底
 
 ## 📝 Notes

@@ -66,6 +66,26 @@ reviewer: Kimi
 | Phase C · 前端分屏 UI | SolidJS 组件 + 分隔条拖拽 + focus 切换 + Smart Layouts 菜单 + 双击复位 | ⏳ todo | — |
 | Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo | — |
 
+**Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
+
+- [ ] `crates/core/Cargo.toml` 已含 `git2` / `rusqlite` / `serde` / `ts-rs`（继承 MVP-04 · 不需要新增依赖）
+- [ ] migration v6 路径锁定（§H.4 SQL 已写好）：`crates/core/src/db.rs` 加 `migrate_v6` 函数 · 复用 `migrate_v5` 模式（PR #72）
+- [ ] `PanesDao` CRUD（仿 MVP-04 `TabsDao` 模式 · PR #72 line 119 起）：
+  - `insert(pane: PaneState) -> Result<()>`
+  - `update(pane: PaneState) -> Result<()>`
+  - `delete(pane_id: &str) -> Result<()>`
+  - `list_by_tab(tab_id: &str) -> Result<Vec<PaneState>>`
+  - `get(pane_id: &str) -> Result<Option<PaneState>>`
+- [ ] `LayoutNode` 序列化 / 反序列化测试（`serde_json` + ts-rs tagged union）
+- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `pane_split` / `pane_close` / `pane_focus` / `pane_layout_apply` / `pane_split_ratio_update`
+  - `pane_pty_spawn` / `pane_pty_stdin` / `pane_pty_resize` / `pane_pty_signal` / `pane_pty_kill`
+  - 总 **10 个新 IPC commands**（5 layout + 5 pty）
+- [ ] permission toml：`crates/app/permissions/panes.toml` + `pane-pty.toml` 新建（10 个 `allow-{name}`）
+- [ ] capability `default.json` 引用上述 permission
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 13 个 struct 见 §G.5）
+- [ ] fixture：用 `tempfile` crate 运行时生成 sqlite + tabs 行 · 不要硬编码本地路径（仿 MVP-09 §C.1）
+
 **下次 agent 起点**：Phase A · 依赖 MVP-04 Phase A 已落地的 `tabs` 表 + `TabsDao`（见 PR #72）· **不要重写** `tabs` 表 · 只加 `panes` 新表 + `tabs` 2 新列。
 
 **依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。
@@ -115,9 +135,12 @@ reviewer: Kimi
 
 ### F. 性能
 
-- [ ] 4 Pane 并存不额外显著增加内存：每 Pane ≈ MVP-04 单 Tab PTY 开销（SPIKE-05 单 Tab 10MB RSS 基准），4 Pane ≈ 40MB；总 10 Tab × 4 Pane = 40 个 PTY，RSS 上限 500MB（对齐 MVP-04 §E 性能目标）
-- [ ] 拖拽分隔条 60FPS：同 D 条，帧时长 < 16ms，测 3 次取 P99
-- [ ] 分屏 / 关 Pane 动画 < 150ms：从快捷键按下到 Pane DOM 绘制完成，`performance.now()` 差值，测 3 次取 P99；无动画时不测量动画时长，改为测量 "操作完成到 DOM 稳定" < 100ms
+- [ ] F.1 4 Pane 内存：每 Pane ≈ MVP-04 单 Tab PTY 开销（SPIKE-05 单 Tab 10MB RSS 基准）· 4 Pane ≈ 40MB · 总 10 Tab × 4 Pane = 40 PTY < 500MB · 用 `ps -o rss` + 4 Pane fixture · 测 3 次取 P99
+- [ ] F.2 拖拽水平分隔条 60FPS：DevTools Performance 录 1s 水平拖拽 · 帧时长 < 16ms · 测 3 次取 P99
+- [ ] F.3 拖拽垂直分隔条 60FPS：同 F.2 · 垂直方向独立测一次 · 帧时长 < 16ms · 测 3 次取 P99
+- [ ] F.4 分屏快捷键 → DOM 绘制完成 < 150ms：`performance.now()` 测 `⌘\` keydown 到 SolidJS 新 Pane DOM commit · 测 3 次取 P99
+- [ ] F.5 关 Pane 快捷键 → 剩余 Pane 重排完成 < 100ms：`performance.now()` 测 `⌘⌃W` keydown 到剩余 Pane 重排 DOM commit · 测 3 次取 P99
+- [ ] F.6 Smart Layouts apply（Solo / AI+Runner）→ 关闭 N Pane + 新 Pane 完成 < 200ms：fixture 4 Pane → Solo · `performance.now()` 测命令面板确认到最终布局 DOM commit · 测 3 次取 P99
 
 ## 🧪 测试策略
 
@@ -127,6 +150,70 @@ reviewer: Kimi
 | 视觉回归 | 4 种合法布局截图对比原型 |
 | E2E | 完整流程：分屏 → 拖拽 → 关 → 应用 Layout → 二次确认取消/确认 |
 | 手动 QA | 多屏不同 DPI 下分隔条精度 |
+
+#### C.1 · fixture 准备脚本 + Criterion bench 模板
+
+所有 fixture 用 `tempfile::TempDir` + `rusqlite::Connection` in-memory · 不依赖本地文件系统：
+
+```rust
+// tests/fixtures/mvp_05_helpers.rs（新建）
+use rusqlite::Connection;
+use tempfile::TempDir;
+
+fn create_fixture_solo_layout() -> (TempDir, Connection) {
+    let dir = tempfile::tempdir().unwrap();
+    let conn = Connection::open(dir.path().join("test.db")).unwrap();
+    crates_core::db::migrate(&conn).unwrap();  // 跑到 v6
+    // 插入 1 tab + 1 pane（Solo 布局）
+    (dir, conn)
+}
+
+fn create_fixture_horizontal_2pane() -> (TempDir, Connection) { /* 1 tab + 2 panes 水平 */ }
+fn create_fixture_vertical_2pane() -> (TempDir, Connection) { /* 1 tab + 2 panes 垂直 */ }
+fn create_fixture_2x2_layout() -> (TempDir, Connection) { /* 1 tab + 4 panes 2×2 */ }
+fn create_fixture_invalid_3horizontal() -> Vec<LayoutNode> { /* 用于测 §H.2 非法布局拒绝 */ }
+fn create_fixture_invalid_3vertical() -> Vec<LayoutNode> { /* 同上 */ }
+```
+
+每个 helper 返回 `(TempDir, Connection)` 元组 · 测试用 `let (_dir, conn) = create_fixture_solo_layout();` 持有 · 测试结束 `dir` drop 自动清理。
+
+**Criterion bench 模板**（`crates/core/benches/pane_bench.rs`）：
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion};
+
+fn bench_split_pane(c: &mut Criterion) {
+    c.bench_function("split_solo_to_horizontal", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_solo_layout();
+            // call vibestation_core::pane::split(...)
+        });
+    });
+}
+
+fn bench_layout_apply_solo(c: &mut Criterion) {
+    c.bench_function("layout_apply_2x2_to_solo", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_2x2_layout();
+            // call vibestation_core::pane::apply_layout(Solo, ...)
+        });
+    });
+}
+
+fn bench_close_pane_atomic(c: &mut Criterion) {
+    c.bench_function("close_pane_atomic", |b| {
+        b.iter(|| {
+            let (_dir, conn) = create_fixture_horizontal_2pane();
+            // call vibestation_core::pane::close(...)
+        });
+    });
+}
+
+criterion_group!(benches, bench_split_pane, bench_layout_apply_solo, bench_close_pane_atomic);
+criterion_main!(benches);
+```
+
+跑 `cargo bench --bench pane_bench` 验证 P99 数字。
 
 ## 💾 数据模型变更
 
@@ -294,6 +381,39 @@ pub struct PaneScrollbackFetchRequest {
 4. **`PaneState.scroll_back`** 从 IPC 排除，独立 `pane_scrollback_fetch` 拉取；复用 MVP-04 `TabState` 排除模式，保持 IPC contract 全局一致。
 5. **bindings 由 `build.rs` 生成**，前端禁止手写 TypeScript 类型；H2 regression proof 见 MVP-04 §G.3（临时重命名字段 → 期望 `pnpm typecheck` 失败）。
 
+### G.4 · 与 MVP-04 已落地 binding 的复用决策
+
+MVP-05 实施前必须明确复用 / 新增边界，避免和 MVP-04 Phase A/B 已生成 binding 冲突：
+
+| 已有 binding | MVP-05 §G.1 涉及 | 决策 | 理由 |
+|---|---|---|---|
+| `TabState`（MVP-04 Phase A 已生成）| §G.1 `PaneListResponse` 的 `tab_id` 字段 | ⛔ 不复用为输入 · 仅引用 `tab_id` | `TabState` 含 `scroll_back` · 不适合作为 Pane 上下文 · MVP-05 只需要 `tab_id` 引用 |
+| `PtySpawnRequest`（MVP-04 Phase B 已生成）| §H.6 锁 A 选项独立 `pane_pty_*` | ⛔ 不复用 · 新建 `PanePtySpawnRequest` | 改 `PtySpawnRequest` 会破坏 MVP-04 Phase B 已落地 binding（5 IPC + 前端调用）· 独立命名空间避免 |
+| `TabsDao`（MVP-04 Phase A）| MVP-05 Phase A `PanesDao` | ⛔ 不复用 · 新建 `PanesDao` 但仿 `TabsDao` 模式 | `TabsDao` 操作 `tabs` 表 · `PanesDao` 操作 `panes` 表 · 表不同 DAO 不混 |
+| `migrate_v5`（MVP-04 Phase A）| MVP-05 Phase A `migrate_v6` | ⛔ 不复用 · 新建 `migrate_v6` | migration 单调递增 · v5 已锁 `tabs` 表 · v6 加 `panes` 表 + `tabs` 2 列（§H.4 SQL 已写）|
+
+### G.5 · MVP-05 新增 binding 清单（明确数量）
+
+以下 **13 个 binding** 为 MVP-05 **新增** · 实施时 `web/src/bindings/` 应新增 13 个 `.ts` 文件：
+
+| Rust struct / enum | 用途 | 前端 import 路径 |
+|---|---|---|
+| `PaneState` | Pane 状态同步 · 排除 `scroll_back` | `import type { PaneState } from "../bindings/PaneState"` |
+| `PaneCreateRequest` | 新建 Pane | `import type { PaneCreateRequest } from "../bindings/PaneCreateRequest"` |
+| `PaneCloseRequest` | 关闭 Pane | `import type { PaneCloseRequest } from "../bindings/PaneCloseRequest"` |
+| `LayoutNode` | 布局树节点 · 递归 tagged union | `import type { LayoutNode } from "../bindings/LayoutNode"` |
+| `SplitDir` | 分割方向 · string union | `import type { SplitDir } from "../bindings/SplitDir"` |
+| `LayoutApplyRequest` | 应用 Smart Layout | `import type { LayoutApplyRequest } from "../bindings/LayoutApplyRequest"` |
+| `SplitRatioUpdateRequest` | 更新分割比例 | `import type { SplitRatioUpdateRequest } from "../bindings/SplitRatioUpdateRequest"` |
+| `PaneFocusRequest` | 切换焦点 | `import type { PaneFocusRequest } from "../bindings/PaneFocusRequest"` |
+| `PaneListResponse` | Pane 列表 + 当前布局 | `import type { PaneListResponse } from "../bindings/PaneListResponse"` |
+| `PaneScrollbackFetchRequest` | 拉取 scrollback | `import type { PaneScrollbackFetchRequest } from "../bindings/PaneScrollbackFetchRequest"` |
+| `PanePtySpawnRequest` | Pane PTY spawn · 独立命名 | `import type { PanePtySpawnRequest } from "../bindings/PanePtySpawnRequest"` |
+| `PanePtyStdoutEvent` | Pane PTY stdout event | `import type { PanePtyStdoutEvent } from "../bindings/PanePtyStdoutEvent"` |
+| `PanePtyExitedEvent` | Pane PTY exited event | `import type { PanePtyExitedEvent } from "../bindings/PanePtyExitedEvent"` |
+
+> 加上引用 MVP-04 的 `TabState`（不重新生成）= 实施时 bindings 目录共新增 **13 个 `.ts` 文件**。
+
 ---
 
 ## §H. Pane 布局模型约束
@@ -331,6 +451,57 @@ pub struct PaneScrollbackFetchRequest {
   - 更新 `tabs.focused_pane_id`
 - 使用 rusqlite `transaction()` 包裹；任何步骤失败 → 完整回滚，禁止出现 "layout 改了一半、panes 没删" 的脏状态。
 - 前端状态（SolidJS store）与后端状态同步：操作成功后通过 Tauri event 推送 `PaneListResponse`，前端以服务端状态为准覆写本地。
+
+#### H.3.1 · 原子性测试 case（Phase A 实施时必加）
+
+3 类操作 × 2 类失败注入 = **6 个测试 case**，验证 transaction 回滚不留脏数据：
+
+```rust
+#[test]
+fn split_atomicity_fails_during_panes_insert() {
+    let (_dir, conn) = create_fixture_solo_layout();
+    // 注入失败：mock PanesDao::insert 返回 Err
+    let result = pane::split_with_mock_failure(&conn, "panes_insert");
+    assert!(result.is_err());
+    // 验证回滚：tabs.layout 仍是 Solo · panes 表无新行
+    let layout_json: String = conn.query_row(
+        "SELECT layout FROM tabs WHERE tab_id=?", ["t1"], |r| r.get(0)
+    ).unwrap();
+    let layout: LayoutNode = serde_json::from_str(&layout_json).unwrap();
+    assert!(matches!(layout, LayoutNode::Single { .. }));
+    let panes_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM panes WHERE tab_id=?", ["t1"], |r| r.get(0)
+    ).unwrap();
+    assert_eq!(panes_count, 1);  // 原 1 pane · 没新增
+}
+
+#[test]
+fn split_atomicity_fails_during_layout_update() {
+    // 注入 tabs.layout UPDATE 失败 · 验证 panes 表无新行 + layout 不变
+}
+
+#[test]
+fn close_atomicity_fails_during_panes_delete() {
+    // 注入 panes DELETE 失败 · 验证原 pane 仍在 + layout 不变
+}
+
+#[test]
+fn close_atomicity_fails_during_layout_update() {
+    // 注入 tabs.layout UPDATE 失败 · 验证 panes 表行数不变
+}
+
+#[test]
+fn layout_apply_atomicity_fails_during_panes_batch_delete() {
+    // Smart Layout 批量关闭中途失败 · 验证所有 pane 仍在 + layout 不变
+}
+
+#[test]
+fn layout_apply_atomicity_fails_during_focused_pane_update() {
+    // focused_pane_id 写入失败 · 验证 panes + layout 均不变
+}
+```
+
+每个 case 验证：**操作前后** `tabs.layout` JSON / `panes` 表行数 / `focused_pane_id` 三者状态完全一致（不留脏数据）。
 
 ### H.4 布局持久化存储
 

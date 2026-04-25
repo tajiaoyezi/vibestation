@@ -1,0 +1,4 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-05 Phase A storage prep placeholder.
+# Pane IPC commands and allow-* grants are intentionally deferred to Phase B.

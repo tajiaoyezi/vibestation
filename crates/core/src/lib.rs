@@ -12,6 +12,7 @@ pub mod git_log;
 pub mod git_ops;
 pub mod git_status;
 pub mod layout;
+pub mod panes;
 pub mod pty;
 pub mod tabs;
 pub mod workspace;
@@ -34,6 +35,12 @@ pub use git_status::{
     GitStatusRequest, GitStatusResponse, GitStatusService,
 };
 pub use layout::{LayoutState, LayoutStore};
+pub use panes::{
+    LayoutApplyRequest, LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError,
+    PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
+    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PanesDao, SplitDir,
+    SplitRatioUpdateRequest,
+};
 pub use pty::{
     check_shell_exists, resolve_default_shell, PtyError, PtyEvent, PtyEventReceiver,
     PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, PTY_EVENT_QUEUE_CAPACITY,

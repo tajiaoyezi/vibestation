@@ -10,6 +10,8 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
+#[allow(unused_imports)]
+use vibestation_core::panes;
 use vibestation_core::{
     AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitConfigIdentity,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,

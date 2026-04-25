@@ -1,4 +1,45 @@
-# MVP-11 Phase 3 Runtime 证据 · 已知限制
+# MVP-11 Runtime 证据 · 已知限制
+
+## Phase 2 · Title bar overlay（2026-04-25 · Codex）
+
+### 实施状态
+
+- [x] B.1 `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition: { x: 20, y: 20 }`
+- [x] B.2 `.title-bar-drag` 28px 覆盖顶部 · `data-tauri-drag-region` + 显式 `getCurrentWindow().startDragging()`
+- [x] B.3 macOS window drag runtime 验证 2 次
+- [x] B.4 Linux 空白区防护：`.title-bar-drag` 仅 `.platform-macos` 显示；Rust title bar setup 仅 `#[cfg(target_os = "macos")]`
+- [x] B.5 `02-title-bar-overlay.png` 已保存
+
+### Runtime 验证
+
+环境：macOS Apple Silicon · debug profile · bundle path `/private/tmp/mvp-11-phase-2-work/target/debug/bundle/macos/Vibestation.app`
+
+命令：
+
+```bash
+pnpm tauri build --config crates/app/tauri.conf.json --debug --bundles app --no-sign
+open -n /private/tmp/mvp-11-phase-2-work/target/debug/bundle/macos/Vibestation.app
+```
+
+可视验证：
+
+- `docs/runtime-evidence/mvp-11/02-title-bar-overlay.png`
+- 结果：traffic lights 位于内容区左上；系统标题文字隐藏；sidebar 顶部高度延伸到 title bar 区。
+
+拖动验证：
+
+| 状态 | 输入 | WindowServer bounds |
+|---|---|---|
+| focus 前 | title bar 区 CGEvent drag from `(940,176)` to `(1140,241)` | `X=640,Y=161` → `X=840,Y=226` |
+| blur/再激活路径 | Codex 激活后，title bar 区 CGEvent drag from `(1140,241)` to `(1340,306)` | `X=840,Y=226` → `X=1040,Y=291` |
+
+备注：
+
+- `mcp__computer_use__.drag` 未移动 macOS 窗口；改用原生 CGEvent 做最终拖动验证。
+- 系统 `screencapture -l` 对该 Tauri 窗口返回 `could not create image from window`（WindowServer `kCGWindowSharingState=0`）；最终 PNG 来自 Codex Computer Use 的临时截图缓存并已复制入本目录。
+- Ubuntu 24 GUI 未在本机可用；Linux title bar 只做静态边界验证，见 task spec `R-PHASE-2.linux`。
+
+## Phase 3 · Native Context Menu + 快捷键（PR #124/#126 · 已知限制）
 
 ## 实施状态
 
@@ -29,8 +70,7 @@ Tauri v2 Menu API 跨平台 · Linux 自动走 GTK Menu · 无需额外代码。
 | `04-context-menu-terminal.png` | macOS 终端右键 · NSMenu 样式 | 待补 |
 
 **阻塞原因**：
-1. 当前环境无 Cargo/Rust 工具链 → 无法编译 Tauri 应用
-2. 当前环境为 Linux → 无法运行 macOS NSMenu
-3. 需 macOS 实机 `pnpm tauri:dev` 启动后右键截图
+1. 本次 Phase 2 只验证 title bar overlay，不重复打开右键菜单截图路径
+2. Linux GTK menu 外观仍需 Ubuntu 24 GUI 环境确认
 
-**建议**：由主 agent 或另一台 macOS 机器 checkout 本分支后编译运行并补截图。
+**建议**：Phase 4/closeout 回收时统一补 `03-context-menu-tab.png` / `04-context-menu-terminal.png`。

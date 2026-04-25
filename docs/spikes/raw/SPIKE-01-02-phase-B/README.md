@@ -1,31 +1,20 @@
-# SPIKE-01-02 Phase B · Raw 数据索引
+# SPIKE-01-02 Phase B · Raw Data Index
 
-## 冷启动数据
-
-| 文件 | 内容 | 记录数 |
+## Cold Boot
+| File | Content | Records |
 |---|---|---|
-| `cold-boot-x11-1777107824.csv` | X11 10 次冷启动 | 10 |
-| `cold-boot-wayland-1777107849.csv` | Wayland 5 次冷启动 | 5 |
+| cold-boot-x11-*.csv | X11 10x | 10 |
+| cold-boot-wayland-*.csv | Wayland 5x | 5 |
 
-### X11 关键数字
-- Median: 108ms
-- Range: 1ms
-- Success: 10/10
-
-### Wayland 关键数字
-- Median: 107ms
-- Range: 1ms
-- Success: 5/5
-
-## Bundle 大小
-
-| 文件 | 内容 |
+## IME
+| File | Content |
 |---|---|
-| `bundle-sizes.txt` | AppImage 78MB · deb N/A |
+| ime-x11-test.mp4 | X11 + fcitx5 (1.6MB, 10s) |
+| ime-wayland-test.mp4 | Wayland + fcitx5 (1.8MB, 10s) |
+| ime-test.log | IME test log |
 
-## 缺失数据（已知限制）
-
-- IME 录屏：fcitx5 未安装 · sudo 需密码
-- Clipboard 测试：Vibestation 未集成 clipboard-manager plugin
-- FS 测试：Vibestation 未集成 fs plugin
-- dmesg/journalctl：sudo 权限不足
+## System
+| File | Content |
+|---|---|
+| dmesg.log | Kernel log |
+| bundle-sizes.txt | AppImage 78MB |

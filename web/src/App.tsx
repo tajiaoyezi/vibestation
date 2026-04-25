@@ -20,6 +20,7 @@ import { ActivityStrip } from "./components/ActivityStrip";
 import { MainContent } from "./components/MainContent";
 import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
+import { SettingsPanel } from "./panels/Settings";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -70,6 +71,7 @@ const LayoutShell: Component<{
   onCloseWorkspaceView: (workspaceId: string) => void;
 }> = (props) => {
   const { layout, dispatch, loadForWorkspace } = useLayout();
+  const [settingsVisible, setSettingsVisible] = createSignal(false);
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
@@ -164,6 +166,10 @@ const LayoutShell: Component<{
       case "J":
         e.preventDefault();
         dispatch({ kind: "toggle-bottom" });
+        break;
+      case ",":
+        e.preventDefault();
+        setSettingsVisible((v) => !v);
         break;
     }
   };
@@ -277,6 +283,11 @@ const LayoutShell: Component<{
           </div>
         </div>
       </Show>
+
+      <SettingsPanel
+        visible={settingsVisible()}
+        onClose={() => setSettingsVisible(false)}
+      />
     </div>
   );
 };

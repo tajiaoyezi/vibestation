@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 5;
+const CURRENT_SCHEMA_VERSION: u32 = 6;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -43,19 +43,22 @@ pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
             .map_err(|e| DbError::Connection(format!("cannot create db parent dir: {e}")))?;
     }
 
-    let manager = SqliteConnectionManager::file(db_path);
+    let manager = SqliteConnectionManager::file(db_path)
+        .with_init(|conn| conn.execute_batch("PRAGMA foreign_keys = ON;"));
     let pool = Pool::builder()
         .max_size(4)
         .build(manager)
         .map_err(DbError::from)?;
 
     let conn = pool.get().map_err(DbError::from)?;
-    run_migrations(&conn)?;
+    migrate(&conn)?;
 
     Ok(pool)
 }
 
-fn run_migrations(conn: &Connection) -> Result<(), DbError> {
+pub fn migrate(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch("PRAGMA foreign_keys = ON;")
+        .map_err(DbError::from)?;
     let user_version: u32 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .map_err(DbError::from)?;
@@ -75,8 +78,15 @@ fn run_migrations(conn: &Connection) -> Result<(), DbError> {
     if user_version < 5 {
         migrate_v5(conn)?;
     }
+    if user_version < 6 {
+        migrate_v6(conn)?;
+    }
 
     Ok(())
+}
+
+fn run_migrations(conn: &Connection) -> Result<(), DbError> {
+    migrate(conn)
 }
 
 fn migrate_v1(conn: &Connection) -> Result<(), DbError> {
@@ -159,6 +169,68 @@ fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
         version: 5,
         reason: e.to_string(),
     })?;
+    Ok(())
+}
+
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, DbError> {
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info({table})"))
+        .map_err(DbError::from)?;
+    let rows = stmt
+        .query_map([], |row| row.get::<_, String>(1))
+        .map_err(DbError::from)?;
+
+    for row in rows {
+        if row.map_err(DbError::from)? == column {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS panes (
+             pane_id      TEXT PRIMARY KEY,
+             tab_id       TEXT NOT NULL,
+             shell        TEXT NOT NULL,
+             cwd          TEXT NOT NULL,
+             scroll_back  TEXT NOT NULL DEFAULT '[]',
+             created_at   INTEGER NOT NULL,
+             FOREIGN KEY (tab_id) REFERENCES tabs(tab_id) ON DELETE CASCADE
+         );
+         CREATE INDEX IF NOT EXISTS idx_panes_tab_created
+             ON panes(tab_id, created_at DESC);",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 6,
+        reason: e.to_string(),
+    })?;
+
+    if !column_exists(conn, "tabs", "layout")? {
+        conn.execute(
+            "ALTER TABLE tabs ADD COLUMN layout TEXT NOT NULL DEFAULT '{\"kind\":\"single\",\"paneId\":\"\"}'",
+            [],
+        )
+        .map_err(|e| DbError::Migration {
+            version: 6,
+            reason: e.to_string(),
+        })?;
+    }
+
+    if !column_exists(conn, "tabs", "focused_pane_id")? {
+        conn.execute("ALTER TABLE tabs ADD COLUMN focused_pane_id TEXT", [])
+            .map_err(|e| DbError::Migration {
+                version: 6,
+                reason: e.to_string(),
+            })?;
+    }
+
+    conn.execute_batch("PRAGMA user_version = 6;")
+        .map_err(|e| DbError::Migration {
+            version: 6,
+            reason: e.to_string(),
+        })?;
     Ok(())
 }
 
@@ -464,6 +536,9 @@ mod tests {
             .unwrap();
         assert_eq!(version, CURRENT_SCHEMA_VERSION);
 
+        conn.execute("DROP INDEX IF EXISTS idx_panes_tab_created", [])
+            .unwrap();
+        conn.execute("DROP TABLE IF EXISTS panes", []).unwrap();
         conn.execute("DROP INDEX idx_tabs_workspace_created", [])
             .unwrap();
         conn.execute("DROP TABLE tabs", []).unwrap();
@@ -503,6 +578,182 @@ mod tests {
 
         drop(conn);
         drop(pool);
+        drop(dir);
+    }
+
+    #[test]
+    fn v6_migration_creates_panes_table_and_tab_columns() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v6test.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+
+        let panes_table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='panes'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(panes_table_exists, "panes table should exist after v6");
+
+        let panes_index_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name='idx_panes_tab_created'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            panes_index_exists,
+            "idx_panes_tab_created should exist after v6"
+        );
+
+        let tab_cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(tabs)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        assert!(tab_cols.contains(&"layout".to_string()));
+        assert!(tab_cols.contains(&"focused_pane_id".to_string()));
+
+        let panes_fk_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM pragma_foreign_key_list('panes') WHERE \"table\" = 'tabs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(panes_fk_exists, "panes should have FK referencing tabs");
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 6);
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v6_migration_is_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v6idemtest.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+
+        let layout_col_count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('tabs') WHERE name = 'layout'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let focused_col_count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('tabs') WHERE name = 'focused_pane_id'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(layout_col_count, 1, "layout column should not duplicate");
+        assert_eq!(
+            focused_col_count, 1,
+            "focused_pane_id column should not duplicate"
+        );
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 6);
+        drop(conn);
+        drop(dir);
+    }
+
+    #[test]
+    fn v5_to_v6_preserves_existing_tabs() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v5-to-v6.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO workspaces (workspace_id, name, path, has_git, repo_root, created_at, last_opened)
+             VALUES ('w1', 'Workspace', '/tmp/vibestation', 0, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
+             VALUES ('t1', 'w1', 'Tab', '/bin/zsh', '/tmp', '[\"line\"]', 2)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v6(&conn).unwrap();
+
+        let row: (
+            String,
+            String,
+            String,
+            String,
+            String,
+            i64,
+            String,
+            Option<String>,
+        ) = conn
+            .query_row(
+                "SELECT tab_id, workspace_id, name, shell, cwd, created_at, layout, focused_pane_id
+                 FROM tabs WHERE tab_id = 't1'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                        row.get(6)?,
+                        row.get(7)?,
+                    ))
+                },
+            )
+            .unwrap();
+        assert_eq!(row.0, "t1");
+        assert_eq!(row.1, "w1");
+        assert_eq!(row.2, "Tab");
+        assert_eq!(row.3, "/bin/zsh");
+        assert_eq!(row.4, "/tmp");
+        assert_eq!(row.5, 2);
+        assert_eq!(row.6, r#"{"kind":"single","paneId":""}"#);
+        assert_eq!(row.7, None);
+
+        let scroll_back: String = conn
+            .query_row(
+                "SELECT scroll_back FROM tabs WHERE tab_id = 't1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(scroll_back, r#"["line"]"#);
+        drop(conn);
         drop(dir);
     }
 

@@ -4,7 +4,14 @@ import { App } from "./App";
 import "./styles.css";
 import "./styles/typography.css";
 
-const isLinux = navigator.platform.toLowerCase().includes("linux");
+const platform = navigator.platform.toLowerCase();
+const isLinux = platform.includes("linux");
+const isMac = platform.includes("mac");
+
+if (isMac) {
+  document.documentElement.classList.add("platform-macos");
+}
+
 if (isLinux) {
   document.documentElement.classList.add("platform-linux");
 }

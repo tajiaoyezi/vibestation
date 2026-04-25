@@ -9,6 +9,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
 import "./styles.css";
 
@@ -77,6 +78,16 @@ const LayoutShell: Component<{
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
     return v.kind === "workspace" ? v.ws : null;
+  };
+
+  const handleTitleBarMouseDown = (event: MouseEvent) => {
+    if (event.button !== 0 || event.detail !== 1) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    void getCurrentWindow().startDragging();
   };
 
   createEffect(() => {
@@ -192,6 +203,13 @@ const LayoutShell: Component<{
 
   return (
     <div class="vs-shell">
+      <div
+        class="title-bar-drag"
+        data-tauri-drag-region
+        aria-hidden="true"
+        onMouseDown={handleTitleBarMouseDown}
+      />
+
       <div class="vs-main-grid">
         <PrimarySidebar
           workspaces={props.workspaces}

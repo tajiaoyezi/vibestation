@@ -45,6 +45,8 @@
     "allow-git-ops-commit",
     "allow-git-ops-read-identity",
     "allow-git-ops-set-identity",
+    "core:window:allow-start-dragging",
+    "core:window:allow-internal-toggle-maximize",
     "allow-menu-show-tab",
     "allow-menu-show-terminal",
     "allow-menu-register-shortcuts",

@@ -41,6 +41,7 @@
   /* Layout structure — 原型同值 */
   --activity-strip-width: 36px;
   --status-bar-height: 26px;
+  --title-bar-height: 28px;
 
   /* MVP-11 Phase 4 · Appearance CSS vars (JS 动态 override) */
   --bg-opacity: 0.85;
@@ -182,11 +183,27 @@ textarea {
 }
 
 .title-bar-drag {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  display: none;
   -webkit-app-region: drag;
-  height: 28px;
+  height: var(--title-bar-height);
+  pointer-events: auto;
 }
 
-.title-bar-drag [data-no-drag] {
+.platform-macos .title-bar-drag {
+  display: block;
+}
+
+.title-bar-drag [data-no-drag],
+.title-bar-drag .no-drag,
+.title-bar-drag button,
+.title-bar-drag a,
+.title-bar-drag input,
+.title-bar-drag textarea,
+.title-bar-drag select,
+.title-bar-drag [role="button"] {
   -webkit-app-region: no-drag;
 }
 
@@ -213,6 +230,7 @@ textarea {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  position: relative;
 }
 
 /* Main grid: Primary | Main | Secondary | Activity Strip */
@@ -237,6 +255,11 @@ textarea {
   flex-direction: column;
   min-height: 0;
   position: relative;
+}
+
+.platform-macos .vs-primary-sidebar .vs-panel-head {
+  height: calc(32px + var(--title-bar-height));
+  padding-top: var(--title-bar-height);
 }
 
 .vs-primary-sidebar.vs-panel-hidden {

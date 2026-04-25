@@ -6,13 +6,13 @@
 #
 # 设计：每个 job 独立 · 失败一个不影响其他 job 继续跑 · 便于 PR 看到完整失败清单
 # 超时：每 job ≤ 10min（CI 成本 + 失败反馈速度）
-# 2026-04-23：为节省 GitHub Actions 免费时长，暂时只在 `push main` + `workflow_dispatch` 触发
+# 2026-04-23：为节省 GitHub Actions 免费时长，关 PR 触发（PR #102）· 只保留 `push main` + `workflow_dispatch`
+# 2026-04-25：GitHub Actions billing 失败导致 main push 触发后所有 job fail · 误导未来 agent ·
+#             进一步关闭 `push main` 触发 · 仅保留 `workflow_dispatch`（手动触发 / billing 恢复后再放开）
 
 name: CI
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

@@ -1,22 +1,12 @@
-// MVP-10 Phase A · AppSettings mock store
-// Phase B 替换为 ts-rs binding + IPC invoke（settings_get / settings_update）
-
+import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import type { AppSettings, SettingsUpdateRequest } from "../bindings";
 
 export type ThemeSetting = "light" | "dark" | "auto";
 
-export interface AppSettings {
-  theme: ThemeSetting;
-  fontFamily: string;
-  fontSize: number;
-  defaultShell: string;
-  pasteProtection: boolean;
-  telemetryOptIn: boolean | null;
-  gitUserName: string | null;
-  gitUserEmail: string | null;
-}
-
-export const DEFAULT_SETTINGS: AppSettings = {
+const DEFAULTS: AppSettings = {
   theme: "auto",
   fontFamily: "JetBrains Mono",
   fontSize: 14,
@@ -25,27 +15,88 @@ export const DEFAULT_SETTINGS: AppSettings = {
   telemetryOptIn: null,
   gitUserName: null,
   gitUserEmail: null,
+  bgOpacity: 0.85,
+  bgBlur: 20,
+  windowPaddingX: 2,
+  windowPaddingY: 2,
+  cursorStyle: "block",
+  cursorBlink: false,
+  unfocusedPaneOpacity: 0.7,
 };
 
-const [settings, setSettings] = createStore<AppSettings>({
-  ...DEFAULT_SETTINGS,
+const [settings, setSettings] = createStore<AppSettings>({ ...DEFAULTS });
+
+const [loaded, setLoaded] = createSignal(false);
+
+async function loadSettings(): Promise<void> {
+  if (loaded()) return;
+  try {
+    const s = await invoke<AppSettings>("settings_get");
+    setSettings(s);
+    applyCssVars(s);
+  } catch {}
+  setLoaded(true);
+}
+
+loadSettings();
+
+listen<AppSettings>("settings_changed", (event) => {
+  setSettings(event.payload);
+  applyCssVars(event.payload);
 });
+
+function applyCssVars(s: AppSettings): void {
+  const root = document.documentElement.style;
+  root.setProperty("--bg-opacity", String(s.bgOpacity));
+  root.setProperty("--bg-blur", `${s.bgBlur}px`);
+  root.setProperty("--window-padding-x", `${s.windowPaddingX}px`);
+  root.setProperty("--window-padding-y", `${s.windowPaddingY}px`);
+  root.setProperty("--cursor-style", s.cursorStyle);
+  root.setProperty("--unfocused-opacity", String(s.unfocusedPaneOpacity));
+
+  const fallback = 'ui-monospace, "SF Mono", "Menlo", "Consolas", monospace';
+  root.setProperty("--font-mono", `"${s.fontFamily}", ${fallback}`);
+}
 
 export function useSettings() {
   return {
     settings,
-    updateSettings(partial: Partial<AppSettings>) {
-      setSettings(partial);
-      // Phase B: invoke('settings_update', partial) → Rust KV write → emit 'settings_changed'
+    async updateSettings(partial: Partial<AppSettings>) {
+      setSettings(partial as never);
 
-      // E.5 · MVP-10 Font Family 设置实时覆盖 typography.css 默认
-      if (partial.fontFamily !== undefined) {
-        const fallback =
-          'ui-monospace, "SF Mono", "Menlo", "Consolas", monospace';
-        document.documentElement.style.setProperty(
-          "--font-mono",
-          `"${partial.fontFamily}", ${fallback}`,
-        );
+      const req = {} as SettingsUpdateRequest;
+      if (partial.theme !== undefined) req.theme = partial.theme;
+      if (partial.fontFamily !== undefined) req.fontFamily = partial.fontFamily;
+      if (partial.fontSize !== undefined) req.fontSize = partial.fontSize;
+      if (partial.defaultShell !== undefined)
+        req.defaultShell = partial.defaultShell;
+      if (partial.pasteProtection !== undefined)
+        req.pasteProtection = partial.pasteProtection;
+      if (partial.telemetryOptIn !== undefined)
+        req.telemetryOptIn = partial.telemetryOptIn;
+      if (partial.gitUserName !== undefined)
+        req.gitUserName = partial.gitUserName;
+      if (partial.gitUserEmail !== undefined)
+        req.gitUserEmail = partial.gitUserEmail;
+      if (partial.bgOpacity !== undefined) req.bgOpacity = partial.bgOpacity;
+      if (partial.bgBlur !== undefined) req.bgBlur = partial.bgBlur;
+      if (partial.windowPaddingX !== undefined)
+        req.windowPaddingX = partial.windowPaddingX;
+      if (partial.windowPaddingY !== undefined)
+        req.windowPaddingY = partial.windowPaddingY;
+      if (partial.cursorStyle !== undefined)
+        req.cursorStyle = partial.cursorStyle;
+      if (partial.cursorBlink !== undefined)
+        req.cursorBlink = partial.cursorBlink;
+      if (partial.unfocusedPaneOpacity !== undefined)
+        req.unfocusedPaneOpacity = partial.unfocusedPaneOpacity;
+
+      try {
+        const updated = await invoke<AppSettings>("settings_update", { req });
+        setSettings(updated);
+        applyCssVars(updated);
+      } catch {
+        applyCssVars(settings);
       }
     },
   };

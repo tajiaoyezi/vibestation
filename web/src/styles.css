@@ -41,6 +41,14 @@
   /* Layout structure — 原型同值 */
   --activity-strip-width: 36px;
   --status-bar-height: 26px;
+
+  /* MVP-11 Phase 4 · Appearance CSS vars (JS 动态 override) */
+  --bg-opacity: 0.85;
+  --bg-blur: 20px;
+  --window-padding-x: 2px;
+  --window-padding-y: 2px;
+  --cursor-style: block;
+  --unfocused-opacity: 0.7;
 }
 
 /* Dark (default) — Calm Studio 原型同值 */
@@ -130,26 +138,28 @@ body,
 }
 
 #root {
-  background: rgba(250, 250, 250, 0.85);
+  --root-bg: rgb(250 250 250 / var(--bg-opacity));
+  background: var(--root-bg);
+  padding: var(--window-padding-y) var(--window-padding-x);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) #root {
-    background: rgba(28, 28, 30, 0.75);
+    --root-bg: rgb(28 28 30 / var(--unfocused-opacity));
   }
 }
 
 [data-theme="dark"] #root {
-  background: rgba(28, 28, 30, 0.75);
+  --root-bg: rgb(28 28 30 / var(--unfocused-opacity));
 }
 
 .platform-linux #root {
-  background: rgba(250, 250, 250, 0.98);
+  --root-bg: rgb(250 250 250 / 0.98);
 }
 
 .platform-linux[data-theme="dark"] #root,
 .platform-linux [data-theme="dark"] #root {
-  background: rgba(28, 28, 30, 0.98);
+  --root-bg: rgb(28 28 30 / 0.98);
 }
 
 .xterm,

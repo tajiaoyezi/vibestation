@@ -64,28 +64,28 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ⏳ todo | — |
+| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | 本 PR |
 | Phase B · Status 面板操作接线 | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 | ⏳ todo | — |
 | Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
-- [ ] `crates/core/Cargo.toml` 加 `git2` 已存在（继承 MVP-07）· 不需要新增依赖
-- [ ] 新建 `crates/core/src/git_ops.rs`（不和 `git_status.rs` 混 · 写路径独立模块）
-- [ ] git2 API 调用链 ready-to-use（参考 §H.4 表）：
+- [x] `crates/core/Cargo.toml` 加 `git2` 已存在（继承 MVP-07）· 不需要新增依赖
+- [x] 新建 `crates/core/src/git_ops.rs`（不和 `git_status.rs` 混 · 写路径独立模块）
+- [x] git2 API 调用链 ready-to-use（参考 §H.4 表）：
   - Stage：`Repository::index()` → `Index::add_path()` → `Index::write()`
   - Unstage：`Repository::head()` → tree 对应 path → `Index::remove_path()` / `add_tree_entry()` → `Index::write()`
   - Commit：`Repository::signature_default()` → `Repository::commit(parents, author, committer, message, tree, ...)`
   - Amend：`Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))`
-- [ ] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
-  - `stage` / `unstage` / `commit` / `amend` / `get_git_identity` / `set_git_identity`
-- [ ] permission toml：`crates/app/permissions/git_ops.toml` 新建 · 含 6 个 `allow-{name}`
-- [ ] capability `default.json` 引用上述 permission
-- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发）
-- [ ] fixture：`tests/fixtures/mvp-09/` 用 `tempfile` crate 运行时生成（不要硬编码本地路径）
+- [x] IPC commands 注册顺序（`crates/app/src/lib.rs` `invoke_handler!`）：
+  - `git_ops_stage_files` / `git_ops_unstage_files` / `git_ops_commit` / `git_ops_read_identity` / `git_ops_set_identity`
+- [x] permission toml：`crates/app/permissions/git_ops.toml` 新建 · 含 5 个 `allow-{name}`
+- [x] capability `default.json` 引用上述 permission
+- [x] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 + 手动同步 9 个文件）
+- [x] fixture：`git_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录
 
-**下次 agent 起点**：Phase A
+**下次 agent 起点**：Phase B（Status 面板操作接线 · 前端 optimistic UI + IPC invoke）
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 

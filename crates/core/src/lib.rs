@@ -9,6 +9,7 @@ pub mod db;
 pub mod diff;
 pub mod fs_watch;
 pub mod git_log;
+pub mod git_ops;
 pub mod git_status;
 pub mod layout;
 pub mod pty;
@@ -23,6 +24,10 @@ pub use fs_watch::{GitStatusWatchError, GitStatusWatcher, GIT_STATUS_WATCH_DEBOU
 pub use git_log::{
     CommitAuthor, CommitDetail, CommitParent, FileChange, GitLogEntry, GitLogError,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
+};
+pub use git_ops::{
+    CommitError, CommitRequest, CommitResponse, GitConfigIdentity, GitOpsService,
+    SetGitIdentityRequest, StageFailedItem, StageRequest, StageResult, UnstageRequest,
 };
 pub use git_status::{
     FileStatusEvent, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,

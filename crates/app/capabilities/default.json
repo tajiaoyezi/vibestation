@@ -16,6 +16,8 @@
     "allow-layout-load",
     "allow-theme-get",
     "allow-theme-set",
+    "allow-default-shell-get",
+    "allow-default-shell-set",
     "allow-tab-list",
     "allow-tab-create",
     "allow-tab-close",

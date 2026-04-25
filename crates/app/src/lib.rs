@@ -187,6 +187,22 @@ fn theme_set(state: State<'_, AppState>, theme: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn default_shell_get(state: State<'_, AppState>) -> Result<String, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let shell = vibestation_core::resolve_default_shell(Some(pool));
+    Ok(shell)
+}
+
+#[tauri::command]
+fn default_shell_set(state: State<'_, AppState>, shell: String) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    vibestation_core::check_shell_exists(&shell).map_err(|e| e.to_string())?;
+    AppSettingsStore::set(pool, "default_shell", &shell).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn tab_list(state: State<'_, AppState>, workspace_id: String) -> Result<TabListResponse, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
@@ -505,6 +521,8 @@ pub fn run() {
             layout_load,
             theme_get,
             theme_set,
+            default_shell_get,
+            default_shell_set,
             tab_list,
             tab_create,
             tab_close,

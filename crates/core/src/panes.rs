@@ -156,6 +156,7 @@ pub struct PaneFocusRequest {
 pub struct PaneListResponse {
     pub panes: Vec<PaneState>,
     pub layout: LayoutNode,
+    pub focused_pane_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]

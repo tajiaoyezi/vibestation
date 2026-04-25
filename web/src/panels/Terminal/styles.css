@@ -736,3 +736,22 @@
 .vs-smart-layout-btn-apply:hover:not(:disabled) {
   background: color-mix(in oklch, var(--bg-0) 50%, var(--danger));
 }
+
+/* MVP-05 Phase C Track A · pane-mode tab 容器（与 .vs-terminal-pane 同区域 · 但承载 PaneSplitView 递归 layout） */
+.vs-pane-tab-host {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.vs-pane-tab-host.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.vs-pane-tab-host.is-active {
+  visibility: visible;
+}

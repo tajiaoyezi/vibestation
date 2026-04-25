@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+
 import { CanvasAddon } from "@xterm/addon-canvas";
 import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -318,6 +319,13 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       id={`terminal-pane-${props.tab.tabId}`}
       class={`vs-terminal-pane ${props.active ? "is-active" : ""}`}
       aria-hidden={!props.active}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        void invoke("menu_show_terminal", {
+          x: e.clientX,
+          y: e.clientY,
+        });
+      }}
     >
       <div
         class={`vs-terminal-loading ${!hasVisibleOutput() && props.runtime.phase !== "error" && props.runtime.phase !== "exited" ? "is-visible" : ""}`}

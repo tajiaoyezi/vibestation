@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import {
   createEffect,
   createSignal,
@@ -14,6 +15,7 @@ type TabBarProps = {
   onCreate: () => void;
   onRename: (tabId: string, name: string) => Promise<void>;
   onSelect: (tabId: string) => void;
+  pendingRenameTabId?: string | null;
 };
 
 export const TabBar: Component<TabBarProps> = (props) => {
@@ -58,6 +60,19 @@ export const TabBar: Component<TabBarProps> = (props) => {
     });
   });
 
+  createEffect(() => {
+    const pendingId = props.pendingRenameTabId;
+    if (!pendingId) {
+      return;
+    }
+
+    const tab = props.tabs.find((t) => t.tabId === pendingId);
+    if (tab) {
+      props.onSelect(tab.tabId);
+      startRename(tab);
+    }
+  });
+
   return (
     <div class="vs-terminal-tabbar" role="tablist" aria-label="Terminal tabs">
       <div class="vs-terminal-tabbar-scroll">
@@ -70,6 +85,13 @@ export const TabBar: Component<TabBarProps> = (props) => {
               <div
                 class={`vs-terminal-tab ${active() ? "is-active" : ""}`}
                 role="presentation"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  void invoke("menu_show_tab", {
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }}
               >
                 <Show
                   when={editing()}

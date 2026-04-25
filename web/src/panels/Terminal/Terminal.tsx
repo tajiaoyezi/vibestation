@@ -1,11 +1,13 @@
 import { ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
   createEffect,
   createMemo,
   createSignal,
   For,
   onCleanup,
+  onMount,
   Show,
   type Component,
 } from "solid-js";
@@ -82,6 +84,9 @@ export const Terminal: Component<TerminalProps> = (props) => {
     null,
   );
   const [toast, setToast] = createSignal<TerminalToast | null>(null);
+  const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
+    string | null
+  >(null);
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
@@ -614,10 +619,107 @@ export const Terminal: Component<TerminalProps> = (props) => {
     queueMicrotask(() => focusActivePane());
   });
 
+  let unlistenMenu: UnlistenFn | undefined;
+
+  onMount(async () => {
+    unlistenMenu = await listen<{ action: string }>("menu:action", (event) => {
+      const workspace = props.activeWorkspace();
+      if (!workspace) {
+        return;
+      }
+
+      const tabId = currentActiveTabId();
+      const tabs = currentTabs();
+
+      switch (event.payload.action) {
+        case "close_tab":
+          if (tabId) {
+            void closeTab(tabId);
+          }
+          break;
+        case "close_other_tabs": {
+          if (!tabId) {
+            break;
+          }
+          for (const t of tabs) {
+            if (t.tabId !== tabId) {
+              void closeTab(t.tabId);
+            }
+          }
+          break;
+        }
+        case "close_tabs_to_right": {
+          if (!tabId) {
+            break;
+          }
+          const idx = tabs.findIndex((t) => t.tabId === tabId);
+          if (idx >= 0) {
+            for (let i = idx + 1; i < tabs.length; i++) {
+              void closeTab(tabs[i].tabId);
+            }
+          }
+          break;
+        }
+        case "rename_tab":
+          if (tabId) {
+            setPendingRenameTabId(tabId);
+          }
+          break;
+        case "duplicate_tab": {
+          if (!tabId) {
+            break;
+          }
+          const src = findTab(tabId);
+          if (src) {
+            void invoke<TabState>("tab_create", {
+              req: {
+                workspaceId: src.workspaceId,
+                name: `${src.name} (copy)`,
+                shell: src.shell,
+                cwd: src.cwd,
+              } satisfies TabCreateRequest,
+            })
+              .then((newTab) => {
+                updateWorkspaceTabs(src.workspaceId, (prev) => [
+                  ...prev,
+                  newTab,
+                ]);
+                setWorkspaceActiveTab(src.workspaceId, newTab.tabId);
+              })
+              .catch((err) => showToast(errorMessage(err)));
+          }
+          break;
+        }
+        case "new_tab":
+          void createTab(workspace);
+          break;
+        case "split_horizontal":
+        case "split_vertical":
+          showToast(
+            `Split ${event.payload.action === "split_horizontal" ? "horizontal" : "vertical"} · 即将推出`,
+            "info",
+          );
+          break;
+        case "clear_terminal":
+          if (tabId) {
+            const api = paneApis.get(tabId);
+            if (api) {
+              // xterm reset via api not exposed; use PTY signal instead
+              void invoke("tab_pty_signal", { tabId, signal: "SIGINT" }).catch(
+                () => {},
+              );
+            }
+          }
+          break;
+      }
+    });
+  });
+
   onCleanup(() => {
     if (toastTimer) {
       clearTimeout(toastTimer);
     }
+    unlistenMenu?.();
   });
 
   return (
@@ -641,6 +743,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       <TabBar
         tabs={currentTabs()}
         activeTabId={currentActiveTabId()}
+        pendingRenameTabId={pendingRenameTabId() ?? undefined}
         onCreate={() => {
           const workspace = props.activeWorkspace();
           if (workspace) {
@@ -650,7 +753,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
         onClose={(tabId) => {
           void closeTab(tabId);
         }}
-        onRename={renameTab}
+        onRename={(tabId, name) => {
+          setPendingRenameTabId(null);
+          return renameTab(tabId, name);
+        }}
         onSelect={(tabId) => {
           const workspaceId = activeWorkspaceId();
           if (workspaceId) {

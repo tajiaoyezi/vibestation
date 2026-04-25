@@ -2,23 +2,22 @@
 id: SPIKE-01
 type: spike
 title: Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）
-status: blocked
+status: done
 owner: Claude Code (Sonnet 4.6)
 phase: W0-D1
 depends_on: []
 blocks: ["SPIKE-02", "SPIKE-03", "SPIKE-04", "SPIKE-05", "SPIKE-06"]
-blocked_by: ["ubuntu-24-environment"]
-blocked_from: in-progress
-blocked_note: Phase A macOS PASS（PR #20 · 冷启动 202ms median · ADR-006 accepted）· Phase B Ubuntu 等用户搭 Ubuntu 24 LTS 环境 · Ubuntu 已降为 v0.1 GA 最低优先（见 PROGRESS "S-3 Ubuntu 降级"）· 不是等 agent 认领 · session 13 horizontal scan @ 2026-04-21
+blocked_by: []
+blocked_note: Phase A macOS done @ session 10（PR #20 · 冷启动 202ms median）· Phase B Ubuntu done @ session 19（PR #137 · X11 108ms + Wayland 107ms · 30 cold boot 0 fail）· 双平台 hard-pass 完成 · ADR-006 caveat removed · v0.1 GA 双平台路径正式开通
 estimate: 1d
 plan_ref: implementation-plan.md §3.1.1 · §附录 A D1
 risk_ref: R12
-reviewer: Claude Code
+reviewer: Kimi (Moonshot)
 ---
 
 # SPIKE-01: Tauri 2 三平台空壳启动
 
-> **状态**：`blocked`（macOS Phase A PASS · Ubuntu 验证待环境 · 已降为最低优先）
+> **状态**：`done`（macOS Phase A ✅ · Ubuntu Phase B ✅ · ADR-006 caveat removed · 2026-04-25）
 > **依赖**：— / **阻塞**：SPIKE-02..06 全部（Tauri 是所有后续 Spike 的载体）
 > **战略依据**：[`implementation-plan.md §3.1.1 Tauri Spike 硬通过判据`](../implementation-plan.md) · [`§附录 A D1`](../implementation-plan.md)
 

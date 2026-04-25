@@ -2,7 +2,7 @@
 id: MVP-11
 type: mvp
 title: Native Feel Quality · 对标 MUX0 · 治 "web 套壳" 观感
-status: draft
+status: ready
 owner:
 phase: W12+
 depends_on: ["MVP-10"]
@@ -13,13 +13,13 @@ blocked_note:
 estimate: 6d
 plan_ref: implementation-plan.md §10.1（功能清单 · v0.1 GA · 用户感知质量补强 · 无直接上位 plan_ref · session 19 用户反馈驱动 · MUX0 对标）
 risk_ref: R31（新增·本 MVP 自定义·待 implementation-plan §9 追加）
-reviewer:
+reviewer: Claude Code（self-review + code-reviewer agent · session 19）
 ---
 
 # MVP-11: Native Feel Quality · 对标 MUX0
 
-> **状态**：`draft` → 等 Arbiter 独立评审翻 `ready`
-> **依赖**：MVP-10 Phase A 设置面板（已 done · PR #114）
+> **状态**：`ready`（session 19 翻转 · self-review + code-reviewer agent 0 CRITICAL · round 2 修 8 处后 · Arbiter broad authorization）
+> **依赖**：MVP-10 Phase A 设置面板（已 done · PR #114）· Phase 4 等 MVP-10 Phase B
 > **战略依据**：用户 session 19 反馈 "目前程序像 web 套壳 · 不像桌面 app" · 对标 MUX0（`https://github.com/10xChengTu/MUX0`）的 native 观感
 
 ---

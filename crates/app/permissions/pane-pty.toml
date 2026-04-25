@@ -1,0 +1,29 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-05 Phase B · Pane PTY IPC permissions
+# §H.6 锁 A 选项独立命名空间 · 5 commands
+
+[[permission]]
+identifier = "allow-pane-pty-spawn"
+description = "允许前端为新 Pane spawn 一个独立 PTY session（pane_id 索引 · 独立 PtyManager 实例 · 不与 tab_pty_* 冲突）"
+commands.allow = ["pane_pty_spawn"]
+
+[[permission]]
+identifier = "allow-pane-pty-stdin"
+description = "允许前端向指定 Pane PTY 写入 stdin"
+commands.allow = ["pane_pty_stdin"]
+
+[[permission]]
+identifier = "allow-pane-pty-resize"
+description = "允许前端调整 Pane PTY 窗口大小（cols/rows）"
+commands.allow = ["pane_pty_resize"]
+
+[[permission]]
+identifier = "allow-pane-pty-signal"
+description = "允许前端向 Pane PTY 发送信号（SIGINT / SIGTERM 等）"
+commands.allow = ["pane_pty_signal"]
+
+[[permission]]
+identifier = "allow-pane-pty-kill"
+description = "允许前端终止 Pane PTY · 返回 exit code（如有）"
+commands.allow = ["pane_pty_kill"]

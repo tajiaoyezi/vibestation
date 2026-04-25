@@ -147,6 +147,26 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
   - 看 Frames track · 找最长帧时间（worst-case frame budget）
   - 重复 3 次 · 取 P99
 
+**v0.2 复现路径**（fixture generator 已落地 · 不污染用户 workspace）：
+
+```bash
+# 1. 生成 10k 行 diff fixture（临时目录 · 不进 git）
+bash scripts/fixtures/mvp-08/gen-10k-diff.sh /tmp/a6-fixture
+
+# 2. 启动 vibestation · 通过 Workspace Picker 加载 /tmp/a6-fixture
+pnpm tauri:dev
+
+# 3. Chrome DevTools Performance panel：
+#    - 点 GIT STATUS 中 lorem.txt unstaged → 主区 Diff overlay 打开 ~5000 行差异
+#    - DevTools → Performance → Record → 滚动条拖 3 秒 → Stop
+#    - Frames track 找 worst-case frame · 重复 3 次取 P99 · spec < 16ms
+
+# 4. 清理 fixture
+rm -rf /tmp/a6-fixture
+```
+
+> 脚本说明：[`scripts/fixtures/mvp-08/README.md`](../../../../scripts/fixtures/mvp-08/README.md)（PR 后路径）
+
 **Pass status**: ⏸️ **deferred to v0.2 GA gate** · 与 round 1 状态一致 · 未做新假设
 
 ### F.3: 1k 文件 Status 列表渲染 < 70ms（5 次采样 · 受限于工作区）
@@ -170,6 +190,26 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 - **后端 Criterion 数据**（F.1 17ms · F.2 55µs）+ virtualized list 渲染机制 · 数量级**预期**满足 < 70ms · 但**未实测**
 
 **Pass status**: ⏸️ **deferred** · 同 A.6 · 需独立 1k 文件 fixture workspace + DevTools
+
+**v0.2 复现路径**（fixture generator 已落地 · 不污染用户 workspace）：
+
+```bash
+# 1. 生成 1k 文件 fixture · 500 unstaged changes
+bash scripts/fixtures/mvp-08/gen-1k-files.sh /tmp/f3-fixture
+
+# 2. 启动 vibestation · Workspace Picker 加载 /tmp/f3-fixture
+pnpm tauri:dev
+
+# 3. Chrome DevTools Performance panel：
+#    - GIT STATUS 面板应该自动列出 ~500 modified · 顶部 Refresh 按钮可触发刷新
+#    - DevTools → Performance → Record → 点 Refresh → Stop
+#    - 看 click → DOM commit 时间 · 重复 3 次取 P99 · spec < 70ms（virtualized list 渲染）+ 端到端 < 200ms
+
+# 4. 清理 fixture
+rm -rf /tmp/f3-fixture
+```
+
+> 脚本说明：[`scripts/fixtures/mvp-08/README.md`](../../../../scripts/fixtures/mvp-08/README.md)（PR 后路径）
 
 > **Source**: `screenshots/07-f3-run1-before-refresh.jpg` (Status panel idle) + `08-f3-run1-after-159ms.jpg` (159ms 后时间戳 / 元信息更新).
 
@@ -287,8 +327,8 @@ All numbers from `cargo bench --bench git_status_bench` and `cargo bench --bench
 | Item | Action | Owner |
 |------|--------|-------|
 | A.2 P99 < 200ms 精确确认 | 用 DevTools Performance trace 5+ runs · 区分 selection update vs Diff render | v0.2 主 agent / 用户本地 |
-| A.6 10k 行帧时长 < 16ms | 创建 10k 行 diff fixture · DevTools record scroll · 看 Frames track 最长帧 | v0.2 |
-| F.3 1k 文件渲染 < 70ms | 创建 1k staged/unstaged file fixture · DevTools Performance record refresh-to-DOM | v0.2 |
+| A.6 10k 行帧时长 < 16ms | `bash scripts/fixtures/mvp-08/gen-10k-diff.sh /tmp/a6-fixture` · 加载 fixture · DevTools record scroll · Frames track 最长帧 | v0.2 |
+| F.3 1k 文件渲染 < 70ms | `bash scripts/fixtures/mvp-08/gen-1k-files.sh /tmp/f3-fixture` · 加载 fixture · DevTools Performance record refresh-to-DOM | v0.2 |
 | F.6 fs watch ✅ | 已 phase-d 验证 · 无须再做 | done |
 | 4 张静态 UI 截图（01-04） | 制造 staged/unstaged/untracked + binary file + large file 场景 | v0.2 |
 

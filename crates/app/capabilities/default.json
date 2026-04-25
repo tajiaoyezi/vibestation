@@ -40,6 +40,11 @@
     "allow-git-status-set-group-collapsed",
     "allow-git-status-subscribe",
     "allow-git-status-unsubscribe",
+    "allow-git-ops-stage-files",
+    "allow-git-ops-unstage-files",
+    "allow-git-ops-commit",
+    "allow-git-ops-read-identity",
+    "allow-git-ops-set-identity",
     "dialog:default"
   ]
 }

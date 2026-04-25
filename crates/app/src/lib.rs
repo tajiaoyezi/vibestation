@@ -11,11 +11,12 @@ use std::sync::Mutex;
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::{
-    AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitLogQueryRequest,
-    GitLogQueryResponse, GitLogReader, GitStatusCollapseRequest, GitStatusPanelSettings,
-    GitStatusRequest, GitStatusResponse, GitStatusService, GitStatusWatcher, LayoutState,
-    LayoutStore, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao, WorkspaceMetadata,
+    AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService, GitConfigIdentity,
+    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
+    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
+    GitStatusWatcher, LayoutState, LayoutStore, PtyEvent, PtyEventReceiver, PtyManager,
+    PtySpawnRequest, SetGitIdentityRequest, StageRequest, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabState, TabsDao, UnstageRequest, WorkspaceMetadata,
     WorkspaceStore,
 };
 
@@ -491,6 +492,70 @@ fn git_status_unsubscribe(state: State<'_, AppState>, workspace_id: String) -> R
     Ok(())
 }
 
+#[tauri::command]
+fn git_ops_stage_files(
+    state: State<'_, AppState>,
+    req: StageRequest,
+) -> Result<vibestation_core::StageResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitOpsService::stage_files(&repo_path, &req.file_paths.into_iter().collect::<Vec<_>>())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_ops_unstage_files(state: State<'_, AppState>, req: UnstageRequest) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitOpsService::unstage_files(&repo_path, &req.file_paths.into_iter().collect::<Vec<_>>())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_ops_commit(
+    state: State<'_, AppState>,
+    req: vibestation_core::CommitRequest,
+) -> Result<vibestation_core::CommitResponse, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitOpsService::commit(&repo_path, &req.message, req.amend).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_ops_read_identity(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<GitConfigIdentity, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace = WorkspaceStore::get_by_id(pool, &workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitOpsService::read_git_identity(&repo_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn git_ops_set_identity(
+    state: State<'_, AppState>,
+    req: SetGitIdentityRequest,
+) -> Result<(), String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let workspace =
+        WorkspaceStore::get_by_id(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    let repo_path = std::path::PathBuf::from(&workspace.path);
+    GitOpsService::set_git_identity(&repo_path, &req.name, &req.email, &req.scope)
+        .map_err(|e| e.to_string())
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
@@ -545,6 +610,11 @@ pub fn run() {
             git_status_set_group_collapsed,
             git_status_subscribe,
             git_status_unsubscribe,
+            git_ops_stage_files,
+            git_ops_unstage_files,
+            git_ops_commit,
+            git_ops_read_identity,
+            git_ops_set_identity,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

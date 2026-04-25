@@ -13,6 +13,7 @@ pub mod git_ops;
 pub mod git_status;
 pub mod layout;
 pub mod pane_pty;
+pub mod pane_service;
 pub mod panes;
 pub mod pty;
 pub mod tabs;
@@ -37,10 +38,14 @@ pub use git_status::{
 };
 pub use layout::{LayoutState, LayoutStore};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
+pub use pane_service::{
+    apply_layout_preset, apply_pane_close, apply_pane_focus, apply_pane_split,
+    apply_split_ratio_update,
+};
 pub use panes::{
     LayoutApplyRequest, LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError,
     PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
-    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PanesDao, SplitDir,
+    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PanesDao, SmartLayoutKind, SplitDir,
     SplitRatioUpdateRequest,
 };
 pub use pty::{

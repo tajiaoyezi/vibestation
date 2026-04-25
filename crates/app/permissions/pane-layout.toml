@@ -1,0 +1,29 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-05 Phase B Step 2 · Pane layout IPC permissions
+# §H.3 atomicity · 5 commands · 调用 panes 模块的 4 pure functions + 包 transaction
+
+[[permission]]
+identifier = "allow-pane-split"
+description = "允许前端在指定 parent_pane_id 处发起 split · 创建新 Pane + 更新 layout/focused_pane_id（事务）"
+commands.allow = ["pane_split"]
+
+[[permission]]
+identifier = "allow-pane-close"
+description = "允许前端关闭指定 Pane · 删除 panes 行 + 更新 layout · 焦点切到 layout 中第一个 Pane"
+commands.allow = ["pane_close"]
+
+[[permission]]
+identifier = "allow-pane-focus"
+description = "允许前端切换 tab 焦点 Pane（仅写 focused_pane_id · 不动 layout）"
+commands.allow = ["pane_focus"]
+
+[[permission]]
+identifier = "allow-pane-layout-apply"
+description = "允许前端应用 Smart Layout 预设（solo / aiAndRunner）· 关闭多余 Pane + 重新生成 layout"
+commands.allow = ["pane_layout_apply"]
+
+[[permission]]
+identifier = "allow-pane-split-ratio-update"
+description = "允许前端调整 split 节点 ratio（仅 layout 改动 · 不动 panes 表）"
+commands.allow = ["pane_split_ratio_update"]

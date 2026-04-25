@@ -45,6 +45,10 @@
     "allow-git-ops-commit",
     "allow-git-ops-read-identity",
     "allow-git-ops-set-identity",
+    "allow-menu-show-tab",
+    "allow-menu-show-terminal",
+    "allow-menu-register-shortcuts",
+    "allow-menu-item-clicked",
     "dialog:default"
   ]
 }

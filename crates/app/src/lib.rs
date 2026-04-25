@@ -4,6 +4,7 @@
 //! 存储：rusqlite via r2d2 连接池 · SPIKE-04.5 B.1-5 全过。
 
 mod fix_path_env;
+mod menu;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -617,6 +618,10 @@ pub fn run() {
             git_ops_commit,
             git_ops_read_identity,
             git_ops_set_identity,
+            menu::menu_show_tab,
+            menu::menu_show_terminal,
+            menu::menu_register_shortcuts,
+            menu::menu_item_clicked,
         ])
         .setup(move |app| {
             let handle = app.handle().clone();
@@ -624,6 +629,14 @@ pub fn run() {
                 .name("vibestation-pty-events".to_string())
                 .spawn(move || emit_pty_events(handle, pty_events))
                 .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?;
+
+            menu::setup_menu_events(app.handle());
+            if let Err(e) = menu::app_menu(app.handle())
+                .and_then(|m| app.handle().set_menu(m).map_err(|e| e.to_string()))
+            {
+                eprintln!("[mvp-11] app menu setup failed: {e}");
+            }
+
             Ok(())
         })
         .run(tauri::generate_context!())

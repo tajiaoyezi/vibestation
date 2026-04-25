@@ -1,0 +1,24 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-11 Phase 3 · Native Context Menu + 快捷键 permissions
+# 参考 allow-tab-* 模式 · 每个 command 独立 grant
+
+[[permission]]
+identifier = "allow-menu-show-tab"
+description = "允许前端在标签栏右键触发 native context menu"
+commands.allow = ["menu_show_tab"]
+
+[[permission]]
+identifier = "allow-menu-show-terminal"
+description = "允许前端在终端区域右键触发 native context menu"
+commands.allow = ["menu_show_terminal"]
+
+[[permission]]
+identifier = "allow-menu-register-shortcuts"
+description = "允许前端请求注册全局菜单快捷键（⌘T/⌘W/⌘D/⌘⇧D/⌘,）"
+commands.allow = ["menu_register_shortcuts"]
+
+[[permission]]
+identifier = "allow-menu-item-clicked"
+description = "允许前端响应菜单项点击事件"
+commands.allow = ["menu_item_clicked"]

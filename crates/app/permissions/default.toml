@@ -62,3 +62,13 @@ commands.allow = ["theme_get"]
 identifier = "allow-theme-set"
 description = "允许前端设置主题（light / dark / auto · 应用级持久化）"
 commands.allow = ["theme_set"]
+
+[[permission]]
+identifier = "allow-default-shell-get"
+description = "允许前端读取默认 shell 设置（app_settings KV · fallback /bin/zsh macOS / /bin/bash Linux）"
+commands.allow = ["default_shell_get"]
+
+[[permission]]
+identifier = "allow-default-shell-set"
+description = "允许前端设置默认 shell（写入 app_settings KV · 根据有效路径校验）"
+commands.allow = ["default_shell_set"]

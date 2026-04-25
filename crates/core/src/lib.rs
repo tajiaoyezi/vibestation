@@ -30,8 +30,8 @@ pub use git_status::{
 };
 pub use layout::{LayoutState, LayoutStore};
 pub use pty::{
-    PtyError, PtyEvent, PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest,
-    PtyStdoutEvent, PTY_EVENT_QUEUE_CAPACITY,
+    check_shell_exists, resolve_default_shell, PtyError, PtyEvent, PtyEventReceiver,
+    PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, PTY_EVENT_QUEUE_CAPACITY,
 };
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,

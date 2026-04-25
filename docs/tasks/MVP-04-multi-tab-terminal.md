@@ -18,7 +18,7 @@ reviewer: Kimi
 
 # MVP-04: 多 Tab 终端
 
-> **状态**：`ready`（Phase A/B/C/E/F 已完成 · 仅剩 Phase D shell 兼容）
+> **状态**：`ready`（Phase A/B/C/D/E/F 全部完成 · MVP-04 done）
 > **依赖**：MVP-03（主区布局）· SPIKE-05（PTY 架构锁定）· SPIKE-06（CLI 实机验证）/ **阻塞**：MVP-05（Pane 基于 Tab）· MVP-06（配置导入映射到终端）
 > **战略依据**：[`§10.1`](../implementation-plan.md) · `§10.6 终端正确性矩阵`
 
@@ -62,7 +62,7 @@ reviewer: Kimi
 | Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done | [#72](https://github.com/tajiaoyezi/vibestation/pull/72) |
 | Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ✅ done | [#82](https://github.com/tajiaoyezi/vibestation/pull/82) |
 | Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ✅ done | [#91](https://github.com/tajiaoyezi/vibestation/pull/91) |
-| Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | ⏳ todo | — |
+| Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | 🟡 部分 done（代码 done · §I 22 用例 + 22 截图 + 2 录屏 follow-up）| [#113](https://github.com/tajiaoyezi/vibestation/pull/113) |
 | Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（随 tabs 行删除自动清理 · sqlite 已验证） | ✅ done | — |
 | Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ✅ done | — |
 
@@ -80,7 +80,7 @@ reviewer: Kimi
 - [x] A.5 / E.2 tab switch latency 已量化（AX 自动化 2-tab 样本 median `20 ms`）
 - [x] E.4 已量化：页面内同步 JS 执行 `sync max = 3 ms`（frame delta `19 ms` 作为上下文记录于 evidence note）
 
-**下次 agent 起点**：Phase D · Phase A/B/C/E/F 已落地；继续 shell 兼容（默认 shell / Claude/Codex CLI 实机），不要重写 storage / PTY 主链或重复 runtime 证据采样。
+**下次 agent 起点**：Phase D 代码已落地（PR #113 · resolve_default_shell + check_shell_exists + default_shell_get/set IPC + ACL + 5 单元测试）· §I 22 用例 + 22 截图 + 2 录屏 follow-up（需运行态 Tauri app 手动捕获 · CLI agent 无法）· 完成后 MVP-04 整体可标 done。下游 MVP-05 / MVP-06 已可启动（spec 全部 implementation-ready 化 · 不依赖 22 用例 follow-up）。
 
 **migration 版本规划**（L-2 · 本 MVP 不做 v6）：
 

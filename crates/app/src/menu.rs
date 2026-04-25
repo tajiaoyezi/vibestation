@@ -3,7 +3,7 @@
 //! 使用 Tauri v2 `tauri::menu` API · macOS 走 AppKit NSMenu · Linux 自动 GTK fallback。
 //! 禁止 web div 模拟 context menu（spec §H.4）。
 
-use tauri::menu::{Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{ContextMenu, Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Position, Runtime, Window};
 
 // ─── Tab Context Menu IDs ──────────────────────────────────────────
@@ -39,13 +39,16 @@ struct MenuActionPayload {
 // ─── Tab Context Menu (5 项) ───────────────────────────────────────
 
 pub fn tab_context_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, String> {
-    let close =
-        MenuItem::with_id(app, TAB_CLOSE, "Close Tab", true, Some("Cmd+W")).map_err(|e| {
-            format!("menu: failed to create Close Tab item: {e}")
-        })?;
-    let close_others =
-        MenuItem::with_id(app, TAB_CLOSE_OTHERS, "Close Other Tabs", true, None::<&str>)
-            .map_err(|e| format!("menu: failed to create Close Other Tabs item: {e}"))?;
+    let close = MenuItem::with_id(app, TAB_CLOSE, "Close Tab", true, Some("Cmd+W"))
+        .map_err(|e| format!("menu: failed to create Close Tab item: {e}"))?;
+    let close_others = MenuItem::with_id(
+        app,
+        TAB_CLOSE_OTHERS,
+        "Close Other Tabs",
+        true,
+        None::<&str>,
+    )
+    .map_err(|e| format!("menu: failed to create Close Other Tabs item: {e}"))?;
     let close_right = MenuItem::with_id(
         app,
         TAB_CLOSE_RIGHT,
@@ -54,14 +57,10 @@ pub fn tab_context_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, Strin
         None::<&str>,
     )
     .map_err(|e| format!("menu: failed to create Close Tabs to the Right item: {e}"))?;
-    let rename =
-        MenuItem::with_id(app, TAB_RENAME, "Rename Tab", true, None::<&str>).map_err(|e| {
-            format!("menu: failed to create Rename Tab item: {e}")
-        })?;
-    let duplicate =
-        MenuItem::with_id(app, TAB_DUPLICATE, "Duplicate Tab", true, None::<&str>).map_err(
-            |e| format!("menu: failed to create Duplicate Tab item: {e}"),
-        )?;
+    let rename = MenuItem::with_id(app, TAB_RENAME, "Rename Tab", true, None::<&str>)
+        .map_err(|e| format!("menu: failed to create Rename Tab item: {e}"))?;
+    let duplicate = MenuItem::with_id(app, TAB_DUPLICATE, "Duplicate Tab", true, None::<&str>)
+        .map_err(|e| format!("menu: failed to create Duplicate Tab item: {e}"))?;
 
     MenuBuilder::new(app)
         .item(&close)
@@ -124,24 +123,14 @@ pub fn app_menu<R: Runtime>(app: &AppHandle<R>) -> Result<Menu<R>, String> {
     .map_err(|e| format!("menu: failed to create app submenu: {e}"))?;
 
     // Tab submenu
-    let new_tab =
-        MenuItem::with_id(app, APP_NEW_TAB, "New Tab", true, Some("Cmd+T")).map_err(|e| {
-            format!("menu: failed to create New Tab item: {e}")
-        })?;
-    let close_tab =
-        MenuItem::with_id(app, APP_CLOSE_TAB, "Close Tab", true, Some("Cmd+W")).map_err(|e| {
-            format!("menu: failed to create Close Tab (app) item: {e}")
-        })?;
+    let new_tab = MenuItem::with_id(app, APP_NEW_TAB, "New Tab", true, Some("Cmd+T"))
+        .map_err(|e| format!("menu: failed to create New Tab item: {e}"))?;
+    let close_tab = MenuItem::with_id(app, APP_CLOSE_TAB, "Close Tab", true, Some("Cmd+W"))
+        .map_err(|e| format!("menu: failed to create Close Tab (app) item: {e}"))?;
     let sep2 = PredefinedMenuItem::separator(app)
         .map_err(|e| format!("menu: failed to create separator: {e}"))?;
-    let split_h = MenuItem::with_id(
-        app,
-        APP_SPLIT_H,
-        "Split Horizontally",
-        true,
-        Some("Cmd+D"),
-    )
-    .map_err(|e| format!("menu: failed to create Split Horizontally item: {e}"))?;
+    let split_h = MenuItem::with_id(app, APP_SPLIT_H, "Split Horizontally", true, Some("Cmd+D"))
+        .map_err(|e| format!("menu: failed to create Split Horizontally item: {e}"))?;
     let split_v = MenuItem::with_id(
         app,
         APP_SPLIT_V,
@@ -221,7 +210,7 @@ pub fn setup_menu_events<R: Runtime>(app: &AppHandle<R>) {
 pub fn menu_show_tab(window: Window, x: f64, y: f64) -> Result<(), String> {
     let menu = tab_context_menu(window.app_handle())?;
     menu.popup_at(
-        &window,
+        window,
         Position::Physical(PhysicalPosition {
             x: x as i32,
             y: y as i32,
@@ -234,7 +223,7 @@ pub fn menu_show_tab(window: Window, x: f64, y: f64) -> Result<(), String> {
 pub fn menu_show_terminal(window: Window, x: f64, y: f64) -> Result<(), String> {
     let menu = terminal_context_menu(window.app_handle())?;
     menu.popup_at(
-        &window,
+        window,
         Position::Physical(PhysicalPosition {
             x: x as i32,
             y: y as i32,
@@ -247,7 +236,8 @@ pub fn menu_show_terminal(window: Window, x: f64, y: f64) -> Result<(), String> 
 pub fn menu_register_shortcuts(app: AppHandle) -> Result<(), String> {
     let menu = app_menu(&app)?;
     app.set_menu(menu)
-        .map_err(|e| format!("menu: set_menu failed: {e}"))
+        .map_err(|e| format!("menu: set_menu failed: {e}"))?;
+    Ok(())
 }
 
 #[tauri::command]

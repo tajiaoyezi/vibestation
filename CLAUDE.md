@@ -190,23 +190,27 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（session 18 · MVP-08 Phase D/E 起点）
+## 🏁 当前可执行动作（session 19 · 4 track 并发派工 + MVP-11 规划）
 
-**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #99/#100/#101/#102/#103/#105`：`MVP-04` Phase F 证据收口、`MVP-08` Phase A/B/C 落地（含 Diff 视图 + Git Status/Git Log → Diff 接通 + view mode 持久化 + Git Status 自动刷新），以及 PR 级 GitHub Actions 自动运行关闭。
+**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #106-#116`：session 18 共 11 PR merge · `MVP-04` Phase D shell 兼容 done · `MVP-05` Phase A storage prep · `MVP-08` Phase D fs watch + Phase E 4/5 runtime 证据 · `MVP-09` Phase A git2 写路径后端 · `MVP-10` Phase A 设置面板前端 · MVP-05/09/10 spec ready 加强（Kimi 主导）。
 
 **v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
 
-- MVP-02/03/07 done
-- MVP-04 ready · Phase A/B/C/E/F 已完成，仅剩 Phase D shell 兼容（低优先）
-- MVP-05/06/08/09/10 ready · 其中 MVP-08 已完成 Phase A/B/C，当前主线 = Phase D fs watch（或 Phase E runtime 证据收口）
-- SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）· §A 已 done
+- MVP-02/03/04/07 done
+- MVP-05 ready · Phase A storage prep done · Phase B+ 待推进
+- MVP-06 ready · 未动（低优先）
+- MVP-08 ready · Phase A/B/C/D 全 done · Phase E 🟡 4/5（session 19 OpenCode fix-up）
+- MVP-09 ready · Phase A git_ops 后端 done（PR #116）· session 19 派 Phase B Status 面板接线（Kimi 远程独立电脑）
+- MVP-10 ready · Phase A 设置面板 done · session 19 派 Phase B Sentry Spike + ADR（Codex）
+- **MVP-11 draft**（Native Feel Quality · 对标 MUX0 · 治 "web 套壳" 观感）· 主 agent 起草 · 本分支 `docs/MVP-11-native-feel-draft` · 等 Arbiter 独立评审翻 `ready`
+- SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）
 
-本阶段可做的 4 件事（按优先级）：
+**session 19 进行中的 4 track**（2026-04-25）：
 
-1. **MVP-08 Phase D · fs watch 自动刷新**（主线 · `notify` 6.x 三平台 + 防抖 200ms + IPC event 替换当前 Git Status polling）
-2. **MVP-08 Phase E · runtime 证据 + 性能量化**（≥ 5 张截图 / 30s 录屏 · A.2/A.6/F 性能门槛实测 · 放 `docs/runtime-evidence/mvp-08/`）
-3. **MVP-09 · Stage/Unstage + Commit 写路径**（依赖 MVP-08 D/E 收口后继续）
-4. **MVP-04 Phase D · shell 兼容**（默认 shell / Claude CLI / Codex CLI 实机 · 低优先，不要和 MVP-08 主线抢顺序）
+1. **Kimi（远程独立电脑）· MVP-09 Phase B** · Status 面板 Stage/Unstage 按钮 + CommitBar 新建 + 错误处理（IdentityMissing / DetachedHead / PreCommitHook）· dispatch prompt `spike-tmp/dispatch/MVP-09-phase-B-status-panel-kimi-remote-prompt.md`
+2. **OpenCode（本地 CLI）· MVP-08 Phase E fix-up** · 第 5 张 fs watch 录屏 + A.2/A.6/F.3 DevTools 量化 + Phase D 7 PNG 按 ADR-011 R3 重命名 · dispatch `spike-tmp/dispatch/MVP-08-phase-E-fixup-opencode-prompt.md`
+3. **Codex（本地 CLI）· MVP-10 Phase B Sentry Spike + ADR**（proposed）· §H.1.1 4 步验证 → ADR-XXX-telemetry-stack-sentry.md · 等 Arbiter approve 后派 Phase B 编码 · dispatch `spike-tmp/dispatch/MVP-10-phase-B-sentry-spike-codex-prompt.md`
+4. **主 agent · MVP-11 spec 起草 + Spike 笔记** · `docs/tasks/MVP-11-native-feel-quality.md`（本分支 draft）+ `spike-tmp/local-notes/MVP-11-vibrancy-spike-notes.md`（Tauri windowEffects 文档级 Spike 通过 · runtime 待 Phase 1 实施）
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
 

@@ -12,11 +12,13 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    CommitAuthor, CommitDetail, CommitParent, DiffHunk, DiffLine, DiffLineType, DiffRequest,
-    DiffResponse, FileChange, FileStatusEvent, GitLogEntry, GitLogQueryRequest,
-    GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
-    GitStatusRequest, GitStatusResponse, LayoutState, PtyExitedEvent, PtySpawnRequest,
-    PtyStdoutEvent, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState,
+    CommitAuthor, CommitDetail, CommitParent, CommitError, CommitRequest, CommitResponse,
+    DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange, FileStatusEvent,
+    GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
+    GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
+    GitStatusResponse, LayoutState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
+    SetGitIdentityRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, UnstageRequest,
     WorkspaceMetadata,
 };
 
@@ -31,6 +33,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/git_log.rs");
     println!("cargo:rerun-if-changed=../core/src/diff.rs");
     println!("cargo:rerun-if-changed=../core/src/git_status.rs");
+    println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -70,6 +73,16 @@ fn main() {
     GitStatusCollapseRequest::export_all(&config).expect("export GitStatusCollapseRequest");
     GitStatusGroup::export_all(&config).expect("export GitStatusGroup");
 
+    StageRequest::export_all(&config).expect("export StageRequest");
+    UnstageRequest::export_all(&config).expect("export UnstageRequest");
+    CommitRequest::export_all(&config).expect("export CommitRequest");
+    CommitResponse::export_all(&config).expect("export CommitResponse");
+    StageResult::export_all(&config).expect("export StageResult");
+    StageFailedItem::export_all(&config).expect("export StageFailedItem");
+    CommitError::export_all(&config).expect("export CommitError");
+    GitConfigIdentity::export_all(&config).expect("export GitConfigIdentity");
+    SetGitIdentityRequest::export_all(&config).expect("export SetGitIdentityRequest");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -105,6 +118,15 @@ fn main() {
             "export type { GitStatusPanelSettings } from \"./GitStatusPanelSettings\";",
             "export type { GitStatusCollapseRequest } from \"./GitStatusCollapseRequest\";",
             "export type { GitStatusGroup } from \"./GitStatusGroup\";",
+            "export type { StageRequest } from \"./StageRequest\";",
+            "export type { UnstageRequest } from \"./UnstageRequest\";",
+            "export type { CommitRequest } from \"./CommitRequest\";",
+            "export type { CommitResponse } from \"./CommitResponse\";",
+            "export type { StageResult } from \"./StageResult\";",
+            "export type { StageFailedItem } from \"./StageFailedItem\";",
+            "export type { CommitError } from \"./CommitError\";",
+            "export type { GitConfigIdentity } from \"./GitConfigIdentity\";",
+            "export type { SetGitIdentityRequest } from \"./SetGitIdentityRequest\";",
             "",
         ]
         .join("\n"),

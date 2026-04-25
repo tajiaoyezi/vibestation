@@ -1,0 +1,26 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-git-ops-stage-files"
+description = "Allow staging files in a git repository"
+commands.allow = ["git_ops_stage_files"]
+
+[[permission]]
+identifier = "allow-git-ops-unstage-files"
+description = "Allow unstaging files in a git repository"
+commands.allow = ["git_ops_unstage_files"]
+
+[[permission]]
+identifier = "allow-git-ops-commit"
+description = "Allow creating or amending a git commit"
+commands.allow = ["git_ops_commit"]
+
+[[permission]]
+identifier = "allow-git-ops-read-identity"
+description = "Allow reading git user identity (name/email)"
+commands.allow = ["git_ops_read_identity"]
+
+[[permission]]
+identifier = "allow-git-ops-set-identity"
+description = "Allow setting git user identity (name/email)"
+commands.allow = ["git_ops_set_identity"]

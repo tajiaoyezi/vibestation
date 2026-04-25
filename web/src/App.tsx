@@ -168,10 +168,7 @@ const LayoutShell: Component<{
         e.preventDefault();
         dispatch({ kind: "toggle-bottom" });
         break;
-      case ",":
-        e.preventDefault();
-        setSettingsVisible((v) => !v);
-        break;
+      // ⌘, 由 Menu Accelerator 处理（menu:action "preferences"）· 删除 keydown 重复触发（round 2 fix INFO-2）
     }
   };
 

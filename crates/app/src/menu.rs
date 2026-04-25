@@ -4,7 +4,7 @@
 //! 禁止 web div 模拟 context menu（spec §H.4）。
 
 use tauri::menu::{ContextMenu, Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Position, Runtime, Window};
+use tauri::{AppHandle, Emitter, LogicalPosition, Manager, Position, Runtime, Window};
 
 // ─── Tab Context Menu IDs ──────────────────────────────────────────
 
@@ -209,27 +209,16 @@ pub fn setup_menu_events<R: Runtime>(app: &AppHandle<R>) {
 #[tauri::command]
 pub fn menu_show_tab(window: Window, x: f64, y: f64) -> Result<(), String> {
     let menu = tab_context_menu(window.app_handle())?;
-    menu.popup_at(
-        window,
-        Position::Physical(PhysicalPosition {
-            x: x as i32,
-            y: y as i32,
-        }),
-    )
-    .map_err(|e| format!("menu: popup failed: {e}"))
+    // round 2 fix HIGH-2 · 用 Logical position 适配 HiDPI（前端传 e.clientX/Y 是 CSS 逻辑像素 · 不是物理像素）
+    menu.popup_at(window, Position::Logical(LogicalPosition { x, y }))
+        .map_err(|e| format!("menu: popup failed: {e}"))
 }
 
 #[tauri::command]
 pub fn menu_show_terminal(window: Window, x: f64, y: f64) -> Result<(), String> {
     let menu = terminal_context_menu(window.app_handle())?;
-    menu.popup_at(
-        window,
-        Position::Physical(PhysicalPosition {
-            x: x as i32,
-            y: y as i32,
-        }),
-    )
-    .map_err(|e| format!("menu: popup failed: {e}"))
+    menu.popup_at(window, Position::Logical(LogicalPosition { x, y }))
+        .map_err(|e| format!("menu: popup failed: {e}"))
 }
 
 #[tauri::command]

@@ -28,6 +28,9 @@ import {
 type PaneApi = {
   focus: () => void;
   paste: (text: string) => void;
+  clear: () => void;
+  copy: () => void;
+  selectAll: () => void;
 };
 
 type TerminalPaneProps = {
@@ -216,6 +219,14 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     props.onRegisterApi(props.tab.tabId, {
       focus: () => term?.focus(),
       paste: (text) => term?.paste(text),
+      clear: () => term?.reset(),
+      copy: () => {
+        const selection = term?.getSelection() ?? "";
+        if (selection) {
+          void navigator.clipboard.writeText(selection);
+        }
+      },
+      selectAll: () => term?.selectAll(),
     });
 
     term.onData((data) => {

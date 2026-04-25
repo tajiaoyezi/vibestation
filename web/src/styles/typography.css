@@ -1,0 +1,30 @@
+/* MVP-11 Phase 5 · 字体对齐 HIG
+ * 不 bundle 字体 · 走系统字体 · bundle size 零增
+ * macOS: SF Pro Display + SF Mono · Linux: Inter + JetBrains Mono fallback
+ */
+
+:root {
+  /* UI 字体：macOS SF Pro 优先 · Linux Inter fallback · 最后 system-ui */
+  --font-ui:
+    -apple-system, "SF Pro Display", system-ui, "Inter", "Segoe UI", sans-serif;
+
+  /* 等宽字体：macOS SF Mono 优先 · JetBrains Mono 兜底 · 最后通用 monospace */
+  --font-mono:
+    ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+}
+
+/* 全局 UI 字体 */
+body {
+  font-family: var(--font-ui);
+}
+
+/* 等宽区域强制使用 mono 字体栈 */
+.vs-terminal-shell,
+.vs-diff-view,
+.vs-commit-message-input,
+.vs-settings-input[data-font="mono"],
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}

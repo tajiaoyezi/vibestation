@@ -254,10 +254,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
       fromGroup = "untracked";
     if (!fromGroup) return;
 
-    const t0 = performance.now();
     moveFileOptimistically(filePath, fromGroup, "staged");
-    const optimisticMs = performance.now() - t0;
-    console.log(`[mvp-09] optimistic stage: ${optimisticMs.toFixed(2)}ms`);
 
     try {
       const result = await stageFiles({
@@ -279,10 +276,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     const id = workspaceId();
     if (!id) return;
 
-    const t0 = performance.now();
     moveFileOptimistically(filePath, "staged", "unstaged");
-    const optimisticMs = performance.now() - t0;
-    console.log(`[mvp-09] optimistic unstage: ${optimisticMs.toFixed(2)}ms`);
 
     try {
       await unstageFiles({
@@ -300,7 +294,8 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     const id = workspaceId();
     if (!id) return;
 
-    const files = status()[group].map((f) => f.path);
+    const currentFiles = status()[group];
+    const files = currentFiles.map((f) => f.path);
     if (files.length === 0) return;
 
     // optimistic：全部移到 staged
@@ -319,6 +314,14 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         setError(`${result.failed.length} 个文件 stage 失败`);
       }
     } catch (err) {
+      // revert
+      setStatus((prev) => ({
+        ...prev,
+        staged: prev.staged.filter(
+          (f) => !currentFiles.some((orig) => orig.path === f.path),
+        ),
+        [group]: currentFiles,
+      }));
       const msg = err instanceof Error ? err.message : String(err);
       setError(`Stage All 失败：${msg}`);
     }
@@ -330,6 +333,8 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
 
     const files = status().staged.map((f) => f.path);
     if (files.length === 0) return;
+
+    const currentStaged = status().staged;
 
     setStatus((prev) => ({
       ...prev,
@@ -343,6 +348,14 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         filePaths: files,
       });
     } catch (err) {
+      // revert
+      setStatus((prev) => ({
+        ...prev,
+        staged: currentStaged,
+        unstaged: prev.unstaged.filter(
+          (f) => !currentStaged.some((orig) => orig.path === f.path),
+        ),
+      }));
       const msg = err instanceof Error ? err.message : String(err);
       setError(`Unstage All 失败：${msg}`);
     }

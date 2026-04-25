@@ -1,4 +1,7 @@
-import { createSignal, type Component } from "solid-js";
+import { createSignal, Show, type Component } from "solid-js";
+
+const isValidEmail = (e: string): boolean =>
+  /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.trim());
 
 interface IdentityDialogProps {
   onConfirm: (name: string, email: string, saveLocal: boolean) => void;
@@ -9,6 +12,11 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
   const [name, setName] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [saveLocal, setSaveLocal] = createSignal(true);
+
+  const canSave = () =>
+    name().trim().length > 0 &&
+    email().trim().length > 0 &&
+    isValidEmail(email());
 
   return (
     <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
@@ -38,6 +46,11 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
               onInput={(e) => setEmail(e.currentTarget.value)}
               placeholder="you@example.com"
             />
+            <Show when={email().trim().length > 0 && !isValidEmail(email())}>
+              <span class="vs-dialog-error-hint">
+                邮箱格式不正确（需包含 @ 和域名）
+              </span>
+            </Show>
           </label>
           <label class="vs-dialog-checkbox">
             <input
@@ -60,7 +73,7 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
           <button
             type="button"
             class="vs-dialog-btn-primary"
-            disabled={name().trim().length === 0 || email().trim().length === 0}
+            disabled={!canSave()}
             onClick={() =>
               props.onConfirm(name().trim(), email().trim(), saveLocal())
             }

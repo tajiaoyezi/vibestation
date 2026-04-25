@@ -60,8 +60,6 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
         amend: amend(),
       };
       const response = await apiCommit(req);
-      void performance.now(); // 占位 · 保留 startTime 用于后续性能日志
-
       setMessage("");
       setAmend(false);
       showToast(`已提交 ${response.shortSha}`);
@@ -140,28 +138,12 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
     }
   };
 
-  const handleDetachedHeadConfirm = async () => {
+  const handleDetachedHeadConfirm = () => {
     setDetachedHeadDialogOpen(false);
-    const wsId = props.workspaceId();
-    if (!wsId) return;
-
-    setCommitting(true);
-    try {
-      const req: CommitRequest = {
-        workspaceId: wsId,
-        message: message().trim(),
-        amend: amend(),
-      };
-      const response = await apiCommit(req);
-      setMessage("");
-      setAmend(false);
-      showToast(`已提交 ${response.shortSha}`);
-      props.onCommitSuccess?.(response);
-    } catch (err) {
-      handleCommitError(err);
-    } finally {
-      setCommitting(false);
-    }
+    showToast(
+      "当前处于 detached HEAD · commit 暂不支持 · 请先 git checkout 到分支",
+      "error",
+    );
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -244,24 +226,17 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       <Show when={detachedHeadDialogOpen()}>
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
-            <h3 class="vs-dialog-title">Detached HEAD</h3>
+            <h3 class="vs-dialog-title">Detached HEAD · commit 暂不支持</h3>
             <p class="vs-dialog-body">
-              当前处于 detached HEAD 状态 · commit 将不会关联到任何分支 · 继续？
+              当前处于 detached HEAD 状态 · 请先 git checkout 到分支后再提交
             </p>
             <div class="vs-dialog-actions">
               <button
                 type="button"
-                class="vs-dialog-btn-secondary"
-                onClick={() => setDetachedHeadDialogOpen(false)}
-              >
-                取消
-              </button>
-              <button
-                type="button"
                 class="vs-dialog-btn-primary"
-                onClick={() => void handleDetachedHeadConfirm()}
+                onClick={() => handleDetachedHeadConfirm()}
               >
-                继续提交
+                OK · 我知道了
               </button>
             </div>
           </div>

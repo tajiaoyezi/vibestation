@@ -64,13 +64,13 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 | Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
 |---|---|---|---|---|---|
-| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · **不是** Cargo feature）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `web/src/index.css` · `web/src/main.tsx` | MVP-10 Phase A（已 done） | ⏳ todo | — |
+| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true`（Tauri 2 通过 conf 启用 · **不是** Cargo feature）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `web/src/index.css` · `web/src/main.tsx` | MVP-10 Phase A（已 done） | ✅ done | — |
 | **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`-webkit-app-region: drag`）· sidebar 延伸到 title bar 区 · Linux `#[cfg(target_os = "macos")]` 分支保留默认 title bar | `crates/app/tauri.conf.json` · `web/src/App.tsx` · `web/src/layouts/*.tsx` · `web/src/index.css` | Phase 1（Vibrancy 生效才能看到 overlay） | ⏳ todo | — |
 | **Phase 3 · Native Context Menu + 快捷键** | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用 | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx` | Phase 1 | ⏳ todo | — |
 | **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 6 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink）· `app_settings` KV 扩 6 keys · CSS vars 消费 · Unfocused Pane Opacity 单独在 Terminal 组 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（6 新 KV key · YAGNI 无 migration）· `crates/app/src/lib.rs` IPC（复用 MVP-10 `settings_update`） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ⏳ todo | — |
 | **Phase 5 · 字体对齐 HIG** | CSS `font-family` · macOS `"SF Pro Display", system-ui` + `"SF Mono", ui-monospace` · Linux `"Inter", system-ui` + `"JetBrains Mono", monospace` · 不 bundle 字体（走系统字体） | `web/src/styles/typography.css`（新建或扩）· `web/src/index.css` | 无 | ⏳ todo | — |
 
-**下次 agent 起点**：Phase 1 · 基于 `spike-tmp/local-notes/MVP-11-vibrancy-spike-notes.md` Spike 笔记 ready-to-start。
+**下次 agent 起点**：Phase 2 · Phase 1 已落地（Vibrancy + transparent + macos-private-api + CSS semi-transparent + webview 行为禁用）· 继续 title bar overlay + Traffic Light 融入。
 
 **并行调度建议**：
 - OpenCode（全栈）· Phase 1 + Phase 4（连贯：Vibrancy 生效后扩 Appearance 字段）· 估时 4d

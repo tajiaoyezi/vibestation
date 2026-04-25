@@ -129,6 +129,10 @@ gh pr create
 ## 🚫 禁区（可判断规则）
 
 - ❌ **禁止 push 到 main**：任何 commit 走 feature 分支 + PR + 独立评审
+  - **机械防护**：`.githooks/pre-push` hook 自动阻止直推 main · 由根 `package.json` 的 `prepare` 脚本（`pnpm install` 触发）配置 `core.hooksPath = .githooks` · clone 后只需跑一次 `pnpm install` 即生效
+  - **任何 agent 在新机器 clone 后 · 跑 `pnpm install` 即激活**（无 husky 依赖 · 单行 git config）· 也可手动 `git config core.hooksPath .githooks`
+  - **紧急 Arbiter override**（事故恢复 · 不推荐）：`SKIP_BRANCH_PROTECT=1 git push origin main`
+  - 限制：仅本地防护 · `git push --no-verify` 可绕过 · GitHub 仓库未开 branch protection（私有仓 + 非 Pro · API 403）· v0.2 评估升级 GitHub Pro 或仓库公开补硬墙
 - ❌ **禁止重排 `docs/implementation-plan.md` 的章节结构**。允许：章末追加 changelog 注、新增"v2.x 增补"子节
 - ❌ **禁止修改 `design/directions/1-calm-studio.html` 的布局结构 / 色彩 token 语义 / 字体选择**。允许：token 数值微调、bug 修复、a11y 补强
 - ❌ **禁止对外文案提及** `AI-Aware Pane` / `Mission Control` / `AI session aware`（v1.0 vision · [ADR-009](./docs/adr/ADR-009-ai-aware-v1-vision.md) · 对外文件脱敏见 README / CHANGELOG / CONTRIBUTING / AGENTS / design 抽象指向本条）

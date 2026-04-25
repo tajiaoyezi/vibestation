@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Vibestation · 阻止直推 main 的 pre-push hook
+#
+# 触发：git push（git 自动调用）· 接收 ref 列表 from stdin（每行 4 字段）
+# 安装：由根 package.json 的 `prepare` 脚本自动配（pnpm install 触发）
+#       手动配：git config core.hooksPath .githooks
+#
+# 紧急情况 Arbiter 直推（不推荐 · 仅事故恢复）：
+#   SKIP_BRANCH_PROTECT=1 git push origin main
+#
+# 上位规则：CLAUDE.md "禁止 push 到 main" + 全局 rule 16 多 agent worktree 同步
+
+set -euo pipefail
+
+protected_branch="refs/heads/main"
+
+# git push stdin 格式：<local_ref> <local_sha> <remote_ref> <remote_sha>
+while read -r local_ref _local_sha remote_ref _remote_sha; do
+  if [[ "${remote_ref:-}" == "${protected_branch}" ]]; then
+    if [[ "${SKIP_BRANCH_PROTECT:-}" == "1" ]]; then
+      echo "⚠ pre-push: SKIP_BRANCH_PROTECT=1 · 允许直推 main（Arbiter override）" >&2
+      continue
+    fi
+    echo "" >&2
+    echo "❌ pre-push hook: 禁止直推 main" >&2
+    echo "" >&2
+    echo "  本地 ref: ${local_ref}" >&2
+    echo "  远端 ref: ${remote_ref}" >&2
+    echo "" >&2
+    echo "  正确流程：" >&2
+    echo "    1. git checkout -b <scope>/<slug>  # feat / fix / docs / spike / chore" >&2
+    echo "    2. git push -u origin <scope>/<slug>" >&2
+    echo "    3. gh pr create --base main" >&2
+    echo "" >&2
+    echo "  紧急 Arbiter 直推（事故恢复 · 不推荐）：" >&2
+    echo "    SKIP_BRANCH_PROTECT=1 git push origin main" >&2
+    echo "" >&2
+    exit 1
+  fi
+done
+
+exit 0

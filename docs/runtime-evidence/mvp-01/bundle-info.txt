@@ -1,0 +1,2 @@
+-rwxr-xr-x 1 leafiel leafiel 81459704 Apr 25 17:58 target/release/bundle/appimage/Vibestation_0.1.0_amd64.AppImage
+-rw-rw-r-- 1 leafiel leafiel 5712108 Apr 25 17:58 target/release/bundle/deb/Vibestation_0.1.0_amd64.deb

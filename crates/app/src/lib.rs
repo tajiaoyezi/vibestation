@@ -14,14 +14,15 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
 use vibestation_core::{
-    pane_pty, AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse, DiffService,
-    GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService,
-    GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest, GitStatusResponse,
-    GitStatusService, GitStatusWatcher, LayoutState, LayoutStore, PanePtyEvent,
-    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    SetGitIdentityRequest, SettingsUpdateRequest, StageRequest, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabState, TabsDao, UnstageRequest, WorkspaceMetadata,
-    WorkspaceStore,
+    pane_pty, pane_service, AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse,
+    DiffService, GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
+    GitOpsService, GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest,
+    GitStatusResponse, GitStatusService, GitStatusWatcher, LayoutApplyRequest, LayoutState,
+    LayoutStore, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneListResponse,
+    PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -380,6 +381,68 @@ fn pane_pty_kill(state: State<'_, AppState>, pane_id: String) -> Result<(), Stri
         .map_err(|e| e.to_string())
 }
 
+// ─── MVP-05 Phase B Step 2 · Pane layout IPC（5 commands · §H.3 atomicity） ───
+
+#[tauri::command]
+fn pane_split(
+    state: State<'_, AppState>,
+    req: PaneCreateRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_pane_split(pool, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_close(
+    state: State<'_, AppState>,
+    req: PaneCloseRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_pane_close(pool, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_focus(
+    state: State<'_, AppState>,
+    req: PaneFocusRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_pane_focus(pool, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_layout_apply(
+    state: State<'_, AppState>,
+    req: LayoutApplyRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_layout_preset(pool, &req).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn pane_split_ratio_update(
+    state: State<'_, AppState>,
+    req: SplitRatioUpdateRequest,
+) -> Result<PaneListResponse, String> {
+    let pool_guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = pool_guard
+        .as_ref()
+        .ok_or("workspace pool not initialized")?;
+    pane_service::apply_split_ratio_update(pool, &req).map_err(|e| e.to_string())
+}
+
 fn emit_pty_events(app: AppHandle, events: PtyEventReceiver) {
     while let Ok(event) = events.recv() {
         let result = match event {
@@ -710,6 +773,11 @@ pub fn run() {
             pane_pty_resize,
             pane_pty_signal,
             pane_pty_kill,
+            pane_split,
+            pane_close,
+            pane_focus,
+            pane_layout_apply,
+            pane_split_ratio_update,
             git_log_query,
             git_log_commit_detail,
             git_log_cache_clear,

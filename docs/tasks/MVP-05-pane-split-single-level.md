@@ -61,10 +61,13 @@ reviewer: Kimi
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ✅ done | 本 PR |
-| Phase B · Pane runtime | `pane_pty_*` 5 IPC commands（复刻 `tab_pty_*` 架构）+ 分屏 / 关 Pane 的后端逻辑 + 深度检查 Rust 侧硬编码 `MAX_LAYOUT_DEPTH = 2` | ⏳ todo | — |
-| Phase C · 前端分屏 UI | SolidJS 组件 + 分隔条拖拽 + focus 切换 + Smart Layouts 菜单 + 双击复位 | ⏳ todo | — |
-| Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo | — |
+| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ✅ done | spec 早期 PR |
+| Phase B Step 2 · layout pure functions | 4 pure functions（split_layout / close_pane_in_layout / update_split_ratio / apply_smart_layout）+ 17 单元测试 + 7 micro-bench（48-210 ns）· panes.rs +647 行 | ✅ done | [#141](https://github.com/tajiaoyezi/vibestation/pull/141) |
+| Phase B Step 1 · pane_pty IPC | `pane_pty_*` 5 IPC commands · §H.6 锁 A 独立命名空间 · 独立 `PtyManager` 实例 · 反向映射 PtyEvent → PanePtyEvent · 3 unit tests | ✅ done | [#142](https://github.com/tajiaoyezi/vibestation/pull/142) |
+| Phase B Step 2 · IPC layer | 5 layout IPC commands（pane_split / close / focus / layout_apply / split_ratio_update）· transactional pane_service 500 行 · §H.3 atomicity（rusqlite Transaction · 任意一步 fail 全 rollback）· 13 unit tests | ✅ done | [#143](https://github.com/tajiaoyezi/vibestation/pull/143) |
+| Phase C · 前端分屏 UI scaffolding | `pane_init_for_tab` IPC（idempotent · 2 tests）+ 3 SolidJS 组件（PaneTerminal · PaneSplitView · PaneSplitter）+ usePaneShortcuts hook + CSS · **0 集成 Terminal.tsx** · 独立 typecheck/lint 通过 | 🟡 partial done | [#144](https://github.com/tajiaoyezi/vibestation/pull/144) |
+| Phase C · 集成完整版 | Terminal.tsx 集成 PaneSplitView · 快捷键 wire（pane_split/close）· 拖拽 splitter（rAF + transform · 60FPS · §D + §F.2/F.3）· Smart Layouts 命令面板 + dry-run + 二次确认 dialog（§C）· pane_focus IPC wire（§E）· §F 6 条 P99 性能测量 | ⏳ todo · 估 2-3h | — |
+| Phase D · runtime 证据 | ≥ 5 张截图 / 30s 录屏 · 覆盖 Solo / 水平 2 Pane / 垂直 2 Pane / 2×2 / Smart Layouts apply · 放 `docs/runtime-evidence/mvp-05/` | ⏳ todo · 0.5h（接 Phase C 完整版） | — |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
@@ -86,7 +89,7 @@ reviewer: Kimi
 - [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 13 个 struct 见 §G.5）
 - [ ] fixture：用 `tempfile` crate 运行时生成 sqlite + tabs 行 · 不要硬编码本地路径（仿 MVP-09 §C.1）
 
-**下次 agent 起点**：Phase B · 实现 `pane_pty_*` 5 IPC commands + pane layout 5 IPC commands · 仿 `tab_pty_*` 模式接入运行时；继续遵守 §G.4，不复用 `PtySpawnRequest` / `TabsDao` / `migrate_v5`。
+**下次 agent 起点**（session 19 末更新）：**Phase C 完整版** · 修改 `web/src/panels/Terminal/Terminal.tsx`（853 行 · 重构风险）集成 PaneSplitView 替换 TerminalPane 渲染路径 · wire 快捷键 hook 调 pane_split/close · 实现拖拽 splitter（rAF + transform · 60FPS）· 实现 Smart Layouts 命令面板 + dry-run 预览 + 二次确认 dialog · pane_focus IPC wire 让 click 切焦持久化 · 完成 §F 6 条 P99 性能测量 · capture Phase D 5 截图 + 30s 录屏 · 估 2-3h 集中工作。Phase B/C scaffolding 全部建材已落地（PR #141-#144 · 5 IPC backend commands + 3 SolidJS components + 1 hook 已 typecheck 通过 · 待 import 集成）。
 
 **依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。
 

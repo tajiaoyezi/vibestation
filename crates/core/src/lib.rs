@@ -17,9 +17,16 @@ pub mod pane_service;
 pub mod panes;
 pub mod pty;
 pub mod tabs;
+pub mod telemetry;
 pub mod workspace;
 
 pub use app_settings::{AppSettings, AppSettingsStore, SettingsUpdateRequest};
+pub use telemetry::{
+    build_status as telemetry_build_status, build_version_info as telemetry_build_version_info,
+    capture_crash_report as telemetry_capture_crash_report, capture_panic as telemetry_capture_panic,
+    init_sentry as telemetry_init_sentry, is_initialized as telemetry_is_initialized,
+    AppVersionInfo, CrashReportPayload, TelemetryError, TelemetryOptInRequest, TelemetryStatus,
+};
 pub use diff::{
     DiffError, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService,
 };

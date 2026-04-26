@@ -154,6 +154,13 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
 
     term.options.theme = createTheme();
+    // WebGL renderer cache theme · 必须 manual refresh 全屏 · 否则 dark→light 切换时
+    // xterm 内部 canvas 仍渲染旧 bg 色 · 用户看到 Terminal 区背景跟主题不同步。
+    try {
+      term.refresh(0, term.rows - 1);
+    } catch {
+      // hidden term 在某些状态下 refresh 抛错 · ignore · 下次激活会自动 redraw
+    }
   };
 
   const queueFit = () => {

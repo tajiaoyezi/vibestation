@@ -186,16 +186,28 @@
 }
 
 /*
- * xterm 内部元素 focus 不显示全局 ring · xterm 自己的 cursor blink 已是 focus 指示
- * 全局 :focus-visible 给 .xterm-helper-textarea / .xterm-screen 等加 box-shadow 0 0 0 2px ·
- * 视觉上 ring 围绕整个 .vs-terminal-host · 在 dark mode 上明显蓝边。屏蔽。
+ * Terminal area click 后 · xterm 自己的 cursor blink 已是 focus 指示器 ·
+ * 不需要 outer ring。屏蔽所有可能的 focus chain（main-content tabindex=0 / xterm
+ * 内部 .xterm 元素 tabindex=0 / 任何 .vs-terminal-* 容器）的 :focus / :focus-visible
+ * box-shadow + outline · 防 user 看到 stage / host 大小蓝色 outline 视觉污染。
+ * 用 !important 覆盖全局 :focus-visible 设的 box-shadow: 0 0 0 2px var(--focus-ring)。
  */
+.vs-terminal-shell:focus,
+.vs-terminal-shell:focus-visible,
+.vs-terminal-stage:focus,
+.vs-terminal-stage:focus-visible,
+.vs-terminal-pane:focus,
+.vs-terminal-pane:focus-visible,
 .vs-terminal-host:focus,
 .vs-terminal-host:focus-visible,
 .vs-terminal-host *:focus,
-.vs-terminal-host *:focus-visible {
-  box-shadow: none;
-  outline: none;
+.vs-terminal-host *:focus-visible,
+.xterm:focus,
+.xterm:focus-visible,
+.xterm *:focus,
+.xterm *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .vs-terminal-stage {

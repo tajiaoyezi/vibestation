@@ -223,6 +223,15 @@ textarea {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+/* main section 是 tabindex=0 容器（a11y keyboard nav 用）· click main area 时
+ * focus 落到这里 · 但视觉上 xterm cursor 已表示 focus · outer ring 多余 + 占据
+ * 整个 main column 4 边蓝边。屏蔽。 */
+.vs-main-content:focus,
+.vs-main-content:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* ══════ SHELL (5-zone layout) ══════ */
 
 .vs-shell {

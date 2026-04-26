@@ -15,6 +15,7 @@ import "./styles.css";
 
 import { LayoutProvider, useLayout } from "./stores/layout-context";
 import { ThemeProvider } from "./stores/theme";
+import { useSettings } from "./stores/settings";
 import { PrimarySidebar } from "./components/PrimarySidebar";
 import { SecondarySidebar } from "./components/SecondarySidebar";
 import { BottomPanel } from "./components/BottomPanel";
@@ -23,6 +24,7 @@ import { MainContent } from "./components/MainContent";
 import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { SettingsPanel } from "./panels/Settings";
+import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -329,6 +331,11 @@ const App: Component = () => {
   const [error, setError] = createSignal<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = createSignal<string | null>(null);
 
+  // MVP-10 §B.1 · Telemetry opt-in 首次启动检查
+  // settings.telemetryOptIn === null → 首次启动 · 阻塞 WelcomePage 渲染（modal 全屏覆盖）
+  const { settings } = useSettings();
+  const telemetryDecided = (): boolean => settings.telemetryOptIn !== null;
+
   const activeWorkspaceId = (): string | null => {
     const v = currentView();
     return v.kind === "workspace" ? v.ws.workspaceId : null;
@@ -480,6 +487,9 @@ const App: Component = () => {
           onCloseDiff={() => setActiveDiff(null)}
           onCloseWorkspaceView={handleCloseWorkspaceView}
         />
+        <Show when={!telemetryDecided()}>
+          <TelemetryOptInModal />
+        </Show>
       </LayoutProvider>
     </ThemeProvider>
   );

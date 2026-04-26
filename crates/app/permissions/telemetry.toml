@@ -1,0 +1,19 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-10 Phase B · Telemetry IPC permissions（ADR-015 accepted）
+# 仅暴露 3 个 read-only / 单字段 write 命令 · DSN 注入由 backend 内部处理 · 不通过 IPC
+
+[[permission]]
+identifier = "allow-telemetry-opt-in-set"
+description = "允许前端持久化 telemetry opt-in 决策（首次启动对话框 / 设置面板 toggle）"
+commands.allow = ["telemetry_opt_in_set"]
+
+[[permission]]
+identifier = "allow-telemetry-status-get"
+description = "允许前端读取 telemetry 当前状态（opt-in 值 + endpoint 描述 + SDK 是否已初始化 + 数据收集摘要）"
+commands.allow = ["telemetry_status_get"]
+
+[[permission]]
+identifier = "allow-app-version-get"
+description = "允许前端读取应用版本信息（version + os_type + build_target · 用于 Privacy 面板调试展示）"
+commands.allow = ["app_version_get"]

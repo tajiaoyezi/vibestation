@@ -64,10 +64,10 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | 本 PR |
-| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）| ✅ done | 本 PR |
-| Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ⏳ todo | — |
-| Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | ⏳ todo | — |
+| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | [#116](https://github.com/tajiaoyezi/vibestation/pull/116) |
+| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）| ✅ done | [#118](https://github.com/tajiaoyezi/vibestation/pull/118) |
+| Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ✅ done · spec §C.1-§C.4 全过 · CommitBar dialog/toast 19 CSS class 全填 + Hook stderr "Copy" 按钮（spec §C.4 "可复制"）+ exit code 显示 | [#159](https://github.com/tajiaoyezi/vibestation/pull/159) |
+| Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | 🟡 性能量化 done · 截图 / 录屏待 GUI capture · §D Criterion bench Linux 基线 stage 0.26ms / commit 0.35ms / stage_1k 31.5ms（远低于 spec 性能要求 380×/1400×/63× 余量）+ §E 集成测试（pre-commit hook fail · DetachedHead · IdentityMissing 全覆盖）| [#156](https://github.com/tajiaoyezi/vibestation/pull/156) |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
@@ -85,7 +85,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [x] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 + 手动同步 9 个文件）
 - [x] fixture：`git_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录
 
-**下次 agent 起点**：Phase C（Commit UI 补齐错误流 · pre-commit hook stderr 渲染 / Detached HEAD 确认 / Identity dialog 交互细节打磨）或 Phase D（runtime 证据 + 性能量化 · 如果 Phase B 已覆盖 Stage/Commit 核心 UI）
+**下次 agent 起点**：Phase A/B/C 全 done · Phase D 性能量化 done（PR #156）· 仅缺 Phase D runtime 截图 / 录屏（GUI capture · Arbiter 本地）。所有 spec acceptance 项除 GUI evidence 外都已满足。spec status 翻 `done` 需等 GUI evidence 补齐后由 Arbiter approve。
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 

@@ -54,16 +54,6 @@ description = "允许前端加载 Tool Windows 布局状态（DEFAULT_STATE fall
 commands.allow = ["layout_load"]
 
 [[permission]]
-identifier = "allow-theme-get"
-description = "允许前端读取当前主题设置（auto / light / dark）"
-commands.allow = ["theme_get"]
-
-[[permission]]
-identifier = "allow-theme-set"
-description = "允许前端设置主题（light / dark / auto · 应用级持久化）"
-commands.allow = ["theme_set"]
-
-[[permission]]
 identifier = "allow-default-shell-get"
 description = "允许前端读取默认 shell 设置（app_settings KV · fallback /bin/zsh macOS / /bin/bash Linux）"
 commands.allow = ["default_shell_get"]

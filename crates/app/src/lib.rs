@@ -187,24 +187,6 @@ fn layout_load(state: State<'_, AppState>, workspace_id: String) -> Result<Layou
 }
 
 #[tauri::command]
-fn theme_get(state: State<'_, AppState>) -> Result<String, String> {
-    let guard = state.pool.lock().map_err(|e| e.to_string())?;
-    let pool = guard.as_ref().ok_or("database not initialized")?;
-    match AppSettingsStore::get(pool, "theme") {
-        Ok(v) => Ok(v),
-        Err(vibestation_core::app_settings::SettingsError::NotFound(_)) => Ok("auto".to_string()),
-        Err(e) => Err(e.to_string()),
-    }
-}
-
-#[tauri::command]
-fn theme_set(state: State<'_, AppState>, theme: String) -> Result<(), String> {
-    let guard = state.pool.lock().map_err(|e| e.to_string())?;
-    let pool = guard.as_ref().ok_or("database not initialized")?;
-    AppSettingsStore::set(pool, "theme", &theme).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
 fn default_shell_get(state: State<'_, AppState>) -> Result<String, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
@@ -877,8 +859,6 @@ pub fn run() {
             workspace_exists,
             layout_save,
             layout_load,
-            theme_get,
-            theme_set,
             default_shell_get,
             default_shell_set,
             settings_get,

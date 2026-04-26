@@ -154,12 +154,17 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
 
     term.options.theme = createTheme();
-    // WebGL renderer cache theme · 必须 manual refresh 全屏 · 否则 dark→light 切换时
-    // xterm 内部 canvas 仍渲染旧 bg 色 · 用户看到 Terminal 区背景跟主题不同步。
+    // WebGL renderer cache texture atlas · 必须先 clearTextureAtlas 让 char 用新主题色重渲 ·
+    // 再 refresh 全屏触发 redraw。否则 theme 切换 xterm bg 仍是旧色。
+    try {
+      term.clearTextureAtlas();
+    } catch {
+      // older xterm 没此 API · ignore
+    }
     try {
       term.refresh(0, term.rows - 1);
     } catch {
-      // hidden term 在某些状态下 refresh 抛错 · ignore · 下次激活会自动 redraw
+      // hidden term 在某些状态下 refresh 抛错 · ignore
     }
   };
 

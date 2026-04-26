@@ -129,6 +129,54 @@
 
 ---
 
+## [0.1.0] - 2026-04-XX · v0.1 GA
+
+> 主 agent 实际发版时把 `XX` 替换为发版日期。
+
+### Added · 代码实施（2026-04-23 ~ 2026-04-26 · session 17-20 · macOS + Ubuntu 双平台）
+
+- **Diff 视图全链路落地**（session 17 · PR #100/#101/#105）— `gix` blob 读 + `similar` 文本 diff 后端 + Git Status Bottom Panel（Staged / Unstaged / Untracked 3 分组 + 状态码 + 加减行数）+ Diff 前端集成 · **主线里程碑**
+- **终端性能仪表化**（session 17 · PR #99）— MVP-04 Phase F runtime 证据 · Tab 切换 latency 自动化 median 20ms · 主线程 sync max 3ms
+- **文件系统监听替换轮询**（session 18 · PR #112）— `notify` 6.1.1 + 200ms debounce + `.git/index.lock` 排除 · IPC event 实时推送替代 polling
+- **Git 操作后端 + 性能基线**（session 18/20 · PR #116/#156）— git2 写路径 5 IPC commands + Criterion bench（stage 0.26ms / commit 0.35ms / stage_1k 31.5ms）+ Linux 集成测试
+- **设置面板前端**（session 18 · PR #114）— SolidJS overlay drawer（Appearance / Terminal / Git / Privacy 4 分组）+ ⌘, 全局快捷键 + AppSettings store
+- **Shell 兼容自动检测**（session 18/19 · PR #113/#135）— `resolve_default_shell()` + `check_shell_exists()` · zsh / bash / fish 自动适配 + 22 用例 cargo test 矩阵
+- **Pane 分屏存储层预备**（session 18 · PR #115）— `panes` 表 + PanesDao + migrate_v6 + 13 ts-rs binding（PaneState / LayoutNode / SplitDir）
+- **Native Feel Quality 全平台完结**（session 19 · PR #119-#131）— macOS Vibrancy + 透明窗口 + Overlay title bar + Native Context Menu + Appearance 7 字段持久化 + 系统字体对齐 HIG · 5/5 Phase
+- **Pane 分屏前端落地**（session 19 · PR #141-#151）— layout 纯函数 17 单元测试 + PaneSplitter 拖拽 60FPS + SmartLayoutMenu 预览 + Terminal.tsx PaneSplitView 集成 + ⌘⇧P 命令面板触发
+- **Git Status 操作面板**（session 19 · PR #118）— Stage / Unstage / StageAll / UnstageAll + CommitBar 新建 + 错误对话框（IdentityMissing / DetachedHead / PreCommitHook）
+- **Telemetry 完整闭环**（session 20 · PR #155/#158）— Sentry Rust SDK + `before_send` PII 双层白名单 + SHA-256 panic hash + TelemetryOptInModal 阻塞 WelcomePage + 收集端点 host UI + 19 测试全过
+- **Ubuntu 双平台解锁**（session 19 · PR #137/#138/#139）— X11 108ms + Wayland 107ms / 30 cold boot 0 fail · IME fcitx5 PASS · AppImage 78MB / deb 5.5MB · v0.1 GA 双平台
+- **分支保护机械化**（session 19 · PR #145）— `pre-push` hook 阻止直推 main + `core.hooksPath = .githooks` 自动配置
+
+### Fixed · CI
+
+- PR 级 GitHub Actions 自动运行关闭 — 仅保留 push main + workflow_dispatch · 应对 billing 失败（PR #102）
+- CI main push trigger 关闭 — 转向本地 7 gate（PR #121）
+
+### Fixed · 关键 Bug
+
+- **CRITICAL** Modal mount-time webview 虚假 click（PR #161）— WKWebView 启动 race 导致 telemetry opt-in modal 内第一个 focusable button 被自动触发 · `telemetry_opt_in` 12.5 秒内被自动写入 · 用户完全看不见弹窗。`MOUNT_CLICK_GUARD_MS` 200ms 修复。
+- **SECONDARY** Theme dual-path 不同步（PR #163）— status bar `theme_set` IPC 不 emit `settings_changed` · DB 写但 UI 不刷新 · violate spec §F.02 "实时生效"。ThemeProvider 加 `listen("settings_changed")` + ThemeSwitch 双门控修复。
+- CSS class 缺失导致 dialog 裸 HTML（PR #159）— 19 个 `vs-commit-*` / `vs-toast-*` / `vs-dialog-*` 完全无定义。补 `CommitBar/styles.css` 363 行 Calm Studio token + scale-in/slide-up 动画 + Hook stderr "Copy" 按钮 + exit code 显示。
+
+### Changed · 决策（A 栏新锁定）
+
+- ADR-015 Telemetry crash stack accepted（PR #152）— Sentry Rust SDK 0.47 · `default_integrations=false` + `send_default_pii=false` + `before_send` 删 contexts.trace · SHA-256 panic hash 防 PII
+- ADR-006 Ubuntu validated · v0.1 GA 双平台（PR #138）— 原 caveat "macOS-only" 解除 · X11 + Wayland 双 backend 验证通过
+
+### Added · v0.1 GA 必备文档
+
+- `SECURITY.md`（PR #171）— 112 行 · GitHub Security Advisory + 邮件 · CVSS 3.1 严重度分级 + 响应时间表
+- `privacy-policy.md`（PR #171）— 145 行 · GDPR Article 13 · 9 章 · Sentry payload 3 字段透明
+- `docs/session-history/session-17.md` / `session-18.md` / `session-19.md` / `session-20.md` 归档（PR #134/#153/#170）
+
+### Removed
+
+- `theme_set` / `theme_get` IPC dead code — 删 33 行 Rust + permission + capability（PR #172）
+
+---
+
 <!--
   未来发布记录格式（每个版本 GA 发布时插入）：
 

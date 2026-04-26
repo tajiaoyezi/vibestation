@@ -112,6 +112,7 @@
   display: inline-flex;
   min-width: 0;
   flex: 1;
+  align-self: stretch;
   align-items: center;
   border: none;
   background: transparent;

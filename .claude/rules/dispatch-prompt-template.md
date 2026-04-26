@@ -434,6 +434,65 @@ status: proposed
 - [项目] `.claude/rules/dispatch-prompt-template.md` §2.9 · Agent 能力矩阵（远程 API agent 字面执行特性 · 本 §2.13 的根源约束）
 - [项目] `docs/session-history/session-20.md`（待写）· PR #157 round 1 / round 2 完整时序
 
+### 2.14 · Reviewer 必须启 dev 模式跑 critical UX path（GUI / IPC 类 PR · 不只看 Rust 测试 + ts-rs contract）
+
+**规则**
+
+GUI / IPC 类 PR（含 webview 组件 / dialog / modal / Tauri command）· reviewer 在 approve 前**必须**启 `pnpm tauri:dev` 跑一遍 PR 涉及的 critical UX path · 不能只看 Rust 单元测试 + IPC contract 通过就 approve。
+
+**触发条件**（任一）：
+
+- PR 改 `web/src/dialogs/` · `web/src/panels/` · `web/src/components/`
+- PR 加 / 改 / 删 Tauri `#[tauri::command]` IPC handler
+- PR 加 / 改 frontend reactive store（settings / theme / layout / pane state）
+- PR 改 `crates/app/permissions/` · `crates/app/capabilities/`
+- spec acceptance 含 "首次启动 modal 阻塞" / "切换实时生效" / "用户操作 X 后 Y 变化" 类 UX 流程
+
+**强制做法**
+
+reviewer 必须：
+
+1. 本地 `git checkout <pr-branch> && git pull`
+2. 必要时**删 DB 模拟首次启动**（`rm "$HOME/Library/Application Support/com.vibestation.app/vibestation.db"`）· 触发 fresh state path
+3. `pnpm tauri:dev` · 等窗口 ready
+4. 跑 spec critical UX path（modal 显示 / radio click / dialog open / shortcut 触发 / fs watch 刷新）
+5. 观察 UI 实际行为 · 不只是 DB / IPC 是否被调
+6. PR review 在 GitHub 留下 "runtime verified · path X / Y / Z OK" comment
+
+**禁止做法**
+
+- ❌ 仅基于 `cargo test` / `pnpm typecheck` / `pnpm lint` 通过 → approve
+- ❌ 仅基于 IPC contract（ts-rs binding）一致 → approve
+- ❌ 仅 `cargo build` / `pnpm build` 产物生成 → approve
+- ❌ 假设 "frontend 改动小 · CSS 应该没事 · 不用看 UI" → approve（**PR #159 反面案例**）
+
+**事件**
+
+2026-04-26 session 20 · 三个 critical / secondary bug 都是 reviewer 漏 dev mode 跑：
+
+| PR | bug | 漏 dev mode 后果 |
+|---|---|---|
+| #159 | MVP-09 Phase B 主体（PR #118）merge 时 19 个 vs-commit-* / vs-toast-* / vs-dialog-* CSS class **全无定义**（裸 HTML）· reviewer 只看 Rust + IPC contract · 漏 | dev mode 一启动 dialog 完全无样式 · 用户感知严重 UI degradation · 直到 PR #159 才修 |
+| #161 | MVP-10 Phase B SDK 主体（PR #155）merge 时 modal mount-time webview 虚假 click · 用户**完全看不见** modal · DB 已被写虚假决策 · spec §B.1 隐私关键 path 失效 · reviewer 没启 dev mode | v0.1 GA blocker · 5 轮 dev restart 调试才定位 webview race · 修 200ms guard |
+| #163 | MVP-10 Phase B SDK 主体（PR #155）+ Phase A（PR #114）共同遗留 · status bar `theme_set` IPC 不 emit `settings_changed` · UI 不刷 · violate spec §F.02 实时生效 | reviewer 没切 theme 验证 · 因为 UI/UX path 是双 IPC 路径分离 · 单看 Rust 测试 + ts-rs 一致看不出 |
+
+**根因**：reviewer 把 `cargo test green + pnpm typecheck 0 errors + ts-rs contract 一致` 等同于 "PR 可 merge"。但 GUI/IPC 类 PR 的 critical path 必须 dev mode 跑过才能 catch webview race / event delegation / dual IPC path / CSS missing 类问题。这是**全局 rule 15 在 dispatch + review 阶段的具体落地**。
+
+**反模式**
+
+| 反模式 | 正确做法 |
+|---|---|
+| reviewer 只看 PR diff + CI 全绿就 approve | 必须本地 checkout + dev mode + 跑 critical UX path |
+| 假设 "前端改动小 · 不用看 UI" | 任何 frontend 改动都可能 hide dialog / 影响 reactive update · 必须 dev mode 看 |
+| 假设 "Rust 端 IPC 测试通过 = 整条 IPC path OK" | Rust 端通 ≠ 前端 emit / listen / state update 对 · 必须 end-to-end 看 |
+| reviewer 时间紧 · 跳过 dev mode | spec §runtime evidence 段 reviewer 必须 visual confirm · 不允许跳过 |
+
+**关联**
+
+- [全局] `~/.claude/rules/15-runtime-verification-gate.md` · "CI 绿 ≠ runtime 过"（本 §2.14 是 reviewer 阶段的具体落地）
+- [项目] `.claude/rules/runtime-evidence-location.md` · runtime evidence 路径（reviewer 看 evidence 是 verification 一部分 · 但**不能替代** dev mode 自跑）
+- [项目] `dispatch-prompt-template.md §2.3` · runtime 证据必交（implementer 责任 · 本 §2.14 是 reviewer 责任）
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板

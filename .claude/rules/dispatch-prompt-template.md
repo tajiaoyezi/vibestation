@@ -361,6 +361,79 @@ git config --local --unset user.name 2>/dev/null || true
 | 假设 worktree local config 不影响主 repo | 2026-04-21 实测**会污染**主 repo · 不知机制 · 必须防御性 unset |
 | 每次 commit 忘记验证 author（硬约束 2.5.3）| 2.5.3 的硬约束必须执行 · `git log -1 %an <%ae>` 是最后一道防线 |
 
+### 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件
+
+**规则**
+
+下发 "文档索引同步 / 跨文件状态对齐 / README rollup" 类任务时（如 ADR 索引同步 / `tasks/README.md` 状态翻转 / PROGRESS 滚动窗口整理）· dispatch prompt **禁止**把"目标 agent 即将引用的源文件原文"inline 到 prompt 里 · 必须改用 `git checkout origin/main -- <file>` 字节级恢复指令。
+
+**具体**
+
+适用场景：当 prompt 涉及的某个文件**同时**满足以下两条 · 必须 inline → checkout 重写：
+
+1. 该文件在另一条已 merge / 即将 merge 的 PR 里被改过（HEAD 状态和 prompt 起草时的 working copy **不同**）
+2. 目标 agent 不会主动 `git pull` / `git fetch` 后基于 HEAD 操作（远程 API agent · 或 prompt 起草到执行间隔较长 · 或 agent 习惯按 prompt inline 字面执行）
+
+正确做法：
+
+```markdown
+## 步骤 1 · 同步 ADR-NNN 决策表行（保留 PR #X 的最新措辞）
+
+**禁止**：从本 prompt inline 原文重写整个 ADR-NNN 文件
+**必须**：
+
+\`\`\`bash
+git fetch origin
+# 字节级恢复 ADR 本体 · 保留 PR #X 的最新措辞
+git checkout origin/main -- docs/adr/ADR-NNN-foo.md
+# 然后只补需要新增的索引条目（在其他文件）
+\`\`\`
+```
+
+**禁止做法对照**：
+
+```markdown
+## ❌ 错误：inline 原文（agent 会基于这份 inline 重写 · 覆盖 PR #X 的修订）
+
+\`\`\`markdown
+<!-- 整篇 ADR-NNN 内容贴在这里 ·  agent 会照贴重写 -->
+status: proposed
+...
+\`\`\`
+```
+
+**为什么**
+
+索引同步类任务的核心是 "**只新增 / 删除索引条目**" · 不应触碰被索引文件的本体。但 prompt 起草时若 inline 了被索引文件的"当时版本"· 远程 API agent 或字面执行的 agent 会把 inline 版本当真相 · 直接 overwrite 文件 · 抹掉 inline 之后到 agent 执行之间发生的所有合法修订。
+
+**事件**
+
+2026-04-26 · session 20 · **PR #157 round 1 ADR-015 倒退**：
+
+- 主 agent 先 merge PR #152（ADR-015 proposed → accepted · Arbiter approval 措辞精确写入）
+- 主 agent 然后下发 U2 prompt 给 Ubuntu Kimi · 任务："同步 ADR README 索引行 + 决策表 #10 行"
+- prompt 里 inline 了 ADR-015 的"起草时版本"原文（**proposed 状态** · 未含 PR #152 的修订）
+- Kimi 字面执行：直接基于 inline 重写 `docs/adr/ADR-015-telemetry-stack-sentry.md` 整篇 · **覆盖 PR #152 的 accepted 措辞**
+- 用户发现："这种错误 应该让 kimi 自己去修复"
+- 主 agent 重写 fix prompt：用 `git checkout origin/main -- docs/adr/ADR-015-telemetry-stack-sentry.md` 字节级恢复 · Kimi push round 2 · 主 agent merge
+
+**根因**：U2 prompt 的设计错误 · 不是 Kimi 的执行错误。索引同步类任务**不应**在 prompt 里 inline 被索引文件本体 · 应该用 git 命令让 agent 拿当前 HEAD 的真相。
+
+**反模式**
+
+| 反模式 | 正确做法 |
+|---|---|
+| 索引同步 prompt inline 被索引文件原文 | 用 `git checkout origin/main -- <file>` 让 agent 拿 HEAD 真相 |
+| 假设 "agent 会自己 git pull · inline 只是参考" | 远程 API agent 没有 git · 字面执行 prompt · inline = 真相 |
+| prompt 起草后立即下发 · 不考虑期间其他 PR merge 的可能 | 索引类任务下发前必须 `git fetch origin && git status` 检查 · 若期间有相关文件改动 · 必须更新 prompt 用 checkout 模式 |
+| 用 inline 是为了让 agent "看清结构"· 但要求 agent "只改 X 行" | "只改 X 行" 类任务不需要 inline 全文 · 用 sed / `git apply` 补丁 · 或用步骤式指令配 grep 锚点 |
+
+**关联**
+
+- [全局] `~/.claude/rules/13-cross-agent-delivery.md` · 跨 agent 交付物持久化（本 §2.13 是其在 dispatch 阶段的细化）
+- [项目] `.claude/rules/dispatch-prompt-template.md` §2.9 · Agent 能力矩阵（远程 API agent 字面执行特性 · 本 §2.13 的根源约束）
+- [项目] `docs/session-history/session-20.md`（待写）· PR #157 round 1 / round 2 完整时序
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板

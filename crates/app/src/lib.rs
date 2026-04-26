@@ -119,12 +119,19 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
     state.pty.set_pool(pool.clone());
 
-    // MVP-10 Phase B · 同步 telemetry runtime opt-in atomic（panic hook 用）
-    let opt_in = AppSettingsStore::get_all(&pool).telemetry_opt_in;
-    telemetry::set_runtime_opt_in(opt_in);
+    // MVP-10 Phase B · 同步 telemetry runtime opt-in atomic（panic hook 用）+
+    // 拉一份 settings 准备 emit（workspace_init 是 frontend 启动后第一个能确保 pool
+    // 已 init 的时机 · 必须在此 emit settings_changed · 让 frontend store 用真实 DB
+    // 值而不是 DEFAULTS · 否则 settings_get race 导致 telemetry modal 即使 DB 有
+    // telemetry_opt_in=true 也每次启动重弹）。
+    let settings = AppSettingsStore::get_all(&pool);
+    telemetry::set_runtime_opt_in(settings.telemetry_opt_in);
 
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);
+    drop(guard);
+
+    let _ = app.emit("settings_changed", &settings);
     Ok("ok".to_string())
 }
 

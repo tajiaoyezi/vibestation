@@ -14,11 +14,18 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::env;
+use std::sync::atomic::{AtomicI8, Ordering};
 use std::sync::OnceLock;
 use ts_rs::TS;
 
 /// 全局 Sentry guard · drop 时 flush events · 必须长生命周期（应用整个生命周期）
 static SENTRY_GUARD: OnceLock<sentry::ClientInitGuard> = OnceLock::new();
+
+/// Runtime opt-in 状态（panic hook + IPC 共享）
+///
+/// 编码：`-1` = 未决策（首次启动 · NULL）· `0` = opt-out · `1` = opt-in。
+/// 使用 atomic 而非 Mutex · panic hook 不能 block。
+static TELEMETRY_OPT_IN_STATE: AtomicI8 = AtomicI8::new(-1);
 
 /// Crash report 上报 payload · §G.2 锁定 3 字段（白名单防御）
 ///
@@ -156,6 +163,33 @@ pub fn is_initialized() -> bool {
     SENTRY_GUARD.get().is_some()
 }
 
+/// 同步 runtime opt-in 状态（panic hook + IPC 共享 · §B.4 实时生效）
+pub fn set_runtime_opt_in(value: Option<bool>) {
+    let encoded: i8 = match value {
+        None => -1,
+        Some(false) => 0,
+        Some(true) => 1,
+    };
+    TELEMETRY_OPT_IN_STATE.store(encoded, Ordering::Relaxed);
+}
+
+/// 读取 runtime opt-in 状态
+pub fn runtime_opt_in() -> Option<bool> {
+    match TELEMETRY_OPT_IN_STATE.load(Ordering::Relaxed) {
+        1 => Some(true),
+        0 => Some(false),
+        _ => None,
+    }
+}
+
+/// 是否应该发送 telemetry · panic hook + `capture_crash_report` 内部用
+///
+/// 双门控：必须 `opt_in == Some(true)` 且 SDK 已 init（DSN 存在）。
+/// §B.4 acceptance · opt-in == false 时立即停止发送（当前 session 已排队的 crash flush 后不再新增）。
+pub fn should_send_telemetry() -> bool {
+    runtime_opt_in() == Some(true) && is_initialized()
+}
+
 /// 初始化 Sentry SDK（按 ADR-015 §决策约束）
 ///
 /// 仅在 `opt_in == true` 且 `dsn` 非空时调用。多次调用幂等
@@ -204,12 +238,13 @@ pub fn init_sentry(dsn: &str, environment: &str) -> Result<(), TelemetryError> {
     Ok(())
 }
 
-/// 上报 crash report（仅 SDK 已初始化时生效 · 否则 no-op）
+/// 上报 crash report（仅 opt-in == true 且 SDK 已初始化时生效 · 否则 no-op）
 ///
 /// 使用 sentry::capture_message · 仅含脱敏 payload（version / os_type / hash）。
-/// SDK 未初始化（opt-in == false 或 DSN 缺失）→ no-op · 0 网络请求。
+/// 双门控：opt-in == false 或 DSN 缺失 → no-op · 0 网络请求。
+/// §B.4 acceptance · 用户 opt-out 后立即停止发送（即使 SDK 已 init）。
 pub fn capture_crash_report(payload: &CrashReportPayload) {
-    if !is_initialized() {
+    if !should_send_telemetry() {
         return;
     }
 
@@ -245,7 +280,10 @@ mod tests {
         let payload = capture_panic("anything");
         // SHA-256 = 32 bytes = 64 hex chars
         assert_eq!(payload.stack_trace_hash.len(), 64);
-        assert!(payload.stack_trace_hash.chars().all(|c| c.is_ascii_hexdigit()));
+        assert!(payload
+            .stack_trace_hash
+            .chars()
+            .all(|c| c.is_ascii_hexdigit()));
     }
 
     #[test]

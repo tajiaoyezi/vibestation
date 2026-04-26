@@ -14,15 +14,16 @@ use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
 use vibestation_core::{
-    pane_pty, pane_service, AppSettings, AppSettingsStore, CommitDetail, DiffRequest, DiffResponse,
-    DiffService, GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader,
-    GitOpsService, GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest,
-    GitStatusResponse, GitStatusService, GitStatusWatcher, LayoutApplyRequest, LayoutState,
-    LayoutStore, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
-    PaneListResponse, PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager,
-    PtySpawnRequest, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
-    StageRequest, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState,
-    TabsDao, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    pane_pty, pane_service, telemetry, AppSettings, AppSettingsStore, AppVersionInfo, CommitDetail,
+    DiffRequest, DiffResponse, DiffService, GitConfigIdentity, GitLogQueryRequest,
+    GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
+    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
+    GitStatusWatcher, LayoutApplyRequest, LayoutState, LayoutStore, PaneCloseRequest,
+    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
+    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -105,6 +106,9 @@ fn greet() -> String {
 ///
 /// **安全**：DB 路径由 backend 自取 `app_local_data_dir()` · 不接受 frontend 传参。
 /// 防止恶意 frontend 代码通过 path traversal 写入任意目录（H1 修复 · 主 agent review · session 10）。
+///
+/// MVP-10 Phase B 副作用：从 DB 读取 telemetry_opt_in · 同步到 telemetry runtime atomic
+/// （panic hook + capture_crash_report 用 · §B.4 实时生效）。
 #[tauri::command]
 fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, String> {
     let dir = app
@@ -114,6 +118,11 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
     let db_path = dir.join("vibestation.db");
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
     state.pty.set_pool(pool.clone());
+
+    // MVP-10 Phase B · 同步 telemetry runtime opt-in atomic（panic hook 用）
+    let opt_in = AppSettingsStore::get_all(&pool).telemetry_opt_in;
+    telemetry::set_runtime_opt_in(opt_in);
+
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);
     Ok("ok".to_string())
@@ -233,8 +242,63 @@ fn settings_update(
         let pool = guard.as_ref().ok_or("database not initialized")?;
         AppSettingsStore::get_all(pool)
     };
+    // MVP-10 Phase B · 若 telemetry_opt_in 字段被改 · 同步触发 SDK init / shutdown
+    // （目前 SDK init 是 once-only · drop 在 process exit · 实时关闭推 v0.2 GA · §C.1
+    // acceptance 已说明 opt-in == false 时 0 outbound · 由 capture_crash_report no-op 保证）
     let _ = app.emit("settings_changed", &updated);
     Ok(updated)
+}
+
+// ─── MVP-10 Phase B · Telemetry IPC（3 commands · ADR-015 accepted） ───
+
+/// 持久化 telemetry opt-in 决策（首次启动对话框 / 设置面板 toggle）
+///
+/// 等价于 `settings_update({ telemetry_opt_in: req.opt_in })` · 单字段语义化封装
+/// 让前端意图清晰 · 同时复用 settings_changed event 通知所有订阅方。
+///
+/// 副作用：同步 telemetry runtime atomic（§B.4 · opt-out 立即停止发送）。
+#[tauri::command]
+fn telemetry_opt_in_set(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: TelemetryOptInRequest,
+) -> Result<TelemetryStatus, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let update = SettingsUpdateRequest {
+        telemetry_opt_in: Some(req.opt_in),
+        ..Default::default()
+    };
+    AppSettingsStore::update(pool, &update).map_err(|e| e.to_string())?;
+    drop(guard);
+
+    // 同步 runtime atomic（§B.4 实时生效 · panic hook 共享）
+    telemetry::set_runtime_opt_in(Some(req.opt_in));
+
+    // 重新拉全量 settings · emit settings_changed 让所有订阅方刷新
+    let settings = {
+        let guard = state.pool.lock().map_err(|e| e.to_string())?;
+        let pool = guard.as_ref().ok_or("database not initialized")?;
+        AppSettingsStore::get_all(pool)
+    };
+    let _ = app.emit("settings_changed", &settings);
+
+    Ok(telemetry::build_status(settings.telemetry_opt_in))
+}
+
+/// 读取 telemetry 当前状态（opt-in 值 + endpoint 描述 + SDK 是否已 init + 数据收集摘要）
+#[tauri::command]
+fn telemetry_status_get(state: State<'_, AppState>) -> Result<TelemetryStatus, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let opt_in = AppSettingsStore::get_all(pool).telemetry_opt_in;
+    Ok(telemetry::build_status(opt_in))
+}
+
+/// 读取应用版本信息（version + os_type + build_target · Privacy 面板调试展示）
+#[tauri::command]
+fn app_version_get() -> AppVersionInfo {
+    telemetry::build_version_info()
 }
 
 #[tauri::command]
@@ -731,12 +795,54 @@ fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
 #[cfg(not(target_os = "macos"))]
 fn configure_title_bar<R: tauri::Runtime>(_app: &tauri::App<R>) {}
 
+/// 安装 panic hook · 必须在 Tauri builder 启动前调用（一次性 · 进程级）
+///
+/// MVP-10 §B.4 acceptance：
+/// - opt-in == false 或 SDK 未 init → panic 时只走原 hook（stderr 打印）· 0 网络
+/// - opt-in == true 且 SDK 已 init → 原 hook + capture_crash_report (脱敏 payload)
+fn install_panic_hook() {
+    let original = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        original(info);
+        let payload = telemetry::capture_panic(&format!("{info}"));
+        // capture_crash_report 内部检查 should_send_telemetry · opt-out 时 no-op
+        telemetry::capture_crash_report(&payload);
+    }));
+}
+
+/// 尝试从环境变量初始化 Sentry SDK（按 ADR-015 §决策）
+///
+/// DSN 来源（优先级）：
+/// 1. `VIBESTATION_SENTRY_DSN` 环境变量（CI / 本地未提交配置 / 自托管 endpoint）
+/// 2. 缺失 → SDK 不初始化 · capture 全部 no-op
+///
+/// `environment` 来源 `VIBESTATION_TELEMETRY_ENV` · 缺失默认 "production"。
+/// 注意：SDK 初始化和 opt-in 状态独立 · runtime atomic 才决定是否实际发送（§B.4）。
+fn try_init_sentry_from_env() {
+    let Ok(dsn) = std::env::var("VIBESTATION_SENTRY_DSN") else {
+        return;
+    };
+    if dsn.trim().is_empty() {
+        return;
+    }
+    let environment =
+        std::env::var("VIBESTATION_TELEMETRY_ENV").unwrap_or_else(|_| "production".to_string());
+    if let Err(error) = telemetry::init_sentry(&dsn, &environment) {
+        eprintln!("[mvp-10] sentry init skipped: {error}");
+    }
+}
+
 /// Tauri 应用主入口 · 被 `src/main.rs` 调用。
 ///
 /// # Panics
 /// 若 Tauri 初始化失败（窗口 / 插件加载异常）则 panic · 由 Tauri 默认错误处理上浮。
 pub fn run() {
     let _ = fix_path_env::fix();
+
+    // MVP-10 Phase B · panic hook + Sentry SDK 初始化（在 Tauri builder 之前）
+    install_panic_hook();
+    try_init_sentry_from_env();
+
     let pty = PtyManager::new();
     let pty_events = pty
         .take_event_receiver()
@@ -770,6 +876,9 @@ pub fn run() {
             default_shell_set,
             settings_get,
             settings_update,
+            telemetry_opt_in_set,
+            telemetry_status_get,
+            app_version_get,
             tab_list,
             tab_create,
             tab_close,

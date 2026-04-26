@@ -172,6 +172,19 @@
   color: var(--text-1);
 }
 
+/*
+ * Tab button focus ring 改 inset · 不溢出 tab 边
+ * 全局 :focus-visible 用 box-shadow: 0 0 0 2px var(--focus-ring) 绘制在元素外圈 ·
+ * trigger button 是 inline-flex 占满 tab content area · ring 视觉溢出整个 tab ·
+ * 在 dark mode + active tab 上特别刺眼。inset 让 ring 在 button 内部绘 · 不破 tab outline。
+ */
+.vs-terminal-tab-trigger:focus-visible,
+.vs-terminal-tab-close:focus-visible,
+.vs-terminal-new-tab:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+  outline: none;
+}
+
 .vs-terminal-stage {
   position: relative;
   flex: 1;

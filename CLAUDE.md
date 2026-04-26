@@ -208,7 +208,7 @@ gh pr create
 - MVP-09 ready · Phase A git_ops 后端 done（PR #116）· session 19 派 Phase B Status 面板接线（Kimi 远程独立电脑）
 - MVP-10 ready · Phase A 设置面板 done · session 19 派 Phase B Sentry Spike + ADR（Codex）
 - **MVP-11 draft**（Native Feel Quality · 对标 MUX0 · 治 "web 套壳" 观感）· 主 agent 起草 · 本分支 `docs/MVP-11-native-feel-draft` · 等 Arbiter 独立评审翻 `ready`
-- SPIKE-01/02 blocked（Ubuntu · 最低优先）· SPIKE-06 blocked（§B Apple Dev · 用户决策中）
+- SPIKE-01/02 §A done · §B Ubuntu validated（PR #137-#139 · ADR-006 解除 caveat · X11 108ms + Wayland 107ms / 30 cold boot 0 fail · IME fcitx5 PASS）· SPIKE-06 §A done · §B Apple Dev **推 v0.2**（session 20 · 2026-04-26 决策 · v0.1 alpha unsigned 模式 + README Gatekeeper bypass 指引替代 · 不阻塞 v0.1 alpha 发版）
 
 **session 19 进行中的 4 track**（2026-04-25）：
 

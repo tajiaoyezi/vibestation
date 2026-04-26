@@ -132,6 +132,8 @@
 ## [0.1.0] - 2026-04-XX · v0.1 GA
 
 > 主 agent 实际发版时把 `XX` 替换为发版日期。
+>
+> **macOS 安装提示**：本 alpha 版本 **未经过 Apple notarize**（推迟至 v0.2 · 详见 README "## 安装"）· macOS 用户首次启动需手动跑 `xattr -cr /Applications/Vibestation.app` 放行 Gatekeeper · Linux .deb / .AppImage 无此限制。v0.2 升级触发：README 反馈"装不上"超 5 次 / 公开 landing page 上线 / macOS 用户基础超 100 任一即触发。
 
 ### Added · 代码实施（2026-04-23 ~ 2026-04-26 · session 17-20 · macOS + Ubuntu 双平台）
 

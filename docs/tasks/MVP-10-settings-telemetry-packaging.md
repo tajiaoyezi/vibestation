@@ -76,11 +76,11 @@ MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期�
 |---|---|---|---|---|
 | Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| ✅ done | [#114](https://github.com/tajiaoyezi/vibestation/pull/114) |
 | Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成 + PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle） + ADR-015 accepted | ✅ done · ADR-015 accepted [#152](https://github.com/tajiaoyezi/vibestation/pull/152) · SDK 编码 [#155](https://github.com/tajiaoyezi/vibestation/pull/155)（4 commits · 19 测试全过 · `default_integrations: false` + PII SHA-256 hash + before_send 删 trace）· §C.4 endpoint UI + §G.4 H2 proof + §F capture guide [#158](https://github.com/tajiaoyezi/vibestation/pull/158) · §B.1 modal mount-time click guard [#161](https://github.com/tajiaoyezi/vibestation/pull/161) **critical bug fix**（webview 启动 race · 200ms guard）· §F.02 theme dual-path fix [#163](https://github.com/tajiaoyezi/vibestation/pull/163) **secondary fix**（ThemeProvider listen settings_changed event · 实时生效闭环）· §F evidence 3/4 done（01/02/03 · 仅 §F.04 DevTools 待 Arbiter）| [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) · [#152](https://github.com/tajiaoyezi/vibestation/pull/152) / [#155](https://github.com/tajiaoyezi/vibestation/pull/155) / [#158](https://github.com/tajiaoyezi/vibestation/pull/158) / [#161](https://github.com/tajiaoyezi/vibestation/pull/161) / [#163](https://github.com/tajiaoyezi/vibestation/pull/163) |
-| Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done · SPIKE-06 §B Apple Dev approved | ⏳ todo · 等 SPIKE-06 §B Apple Dev Program approve（用户决策中 · $99/y） | — |
-| Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo · MVP-01 Phase C Ubuntu installer 已就位 PR #139（5.5 MB deb / 78 MB AppImage）· 仅缺 v0.1.0 tag artifact | — |
-| Phase E · 非功能文件 + GitHub Release | README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + Release page assets | Phase A–D done | ⏳ todo · 大部分非功能文件已存在（README/CONTRIBUTING/CoC/CHANGELOG）· 仅缺 SECURITY.md / privacy-policy.md + v0.1.0 tag | — |
+| Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done · Apple Developer Program approved | 🟡 **deferred to v0.2** · v0.1 GA 改 unsigned 模式 · README + Release notes 写明 Gatekeeper bypass 指引（`xattr -cr /Applications/Vibestation.app`）· $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.2 升级触发：README 反馈"装不上"超 5 次 / 公开 landing page 上线 / macOS 用户基础超 100 任一即触发 | — |
+| Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ⏳ todo · MVP-01 Phase C Ubuntu installer 已就位 PR #139（5.5 MB deb / 78 MB AppImage）· session 20 Ubuntu Claude 进行中 · 仅缺 v0.1.0 tag artifact | — |
+| Phase E · 非功能文件 + GitHub Release（unsigned 模式）| README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + unsigned macOS .dmg + Linux .deb/.AppImage + Release page assets + macOS Gatekeeper bypass 指引 | Phase A/B/D done（Phase C 推 v0.2）| ⏳ todo · 非功能文件全已存在（README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy）· 仅缺 v0.1.0 tag + unsigned macOS .dmg artifact + Linux artifact（等 Phase D） | — |
 
-**下次 agent 起点**：Phase A/B 全 done · 仅 §F.04（telemetry decline 0 outbound · DevTools network panel 验证）需 Arbiter 本地 5 min capture。Phase C/D/E 等 SPIKE-06 §B Apple Dev Program approve 后启动打包流程（macOS 公证 → Linux AppImage → GitHub Release）。**dead code cleanup**：`crates/app/src/lib.rs::theme_set` IPC handler + capability + permission 在 PR #163 后已无 frontend 调用方 · 推 v0.2 cleanup PR 删除（侵入式 · 跨 Rust + capability + permission · 风险大于价值）。
+**下次 agent 起点**：Phase A/B 全 done · 仅 §F.04（telemetry decline 0 outbound · DevTools network panel 验证）需 Arbiter 本地 5 min capture。**Phase C 推 v0.2**（Apple Dev Program $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.1 改 unsigned dmg + README Gatekeeper bypass 指引模式 · 见 §I.D §K 风险段）。**Phase D Ubuntu Claude 进行中**（session 20 dispatch · `spike-tmp/dispatch/MVP-10-phase-D-linux-appimage-ubuntu-claude-prompt.md`）。**Phase E** 接续 Phase D 完成后 · v0.1.0 tag + unsigned macOS .dmg + Linux artifact + GitHub Release（unsigned 模式）。**dead code cleanup**：`crates/app/src/lib.rs::theme_set` IPC handler + capability + permission 在 PR #163 后已无 frontend 调用方 · 已于 PR #172 清理（session 20）。
 
 **依赖关系说明**：
 - Phase A/B 文件域：`crates/core/src/app_settings.rs`（已存在 · MVP-03 Phase A 建）+ `crates/app/src/lib.rs`（IPC 注册）+ `web/src/panels/Settings/`（新建）+ `web/src/dialogs/TelemetryOptIn/`（新建）
@@ -223,12 +223,23 @@ fn capture_panic_handles_repo_path() {
 - 内部用 `sha2` crate 算 SHA-256(panic_info) → `stack_trace_hash`
 - 仅保留 OS type + version + `stack_trace_hash` 3 字段（`CrashReportPayload` struct 已锁 §G.2）
 
-### D. macOS 打包
+### D. macOS 打包（v0.1 alpha · unsigned 模式 · v0.2 升级 notarized）
 
-- [ ] D.1 `pnpm tauri build` 在 macOS 产出 signed `.app` + `.dmg`（`--target universal-apple-darwin` 或分别 `x86_64` / `aarch64`）
-- [ ] D.2 公证通过：`xcrun notarytool submit Vibestation.dmg --wait` exit code 0，日志无 Invalid / Rejected
-- [ ] D.3 Stapling 完成：`xcrun stapler staple Vibestation.dmg` exit code 0；`spctl -a -vv Vibestation.dmg` 输出含 `accepted`
-- [ ] D.4 Gatekeeper 干净的 mac 可直接打开：`xattr -l Vibestation.app` 无 `com.apple.quarantine` 阻止标记；或实机双击无"无法验证开发者"弹窗
+> **决策（session 20 · 2026-04-26）**：v0.1 alpha 改 unsigned 模式 · 不付 Apple Developer Program（$99/y）· 不等 2-2 周审批 · README + Release notes 写明 Gatekeeper bypass 指引。v0.2 触发条件（任一）：(1) README 反馈"装不上"超 5 次；(2) 公开 landing page 上线；(3) macOS 用户基础超 100。届时升级 D.1-D.4 原计划。
+
+#### D · v0.1 unsigned 模式（v0.1 GA 接受）
+
+- [ ] D.unsigned.1 `pnpm tauri build` 在 macOS 产出 unsigned `.app` + `.dmg`（`--target aarch64-apple-darwin` + `x86_64-apple-darwin` 分别构建）· 体积 < 30 MB
+- [ ] D.unsigned.2 README + Release notes 含完整 macOS 安装指引：`xattr -cr /Applications/Vibestation.app` bypass 命令 + 三步图文（下载 / 拖动 Applications / Terminal 跑 xattr）
+- [ ] D.unsigned.3 实机验证：干净的 macOS（未给开发者豁免）双击 `.dmg` → 拖动 → 按指引跑 xattr → 双击 `.app` 启动 ✓
+- [ ] D.unsigned.4 Release notes 醒目标"unsigned alpha · v0.2 升级 notarized"
+
+#### D · v0.2 notarized 升级路径（推迟 · 不阻塞 v0.1）
+
+- [ ] D.notarized.1 `pnpm tauri build` 在 macOS 产出 signed `.app` + `.dmg`（`--target universal-apple-darwin` 或分别 `x86_64` / `aarch64`）· 依赖 Developer ID Application 证书
+- [ ] D.notarized.2 公证通过：`xcrun notarytool submit Vibestation.dmg --wait` exit code 0，日志无 Invalid / Rejected
+- [ ] D.notarized.3 Stapling 完成：`xcrun stapler staple Vibestation.dmg` exit code 0；`spctl -a -vv Vibestation.dmg` 输出含 `accepted`
+- [ ] D.notarized.4 Gatekeeper 干净的 mac 可直接打开：`xattr -l Vibestation.app` 无 `com.apple.quarantine` 阻止标记；或实机双击无"无法验证开发者"弹窗
 
 ### E. Linux 打包
 
@@ -488,9 +499,9 @@ pub struct CrashReportPayload {
 ## ⚠️ 已知风险
 
 - **R30 Telemetry 合规**：GDPR/CCPA 要求默认关 + 透明收集项 + 用户可撤回 → 本 spec 覆盖（C.1-C.4 + H.1）
-- **Apple Developer Program 审批时间**：SPIKE-06 已在 W0 申请，v0.1 发布（W12）时必须已通过；若未通过 → unsigned dmg（有警告，非 block，见 D.4 降级路径）
-- **Notarization 失败常见原因**：entitlements 配置不全 / 代码引用不合规 API → 需要提前 W11 测试通过（D.2-D.3）
-- **Ubuntu 24 环境缺失**：E.3 可能无法实机验证 → 记 known limitation · v0.1.0-alpha macOS-first 策略兼容
+- **~~Apple Developer Program 审批时间~~**（session 20 决策 · 2026-04-26 · 不再 v0.1 阻塞）：v0.1 alpha 改 unsigned 模式 · README + Release notes 写明 Gatekeeper bypass 指引（`xattr -cr /Applications/Vibestation.app`）· $99/y + 2-2 周审批推到 v0.2 · 升级触发条件 (1) README 反馈"装不上"超 5 次 / (2) 公开 landing page 上线 / (3) macOS 用户基础超 100 任一即触发（见 §I.D）
+- **Notarization 失败常见原因**（v0.2 升级时关注 · 不阻塞 v0.1）：entitlements 配置不全 / 代码引用不合规 API → 升级前需要测试通过（D.notarized.2-D.notarized.3）
+- **Ubuntu 24 环境缺失**（已解除 · 2026-04-25 session 19 · ADR-006 Ubuntu validated · PR #137-#139）：X11 108ms + Wayland 107ms · IME fcitx5 PASS · AppImage 78MB / deb 5.5MB · v0.1 GA 双平台
 
 ## 📝 Notes
 

@@ -100,6 +100,11 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
     string | null
   >(null);
+  // 右键命中的 tab id · TabBar onContextMenu 立刻 set · menu:action listener 优先用此
+  // 值而非 currentActiveTabId · 防止右键非 active tab 时操作误作用到 active tab。
+  const [contextMenuTabId, setContextMenuTabId] = createSignal<string | null>(
+    null,
+  );
   /**
    * MVP-05 Phase C · Pane mode state per tab。tab 在 panesByTabId 里 → 渲染 PaneSplitView
    * 用 pane_pty_*；不在则走 legacy TerminalPane（tab_pty_*）。新 tab 创建时调
@@ -903,8 +908,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
         return;
       }
 
-      const tabId = currentActiveTabId();
+      // tab context menu (menu_show_tab) 操作目标是右键命中的 tab · 不是当前 active。
+      // 非 tab 类操作（preferences / new_tab）contextTab 也可能被设但用不到 · 处理完
+      // 都清。fallback 到 active 是为了 keyboard shortcut 触发同 action 时仍能工作。
+      const ctxTab = contextMenuTabId();
+      const tabId = ctxTab ?? currentActiveTabId();
       const tabs = currentTabs();
+      // 处理完一次菜单事件就清 · 不影响下次右键 / 快捷键路径
+      setContextMenuTabId(null);
 
       switch (event.payload.action) {
         case "close_tab":
@@ -1038,6 +1049,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
         tabs={currentTabs()}
         activeTabId={currentActiveTabId()}
         pendingRenameTabId={pendingRenameTabId() ?? undefined}
+        onContextMenuTab={(tabId) => setContextMenuTabId(tabId)}
         onCreate={() => {
           const workspace = props.activeWorkspace();
           if (workspace) {

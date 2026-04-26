@@ -12,6 +12,7 @@ type TabBarProps = {
   tabs: readonly TabState[];
   activeTabId: string | null;
   onClose: (tabId: string) => void;
+  onContextMenuTab?: (tabId: string) => void;
   onCreate: () => void;
   onRename: (tabId: string, name: string) => Promise<void>;
   onSelect: (tabId: string) => void;
@@ -87,6 +88,10 @@ export const TabBar: Component<TabBarProps> = (props) => {
                 role="presentation"
                 onContextMenu={(e) => {
                   e.preventDefault();
+                  // 把右键命中的 tab id 提前告诉 Terminal · 让 menu:action listener
+                  // 用 contextTabId 而非 currentActiveTabId · 修右键非 active tab
+                  // 操作（rename / close 等）误作用到 active tab 的 bug。
+                  props.onContextMenuTab?.(tab.tabId);
                   void invoke("menu_show_tab", {
                     x: e.clientX,
                     y: e.clientY,

@@ -17,7 +17,7 @@
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use vibestation_core::git_ops::GitOpsError;
 use vibestation_core::GitOpsService;
@@ -42,7 +42,7 @@ fn write_and_commit_initial(repo_path: &PathBuf, file: &str, content: &str) {
     GitOpsService::commit(repo_path, "initial commit", false).unwrap();
 }
 
-fn create_pre_commit_hook(repo_path: &PathBuf, exit_code: i32, stderr_msg: &str) {
+fn create_pre_commit_hook(repo_path: &Path, exit_code: i32, stderr_msg: &str) {
     let hooks_dir = repo_path.join(".git").join("hooks");
     fs::create_dir_all(&hooks_dir).unwrap();
     let hook_path = hooks_dir.join("pre-commit");
@@ -152,7 +152,7 @@ fn test_chinese_message_and_filename() {
     GitOpsService::stage_files(&path, &["你好.txt".to_string()]).unwrap();
     let resp = GitOpsService::commit(&path, "添加中文文件和提交信息 🎉", false).unwrap();
 
-    assert!(resp.short_sha.len() > 0);
+    assert!(!resp.short_sha.is_empty());
 
     // verify via git2
     let repo = git2::Repository::open(&path).unwrap();

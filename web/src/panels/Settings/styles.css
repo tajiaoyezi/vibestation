@@ -320,6 +320,41 @@
   color: var(--text-1);
 }
 
+/* ─── Endpoint host + Copy button (§C.4) ─── */
+.vs-settings-endpoint-host {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-2);
+  word-break: break-all;
+  user-select: text;
+}
+
+.vs-settings-copy-btn {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font-size: 0.75rem;
+  font-family: inherit;
+  padding: var(--space-1) var(--space-3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+  flex-shrink: 0;
+}
+
+.vs-settings-copy-btn:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.vs-settings-copy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .vs-settings-link-inline {
   color: var(--accent);
   text-decoration: underline;

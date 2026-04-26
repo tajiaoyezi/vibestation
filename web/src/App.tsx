@@ -266,6 +266,15 @@ const LayoutShell: Component<{
           <IpcIndicator state={props.ipc()} />
         </div>
         <div class="vs-status-group">
+          <button
+            type="button"
+            class="vs-status-icon-btn"
+            aria-label="Open settings"
+            title="Settings (⌘,)"
+            onClick={() => setSettingsVisible(true)}
+          >
+            ⚙
+          </button>
           <ThemeSwitch />
           <span class="vs-status-item">
             <span class="vs-status-val">v{props.version()} · alpha</span>

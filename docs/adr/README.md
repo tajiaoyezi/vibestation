@@ -23,7 +23,7 @@
 | [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）| **accepted** | —（治理规则）| Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21 |
 | [ADR-013](./ADR-013-spike-cold-backup-degradation.md) | Spike 冷备归档 v1 强制 → v2 推荐（22% 合规率实证 · 3 场景判断清单保留特殊情况）| **accepted** | —（项目规则）| Session 13 中 · audit M-1 根因 @ 2026-04-21 |
 | [ADR-014](./ADR-014-ipc-contract-source-of-truth-ts-rs.md) | IPC contract source of truth = Rust struct + ts-rs codegen（H2 根因消除 · compile-time 防字段 drift）| **accepted** | —（规范类跨模块 · 未在锁定表）| Session 13 中 · audit X-4 补正式 ADR · SPIKE-08 §A PASS @ 2026-04-20 + PR #63 rollout |
-| [ADR-015](./ADR-015-telemetry-stack-sentry.md) | Telemetry crash stack = Sentry SDK + sanitized payload | **proposed** | #10 实施子决策 | MVP-10 Phase B pre-spike @ 2026-04-25 |
+| [ADR-015](./ADR-015-telemetry-stack-sentry.md) | Telemetry crash stack = Sentry SDK + sanitized payload | **accepted** | #10 实施子决策 | MVP-10 Phase B pre-spike @ 2026-04-25 · accepted @ 2026-04-26 |
 
 ---
 
@@ -114,7 +114,7 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ## 📊 ADR 覆盖范围（Codex PR #12 review F1 复核精确描述 · Session 10 accepted 扩充）
 
-**已 ADR 化（15 条 · 14 accepted · 1 proposed）**：
+**已 ADR 化（15 条 · 15 accepted · 0 proposed）**：
 - A 档（11 条 accepted · 对应 `CLAUDE.md` 决策表）：
   - Phase 1 锁定 6 条：`#1` License · `#2` MVP 范围 · `#3` AI-Aware v1.0 vision · `#5` Cargo workspace · `#6` 前端栈 · `#7` Diff 自建
   - Session 8-10 Spike 通过 3 条：`#13` Git 栈（SPIKE-03 @ 2026-04-19）· `#14` 本地存储 rusqlite（SPIKE-04.5 @ 2026-04-19）· `#15` PTY 方案（SPIKE-05.5 @ 2026-04-19）
@@ -125,14 +125,14 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
   - `ADR-012` · v2-D → v2-D.1 Arbiter approval 规则简化（session 13 audit H1 根因 @ 2026-04-21）
   - `ADR-013` · Spike 冷备归档 v1 → v2 降级（session 13 audit M-1 根因 @ 2026-04-21 · 22% 合规率实证）
   - `ADR-014` · IPC contract source of truth = ts-rs codegen（session 13 audit X-4 · SPIKE-08 §A + PR #63 rollout 追溯正式化 · H2 根因消除）
-- MVP 实施子决策（1 条 proposed · 待 Arbiter 拍板）：
-  - `ADR-015` · MVP-10 Telemetry crash stack = Sentry SDK + sanitized payload（Phase B pre-spike · 2026-04-25）
+- MVP 实施子决策（1 条 accepted · session 20 解锁 SDK 编码）：
+  - `ADR-015` · MVP-10 Telemetry crash stack = Sentry SDK + sanitized payload（Phase B pre-spike · 2026-04-25 proposed · 2026-04-26 accepted by Arbiter via PR #152 · 解锁 MVP-10 Phase B SDK 编码）
 
 **A 档未 ADR 化**（5 条 · 已在其他文档锁定 · 需要改变决策时才补 ADR）：
 - `#4` Calm Studio 视觉方向 → 锁定 @ `design/directions/1-calm-studio.html`
 - `#8` 平台 MVP = macOS + Ubuntu → 锁定 @ `implementation-plan.md §3.1`
 - `#9` Tool Windows 默认状态 → 锁定 @ 原型 JS `DEFAULT_STATE`
-- `#10` Telemetry 默认关 + opt-in → 默认关闭 / opt-in 语义锁定 @ `implementation-plan.md §5.1` + R30；实现子决策见 `ADR-015`（proposed）
+- `#10` Telemetry 默认关 + opt-in → 默认关闭 / opt-in 语义锁定 @ `implementation-plan.md §5.1` + R30；实现子决策见 `ADR-015`（accepted @ 2026-04-26）
 - `#11` Landing page 栈 = Astro → 锁定 @ `implementation-plan.md §12`
 
 **C 档（2 条 · 时间锁定结果开放）**：不建 ADR · 由时间节点触发决策并直接更新 `CLAUDE.md` 决策表。
@@ -141,4 +141,4 @@ gh pr create --title "docs(adr): 新增 ADR-012 <标题>"
 
 ---
 
-**本目录 Phase 3 建立（2026-04-18）· 当前 15 个 ADR（14 accepted · 1 proposed）· 覆盖范围如上精确描述。**
+**本目录 Phase 3 建立（2026-04-18）· 当前 15 个 ADR（15 accepted · 0 proposed）· 覆盖范围如上精确描述。**

@@ -1,8 +1,8 @@
 # ADR-015: Telemetry crash stack = Sentry SDK + sanitized payload
 
-**状态**：proposed
-**日期**：2026-04-25
-**决策者**：Codex CLI（Spike 作者）· reviewer 待定 · tajiaoyezi（Arbiter 待拍板）
+**状态**：accepted
+**日期**：2026-04-25 proposed · 2026-04-26 accepted
+**决策者**：Codex CLI（Spike 作者）· Claude Code（reviewer · session 19 末 self-review）· tajiaoyezi（Arbiter · 2026-04-26 dialogue approve）
 **对应 `CLAUDE.md` 决策表**：#10（Telemetry 默认关闭 + opt-in 的实施子决策）
 **对应 Spike**：[MVP-10 §H.1.1](../tasks/MVP-10-settings-telemetry-packaging.md)
 
@@ -119,3 +119,4 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 **修订历史**：
 
 - 2026-04-25 · 初版 proposed · Codex CLI
+- 2026-04-26 · accepted by tajiaoyezi via session 20 dispatch dialogue（"你直接处理"）· 解锁 MVP-10 Phase B Sentry SDK 编码 · Claude Code 主 agent 翻转

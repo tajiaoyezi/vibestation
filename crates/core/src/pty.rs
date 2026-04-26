@@ -846,12 +846,18 @@ pub struct ShellInfo {
     pub label: String,
 }
 
-/// 扫 `/etc/shells` 列出系统所有认证 shell · 过滤 commented 行 / 不存在的 binary /
-/// 不可执行的文件。读不到 `/etc/shells`（理论上 macOS / Linux 都有 · Windows 没有）
-/// 返回内置 fallback `[zsh, bash]`。
+/// 主流交互 shell 白名单（覆盖 95% 用户）· 过滤 dash / csh / tcsh / ksh / sh
+/// 等系统/脚本 shell · 它们出现在 `/etc/shells` 但几乎没人作为交互 terminal 用。
+/// nu / pwsh 通常不写 `/etc/shells` · MVP 不为它们加路径探测。用户已选的非白名单 shell
+/// 仍保留在 list 里（例外保护 · 见 list_available_shells 末尾）。
+const PRIMARY_SHELL_BASENAMES: &[&str] = &["zsh", "bash", "fish"];
+
+/// 扫 `/etc/shells` · 过滤 commented / 不可执行 / 非主流交互 shell · 返回主流 shell 列表。
+/// 读不到 `/etc/shells`（macOS / Linux 都应有 · Windows 没）返回 fallback `[zsh|bash]`。
 ///
-/// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的 shell ·
-/// 而非自由输入 / hardcoded 列表（fix24 · 防 "PTY 启动失败: shell not executable"）。
+/// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的主流 shell ·
+/// 而非自由输入 / hardcoded 列表（fix24/25 · 防 "PTY 启动失败: shell not executable"
+/// + 减干扰非主流选项）。
 pub fn list_available_shells() -> Vec<ShellInfo> {
     let mut shells: Vec<ShellInfo> = std::fs::read_to_string("/etc/shells")
         .ok()
@@ -865,14 +871,13 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
                     if !is_executable_file(path) {
                         return None;
                     }
-                    let label = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or(path_str)
-                        .to_string();
+                    let basename = path.file_name().and_then(|n| n.to_str())?;
+                    if !PRIMARY_SHELL_BASENAMES.contains(&basename) {
+                        return None;
+                    }
                     Some(ShellInfo {
                         path: path_str.to_string(),
-                        label,
+                        label: basename.to_string(),
                     })
                 })
                 .collect()

@@ -62,6 +62,9 @@
     "allow-menu-show-terminal",
     "allow-menu-register-shortcuts",
     "allow-menu-item-clicked",
+    "allow-telemetry-opt-in-set",
+    "allow-telemetry-status-get",
+    "allow-app-version-get",
     "dialog:default"
   ]
 }

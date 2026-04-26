@@ -69,7 +69,8 @@ export const TabBar: Component<TabBarProps> = (props) => {
 
     const tab = props.tabs.find((t) => t.tabId === pendingId);
     if (tab) {
-      props.onSelect(tab.tabId);
+      // 不切 active · rename 入口（右键菜单 / future shortcut）应该独立于 tab 选中。
+      // 双击 label 路径不受影响（第一击已在 trigger button onClick 内 select 过）。
       startRename(tab);
     }
   });

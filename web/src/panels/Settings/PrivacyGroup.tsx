@@ -133,7 +133,12 @@ export const PrivacyGroup: Component = () => {
               <p class="vs-settings-detail-note">
                 You can change this anytime in Preferences → Privacy. Full
                 details in{" "}
-                <a href="#" class="vs-settings-link-inline">
+                <a
+                  href="https://github.com/tajiaoyezi/vibestation/blob/main/privacy-policy.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="vs-settings-link-inline"
+                >
                   privacy-policy.md
                 </a>
                 .

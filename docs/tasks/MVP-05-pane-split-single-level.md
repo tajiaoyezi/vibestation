@@ -70,7 +70,7 @@ reviewer: Kimi
 | Phase C · §C SmartLayoutMenu 组件 | 230 行 modal 组件 · 2 preset 卡片 · dry-run 预览 will-close panes · UX 决策（红色 Confirm 替代嵌套 dialog）· async onApply | ✅ done | [#148](https://github.com/tajiaoyezi/vibestation/pull/148) |
 | Phase C · §A/§B/§E 集成 | Terminal.tsx 集成 PaneSplitView 渲染 · ⌘\\ ⌘⇧\\ ⌘⌃W shortcuts wire · pane_focus on click · backend PaneListResponse 加 focusedPaneId · 双路渲染（pane mode / legacy） | ✅ done | [#149](https://github.com/tajiaoyezi/vibestation/pull/149) |
 | Phase C · §C wire | SmartLayoutMenu 集成 · ⌘⇧P keydown listener · onApply 调 pane_layout_apply · pendingPaste 时 suppress · Sub-agent C 报告 backend preset 翻译错误修正（直接传 camelCase 不翻译） | ✅ done | [#150](https://github.com/tajiaoyezi/vibestation/pull/150) |
-| Phase C · §F 性能仪表化 + Phase D capture script | F.4-F.6 inline performance.now() console.info 输出 · F.1 measure-memory.sh + F.2/F.3 DevTools manual procedure · capture-phase-d.sh 自动化 6 截图 + 录屏指引 · metrics-mvp-05.md 测量手册 | 🟡 partial done · 仪表化完成 · 实测数字待 Arbiter 本地 30 min capture | [#147e](https://github.com/tajiaoyezi/vibestation/pull/) |
+| Phase C · §F 性能仪表化 + Phase D capture script | F.4-F.6 inline performance.now() console.info 输出 · F.1 measure-memory.sh + F.2/F.3 DevTools manual procedure · capture-phase-d.sh 自动化 6 截图 + 录屏指引 · metrics-mvp-05.md 测量手册 | 🟡 partial done · 仪表化完成 · 实测数字待 Arbiter 本地 30 min capture | [#151](https://github.com/tajiaoyezi/vibestation/pull/151) |
 | Phase D · runtime 证据捕获 | 6 PNG 截图 + 30s 录屏 · 用 capture-phase-d.sh + screencapture -V 30 实际跑 · 填 metrics-mvp-05.md F.1-F.6 实测数字 | ⏳ todo · ~30 min Arbiter 本地（v0.1 GA gate 前推荐做） | — |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：

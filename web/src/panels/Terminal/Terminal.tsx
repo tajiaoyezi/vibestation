@@ -352,6 +352,30 @@ export const Terminal: Component<TerminalProps> = (props) => {
       }
       syncWorkspaceTabs(workspaceId, tabs);
       setPasteConfirmSkip(workspaceId, false);
+
+      // 让所有 tabs 都进 pane mode · 跟 createTab 路径一致 · 否则首个 tab 走 legacy
+      // <TerminalPane> + .vs-terminal-host（有 line-soft 内边框）· 而后续新 tab 走
+      // <PaneTerminal> + .vs-pane-terminal-host（无 border）· 视觉不一致。
+      // pane_init_for_tab 是 idempotent · 已 init 的 tab 直接返回当前 layout。
+      for (const tab of tabs) {
+        try {
+          const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
+            req: {
+              tabId: tab.tabId,
+              shell: tab.shell,
+              cwd: tab.cwd,
+            } satisfies PaneInitRequest,
+          });
+          setPaneListForTab(tab.tabId, paneList);
+        } catch (paneError) {
+          // 失败时不阻塞 · tab 退化到 legacy TerminalPane（仍 work · 仅视觉差异）
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[mvp-05] pane_init_for_tab failed for ${tab.tabId}:`,
+            paneError,
+          );
+        }
+      }
     } catch (error) {
       showToast(errorMessage(error));
     } finally {

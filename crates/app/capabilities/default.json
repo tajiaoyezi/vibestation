@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Vibestation MVP-04 默认 capability · workspace CRUD + layout + theme + tab CRUD + greet + dialog 插件 · 最小权限集",
+  "description": "Vibestation 默认 capability · workspace CRUD + layout + tab CRUD + pane + git + telemetry + dialog 插件 · 最小权限集（theme 走 settings_update · 不再独立 IPC · 见 PR #163 dual-path fix + PR #172 dead code cleanup）",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -14,8 +14,6 @@
     "allow-workspace-exists",
     "allow-layout-save",
     "allow-layout-load",
-    "allow-theme-get",
-    "allow-theme-set",
     "allow-default-shell-get",
     "allow-default-shell-set",
     "allow-tab-list",

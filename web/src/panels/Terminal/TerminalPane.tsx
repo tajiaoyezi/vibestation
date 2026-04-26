@@ -92,12 +92,12 @@ const setupRenderer = (
   term: XTerm,
   tabId: string,
   onRendererChange: (renderer: RendererKind) => void,
-): void => {
+): { webgl?: WebglAddon; canvas?: CanvasAddon } => {
   try {
     const webgl = new WebglAddon();
     term.loadAddon(webgl);
     onRendererChange("webgl");
-    return;
+    return { webgl };
   } catch (error) {
     console.warn(
       `[mvp-04] ${tabId} webgl renderer unavailable, falling back to canvas`,
@@ -109,7 +109,7 @@ const setupRenderer = (
     const canvas = new CanvasAddon();
     term.loadAddon(canvas);
     onRendererChange("canvas");
-    return;
+    return { canvas };
   } catch (error) {
     console.warn(
       `[mvp-04] ${tabId} canvas renderer unavailable, falling back to DOM`,
@@ -118,6 +118,7 @@ const setupRenderer = (
   }
 
   onRendererChange("dom");
+  return {};
 };
 
 const hasPrintableOutput = (data: string): boolean => {
@@ -138,6 +139,9 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   let resizeObserver: ResizeObserver | undefined;
   let fitAddon: FitAddon | undefined;
   let term: XTerm | undefined;
+  // WebGL/Canvas addon ref · syncTheme 时 dispose + reload · 强制 atlas 重建用新 theme 色
+  let activeWebglAddon: WebglAddon | undefined;
+  let activeCanvasAddon: CanvasAddon | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
   let themeObserver: MutationObserver | undefined;
@@ -154,18 +158,30 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
 
     term.options.theme = createTheme();
-    // WebGL renderer cache texture atlas · 必须先 clearTextureAtlas 让 char 用新主题色重渲 ·
-    // 再 refresh 全屏触发 redraw。否则 theme 切换 xterm bg 仍是旧色。
-    try {
-      term.clearTextureAtlas();
-    } catch {
-      // older xterm 没此 API · ignore
+    // WebglAddon / CanvasAddon 自己 cache 字符 glyph 到 texture atlas · clearTextureAtlas
+    // 不彻底（实测 atlas 仍按旧 theme 色重新生成）。dispose + 重新 loadAddon 才能强制
+    // 用新 theme 色重建 atlas · 这是 xterm 5.x WebGL theme 切换的唯一可靠方案。
+    if (activeWebglAddon) {
+      try {
+        activeWebglAddon.dispose();
+      } catch {
+        // ignore · disposed 状态再 dispose 抛错
+      }
+      activeWebglAddon = undefined;
     }
-    try {
-      term.refresh(0, term.rows - 1);
-    } catch {
-      // hidden term 在某些状态下 refresh 抛错 · ignore
+    if (activeCanvasAddon) {
+      try {
+        activeCanvasAddon.dispose();
+      } catch {
+        // ignore
+      }
+      activeCanvasAddon = undefined;
     }
+    const renderers = setupRenderer(term, props.tab.tabId, (renderer) =>
+      props.onRendererChange(props.tab.tabId, renderer),
+    );
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
   };
 
   const queueFit = () => {
@@ -244,9 +260,13 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
 
     term.open(hostRef);
-    setupRenderer(term, props.tab.tabId, (renderer) =>
-      props.onRendererChange(props.tab.tabId, renderer),
-    );
+    {
+      const renderers = setupRenderer(term, props.tab.tabId, (renderer) =>
+        props.onRendererChange(props.tab.tabId, renderer),
+      );
+      activeWebglAddon = renderers.webgl;
+      activeCanvasAddon = renderers.canvas;
+    }
     props.onRegisterApi(props.tab.tabId, {
       focus: () => term?.focus(),
       paste: (text) => term?.paste(text),

@@ -173,12 +173,19 @@
 }
 
 /*
- * Tab button focus ring 改 inset · 不溢出 tab 边
- * 全局 :focus-visible 用 box-shadow: 0 0 0 2px var(--focus-ring) 绘制在元素外圈 ·
- * trigger button 是 inline-flex 占满 tab content area · ring 视觉溢出整个 tab ·
- * 在 dark mode + active tab 上特别刺眼。inset 让 ring 在 button 内部绘 · 不破 tab outline。
+ * Tab trigger button 完全关 focus ring · button 占满 tab content area · 任何
+ * outline / inset shadow 都视觉等同 tab 内圈线条。tab 的 .is-active 状态自带
+ * accent border-bottom + gradient bg 作 visual indicator · button focus ring 冗余。
  */
-.vs-terminal-tab-trigger:focus-visible,
+.vs-terminal-tab-trigger:focus,
+.vs-terminal-tab-trigger:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/*
+ * close × / + new-tab button 是小尺寸独立按钮 · keep inset focus ring 给 keyboard nav。
+ */
 .vs-terminal-tab-close:focus-visible,
 .vs-terminal-new-tab:focus-visible {
   box-shadow: inset 0 0 0 2px var(--focus-ring);
@@ -499,12 +506,17 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-  border: 1px solid transparent;
-  transition: border-color var(--dur-fast) var(--ease);
 }
 
-.vs-pane-terminal.is-focused {
-  border-color: var(--accent);
+/*
+ * Multi-pane focus indicator 单 pane 时冗余视觉污染（accent 蓝色 outline 围绕整个
+ * Terminal area · 用户不需要）。Multi-pane 时 unfocused pane 自带 opacity 0.7 dim ·
+ * focused pane normal opacity · 已是 visual indicator · 不需要额外 border。
+ * 用 :has 把 border 限定在真有 sibling pane 的容器内。
+ */
+.vs-pane-split .vs-pane-terminal.is-focused {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .vs-pane-terminal-host {

@@ -185,6 +185,19 @@
   outline: none;
 }
 
+/*
+ * xterm 内部元素 focus 不显示全局 ring · xterm 自己的 cursor blink 已是 focus 指示
+ * 全局 :focus-visible 给 .xterm-helper-textarea / .xterm-screen 等加 box-shadow 0 0 0 2px ·
+ * 视觉上 ring 围绕整个 .vs-terminal-host · 在 dark mode 上明显蓝边。屏蔽。
+ */
+.vs-terminal-host:focus,
+.vs-terminal-host:focus-visible,
+.vs-terminal-host *:focus,
+.vs-terminal-host *:focus-visible {
+  box-shadow: none;
+  outline: none;
+}
+
 .vs-terminal-stage {
   position: relative;
   flex: 1;

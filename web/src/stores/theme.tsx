@@ -1,6 +1,8 @@
 import { createContext, useContext, type ParentComponent } from "solid-js";
-import { createSignal, onMount } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { AppSettings } from "../bindings";
 
 type Theme = "light" | "dark" | "auto";
 
@@ -24,15 +26,18 @@ export const ThemeProvider: ParentComponent = (props) => {
   const [theme, setThemeSignal] = createSignal<Theme>("auto");
   const [resolved, setResolved] = createSignal<"light" | "dark">("dark");
 
+  let unlistenSettings: UnlistenFn | undefined;
+
   onMount(async () => {
     let saved: Theme = "auto";
     try {
-      const val = await invoke<string>("theme_get");
-      if (val === "light" || val === "dark" || val === "auto") {
-        saved = val;
+      // 首次启动 · 直接从 settings_get 拿（与 settings store 同源 · 避免 theme_get 双 IPC 漂移）
+      const s = await invoke<AppSettings>("settings_get");
+      if (s.theme === "light" || s.theme === "dark" || s.theme === "auto") {
+        saved = s.theme;
       }
     } catch {
-      // fallback to auto
+      // fallback to auto · backend pool 未 init / IPC 失败时
     }
     setThemeSignal(saved);
     setResolved(applyTheme(saved));
@@ -44,12 +49,33 @@ export const ThemeProvider: ParentComponent = (props) => {
       }
     };
     mql.addEventListener("change", handler);
+
+    // 监听 settings_changed event · 同步 theme signal（settings_update IPC 路径）
+    // 修 dual-path bug：status bar ThemeSwitch click 走 updateSettings → emit
+    // settings_changed → 这里 listen → ThemeProvider theme() signal 实时刷新
+    // 同时 settings store applyCssVars 设 data-theme attr · UI realtime 切换
+    unlistenSettings = await listen<AppSettings>(
+      "settings_changed",
+      (event) => {
+        const t = event.payload.theme;
+        if (t === "light" || t === "dark" || t === "auto") {
+          setThemeSignal(t);
+          setResolved(applyTheme(t));
+        }
+      },
+    );
   });
 
+  onCleanup(() => {
+    unlistenSettings?.();
+  });
+
+  // setTheme · 仅更新 internal signal（同步反映 UI active state）
+  // 持久化责任交给调用方调 useSettings.updateSettings({ theme }) · 走 settings_update IPC
+  // 走 settings_changed event 回环再次同步 signal · UI 一致
   const setTheme = (t: Theme) => {
     setThemeSignal(t);
     setResolved(applyTheme(t));
-    invoke("theme_set", { theme: t }).catch(() => {});
   };
 
   return (

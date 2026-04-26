@@ -1,14 +1,15 @@
 import { type Component, For } from "solid-js";
 import { useSettings, type ThemeSetting } from "../../stores/settings";
-import { useTheme } from "../../stores/theme";
 
 export const AppearanceGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
-  const themeCtx = useTheme();
 
+  // updateSettings 走 settings_update IPC · emit settings_changed
+  // → ThemeProvider listen 同步 internal signal · settings store applyCssVars
+  // 设 data-theme attr · UI 主题 token 实时切换。不再需要 themeCtx.setTheme 双调
+  // （previous dual-path bug 根因 · 见 PR #163）。
   const handleThemeChange = (theme: ThemeSetting) => {
-    updateSettings({ theme });
-    themeCtx.setTheme(theme);
+    void updateSettings({ theme });
   };
 
   const themes: { value: ThemeSetting; label: string }[] = [

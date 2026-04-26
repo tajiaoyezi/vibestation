@@ -229,24 +229,22 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       attributeFilter: ["data-theme"],
     });
 
-    unlistenStdout = await listen<PanePtyStdoutEvent>(
-      "pane_pty_stdout",
-      (event) => {
+    // listen 订阅必须在 spawn 之前完成 · Tauri emit 不缓冲 · listener 没 ready
+    // 时 backend 已 emit 的 stdout 会丢（如 shell 启动后 prompt 第一行）。
+    // 用 Promise.all 并行两个 listen（互不依赖）· 省 1 次 round-trip。
+    [unlistenStdout, unlistenExited] = await Promise.all([
+      listen<PanePtyStdoutEvent>("pane_pty_stdout", (event) => {
         if (event.payload.paneId !== props.paneId) return;
         term?.write(event.payload.data);
-      },
-    );
-
-    unlistenExited = await listen<PanePtyExitedEvent>(
-      "pane_pty_exited",
-      (event) => {
+      }),
+      listen<PanePtyExitedEvent>("pane_pty_exited", (event) => {
         if (event.payload.paneId !== props.paneId) return;
         props.onExit?.(props.paneId, event.payload.exitCode);
         term?.write(
           `\r\n[Process exited (code ${event.payload.exitCode ?? "signal"})]\r\n`,
         );
-      },
-    );
+      }),
+    ]);
 
     queueFit();
     const cols = term.cols || DEFAULT_COLS;

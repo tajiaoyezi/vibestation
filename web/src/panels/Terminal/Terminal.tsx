@@ -438,6 +438,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
       });
 
       newlyCreatedTabIds.add(tab.tabId);
+
+      // 先 await pane_init_for_tab 拿到 paneList · 再一次性 update store ·
+      // 避免 tab 先 render 走 fallback <TerminalPane>（"Launching..." 一闪即逝）·
+      // 又切到 <PaneSplitView> 重新 mount 的双跳。
+      let paneList: PaneListResponse | null = null;
+      try {
+        paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
+          req: {
+            tabId: tab.tabId,
+            shell: tab.shell,
+            cwd: tab.cwd,
+          } satisfies PaneInitRequest,
+        });
+      } catch (paneError) {
+        showToast(
+          `Pane 初始化失败：${errorMessage(paneError)} · tab 退化到单 PTY 模式`,
+          "info",
+        );
+      }
+
       updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
       setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
       upsertRuntime(tab.tabId, (runtime) => ({
@@ -446,23 +466,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
         spawnError: null,
         exitCode: null,
       }));
-
-      // MVP-05 Phase C Track A · 新 tab 进 pane mode（pane_init_for_tab idempotent）·
-      // 旧 tab 不强制迁移（保留 tab_pty + TerminalPane）。失败时仅 toast · 不阻塞 tab 创建。
-      try {
-        const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
-          req: {
-            tabId: tab.tabId,
-            shell: tab.shell,
-            cwd: tab.cwd,
-          } satisfies PaneInitRequest,
-        });
+      if (paneList) {
         setPaneListForTab(tab.tabId, paneList);
-      } catch (paneError) {
-        showToast(
-          `Pane 初始化失败：${errorMessage(paneError)} · tab 退化到单 PTY 模式`,
-          "info",
-        );
       }
     } catch (error) {
       showToast(errorMessage(error));

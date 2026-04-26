@@ -15,7 +15,7 @@ import "./styles.css";
 
 import { LayoutProvider, useLayout } from "./stores/layout-context";
 import { ThemeProvider } from "./stores/theme";
-import { useSettings } from "./stores/settings";
+import { useSettings, reloadSettings } from "./stores/settings";
 import { PrimarySidebar } from "./components/PrimarySidebar";
 import { SecondarySidebar } from "./components/SecondarySidebar";
 import { BottomPanel } from "./components/BottomPanel";
@@ -361,6 +361,9 @@ const App: Component = () => {
     try {
       await invoke("workspace_init");
       setDbReady(true);
+      // pool init 完成 · 主动重新拉 settings · 防 module-load 期 settings_get race
+      // 拿到 default（telemetry_opt_in null）导致 modal 反复弹（session 19 实测）
+      await reloadSettings();
       await refreshWorkspaces();
     } catch (err) {
       setIpc({

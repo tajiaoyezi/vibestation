@@ -142,6 +142,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
   const allTabs = createMemo(() => Object.values(tabsByWorkspace()).flat());
 
+  // <For> 按 element identity 比较 · tab object 任何字段变（如 name rename）会创建新对象
+  // 触发 unmount + mount · PaneSplitView/PaneTerminal 整体重建 · onCleanup 调 pane_pty_kill
+  // 终端内容丢失。改用稳定的 tabId 数组作为 <For> 的 each · 只在 tab 增删时 reconcile ·
+  // rename 不影响 tabId 集合 · 不 reconcile · 现有 component 保留 · 只是 reactive props 更新。
+  const allTabIds = createMemo(() => allTabs().map((tab) => tab.tabId), [], {
+    equals: (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
+  });
+
   const activeRenderer = createMemo(() => {
     const tabId = currentActiveTabId();
     if (!tabId) {
@@ -1052,67 +1060,78 @@ export const Terminal: Component<TerminalProps> = (props) => {
       />
 
       <div class="vs-terminal-stage">
-        <For each={allTabs()}>
-          {(tab) => {
+        <For each={allTabIds()}>
+          {(tabId) => {
+            // tab 是 reactive memo · rename 时新 tab object 流过来 · 但 component 不重 mount ·
+            // tab() 返回新值 · 下游 props 自动 reactive update · 不 unmount/remount。
+            const tab = createMemo(() =>
+              allTabs().find((t) => t.tabId === tabId),
+            );
             const tabActive = () =>
-              tab.workspaceId === activeWorkspaceId() &&
-              tab.tabId === currentActiveTabId();
-            const paneList = () => panesByTabId()[tab.tabId];
+              tab()?.workspaceId === activeWorkspaceId() &&
+              tabId === currentActiveTabId();
+            const paneList = () => panesByTabId()[tabId];
             // MVP-05 Phase C Track A · 双路渲染：tab 在 pane mode → PaneSplitView · 否则 legacy TerminalPane
             return (
-              <Show
-                when={paneList()}
-                fallback={
-                  <TerminalPane
-                    active={tabActive()}
-                    isNewlyCreated={newlyCreatedTabIds.has(tab.tabId)}
-                    pasteGuardDisabled={
-                      skipPasteConfirmByWorkspace()[tab.workspaceId] ?? false
+              <Show when={tab()}>
+                {(currentTab) => (
+                  <Show
+                    when={paneList()}
+                    fallback={
+                      <TerminalPane
+                        active={tabActive()}
+                        isNewlyCreated={newlyCreatedTabIds.has(tabId)}
+                        pasteGuardDisabled={
+                          skipPasteConfirmByWorkspace()[
+                            currentTab().workspaceId
+                          ] ?? false
+                        }
+                        runtime={
+                          runtimeByTabId()[tabId] ?? DEFAULT_RUNTIME_STATE
+                        }
+                        tab={currentTab()}
+                        onExit={handleExit}
+                        onPasteRequest={(tid, text) =>
+                          setPendingPaste({
+                            tabId: tid,
+                            text,
+                            workspaceId: currentTab().workspaceId,
+                          })
+                        }
+                        onRegisterApi={(tid, api) => {
+                          paneApis.set(tid, api);
+                        }}
+                        onRendererChange={handleRendererChange}
+                        onResize={handleResize}
+                        onStart={startTab}
+                        onStdinError={showToast}
+                        onStdout={handleStdout}
+                        onUnregisterApi={(tid) => {
+                          paneApis.delete(tid);
+                        }}
+                      />
                     }
-                    runtime={
-                      runtimeByTabId()[tab.tabId] ?? DEFAULT_RUNTIME_STATE
-                    }
-                    tab={tab}
-                    onExit={handleExit}
-                    onPasteRequest={(tabId, text) =>
-                      setPendingPaste({
-                        tabId,
-                        text,
-                        workspaceId: tab.workspaceId,
-                      })
-                    }
-                    onRegisterApi={(tabId, api) => {
-                      paneApis.set(tabId, api);
-                    }}
-                    onRendererChange={handleRendererChange}
-                    onResize={handleResize}
-                    onStart={startTab}
-                    onStdinError={showToast}
-                    onStdout={handleStdout}
-                    onUnregisterApi={(tabId) => {
-                      paneApis.delete(tabId);
-                    }}
-                  />
-                }
-              >
-                {(list) => (
-                  <div
-                    class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
-                    aria-hidden={!tabActive()}
                   >
-                    <PaneSplitView
-                      layout={list().layout}
-                      panes={list().panes}
-                      active={tabActive()}
-                      focusedPaneId={list().focusedPaneId}
-                      onPaneClick={(paneId) => {
-                        void handlePaneFocus(paneId);
-                      }}
-                      onPaneError={(paneId, message) => {
-                        showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
-                      }}
-                    />
-                  </div>
+                    {(list) => (
+                      <div
+                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
+                        aria-hidden={!tabActive()}
+                      >
+                        <PaneSplitView
+                          layout={list().layout}
+                          panes={list().panes}
+                          active={tabActive()}
+                          focusedPaneId={list().focusedPaneId}
+                          onPaneClick={(paneId) => {
+                            void handlePaneFocus(paneId);
+                          }}
+                          onPaneError={(paneId, message) => {
+                            showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </Show>
                 )}
               </Show>
             );

@@ -9,7 +9,7 @@ depends_on: ["SPIKE-05"]
 blocks: []
 blocked_by: ["apple-dev-program-approval"]
 blocked_from: ready
-blocked_note: §A 36 样本 done（PR #71 · SPIKE W0 macOS 100% 完结）· §B codesign/notarization 依赖 Apple Developer Program（$99/y · 用户申请 · 审核 2d-2w）· 不是等 agent 认领 · session 13 audit H2 改 blocked（2026-04-21 · 审查报告 §3.2）
+blocked_note: §A 36 样本 done（PR #71 · SPIKE W0 macOS 100% 完结）· §B codesign/notarization **推 v0.2**（session 20 · 2026-04-26 · 不阻塞 v0.1 alpha）· v0.1 alpha 改 unsigned 模式 · README + Release notes 写明 Gatekeeper bypass 指引（`xattr -cr /Applications/Vibestation.app`）· $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.2 升级触发条件 (1) README 反馈"装不上"超 5 次 / (2) 公开 landing page 上线 / (3) macOS 用户基础超 100 任一即触发 · 详见 MVP-10 §I.D §K · session 13 audit H2 历史标 blocked（2026-04-21 · 审查报告 §3.2）
 estimate: 1d
 plan_ref: implementation-plan.md §附录 A D6 · §9 R1
 risk_ref: R1
@@ -25,7 +25,7 @@ reviewer:
 
 # SPIKE-06: Claude CLI / Codex CLI 实机 + macOS Dev Program
 
-> **状态**：`blocked`（§A harness + 36 脱敏样本已完成 · §B Apple Developer Program 申请中）
+> **状态**：`blocked`（§A harness + 36 脱敏样本已完成 · §B Apple Developer Program **推 v0.2** · 不阻塞 v0.1 alpha · 见 frontmatter `blocked_note`）
 > **依赖**：SPIKE-05（PTY 架构已验证 · done）· phase-4-infra-landing 已满足（`.github/workflows/secret-scan.yml` + `docs/BRANCH-PROTECTION.md` 均在 main · PR #11 merged）
 > **战略依据**：[`implementation-plan.md §附录 A D6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
 

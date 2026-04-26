@@ -74,6 +74,59 @@ open design/index.html
 | 平台 | **macOS-first**；Ubuntu 24 为低优先级补测项；Windows 11 推到 v0.4 |
 | 视觉方向 | Calm Studio（柔和 oklch + Inter + JetBrains Mono 双字体）|
 
+## 安装（v0.1 alpha）
+
+> **重要提示**：v0.1 alpha 版本 **未经过 Apple notarize**（推迟至 v0.2 升级）· macOS 用户首次启动需手动放行 Gatekeeper · 这是预期行为 · 不是 bug。
+
+### macOS（Apple Silicon / Intel）
+
+1. 从 [GitHub Releases](https://github.com/tajiaoyezi/vibestation/releases) 下载对应架构的 `.dmg`：
+   - Apple Silicon：`Vibestation_0.1.0_aarch64.dmg`
+   - Intel：`Vibestation_0.1.0_x64.dmg`
+2. 双击 `.dmg` · 拖动 `Vibestation.app` 到 `Applications`
+3. 打开 Terminal · 执行：
+   ```bash
+   xattr -cr /Applications/Vibestation.app
+   ```
+4. 双击 `Vibestation.app` 启动 · 完成
+
+> **为什么需要这一步**：macOS Gatekeeper 默认拒绝运行未经 Apple 公证的应用 · `xattr -cr` 命令清除 `com.apple.quarantine` 扩展属性 · 让 macOS 跳过在线公证检查。命令是安全的（只影响该 app 的隔离标记 · 不修改 app 内容）。
+>
+> v0.2 升级 notarize 后这一步会自动免除。升级触发条件：(1) README 反馈"装不上"超 5 次 · (2) 公开 landing page 上线 · (3) macOS 用户基础超 100 任一即触发。
+
+### Linux（Ubuntu 24 LTS）
+
+直接下载 + 运行（无需 bypass · Linux 没有 Gatekeeper）：
+
+#### 方式 A · `.deb`（推荐 · 系统集成 + 自动卸载）
+
+```bash
+# 下载
+curl -LO https://github.com/tajiaoyezi/vibestation/releases/download/v0.1.0/Vibestation_0.1.0_amd64.deb
+# 安装
+sudo dpkg -i Vibestation_0.1.0_amd64.deb
+# 启动（终端或应用菜单）
+vibestation
+# 卸载
+sudo dpkg -r vibestation
+```
+
+#### 方式 B · `.AppImage`（便携 · 单文件）
+
+```bash
+curl -LO https://github.com/tajiaoyezi/vibestation/releases/download/v0.1.0/Vibestation_0.1.0_amd64.AppImage
+chmod +x Vibestation_0.1.0_amd64.AppImage
+./Vibestation_0.1.0_amd64.AppImage
+```
+
+X11 + Wayland 双 backend 验证通过（ADR-006 · 30 cold boot 0 fail · IME fcitx5 PASS）。
+
+### 已知限制（v0.1 alpha）
+
+- **macOS** unsigned · 需手动 bypass Gatekeeper（见上）· v0.2 升级 notarize
+- **Windows** 暂不支持 · 推到 v0.4
+- **CLI 集成深度** v0.1 仅"多 Tab 里跑 CLI"· AI-aware 联动是 v1.0 vision
+
 ## 路线图（高层）
 
 | 里程碑 | 周 | 内容 |

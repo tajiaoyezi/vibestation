@@ -837,6 +837,69 @@ pub fn check_shell_exists(shell: &str) -> Result<(), PtyError> {
     Ok(())
 }
 
+/// 一条系统认证的 shell · 路径 + 显示用 label（basename）。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ts_rs::TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellInfo {
+    pub path: String,
+    pub label: String,
+}
+
+/// 扫 `/etc/shells` 列出系统所有认证 shell · 过滤 commented 行 / 不存在的 binary /
+/// 不可执行的文件。读不到 `/etc/shells`（理论上 macOS / Linux 都有 · Windows 没有）
+/// 返回内置 fallback `[zsh, bash]`。
+///
+/// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的 shell ·
+/// 而非自由输入 / hardcoded 列表（fix24 · 防 "PTY 启动失败: shell not executable"）。
+pub fn list_available_shells() -> Vec<ShellInfo> {
+    let mut shells: Vec<ShellInfo> = std::fs::read_to_string("/etc/shells")
+        .ok()
+        .map(|content| {
+            content
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                .filter_map(|path_str| {
+                    let path = Path::new(path_str);
+                    if !is_executable_file(path) {
+                        return None;
+                    }
+                    let label = path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or(path_str)
+                        .to_string();
+                    Some(ShellInfo {
+                        path: path_str.to_string(),
+                        label,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if shells.is_empty() {
+        // /etc/shells 读不到 / 全 invalid · fallback 到 default_shell_path（一定存在的）
+        let fallback = default_shell_path();
+        if is_executable_file(Path::new(fallback)) {
+            let label = Path::new(fallback)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(fallback)
+                .to_string();
+            shells.push(ShellInfo {
+                path: fallback.to_string(),
+                label,
+            });
+        }
+    }
+
+    // 去重（macOS /etc/shells 经常 /bin/zsh + /usr/bin/zsh 都列）· 按 label 去重保留首项
+    shells.dedup_by(|a, b| a.path == b.path);
+    shells
+}
+
 fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {

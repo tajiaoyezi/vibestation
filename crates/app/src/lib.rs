@@ -209,6 +209,13 @@ fn default_shell_set(state: State<'_, AppState>, shell: String) -> Result<(), St
     AppSettingsStore::set(pool, "default_shell", &shell).map_err(|e| e.to_string())
 }
 
+/// 列出系统认证的所有 shell · 供 Settings UI 动态填 dropdown · 防 hardcoded 选项
+/// 在用户机器上不存在导致的 "PTY 启动失败" 体验问题（fix24）。
+#[tauri::command]
+fn available_shells_list() -> Vec<vibestation_core::ShellInfo> {
+    vibestation_core::list_available_shells()
+}
+
 #[tauri::command]
 fn settings_get(state: State<'_, AppState>) -> Result<AppSettings, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
@@ -869,6 +876,7 @@ pub fn run() {
             layout_load,
             default_shell_get,
             default_shell_set,
+            available_shells_list,
             settings_get,
             settings_update,
             telemetry_opt_in_set,

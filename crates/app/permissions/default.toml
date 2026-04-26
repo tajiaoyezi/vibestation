@@ -62,3 +62,8 @@ commands.allow = ["default_shell_get"]
 identifier = "allow-default-shell-set"
 description = "允许前端设置默认 shell（写入 app_settings KV · 根据有效路径校验）"
 commands.allow = ["default_shell_set"]
+
+[[permission]]
+identifier = "allow-available-shells-list"
+description = "允许前端列出系统认证 shell（读 /etc/shells + 过滤可执行）· Settings UI dropdown 数据源"
+commands.allow = ["available_shells_list"]

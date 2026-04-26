@@ -16,6 +16,7 @@
     "allow-layout-load",
     "allow-default-shell-get",
     "allow-default-shell-set",
+    "allow-available-shells-list",
     "allow-settings-get",
     "allow-settings-update",
     "allow-tab-list",

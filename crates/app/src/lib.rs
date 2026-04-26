@@ -233,6 +233,11 @@ fn settings_update(
     app: AppHandle,
     req: SettingsUpdateRequest,
 ) -> Result<AppSettings, String> {
+    // MVP-10 §B.4 · 若本次 update 改了 telemetry_opt_in · 同步 runtime atomic
+    // （Privacy 面板 toggle 走的是 settings_update 路径 · 不走 telemetry_opt_in_set
+    // 必须在此处也同步 · 否则 capture_crash_report 拒绝发送的检查会 stale）
+    let opt_in_change = req.telemetry_opt_in;
+
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
     AppSettingsStore::update(pool, &req).map_err(|e| e.to_string())?;
@@ -242,9 +247,11 @@ fn settings_update(
         let pool = guard.as_ref().ok_or("database not initialized")?;
         AppSettingsStore::get_all(pool)
     };
-    // MVP-10 Phase B · 若 telemetry_opt_in 字段被改 · 同步触发 SDK init / shutdown
-    // （目前 SDK init 是 once-only · drop 在 process exit · 实时关闭推 v0.2 GA · §C.1
-    // acceptance 已说明 opt-in == false 时 0 outbound · 由 capture_crash_report no-op 保证）
+
+    if let Some(opt_in) = opt_in_change {
+        telemetry::set_runtime_opt_in(Some(opt_in));
+    }
+
     let _ = app.emit("settings_changed", &updated);
     Ok(updated)
 }

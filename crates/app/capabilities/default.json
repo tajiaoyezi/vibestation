@@ -65,6 +65,8 @@
     "allow-telemetry-opt-in-set",
     "allow-telemetry-status-get",
     "allow-app-version-get",
-    "dialog:default"
+    "dialog:default",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-read-text"
   ]
 }

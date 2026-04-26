@@ -11,6 +11,10 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import {
+  readText as readClipboardText,
+  writeText as writeClipboardText,
+} from "@tauri-apps/plugin-clipboard-manager";
 
 import { CanvasAddon } from "@xterm/addon-canvas";
 import { FitAddon } from "@xterm/addon-fit";
@@ -193,9 +197,10 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
 
-    // 拦截 cmd/ctrl+C 复制 + cmd/ctrl+A 全选 · xterm canvas/webgl 渲染不是原生 selectable
-    // 文本 · 浏览器系统 copy 拿不到。返回 false 阻止 xterm 把事件 forward 到 PTY
-    // （cmd+C 不发 ^C SIGINT · 这一点跟 macOS Terminal.app / iTerm2 一致）。
+    // 拦截 cmd/ctrl+C 复制 · cmd/ctrl+V 粘贴 · cmd/ctrl+A 全选。
+    // xterm canvas/webgl 渲染不是原生 selectable 文本 · 系统 cmd+C 路径拿不到字。
+    // navigator.clipboard 在 Tauri WKWebView 不稳定 · 用 tauri-plugin-clipboard-manager
+    // 走 IPC 调系统 NSPasteboard / GTK clipboard · 必稳。
     // shift 修饰留给 selection 操作（shift+arrows）· 不拦。
     term.attachCustomKeyEventHandler((event) => {
       if (event.type !== "keydown") return true;
@@ -205,14 +210,29 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       if (key === "c") {
         const sel = term?.getSelection() ?? "";
         if (sel) {
-          void navigator.clipboard.writeText(sel);
+          event.preventDefault();
+          void writeClipboardText(sel).catch((err) => {
+            console.warn("[clipboard] writeText failed", err);
+          });
           term?.clearSelection();
           return false;
         }
         // 没 selection · 让 ^C 发到 pty（SIGINT）
         return true;
       }
+      if (key === "v") {
+        event.preventDefault();
+        void readClipboardText()
+          .then((text) => {
+            if (text) term?.paste(text);
+          })
+          .catch((err) => {
+            console.warn("[clipboard] readText failed", err);
+          });
+        return false;
+      }
       if (key === "a") {
+        event.preventDefault();
         term?.selectAll();
         return false;
       }

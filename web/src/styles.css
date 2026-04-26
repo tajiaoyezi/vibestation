@@ -130,7 +130,7 @@ body,
   font-size: var(--text-size-base);
   font-feature-settings: "cv11", "ss01", "ss03";
   line-height: var(--text-line);
-  background: transparent !important;
+  background: transparent;
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -228,7 +228,7 @@ textarea {
 .vs-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }

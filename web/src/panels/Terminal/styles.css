@@ -506,6 +506,7 @@
   min-width: 0;
   min-height: 0;
   position: relative;
+  padding: var(--space-3);
 }
 
 /*
@@ -523,6 +524,9 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
 }
 
 .vs-pane-terminal-error {

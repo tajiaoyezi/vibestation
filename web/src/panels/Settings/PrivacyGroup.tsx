@@ -1,13 +1,29 @@
-import { createSignal, Show, type Component } from "solid-js";
+import { createSignal, createResource, Show, type Component } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
 import { useSettings } from "../../stores/settings";
+import type { TelemetryStatus } from "../../bindings";
 
 export const PrivacyGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
   const [showDetails, setShowDetails] = createSignal(false);
+  const [copied, setCopied] = createSignal(false);
+
+  // §C.4 · 收集端点 host 显示（DSN 的 host 部分 · 不含 public_key / project_id）
+  const [status, { refetch: refetchStatus }] = createResource<TelemetryStatus>(
+    () => invoke<TelemetryStatus>("telemetry_status_get"),
+  );
 
   const telemetryLabel = () => {
     if (settings.telemetryOptIn === null) return "Not decided";
     return settings.telemetryOptIn ? "Enabled" : "Disabled";
+  };
+
+  const copyEndpoint = async () => {
+    const host = status()?.endpointHost;
+    if (!host) return;
+    await navigator.clipboard.writeText(host);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -24,20 +40,41 @@ export const PrivacyGroup: Component = () => {
             active: settings.telemetryOptIn === true,
             neutral: settings.telemetryOptIn === null,
           }}
-          onClick={() => {
+          onClick={async () => {
             const next =
               settings.telemetryOptIn === null
                 ? true
                 : settings.telemetryOptIn
                   ? false
                   : true;
-            updateSettings({ telemetryOptIn: next });
+            await updateSettings({ telemetryOptIn: next });
+            // SDK init 状态可能随 opt-in 切换 · 同步刷新
+            await refetchStatus();
           }}
           aria-pressed={settings.telemetryOptIn ?? "mixed"}
           role="switch"
           title="Toggle telemetry"
         >
           <span class="vs-settings-toggle-knob" />
+        </button>
+      </div>
+
+      {/* §C.4 · 收集端点公开显示 + 一键复制 */}
+      <div class="vs-settings-field vs-settings-field--row">
+        <div class="vs-settings-field-labels">
+          <span class="vs-settings-label">Collection endpoint</span>
+          <span class="vs-settings-sublabel vs-settings-endpoint-host">
+            {status()?.endpointHost ?? "Loading…"}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="vs-settings-copy-btn"
+          onClick={copyEndpoint}
+          disabled={!status() || status()?.endpointHost === "Not configured"}
+          aria-label="Copy collection endpoint"
+        >
+          {copied() ? "Copied" : "Copy"}
         </button>
       </div>
 

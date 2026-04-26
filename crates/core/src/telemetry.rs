@@ -21,6 +21,11 @@ use ts_rs::TS;
 /// 全局 Sentry guard · drop 时 flush events · 必须长生命周期（应用整个生命周期）
 static SENTRY_GUARD: OnceLock<sentry::ClientInitGuard> = OnceLock::new();
 
+/// 收集端点 host（DSN 的 host 部分 · 不含 public key / project id · §C.4 公开显示）
+///
+/// 仅在 [`init_sentry`] 成功时填入；`None` 表示 DSN 未配置（telemetry 未真正启用）。
+static SENTRY_ENDPOINT_HOST: OnceLock<String> = OnceLock::new();
+
 /// Runtime opt-in 状态（panic hook + IPC 共享）
 ///
 /// 编码：`-1` = 未决策（首次启动 · NULL）· `0` = opt-out · `1` = opt-in。
@@ -134,10 +139,17 @@ pub fn capture_panic(panic_info: &str) -> CrashReportPayload {
 }
 
 /// 构造 [`TelemetryStatus`]（settings 面板显示用）
+///
+/// `endpoint_host` 来源（按优先级）：
+/// 1. [`init_sentry`] 成功时从 DSN 解析的 host（如 `o123456.ingest.sentry.io`）
+/// 2. 未配置 DSN → `"Not configured"`（spec §C.4 · 用户能看到当前未发任何数据）
 pub fn build_status(opt_in: Option<bool>) -> TelemetryStatus {
     TelemetryStatus {
         opt_in,
-        endpoint_host: "(self-hosted · DSN injected at build time)".to_string(),
+        endpoint_host: SENTRY_ENDPOINT_HOST
+            .get()
+            .cloned()
+            .unwrap_or_else(|| "Not configured".to_string()),
         data_collection_summary: data_collection_summary().to_string(),
         initialized: is_initialized(),
     }
@@ -215,6 +227,9 @@ pub fn init_sentry(dsn: &str, environment: &str) -> Result<(), TelemetryError> {
     let parsed_dsn: sentry::types::Dsn = dsn
         .parse()
         .map_err(|e: sentry::types::ParseDsnError| TelemetryError::DsnInvalid(e.to_string()))?;
+
+    // §C.4 · 仅暴露 host（不含 public_key / project_id · DSN secret 部分不进 IPC）
+    let _ = SENTRY_ENDPOINT_HOST.set(parsed_dsn.host().to_string());
 
     let options = sentry::ClientOptions {
         dsn: Some(parsed_dsn),
@@ -328,6 +343,14 @@ mod tests {
         let status = build_status(None);
         assert!(status.data_collection_summary.contains("Anonymous"));
         assert!(status.data_collection_summary.contains("not collect"));
+    }
+
+    #[test]
+    fn build_status_endpoint_host_defaults_to_not_configured() {
+        // §C.4 · DSN 未配置时 endpoint_host == "Not configured"
+        // （SENTRY_ENDPOINT_HOST 仅 init_sentry 成功时填入 · 测试环境无 DSN）
+        let status = build_status(Some(true));
+        assert_eq!(status.endpoint_host, "Not configured");
     }
 
     #[test]

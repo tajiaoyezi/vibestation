@@ -193,6 +193,32 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
 
+    // 拦截 cmd/ctrl+C 复制 + cmd/ctrl+A 全选 · xterm canvas/webgl 渲染不是原生 selectable
+    // 文本 · 浏览器系统 copy 拿不到。返回 false 阻止 xterm 把事件 forward 到 PTY
+    // （cmd+C 不发 ^C SIGINT · 这一点跟 macOS Terminal.app / iTerm2 一致）。
+    // shift 修饰留给 selection 操作（shift+arrows）· 不拦。
+    term.attachCustomKeyEventHandler((event) => {
+      if (event.type !== "keydown") return true;
+      const mod = event.metaKey || event.ctrlKey;
+      if (!mod || event.shiftKey || event.altKey) return true;
+      const key = event.key.toLowerCase();
+      if (key === "c") {
+        const sel = term?.getSelection() ?? "";
+        if (sel) {
+          void navigator.clipboard.writeText(sel);
+          term?.clearSelection();
+          return false;
+        }
+        // 没 selection · 让 ^C 发到 pty（SIGINT）
+        return true;
+      }
+      if (key === "a") {
+        term?.selectAll();
+        return false;
+      }
+      return true;
+    });
+
     props.onRegisterApi?.(props.paneId, {
       focus: () => term?.focus(),
       paste: (text) => term?.paste(text),

@@ -12,16 +12,17 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    AppSettings, CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest,
-    CommitResponse, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange,
-    FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
-    GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
-    GitStatusResponse, LayoutApplyRequest, LayoutNode, LayoutState, PaneCloseRequest,
-    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyExitedEvent,
-    PanePtySpawnRequest, PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent,
-    PtySpawnRequest, PtyStdoutEvent, SetGitIdentityRequest, SettingsUpdateRequest, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, UnstageRequest,
+    AppSettings, AppVersionInfo, CommitAuthor, CommitDetail, CommitError, CommitParent,
+    CommitRequest, CommitResponse, CrashReportPayload, DiffHunk, DiffLine, DiffLineType,
+    DiffRequest, DiffResponse, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry,
+    GitLogQueryRequest, GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup,
+    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, LayoutApplyRequest, LayoutNode,
+    LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
+    PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
+    PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
+    SetGitIdentityRequest, SettingsUpdateRequest, SplitDir, SplitRatioUpdateRequest,
+    StageFailedItem, StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabState, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
     WorkspaceMetadata,
 };
 
@@ -39,6 +40,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/git_status.rs");
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
+    println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -105,6 +107,12 @@ fn main() {
     AppSettings::export_all(&config).expect("export AppSettings");
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
 
+    // MVP-10 Phase B · Telemetry contract（ADR-015）
+    CrashReportPayload::export_all(&config).expect("export CrashReportPayload");
+    TelemetryOptInRequest::export_all(&config).expect("export TelemetryOptInRequest");
+    TelemetryStatus::export_all(&config).expect("export TelemetryStatus");
+    AppVersionInfo::export_all(&config).expect("export AppVersionInfo");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -165,6 +173,10 @@ fn main() {
             "export type { SetGitIdentityRequest } from \"./SetGitIdentityRequest\";",
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
+            "export type { CrashReportPayload } from \"./CrashReportPayload\";",
+            "export type { TelemetryOptInRequest } from \"./TelemetryOptInRequest\";",
+            "export type { TelemetryStatus } from \"./TelemetryStatus\";",
+            "export type { AppVersionInfo } from \"./AppVersionInfo\";",
             "",
         ]
         .join("\n"),

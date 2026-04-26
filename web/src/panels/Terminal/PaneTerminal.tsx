@@ -75,11 +75,13 @@ const createTheme = () => {
   };
 };
 
-const setupRenderer = (term: XTerm, paneId: string): void => {
+type ActiveRenderers = { webgl?: WebglAddon; canvas?: CanvasAddon };
+
+const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
   try {
     const webgl = new WebglAddon();
     term.loadAddon(webgl);
-    return;
+    return { webgl };
   } catch (error) {
     console.warn(
       `[mvp-05] pane ${paneId} webgl renderer unavailable, falling back to canvas`,
@@ -89,13 +91,14 @@ const setupRenderer = (term: XTerm, paneId: string): void => {
   try {
     const canvas = new CanvasAddon();
     term.loadAddon(canvas);
-    return;
+    return { canvas };
   } catch (error) {
     console.warn(
       `[mvp-05] pane ${paneId} canvas renderer unavailable, falling back to DOM`,
       error,
     );
   }
+  return {};
 };
 
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
@@ -107,6 +110,33 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let resizeObserver: ResizeObserver | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
+  // theme 切换需 dispose + reload addon · WebGL texture atlas 缓存 glyph 不会自动更新
+  let activeWebglAddon: WebglAddon | undefined;
+  let activeCanvasAddon: CanvasAddon | undefined;
+  let themeObserver: MutationObserver | undefined;
+
+  // 同步 xterm theme · WebglAddon/CanvasAddon 缓存 atlas 必须 dispose+reload 才能用新色
+  // （xterm 5.x term.options.theme 单独设不够 · clearTextureAtlas 实测也不彻底 ·
+  //  TerminalPane 已验证 · 此处对齐）
+  const syncTheme = () => {
+    if (!term) return;
+    term.options.theme = createTheme();
+    if (activeWebglAddon) {
+      try {
+        activeWebglAddon.dispose();
+      } catch {}
+      activeWebglAddon = undefined;
+    }
+    if (activeCanvasAddon) {
+      try {
+        activeCanvasAddon.dispose();
+      } catch {}
+      activeCanvasAddon = undefined;
+    }
+    const renderers = setupRenderer(term, props.paneId);
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
+  };
 
   const queueFit = () => {
     if (!props.active || !fitAddon) return;
@@ -159,7 +189,9 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
     if (!hostRef) return;
     term.open(hostRef);
-    setupRenderer(term, props.paneId);
+    const renderers = setupRenderer(term, props.paneId);
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
 
     props.onRegisterApi?.(props.paneId, {
       focus: () => term?.focus(),
@@ -187,6 +219,15 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
     resizeObserver = new ResizeObserver(() => queueFit());
     resizeObserver.observe(hostRef);
+
+    // 监听 data-theme attribute 变化 · 触发 syncTheme · 跟 TerminalPane fix8 一致
+    // 用 attribute observer 而非 settings.theme reactive · 避免 setSettings/applyCssVars
+    // 顺序 race（applyCssVars 设 data-theme · createTheme 读最新 CSS vars · 有保证）
+    themeObserver = new MutationObserver(() => syncTheme());
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
 
     unlistenStdout = await listen<PanePtyStdoutEvent>(
       "pane_pty_stdout",
@@ -230,6 +271,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   onCleanup(() => {
     props.onUnregisterApi?.(props.paneId);
     resizeObserver?.disconnect();
+    themeObserver?.disconnect();
     unlistenStdout?.();
     unlistenExited?.();
     void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {

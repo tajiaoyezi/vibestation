@@ -7,6 +7,7 @@ import type {
 } from "../../bindings";
 import { commit as apiCommit, setGitIdentity } from "../GitStatus/gitStatusApi";
 import { IdentityDialog } from "./IdentityDialog";
+import "./styles.css";
 
 interface CommitBarProps {
   workspaceId: () => string;
@@ -36,6 +37,8 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
     createSignal(false);
   const [hookErrorDialogOpen, setHookErrorDialogOpen] = createSignal(false);
   const [hookErrorContent, setHookErrorContent] = createSignal("");
+  const [hookErrorExitCode, setHookErrorExitCode] = createSignal(0);
+  const [hookErrorCopied, setHookErrorCopied] = createSignal(false);
 
   const canCommit = () =>
     props.stagedCount() > 0 && message().trim().length > 0 && !committing();
@@ -90,6 +93,8 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           const lines = parsed.stderr.split("\n");
           const last20 = lines.slice(-20).join("\n");
           setHookErrorContent(last20);
+          setHookErrorExitCode(parsed.exit_code);
+          setHookErrorCopied(false);
           setHookErrorDialogOpen(true);
           props.onError?.(`Hook failed (exit ${parsed.exit_code})`);
           return;
@@ -144,6 +149,16 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       "当前处于 detached HEAD · commit 暂不支持 · 请先 git checkout 到分支",
       "error",
     );
+  };
+
+  const copyHookStderr = async () => {
+    try {
+      await navigator.clipboard.writeText(hookErrorContent());
+      setHookErrorCopied(true);
+      window.setTimeout(() => setHookErrorCopied(false), 1500);
+    } catch {
+      // 剪贴板拒绝 · 静默失败（用户仍可手动选区复制）
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -247,8 +262,20 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
             <h3 class="vs-dialog-title">Pre-commit hook 失败</h3>
+            <p class="vs-dialog-hook-meta">
+              hook 退出码 <code>{hookErrorExitCode()}</code> · 显示 stderr 最后
+              20 行
+            </p>
             <pre class="vs-dialog-pre">{hookErrorContent()}</pre>
             <div class="vs-dialog-actions">
+              <button
+                type="button"
+                class="vs-dialog-copy-btn"
+                onClick={() => void copyHookStderr()}
+                aria-label="Copy stderr"
+              >
+                {hookErrorCopied() ? "Copied" : "Copy stderr"}
+              </button>
               <button
                 type="button"
                 class="vs-dialog-btn-primary"

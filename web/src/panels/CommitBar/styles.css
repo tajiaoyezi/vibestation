@@ -1,0 +1,363 @@
+/* MVP-09 Phase C · CommitBar + Dialog + Toast styles
+ * Token 源：web/src/styles.css `:root` design tokens
+ * 服务：CommitBar.tsx · IdentityDialog.tsx · DetachedHead/HookFailed inline dialogs
+ */
+
+/* ─── Commit Bar 容器 ─── */
+.vs-commit-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-1);
+  border-top: 1px solid var(--line-soft);
+}
+
+.vs-commit-input-wrap {
+  position: relative;
+}
+
+.vs-commit-message {
+  width: 100%;
+  min-height: 3.6em;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.vs-commit-message::placeholder {
+  color: var(--text-3);
+}
+
+.vs-commit-message:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.vs-commit-message:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 72-char guide line · 视觉提示 commit message subject 长度上限 */
+.vs-commit-guide-line {
+  position: absolute;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  width: 1px;
+  background: var(--line);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.vs-commit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.vs-commit-amend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.vs-commit-amend input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.vs-commit-btn-wrap {
+  display: inline-block;
+}
+
+.vs-commit-btn {
+  appearance: none;
+  border: none;
+  background: var(--accent);
+  color: var(--bg-0);
+  font-size: 0.8125rem;
+  font-family: inherit;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--r-6);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.vs-commit-btn:hover:not(:disabled) {
+  background: var(--accent);
+  filter: brightness(1.1);
+}
+
+.vs-commit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Toast ─── */
+.vs-toast {
+  position: fixed;
+  bottom: calc(var(--status-bar-height) + var(--space-4));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  animation: vs-toast-slide-up 200ms var(--ease);
+  user-select: none;
+  max-width: 80vw;
+}
+
+@keyframes vs-toast-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+.vs-toast-success {
+  background: var(--success);
+  color: var(--bg-0);
+}
+
+.vs-toast-error {
+  background: var(--danger);
+  color: var(--text-1);
+}
+
+/* ─── Dialog (overlay + box) ─── */
+.vs-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: oklch(0.05 0.01 255 / 0.55);
+  backdrop-filter: blur(4px);
+  animation: vs-dialog-fade-in 120ms var(--ease);
+}
+
+@keyframes vs-dialog-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.vs-dialog {
+  width: min(480px, 90vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-12);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.4);
+  animation: vs-dialog-scale-in 160ms var(--panel-ease);
+  overflow: hidden;
+}
+
+@keyframes vs-dialog-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+}
+
+.vs-dialog-title {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-1);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.vs-dialog-body {
+  margin: 0;
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+/* ─── Dialog form (IdentityDialog) ─── */
+.vs-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5) var(--space-4);
+}
+
+.vs-dialog-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.vs-dialog-input {
+  appearance: none;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+
+.vs-dialog-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg-1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.vs-dialog-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.vs-dialog-checkbox input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.vs-dialog-error-hint {
+  color: var(--danger);
+  font-size: 0.6875rem;
+}
+
+/* ─── Dialog actions (button row) ─── */
+.vs-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--line-soft);
+  background: var(--bg-1);
+}
+
+.vs-dialog-btn-primary,
+.vs-dialog-btn-secondary {
+  appearance: none;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-dialog-btn-primary {
+  border: none;
+  background: var(--accent);
+  color: var(--bg-0);
+  font-weight: 500;
+}
+
+.vs-dialog-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.vs-dialog-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vs-dialog-btn-secondary {
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+.vs-dialog-btn-secondary:hover:not(:disabled) {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+/* ─── Pre-commit hook stderr (HookFailed dialog) ─── */
+.vs-dialog-hook-meta {
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+  font-size: 0.75rem;
+  color: var(--text-3);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.vs-dialog-hook-meta code {
+  font-family: var(--font-mono);
+  color: var(--danger);
+}
+
+.vs-dialog-pre {
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  max-height: 50vh;
+  user-select: text;
+}
+
+/* Copy 按钮（hookFailed dialog · spec §C "可复制"） */
+.vs-dialog-copy-btn {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 0.75rem;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--r-6);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+  margin-right: auto;
+}
+
+.vs-dialog-copy-btn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}

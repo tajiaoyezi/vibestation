@@ -1,0 +1,39 @@
+   Compiling vibestation-core v0.1.0 (/home/leafiel/code/claude/vibestation/crates/core)
+    Finished `bench` profile [optimized] target(s) in 10.88s
+     Running benches/git_ops_bench.rs (target/release/deps/git_ops_bench-7f6d28cfb11d417c)
+Gnuplot not found, using plotters backend
+Benchmarking stage_single_file
+Benchmarking stage_single_file: Warming up for 3.0000 s
+Benchmarking stage_single_file: Collecting 100 samples in estimated 8.6610 s (10k iterations)
+Benchmarking stage_single_file: Analyzing
+stage_single_file       time:   [262.91 µs 263.45 µs 264.07 µs]
+                        change: [-1.0428% -0.6975% -0.3724%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 3 outliers among 100 measurements (3.00%)
+  1 (1.00%) low mild
+  2 (2.00%) high mild
+
+Benchmarking commit_typical
+Benchmarking commit_typical: Warming up for 3.0000 s
+
+Warning: Unable to complete 100 samples in 5.0s. You may wish to increase target time to 5.3s, enable flat sampling, or reduce sample count to 60.
+Benchmarking commit_typical: Collecting 100 samples in estimated 5.3250 s (5050 iterations)
+Benchmarking commit_typical: Analyzing
+commit_typical          time:   [350.78 µs 351.60 µs 352.49 µs]
+                        change: [+0.5803% +0.9631% +1.3754%] (p = 0.00 < 0.05)
+                        Change within noise threshold.
+Found 16 outliers among 100 measurements (16.00%)
+  7 (7.00%) low mild
+  5 (5.00%) high mild
+  4 (4.00%) high severe
+
+Benchmarking stage_all_1000_files
+Benchmarking stage_all_1000_files: Warming up for 3.0000 s
+Benchmarking stage_all_1000_files: Collecting 100 samples in estimated 7.5690 s (200 iterations)
+Benchmarking stage_all_1000_files: Analyzing
+stage_all_1000_files    time:   [31.411 ms 31.514 ms 31.654 ms]
+                        change: [-0.1569% +0.2927% +0.7977%] (p = 0.23 > 0.05)
+                        No change in performance detected.
+Found 3 outliers among 100 measurements (3.00%)
+  3 (3.00%) high severe
+

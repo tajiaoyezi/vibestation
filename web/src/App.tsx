@@ -11,6 +11,10 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
+import {
+  readText as readClipboardText,
+  writeText as writeClipboardText,
+} from "@tauri-apps/plugin-clipboard-manager";
 import "./styles.css";
 
 import { LayoutProvider, useLayout } from "./stores/layout-context";
@@ -380,7 +384,92 @@ const App: Component = () => {
         message: `db init: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
+
+    // 全局 cmd/ctrl+C/V/A/X 处理 · 应用没 App Menu Edit submenu accelerator ·
+    // macOS WKWebView 默认不响应 cmd+C 在 input/textarea/普通 selection 上 ·
+    // 走 tauri-plugin-clipboard-manager IPC 调系统 NSPasteboard。
+    // xterm focus 跳过 · 让 PaneTerminal attachCustomKeyEventHandler 自处理。
+    document.addEventListener("keydown", handleClipboardKey);
   });
+
+  onCleanup(() => {
+    document.removeEventListener("keydown", handleClipboardKey);
+  });
+
+  function handleClipboardKey(e: KeyboardEvent) {
+    const mod = e.metaKey || e.ctrlKey;
+    if (!mod || e.shiftKey || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (!["c", "v", "a", "x"].includes(key)) return;
+
+    const target = e.target as Element | null;
+    // xterm 内 · PaneTerminal attachCustomKeyEventHandler 自处理
+    if (target?.closest?.(".xterm")) return;
+
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement
+    ) {
+      const start = target.selectionStart ?? 0;
+      const end = target.selectionEnd ?? 0;
+      const hasSel = start !== end;
+      if (key === "c" && hasSel) {
+        e.preventDefault();
+        const text = target.value.substring(start, end);
+        void writeClipboardText(text).catch((err) =>
+          console.warn("[clipboard] copy failed", err),
+        );
+        return;
+      }
+      if (key === "x" && hasSel) {
+        e.preventDefault();
+        const text = target.value.substring(start, end);
+        void writeClipboardText(text).catch((err) =>
+          console.warn("[clipboard] cut failed", err),
+        );
+        target.value =
+          target.value.substring(0, start) + target.value.substring(end);
+        target.setSelectionRange(start, start);
+        target.dispatchEvent(new Event("input", { bubbles: true }));
+        return;
+      }
+      if (key === "v") {
+        e.preventDefault();
+        void readClipboardText()
+          .then((text) => {
+            if (!text) return;
+            const s = target.selectionStart ?? 0;
+            const eEnd = target.selectionEnd ?? 0;
+            target.value =
+              target.value.substring(0, s) +
+              text +
+              target.value.substring(eEnd);
+            const caret = s + text.length;
+            target.setSelectionRange(caret, caret);
+            target.dispatchEvent(new Event("input", { bubbles: true }));
+          })
+          .catch((err) => console.warn("[clipboard] paste failed", err));
+        return;
+      }
+      if (key === "a") {
+        e.preventDefault();
+        target.select();
+        return;
+      }
+      return;
+    }
+
+    // 普通 selection · 仅 copy / select-all 适用（普通 div 不接 paste / cut）
+    if (key === "c") {
+      const sel = window.getSelection()?.toString() ?? "";
+      if (sel) {
+        e.preventDefault();
+        void writeClipboardText(sel).catch((err) =>
+          console.warn("[clipboard] copy failed", err),
+        );
+      }
+    }
+  }
 
   async function refreshWorkspaces() {
     try {

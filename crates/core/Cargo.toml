@@ -38,7 +38,7 @@ notify = "6.1.1"
 # 仅保留 transport（reqwest + rustls · HTTP envelope 必需）
 sentry = { version = "0.47", default-features = false, features = ["transport", "rustls"] }
 # SHA-256 · panic message 哈希（不可逆 · 防 PII 泄漏）
-sha2 = "0.10"
+sha2 = "0.11"
 
 [dev-dependencies]
 tempfile.workspace = true

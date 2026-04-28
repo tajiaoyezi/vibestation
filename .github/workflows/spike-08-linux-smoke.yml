@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload Linux raw artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: spike-08-linux-raw
           path: docs/spikes/raw/SPIKE-08/linux/

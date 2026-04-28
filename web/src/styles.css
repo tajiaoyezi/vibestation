@@ -614,7 +614,7 @@ textarea {
   appearance: none;
   border: none;
   background: none;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1;
   transition:
     color 0.1s,
@@ -650,6 +650,7 @@ textarea {
   border: none;
   background: none;
   font-size: 11px;
+  line-height: 1;
   transition:
     color 0.1s,
     background 0.1s;

@@ -27,6 +27,7 @@ import { ActivityStrip } from "./components/ActivityStrip";
 import { MainContent } from "./components/MainContent";
 import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
+import { GearIcon } from "./components/Icons";
 import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 
@@ -277,7 +278,7 @@ const LayoutShell: Component<{
             title="Settings (⌘,)"
             onClick={() => setSettingsVisible(true)}
           >
-            ⚙
+            <GearIcon />
           </button>
           <ThemeSwitch />
           <span class="vs-status-item">

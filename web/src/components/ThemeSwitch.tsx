@@ -8,7 +8,7 @@ export const ThemeSwitch: Component = () => {
 
   const themes: { id: ThemeSetting; icon: string }[] = [
     { id: "light", icon: "☀" },
-    { id: "dark", icon: "☾" },
+    { id: "dark", icon: "◑" },
     { id: "auto", icon: "⊘" },
   ];
 
@@ -28,6 +28,7 @@ export const ThemeSwitch: Component = () => {
         <button
           type="button"
           class={`vs-theme-btn${theme() === t.id ? " vs-theme-btn-on" : ""}`}
+          data-theme={t.id}
           role="radio"
           aria-checked={theme() === t.id}
           aria-label={`${t.id} theme`}

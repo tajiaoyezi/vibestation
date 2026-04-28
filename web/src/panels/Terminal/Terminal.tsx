@@ -100,6 +100,11 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
     string | null
   >(null);
+  // 右键命中的 tab id · TabBar onContextMenu 立刻 set · menu:action listener 优先用此
+  // 值而非 currentActiveTabId · 防止右键非 active tab 时操作误作用到 active tab。
+  const [contextMenuTabId, setContextMenuTabId] = createSignal<string | null>(
+    null,
+  );
   /**
    * MVP-05 Phase C · Pane mode state per tab。tab 在 panesByTabId 里 → 渲染 PaneSplitView
    * 用 pane_pty_*；不在则走 legacy TerminalPane（tab_pty_*）。新 tab 创建时调
@@ -141,6 +146,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
   });
 
   const allTabs = createMemo(() => Object.values(tabsByWorkspace()).flat());
+
+  // <For> 按 element identity 比较 · tab object 任何字段变（如 name rename）会创建新对象
+  // 触发 unmount + mount · PaneSplitView/PaneTerminal 整体重建 · onCleanup 调 pane_pty_kill
+  // 终端内容丢失。改用稳定的 tabId 数组作为 <For> 的 each · 只在 tab 增删时 reconcile ·
+  // rename 不影响 tabId 集合 · 不 reconcile · 现有 component 保留 · 只是 reactive props 更新。
+  const allTabIds = createMemo(() => allTabs().map((tab) => tab.tabId), [], {
+    equals: (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
+  });
 
   const activeRenderer = createMemo(() => {
     const tabId = currentActiveTabId();
@@ -352,6 +365,30 @@ export const Terminal: Component<TerminalProps> = (props) => {
       }
       syncWorkspaceTabs(workspaceId, tabs);
       setPasteConfirmSkip(workspaceId, false);
+
+      // 让所有 tabs 都进 pane mode · 跟 createTab 路径一致 · 否则首个 tab 走 legacy
+      // <TerminalPane> + .vs-terminal-host（有 line-soft 内边框）· 而后续新 tab 走
+      // <PaneTerminal> + .vs-pane-terminal-host（无 border）· 视觉不一致。
+      // pane_init_for_tab 是 idempotent · 已 init 的 tab 直接返回当前 layout。
+      for (const tab of tabs) {
+        try {
+          const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
+            req: {
+              tabId: tab.tabId,
+              shell: tab.shell,
+              cwd: tab.cwd,
+            } satisfies PaneInitRequest,
+          });
+          setPaneListForTab(tab.tabId, paneList);
+        } catch (paneError) {
+          // 失败时不阻塞 · tab 退化到 legacy TerminalPane（仍 work · 仅视觉差异）
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[mvp-05] pane_init_for_tab failed for ${tab.tabId}:`,
+            paneError,
+          );
+        }
+      }
     } catch (error) {
       showToast(errorMessage(error));
     } finally {
@@ -414,6 +451,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
       });
 
       newlyCreatedTabIds.add(tab.tabId);
+
+      // 先 await pane_init_for_tab 拿到 paneList · 再一次性 update store ·
+      // 避免 tab 先 render 走 fallback <TerminalPane>（"Launching..." 一闪即逝）·
+      // 又切到 <PaneSplitView> 重新 mount 的双跳。
+      let paneList: PaneListResponse | null = null;
+      try {
+        paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
+          req: {
+            tabId: tab.tabId,
+            shell: tab.shell,
+            cwd: tab.cwd,
+          } satisfies PaneInitRequest,
+        });
+      } catch (paneError) {
+        showToast(
+          `Pane 初始化失败：${errorMessage(paneError)} · tab 退化到单 PTY 模式`,
+          "info",
+        );
+      }
+
       updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
       setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
       upsertRuntime(tab.tabId, (runtime) => ({
@@ -422,23 +479,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
         spawnError: null,
         exitCode: null,
       }));
-
-      // MVP-05 Phase C Track A · 新 tab 进 pane mode（pane_init_for_tab idempotent）·
-      // 旧 tab 不强制迁移（保留 tab_pty + TerminalPane）。失败时仅 toast · 不阻塞 tab 创建。
-      try {
-        const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
-          req: {
-            tabId: tab.tabId,
-            shell: tab.shell,
-            cwd: tab.cwd,
-          } satisfies PaneInitRequest,
-        });
+      if (paneList) {
         setPaneListForTab(tab.tabId, paneList);
-      } catch (paneError) {
-        showToast(
-          `Pane 初始化失败：${errorMessage(paneError)} · tab 退化到单 PTY 模式`,
-          "info",
-        );
       }
     } catch (error) {
       showToast(errorMessage(error));
@@ -866,8 +908,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
         return;
       }
 
-      const tabId = currentActiveTabId();
+      // tab context menu (menu_show_tab) 操作目标是右键命中的 tab · 不是当前 active。
+      // 非 tab 类操作（preferences / new_tab）contextTab 也可能被设但用不到 · 处理完
+      // 都清。fallback 到 active 是为了 keyboard shortcut 触发同 action 时仍能工作。
+      const ctxTab = contextMenuTabId();
+      const tabId = ctxTab ?? currentActiveTabId();
       const tabs = currentTabs();
+      // 处理完一次菜单事件就清 · 不影响下次右键 / 快捷键路径
+      setContextMenuTabId(null);
 
       switch (event.payload.action) {
         case "close_tab":
@@ -1001,6 +1049,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
         tabs={currentTabs()}
         activeTabId={currentActiveTabId()}
         pendingRenameTabId={pendingRenameTabId() ?? undefined}
+        onContextMenuTab={(tabId) => setContextMenuTabId(tabId)}
         onCreate={() => {
           const workspace = props.activeWorkspace();
           if (workspace) {
@@ -1023,67 +1072,78 @@ export const Terminal: Component<TerminalProps> = (props) => {
       />
 
       <div class="vs-terminal-stage">
-        <For each={allTabs()}>
-          {(tab) => {
+        <For each={allTabIds()}>
+          {(tabId) => {
+            // tab 是 reactive memo · rename 时新 tab object 流过来 · 但 component 不重 mount ·
+            // tab() 返回新值 · 下游 props 自动 reactive update · 不 unmount/remount。
+            const tab = createMemo(() =>
+              allTabs().find((t) => t.tabId === tabId),
+            );
             const tabActive = () =>
-              tab.workspaceId === activeWorkspaceId() &&
-              tab.tabId === currentActiveTabId();
-            const paneList = () => panesByTabId()[tab.tabId];
+              tab()?.workspaceId === activeWorkspaceId() &&
+              tabId === currentActiveTabId();
+            const paneList = () => panesByTabId()[tabId];
             // MVP-05 Phase C Track A · 双路渲染：tab 在 pane mode → PaneSplitView · 否则 legacy TerminalPane
             return (
-              <Show
-                when={paneList()}
-                fallback={
-                  <TerminalPane
-                    active={tabActive()}
-                    isNewlyCreated={newlyCreatedTabIds.has(tab.tabId)}
-                    pasteGuardDisabled={
-                      skipPasteConfirmByWorkspace()[tab.workspaceId] ?? false
+              <Show when={tab()}>
+                {(currentTab) => (
+                  <Show
+                    when={paneList()}
+                    fallback={
+                      <TerminalPane
+                        active={tabActive()}
+                        isNewlyCreated={newlyCreatedTabIds.has(tabId)}
+                        pasteGuardDisabled={
+                          skipPasteConfirmByWorkspace()[
+                            currentTab().workspaceId
+                          ] ?? false
+                        }
+                        runtime={
+                          runtimeByTabId()[tabId] ?? DEFAULT_RUNTIME_STATE
+                        }
+                        tab={currentTab()}
+                        onExit={handleExit}
+                        onPasteRequest={(tid, text) =>
+                          setPendingPaste({
+                            tabId: tid,
+                            text,
+                            workspaceId: currentTab().workspaceId,
+                          })
+                        }
+                        onRegisterApi={(tid, api) => {
+                          paneApis.set(tid, api);
+                        }}
+                        onRendererChange={handleRendererChange}
+                        onResize={handleResize}
+                        onStart={startTab}
+                        onStdinError={showToast}
+                        onStdout={handleStdout}
+                        onUnregisterApi={(tid) => {
+                          paneApis.delete(tid);
+                        }}
+                      />
                     }
-                    runtime={
-                      runtimeByTabId()[tab.tabId] ?? DEFAULT_RUNTIME_STATE
-                    }
-                    tab={tab}
-                    onExit={handleExit}
-                    onPasteRequest={(tabId, text) =>
-                      setPendingPaste({
-                        tabId,
-                        text,
-                        workspaceId: tab.workspaceId,
-                      })
-                    }
-                    onRegisterApi={(tabId, api) => {
-                      paneApis.set(tabId, api);
-                    }}
-                    onRendererChange={handleRendererChange}
-                    onResize={handleResize}
-                    onStart={startTab}
-                    onStdinError={showToast}
-                    onStdout={handleStdout}
-                    onUnregisterApi={(tabId) => {
-                      paneApis.delete(tabId);
-                    }}
-                  />
-                }
-              >
-                {(list) => (
-                  <div
-                    class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
-                    aria-hidden={!tabActive()}
                   >
-                    <PaneSplitView
-                      layout={list().layout}
-                      panes={list().panes}
-                      active={tabActive()}
-                      focusedPaneId={list().focusedPaneId}
-                      onPaneClick={(paneId) => {
-                        void handlePaneFocus(paneId);
-                      }}
-                      onPaneError={(paneId, message) => {
-                        showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
-                      }}
-                    />
-                  </div>
+                    {(list) => (
+                      <div
+                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
+                        aria-hidden={!tabActive()}
+                      >
+                        <PaneSplitView
+                          layout={list().layout}
+                          panes={list().panes}
+                          active={tabActive()}
+                          focusedPaneId={list().focusedPaneId}
+                          onPaneClick={(paneId) => {
+                            void handlePaneFocus(paneId);
+                          }}
+                          onPaneError={(paneId, message) => {
+                            showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
+                          }}
+                        />
+                      </div>
+                    )}
+                  </Show>
                 )}
               </Show>
             );

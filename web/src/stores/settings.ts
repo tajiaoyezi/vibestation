@@ -38,6 +38,19 @@ async function loadSettings(): Promise<void> {
   setLoaded(true);
 }
 
+/**
+ * 给 App.tsx onMount 调用 · workspace_init 完成（pool init 完成）后强制重新拉 settings ·
+ * 不依赖 settings_changed event · 避免 module-load 期 listen 订阅 race miss event 的问题
+ * （session 19 实测：fix7 emit 在 listen 完成订阅前发生 · modal 反复弹）
+ */
+export async function reloadSettings(): Promise<void> {
+  try {
+    const s = await invoke<AppSettings>("settings_get");
+    setSettings(s);
+    applyCssVars(s);
+  } catch {}
+}
+
 loadSettings();
 
 listen<AppSettings>("settings_changed", (event) => {

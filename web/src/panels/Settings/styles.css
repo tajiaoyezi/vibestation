@@ -443,3 +443,16 @@
 .vs-settings-input--narrow {
   width: 80px;
 }
+
+/* fix24 · Settings field 下方说明 / 警示 · 用于 "当前 shell 不可用" 等提示 */
+.vs-settings-help {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--text-3);
+  line-height: 1.45;
+}
+
+.vs-settings-help--warn {
+  color: var(--danger);
+}

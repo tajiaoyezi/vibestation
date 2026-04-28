@@ -130,7 +130,7 @@ body,
   font-size: var(--text-size-base);
   font-feature-settings: "cv11", "ss01", "ss03";
   line-height: var(--text-line);
-  background: transparent !important;
+  background: transparent;
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -223,12 +223,21 @@ textarea {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+/* main section 是 tabindex=0 容器（a11y keyboard nav 用）· click main area 时
+ * focus 落到这里 · 但视觉上 xterm cursor 已表示 focus · outer ring 多余 + 占据
+ * 整个 main column 4 边蓝边。屏蔽。 */
+.vs-main-content:focus,
+.vs-main-content:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* ══════ SHELL (5-zone layout) ══════ */
 
 .vs-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
   position: relative;
 }
@@ -308,6 +317,8 @@ textarea {
   position: relative;
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .vs-main-diff-overlay {
@@ -588,6 +599,31 @@ textarea {
 
 .vs-status-val {
   color: var(--text-2);
+}
+
+/* 状态栏右下角 ⚙ 入口 · 跟 ThemeSwitch 视觉对齐（同 size · 同 hover treatment）·
+   补 macOS App Menu Vibestation → Preferences (⌘,) 之外的可见入口。 */
+.vs-status-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 18px;
+  color: var(--text-3);
+  border-radius: 3px;
+  cursor: pointer;
+  appearance: none;
+  border: none;
+  background: none;
+  font-size: 12px;
+  line-height: 1;
+  transition:
+    color 0.1s,
+    background 0.1s;
+}
+
+.vs-status-icon-btn:hover {
+  color: var(--text-1);
+  background: var(--bg-2);
 }
 
 /* ══════ THEME SWITCH ══════ */

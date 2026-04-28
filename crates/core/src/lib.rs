@@ -50,8 +50,9 @@ pub use panes::{
     SplitRatioUpdateRequest,
 };
 pub use pty::{
-    check_shell_exists, resolve_default_shell, PtyError, PtyEvent, PtyEventReceiver,
-    PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, PTY_EVENT_QUEUE_CAPACITY,
+    check_shell_exists, list_available_shells, resolve_default_shell, PtyError, PtyEvent,
+    PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, ShellInfo,
+    PTY_EVENT_QUEUE_CAPACITY,
 };
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,

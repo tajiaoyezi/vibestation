@@ -11,6 +11,10 @@
  */
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import {
+  readText as readClipboardText,
+  writeText as writeClipboardText,
+} from "@tauri-apps/plugin-clipboard-manager";
 
 import { CanvasAddon } from "@xterm/addon-canvas";
 import { FitAddon } from "@xterm/addon-fit";
@@ -75,11 +79,13 @@ const createTheme = () => {
   };
 };
 
-const setupRenderer = (term: XTerm, paneId: string): void => {
+type ActiveRenderers = { webgl?: WebglAddon; canvas?: CanvasAddon };
+
+const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
   try {
     const webgl = new WebglAddon();
     term.loadAddon(webgl);
-    return;
+    return { webgl };
   } catch (error) {
     console.warn(
       `[mvp-05] pane ${paneId} webgl renderer unavailable, falling back to canvas`,
@@ -89,13 +95,14 @@ const setupRenderer = (term: XTerm, paneId: string): void => {
   try {
     const canvas = new CanvasAddon();
     term.loadAddon(canvas);
-    return;
+    return { canvas };
   } catch (error) {
     console.warn(
       `[mvp-05] pane ${paneId} canvas renderer unavailable, falling back to DOM`,
       error,
     );
   }
+  return {};
 };
 
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
@@ -107,6 +114,33 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let resizeObserver: ResizeObserver | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
+  // theme 切换需 dispose + reload addon · WebGL texture atlas 缓存 glyph 不会自动更新
+  let activeWebglAddon: WebglAddon | undefined;
+  let activeCanvasAddon: CanvasAddon | undefined;
+  let themeObserver: MutationObserver | undefined;
+
+  // 同步 xterm theme · WebglAddon/CanvasAddon 缓存 atlas 必须 dispose+reload 才能用新色
+  // （xterm 5.x term.options.theme 单独设不够 · clearTextureAtlas 实测也不彻底 ·
+  //  TerminalPane 已验证 · 此处对齐）
+  const syncTheme = () => {
+    if (!term) return;
+    term.options.theme = createTheme();
+    if (activeWebglAddon) {
+      try {
+        activeWebglAddon.dispose();
+      } catch {}
+      activeWebglAddon = undefined;
+    }
+    if (activeCanvasAddon) {
+      try {
+        activeCanvasAddon.dispose();
+      } catch {}
+      activeCanvasAddon = undefined;
+    }
+    const renderers = setupRenderer(term, props.paneId);
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
+  };
 
   const queueFit = () => {
     if (!props.active || !fitAddon) return;
@@ -159,7 +193,51 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
     if (!hostRef) return;
     term.open(hostRef);
-    setupRenderer(term, props.paneId);
+    const renderers = setupRenderer(term, props.paneId);
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
+
+    // 拦截 cmd/ctrl+C 复制 · cmd/ctrl+V 粘贴 · cmd/ctrl+A 全选。
+    // xterm canvas/webgl 渲染不是原生 selectable 文本 · 系统 cmd+C 路径拿不到字。
+    // navigator.clipboard 在 Tauri WKWebView 不稳定 · 用 tauri-plugin-clipboard-manager
+    // 走 IPC 调系统 NSPasteboard / GTK clipboard · 必稳。
+    // shift 修饰留给 selection 操作（shift+arrows）· 不拦。
+    term.attachCustomKeyEventHandler((event) => {
+      if (event.type !== "keydown") return true;
+      const mod = event.metaKey || event.ctrlKey;
+      if (!mod || event.shiftKey || event.altKey) return true;
+      const key = event.key.toLowerCase();
+      if (key === "c") {
+        const sel = term?.getSelection() ?? "";
+        if (sel) {
+          event.preventDefault();
+          void writeClipboardText(sel).catch((err) => {
+            console.warn("[clipboard] writeText failed", err);
+          });
+          term?.clearSelection();
+          return false;
+        }
+        // 没 selection · 让 ^C 发到 pty（SIGINT）
+        return true;
+      }
+      if (key === "v") {
+        event.preventDefault();
+        void readClipboardText()
+          .then((text) => {
+            if (text) term?.paste(text);
+          })
+          .catch((err) => {
+            console.warn("[clipboard] readText failed", err);
+          });
+        return false;
+      }
+      if (key === "a") {
+        event.preventDefault();
+        term?.selectAll();
+        return false;
+      }
+      return true;
+    });
 
     props.onRegisterApi?.(props.paneId, {
       focus: () => term?.focus(),
@@ -188,24 +266,31 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     resizeObserver = new ResizeObserver(() => queueFit());
     resizeObserver.observe(hostRef);
 
-    unlistenStdout = await listen<PanePtyStdoutEvent>(
-      "pane_pty_stdout",
-      (event) => {
+    // 监听 data-theme attribute 变化 · 触发 syncTheme · 跟 TerminalPane fix8 一致
+    // 用 attribute observer 而非 settings.theme reactive · 避免 setSettings/applyCssVars
+    // 顺序 race（applyCssVars 设 data-theme · createTheme 读最新 CSS vars · 有保证）
+    themeObserver = new MutationObserver(() => syncTheme());
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    // listen 订阅必须在 spawn 之前完成 · Tauri emit 不缓冲 · listener 没 ready
+    // 时 backend 已 emit 的 stdout 会丢（如 shell 启动后 prompt 第一行）。
+    // 用 Promise.all 并行两个 listen（互不依赖）· 省 1 次 round-trip。
+    [unlistenStdout, unlistenExited] = await Promise.all([
+      listen<PanePtyStdoutEvent>("pane_pty_stdout", (event) => {
         if (event.payload.paneId !== props.paneId) return;
         term?.write(event.payload.data);
-      },
-    );
-
-    unlistenExited = await listen<PanePtyExitedEvent>(
-      "pane_pty_exited",
-      (event) => {
+      }),
+      listen<PanePtyExitedEvent>("pane_pty_exited", (event) => {
         if (event.payload.paneId !== props.paneId) return;
         props.onExit?.(props.paneId, event.payload.exitCode);
         term?.write(
           `\r\n[Process exited (code ${event.payload.exitCode ?? "signal"})]\r\n`,
         );
-      },
-    );
+      }),
+    ]);
 
     queueFit();
     const cols = term.cols || DEFAULT_COLS;
@@ -230,6 +315,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   onCleanup(() => {
     props.onUnregisterApi?.(props.paneId);
     resizeObserver?.disconnect();
+    themeObserver?.disconnect();
     unlistenStdout?.();
     unlistenExited?.();
     void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {

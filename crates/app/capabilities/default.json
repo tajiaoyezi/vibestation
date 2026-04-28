@@ -16,6 +16,9 @@
     "allow-layout-load",
     "allow-default-shell-get",
     "allow-default-shell-set",
+    "allow-available-shells-list",
+    "allow-settings-get",
+    "allow-settings-update",
     "allow-tab-list",
     "allow-tab-create",
     "allow-tab-close",
@@ -63,6 +66,8 @@
     "allow-telemetry-opt-in-set",
     "allow-telemetry-status-get",
     "allow-app-version-get",
-    "dialog:default"
+    "dialog:default",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-read-text"
   ]
 }

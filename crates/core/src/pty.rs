@@ -837,6 +837,74 @@ pub fn check_shell_exists(shell: &str) -> Result<(), PtyError> {
     Ok(())
 }
 
+/// 一条系统认证的 shell · 路径 + 显示用 label（basename）。
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, ts_rs::TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellInfo {
+    pub path: String,
+    pub label: String,
+}
+
+/// 主流交互 shell 白名单（覆盖 95% 用户）· 过滤 dash / csh / tcsh / ksh / sh
+/// 等系统/脚本 shell · 它们出现在 `/etc/shells` 但几乎没人作为交互 terminal 用。
+/// nu / pwsh 通常不写 `/etc/shells` · MVP 不为它们加路径探测。用户已选的非白名单 shell
+/// 仍保留在 list 里（例外保护 · 见 list_available_shells 末尾）。
+const PRIMARY_SHELL_BASENAMES: &[&str] = &["zsh", "bash", "fish"];
+
+/// 扫 `/etc/shells` · 过滤 commented / 不可执行 / 非主流交互 shell · 返回主流 shell 列表。
+/// 读不到 `/etc/shells`（macOS / Linux 都应有 · Windows 没）返回 fallback `[zsh|bash]`。
+///
+/// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的主流 shell ·
+/// 而非自由输入 / hardcoded 列表（fix24/25 · 防 "PTY 启动失败: shell not executable"
+/// + 减干扰非主流选项）。
+pub fn list_available_shells() -> Vec<ShellInfo> {
+    let mut shells: Vec<ShellInfo> = std::fs::read_to_string("/etc/shells")
+        .ok()
+        .map(|content| {
+            content
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty() && !line.starts_with('#'))
+                .filter_map(|path_str| {
+                    let path = Path::new(path_str);
+                    if !is_executable_file(path) {
+                        return None;
+                    }
+                    let basename = path.file_name().and_then(|n| n.to_str())?;
+                    if !PRIMARY_SHELL_BASENAMES.contains(&basename) {
+                        return None;
+                    }
+                    Some(ShellInfo {
+                        path: path_str.to_string(),
+                        label: basename.to_string(),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if shells.is_empty() {
+        // /etc/shells 读不到 / 全 invalid · fallback 到 default_shell_path（一定存在的）
+        let fallback = default_shell_path();
+        if is_executable_file(Path::new(fallback)) {
+            let label = Path::new(fallback)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or(fallback)
+                .to_string();
+            shells.push(ShellInfo {
+                path: fallback.to_string(),
+                label,
+            });
+        }
+    }
+
+    // 去重（macOS /etc/shells 经常 /bin/zsh + /usr/bin/zsh 都列）· 按 label 去重保留首项
+    shells.dedup_by(|a, b| a.path == b.path);
+    shells
+}
+
 fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {

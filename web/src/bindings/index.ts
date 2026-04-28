@@ -54,6 +54,7 @@ export type { GitConfigIdentity } from "./GitConfigIdentity";
 export type { SetGitIdentityRequest } from "./SetGitIdentityRequest";
 export type { AppSettings } from "./AppSettings";
 export type { SettingsUpdateRequest } from "./SettingsUpdateRequest";
+export type { ShellInfo } from "./ShellInfo";
 export type { CrashReportPayload } from "./CrashReportPayload";
 export type { TelemetryOptInRequest } from "./TelemetryOptInRequest";
 export type { TelemetryStatus } from "./TelemetryStatus";

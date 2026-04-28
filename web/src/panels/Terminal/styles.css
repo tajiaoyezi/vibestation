@@ -82,18 +82,29 @@
   flex: 0 0 auto;
   align-items: center;
   gap: var(--space-1);
-  padding: 0 var(--space-1);
+  height: 32px;
+  padding: 0 var(--space-2) 0 var(--space-3);
   border-bottom: 2px solid transparent;
   border-radius: var(--r-6) var(--r-6) 0 0;
   background: transparent;
   transition:
     border-color var(--dur-fast) var(--ease),
-    background-color var(--dur-fast) var(--ease);
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+/* inactive tab hover · 给 chip 形态出来 · close × 也跟着显出来 */
+.vs-terminal-tab:not(.is-active):hover {
+  background: var(--bg-2);
 }
 
 .vs-terminal-tab.is-active {
+  /* active tab bg 跟 stage（--bg-1）一致 · 视觉上 tab + terminal 内容是同一面板凸出 ·
+     accent underline 加粗到 3px · 跟 inactive 拉开。不再用 accent gradient（太弱 · 且
+     在 dark/light 都缺乏 punch）·改成纯色 surface + bottom rule。 */
+  background: var(--bg-1);
   border-bottom-color: var(--accent);
-  background: linear-gradient(180deg, var(--accent-soft), transparent 72%);
+  border-bottom-width: 3px;
 }
 
 .vs-terminal-tab-trigger {
@@ -101,13 +112,19 @@
   display: inline-flex;
   min-width: 0;
   flex: 1;
+  align-self: stretch;
   align-items: center;
   border: none;
   background: transparent;
-  color: var(--text-2);
+  color: var(--text-3);
   cursor: pointer;
   font: inherit;
   padding: 0;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.vs-terminal-tab:not(.is-active):hover .vs-terminal-tab-trigger {
+  color: var(--text-2);
 }
 
 .vs-terminal-tab.is-active .vs-terminal-tab-trigger {
@@ -154,6 +171,20 @@
   width: 20px;
   height: 20px;
   margin-right: 2px;
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+/* inactive tab hover / active tab / close 自身 focus 时 · close × 显出来 ·
+   不再常驻吸引视觉 · 让 tab label 是主角 */
+.vs-terminal-tab:hover .vs-terminal-tab-close,
+.vs-terminal-tab.is-active .vs-terminal-tab-close,
+.vs-terminal-tab-close:focus-visible {
+  opacity: 1;
 }
 
 .vs-terminal-new-tab {
@@ -170,6 +201,51 @@
   border-color: var(--line);
   background: var(--bg-2);
   color: var(--text-1);
+}
+
+/*
+ * Tab trigger button 完全关 focus ring · button 占满 tab content area · 任何
+ * outline / inset shadow 都视觉等同 tab 内圈线条。tab 的 .is-active 状态自带
+ * accent border-bottom + gradient bg 作 visual indicator · button focus ring 冗余。
+ */
+.vs-terminal-tab-trigger:focus,
+.vs-terminal-tab-trigger:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/*
+ * close × / + new-tab button 是小尺寸独立按钮 · keep inset focus ring 给 keyboard nav。
+ */
+.vs-terminal-tab-close:focus-visible,
+.vs-terminal-new-tab:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+  outline: none;
+}
+
+/*
+ * Terminal area click 后 · xterm 自己的 cursor blink 已是 focus 指示器 ·
+ * 不需要 outer ring。屏蔽所有可能的 focus chain（main-content tabindex=0 / xterm
+ * 内部 .xterm 元素 tabindex=0 / 任何 .vs-terminal-* 容器）的 :focus / :focus-visible
+ * box-shadow + outline · 防 user 看到 stage / host 大小蓝色 outline 视觉污染。
+ * 用 !important 覆盖全局 :focus-visible 设的 box-shadow: 0 0 0 2px var(--focus-ring)。
+ */
+.vs-terminal-shell:focus,
+.vs-terminal-shell:focus-visible,
+.vs-terminal-stage:focus,
+.vs-terminal-stage:focus-visible,
+.vs-terminal-pane:focus,
+.vs-terminal-pane:focus-visible,
+.vs-terminal-host:focus,
+.vs-terminal-host:focus-visible,
+.vs-terminal-host *:focus,
+.vs-terminal-host *:focus-visible,
+.xterm:focus,
+.xterm:focus-visible,
+.xterm *:focus,
+.xterm *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .vs-terminal-stage {
@@ -461,18 +537,37 @@
   min-width: 0;
   min-height: 0;
   position: relative;
-  border: 1px solid transparent;
-  transition: border-color var(--dur-fast) var(--ease);
+  padding: var(--space-3);
 }
 
-.vs-pane-terminal.is-focused {
-  border-color: var(--accent);
+/*
+ * Multi-pane focus indicator 单 pane 时冗余视觉污染（accent 蓝色 outline 围绕整个
+ * Terminal area · 用户不需要）。Multi-pane 时 unfocused pane 自带 opacity 0.7 dim ·
+ * focused pane normal opacity · 已是 visual indicator · 不需要额外 border。
+ * 用 :has 把 border 限定在真有 sibling pane 的容器内。
+ */
+.vs-pane-split .vs-pane-terminal.is-focused {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .vs-pane-terminal-host {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-8);
+  background: var(--bg-0);
+}
+
+/* xterm 必须撑满 host · 否则底部留白显示 host 自身 bg-0 · 形成"边框 + 内部深色块"双重视觉重叠 */
+.vs-pane-terminal-host .xterm {
+  height: 100%;
+  padding: var(--space-2) var(--space-3);
+}
+
+.vs-pane-terminal-host .xterm-viewport {
+  background: transparent !important;
 }
 
 .vs-pane-terminal-error {

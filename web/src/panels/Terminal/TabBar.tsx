@@ -12,6 +12,7 @@ type TabBarProps = {
   tabs: readonly TabState[];
   activeTabId: string | null;
   onClose: (tabId: string) => void;
+  onContextMenuTab?: (tabId: string) => void;
   onCreate: () => void;
   onRename: (tabId: string, name: string) => Promise<void>;
   onSelect: (tabId: string) => void;
@@ -68,7 +69,8 @@ export const TabBar: Component<TabBarProps> = (props) => {
 
     const tab = props.tabs.find((t) => t.tabId === pendingId);
     if (tab) {
-      props.onSelect(tab.tabId);
+      // 不切 active · rename 入口（右键菜单 / future shortcut）应该独立于 tab 选中。
+      // 双击 label 路径不受影响（第一击已在 trigger button onClick 内 select 过）。
       startRename(tab);
     }
   });
@@ -87,6 +89,10 @@ export const TabBar: Component<TabBarProps> = (props) => {
                 role="presentation"
                 onContextMenu={(e) => {
                   e.preventDefault();
+                  // 把右键命中的 tab id 提前告诉 Terminal · 让 menu:action listener
+                  // 用 contextTabId 而非 currentActiveTabId · 修右键非 active tab
+                  // 操作（rename / close 等）误作用到 active tab 的 bug。
+                  props.onContextMenuTab?.(tab.tabId);
                   void invoke("menu_show_tab", {
                     x: e.clientX,
                     y: e.clientY,

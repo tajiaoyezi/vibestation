@@ -20,7 +20,7 @@ use vibestation_core::{
     LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
     PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
     PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
-    SetGitIdentityRequest, SettingsUpdateRequest, SplitDir, SplitRatioUpdateRequest,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SplitDir, SplitRatioUpdateRequest,
     StageFailedItem, StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
     TabRenameRequest, TabState, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
     WorkspaceMetadata,
@@ -106,6 +106,7 @@ fn main() {
 
     AppSettings::export_all(&config).expect("export AppSettings");
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
+    ShellInfo::export_all(&config).expect("export ShellInfo");
 
     // MVP-10 Phase B · Telemetry contract（ADR-015）
     CrashReportPayload::export_all(&config).expect("export CrashReportPayload");
@@ -173,6 +174,7 @@ fn main() {
             "export type { SetGitIdentityRequest } from \"./SetGitIdentityRequest\";",
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
+            "export type { ShellInfo } from \"./ShellInfo\";",
             "export type { CrashReportPayload } from \"./CrashReportPayload\";",
             "export type { TelemetryOptInRequest } from \"./TelemetryOptInRequest\";",
             "export type { TelemetryStatus } from \"./TelemetryStatus\";",

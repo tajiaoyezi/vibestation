@@ -1,0 +1,15 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# v0.1.1 fix · Day 1 latent bug · capability 漏声明 settings_get / settings_update
+# permission 导致 settings store loadSettings IPC deny · DEFAULTS 占位 · telemetry
+# modal 每次启动都弹（store 拿不到 DB 已存的 telemetry_opt_in）。
+
+[[permission]]
+identifier = "allow-settings-get"
+description = "允许前端读取应用设置（settings store loadSettings · theme / font / privacy 等）"
+commands.allow = ["settings_get"]
+
+[[permission]]
+identifier = "allow-settings-update"
+description = "允许前端更新应用设置（Settings 面板 · 触发 settings_changed event）"
+commands.allow = ["settings_update"]

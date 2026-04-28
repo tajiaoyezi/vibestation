@@ -10,7 +10,7 @@ const DEFAULTS: AppSettings = {
   theme: "auto",
   fontFamily: "JetBrains Mono",
   fontSize: 14,
-  defaultShell: "/bin/zsh",
+  defaultShell: "/bin/bash",
   pasteProtection: true,
   telemetryOptIn: null,
   gitUserName: null,

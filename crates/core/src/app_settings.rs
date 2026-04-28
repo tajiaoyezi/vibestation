@@ -49,7 +49,11 @@ impl Default for AppSettings {
             theme: "auto".to_string(),
             font_family: "JetBrains Mono".to_string(),
             font_size: 14,
-            default_shell: "/bin/zsh".to_string(),
+            default_shell: if cfg!(target_os = "macos") {
+                "/bin/zsh".to_string()
+            } else {
+                "/bin/bash".to_string()
+            },
             paste_protection: true,
             telemetry_opt_in: None,
             git_user_name: None,
@@ -143,7 +147,11 @@ impl AppSettingsStore {
         let theme = get_parsed(pool, "theme", "auto");
         let font_family = get_parsed(pool, "font_family", "JetBrains Mono");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
-        let default_shell = get_parsed(pool, "default_shell", "/bin/zsh");
+        let default_shell = get_parsed(
+            pool,
+            "default_shell",
+            if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" },
+        );
         let paste_protection: bool = get_parsed(pool, "paste_protection", "true");
         let telemetry_opt_in = get_optional_bool(pool, "telemetry_opt_in");
         let git_user_name = get_optional_string(pool, "git_user_name");

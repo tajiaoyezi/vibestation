@@ -806,10 +806,41 @@ fn default_shell_path() -> &'static str {
     }
 }
 
+/// 扫 /etc/shells 找到第一个实际可用的交互 shell · 终极 fallback。
+/// 调用 [`list_available_shells`]（已过滤 bash/zsh/fish + 检查可执行）·
+/// 若列表为空回退到 [`default_shell_path`]（至少是 OS 标准路径）。
+fn find_available_shell() -> String {
+    let available = list_available_shells();
+    if let Some(shell) = available.first() {
+        return shell.path.clone();
+    }
+    default_shell_path().to_string()
+}
+
 pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
-    pool.and_then(|p| AppSettingsStore::get(p, "default_shell").ok())
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| default_shell_path().to_string())
+    let stored = pool
+        .and_then(|p| AppSettingsStore::get(p, "default_shell").ok())
+        .filter(|s| !s.trim().is_empty());
+
+    let resolved = if let Some(ref s) = stored {
+        // 用户显式选的 shell · 即使不在白名单里也优先尊重（可能 fish 装在 /usr/local/bin/fish）
+        // 但如果 PATH 里找不到 · 回退到系统可用 shell
+        if resolve_shell(s).is_some() {
+            s.clone()
+        } else {
+            find_available_shell()
+        }
+    } else {
+        // 无已存设置 · 先用 OS 默认 · 不存在则扫系统
+        let def = default_shell_path().to_string();
+        if resolve_shell(&def).is_some() {
+            def
+        } else {
+            find_available_shell()
+        }
+    };
+
+    resolved
 }
 
 fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
@@ -1336,9 +1367,25 @@ mod tests {
         let dir = tempfile::TempDir::new().unwrap();
         let db_path = dir.path().join("test_shell_settings.db");
         let pool = db::open_pool(&db_path).unwrap();
-        AppSettingsStore::set(&pool, "default_shell", "/opt/homebrew/bin/fish").unwrap();
+        // 用系统真实存在的 shell · resolve_default_shell 会验证可执行性
+        let real_shell = if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" };
+        AppSettingsStore::set(&pool, "default_shell", real_shell).unwrap();
         let shell = resolve_default_shell(Some(&pool));
-        assert_eq!(shell, "/opt/homebrew/bin/fish");
+        assert_eq!(shell, real_shell);
+    }
+
+    #[test]
+    fn resolve_default_shell_falls_back_when_stored_shell_missing() {
+        use crate::db;
+        let dir = tempfile::TempDir::new().unwrap();
+        let db_path = dir.path().join("test_shell_missing_path.db");
+        let pool = db::open_pool(&db_path).unwrap();
+        // 存一个不存在的路径 → 应回退到系统可用的 shell
+        AppSettingsStore::set(&pool, "default_shell", "/nonexistent/shell").unwrap();
+        let shell = resolve_default_shell(Some(&pool));
+        // 回退后必须是可执行的真实 shell
+        let resolved = resolve_shell(&shell);
+        assert!(resolved.is_some(), "fallback shell {shell} should be executable");
     }
 
     #[test]

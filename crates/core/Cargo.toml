@@ -20,7 +20,7 @@ dunce.workspace = true
 ts-rs.workspace = true
 # MVP-06 Phase A parser 依赖（Kimi PR #80）
 toml = "0.8"
-plist = "1.6"
+plist = "1.9"
 serde_yaml = "0.9"
 # MVP-04 Phase B PTY runtime 依赖（Codex PR #82 · SPIKE-05.5 架构）
 crossbeam-channel = "0.5"

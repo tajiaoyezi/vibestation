@@ -143,7 +143,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   };
 
   const queueFit = () => {
-    if (!props.active || !fitAddon) return;
+    if (!fitAddon) return;
     requestAnimationFrame(() => {
       try {
         fitAddon?.fit();
@@ -298,15 +298,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       }),
     ]);
 
-    // 初始 fit 不走 queueFit（queueFit 有 active guard · 新 tab mount 时
-    // active 可能尚未同步为 true · 导致 xterm 零尺寸无法渲染 · 用户必须先点终端）。
-    // 用 rAF 确保 hostRef 已在 DOM 中完成 layout。
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        try { fitAddon?.fit(); } catch {}
-        resolve();
-      });
-    });
+    queueFit();
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;
     try {

@@ -185,7 +185,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   };
 
   const queueFit = () => {
-    if (!props.active || !fitAddon) {
+    if (!fitAddon) {
       return;
     }
 
@@ -363,14 +363,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       );
     });
 
-    // 初始 fit 不走 queueFit（queueFit 有 active guard · 新 tab 可能 active
-    // 尚未同步 → xterm 零尺寸 → 无内容渲染 · 用户必须先点终端）。
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => {
-        try { fitAddon?.fit(); } catch {}
-        resolve();
-      });
-    });
+    queueFit();
     if (props.runtime.phase === "idle") {
       beginStart();
     }

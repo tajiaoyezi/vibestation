@@ -47,7 +47,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "auto".to_string(),
-            font_family: "JetBrains Mono".to_string(),
+            font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace".to_string(),
             font_size: 14,
             default_shell: if cfg!(target_os = "macos") {
                 "/bin/zsh".to_string()
@@ -145,7 +145,7 @@ impl AppSettingsStore {
 
     pub fn get_all(pool: &DbPool) -> AppSettings {
         let theme = get_parsed(pool, "theme", "auto");
-        let font_family = get_parsed(pool, "font_family", "JetBrains Mono");
+        let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
         let default_shell = get_parsed(
             pool,

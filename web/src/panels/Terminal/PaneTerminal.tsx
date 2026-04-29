@@ -177,9 +177,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily:
-        settings.fontFamily ||
-        "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, Liberation Mono, monospace",
+      fontFamily: [
+        settings.fontFamily,
+        "DejaVu Sans Mono",
+        "Ubuntu Mono",
+        "ui-monospace",
+        "Liberation Mono",
+        "monospace",
+      ].join(", "),
       fontSize: 13,
       lineHeight: 1.22,
       scrollback: 10000,

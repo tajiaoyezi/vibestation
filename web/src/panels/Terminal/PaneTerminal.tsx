@@ -143,7 +143,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   };
 
   const queueFit = () => {
-    if (!props.active || !fitAddon) return;
+    if (!fitAddon) return;
     requestAnimationFrame(() => {
       try {
         fitAddon?.fit();
@@ -177,10 +177,16 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily:
-        "JetBrains Mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace",
+      fontFamily: [
+        settings.fontFamily,
+        "DejaVu Sans Mono",
+        "Ubuntu Mono",
+        "ui-monospace",
+        "Liberation Mono",
+        "monospace",
+      ].join(", "),
       fontSize: 13,
-      lineHeight: 1.22,
+      lineHeight: 1.3,
       scrollback: 10000,
       theme: createTheme(),
     });
@@ -292,7 +298,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       }),
     ]);
 
-    queueFit();
+    // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
+    await new Promise<void>((r) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => r()));
+    });
+    try { fitAddon?.fit(); } catch {}
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;
     try {
@@ -305,6 +315,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
           rows,
         } satisfies PanePtySpawnRequest,
       });
+      // xterm 首次加载时 canvas/webgl 渲染管线可能未完成 · write 的数据不显示 ·
+      // 给 PTY 50ms 输出 prompt 后强制整屏 refresh。
+      setTimeout(() => {
+        try { term?.refresh(0, term.rows - 1); } catch {}
+      }, 50);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       setSpawnError(msg);
@@ -321,6 +336,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {
       // pane already exited
     });
+    try { activeWebglAddon?.dispose(); } catch {}
+    try { activeCanvasAddon?.dispose(); } catch {}
     term?.dispose();
   });
 

@@ -47,9 +47,13 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "auto".to_string(),
-            font_family: "JetBrains Mono".to_string(),
+            font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace".to_string(),
             font_size: 14,
-            default_shell: "/bin/zsh".to_string(),
+            default_shell: if cfg!(target_os = "macos") {
+                "/bin/zsh".to_string()
+            } else {
+                "/bin/bash".to_string()
+            },
             paste_protection: true,
             telemetry_opt_in: None,
             git_user_name: None,
@@ -141,9 +145,13 @@ impl AppSettingsStore {
 
     pub fn get_all(pool: &DbPool) -> AppSettings {
         let theme = get_parsed(pool, "theme", "auto");
-        let font_family = get_parsed(pool, "font_family", "JetBrains Mono");
+        let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
-        let default_shell = get_parsed(pool, "default_shell", "/bin/zsh");
+        let default_shell = get_parsed(
+            pool,
+            "default_shell",
+            if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" },
+        );
         let paste_protection: bool = get_parsed(pool, "paste_protection", "true");
         let telemetry_opt_in = get_optional_bool(pool, "telemetry_opt_in");
         let git_user_name = get_optional_string(pool, "git_user_name");
@@ -276,7 +284,7 @@ mod tests {
         let (_dir, pool) = setup();
         let settings = AppSettingsStore::get_all(&pool);
         assert_eq!(settings.theme, "auto");
-        assert_eq!(settings.font_family, "JetBrains Mono");
+        assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
         assert_eq!(settings.font_size, 14);
         assert!((settings.bg_opacity - 0.85).abs() < f32::EPSILON);
         assert_eq!(settings.bg_blur, 20);

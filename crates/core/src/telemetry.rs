@@ -114,7 +114,14 @@ fn build_target() -> &'static str {
 fn hash_stack_trace(panic_info: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(panic_info.as_bytes());
-    format!("{:x}", hasher.finalize())
+    hasher
+        .finalize()
+        .iter()
+        .fold(String::with_capacity(64), |mut s, b| {
+            use std::fmt::Write;
+            write!(s, "{b:02x}").unwrap();
+            s
+        })
 }
 
 /// 从 panic 信息派生 [`CrashReportPayload`]（脱敏 · 仅 3 字段白名单）

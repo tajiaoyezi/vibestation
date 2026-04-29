@@ -15,7 +15,7 @@
 | **Latest commit**         | 见 `git log --oneline -1`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —             |
 | **Worktree status**       | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | —             |
 | **Unpushed branches**     | 见 `git branch -vv`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —             |
-| **Next concrete action**  | **session 20 进行中 · 14 PR merged · 主 agent 主线代码侧 100% 收官 + 2 critical/secondary bug discovered/fixed** · 已合：(a-h) PR #152-#159 入口任务 + 主线收尾 8 PR · (i) PR #160 PROGRESS sync mid · (j) **PR #161 critical bug fix · modal mount-time webview 虚假 click + §F.01/§F.03 截图（v0.1 GA blocker · spec §B.1 隐私关键 path 失效 · 5 轮 dev restart 调试 · 200ms guard）** · (k) PR #162 §F.02 partial + CLI 自动化 GUI 截图能力边界总结 · (l) **PR #163 secondary bug fix · theme dual-path · ThemeProvider listen settings_changed event + §F.02 split before/after 完整闭环（spec §F.02 实时生效 violation · status bar theme_set 不 emit 修复）** · (m) PR #164 dispatch §2.14 reviewer 启 dev mode 跑 critical UX path 教训规则化（PR #159/#161/#163 三连根因）· **剩余 GUI 截图任务**（Arbiter 本地 1 小时一次性）：(1) MVP-05 Phase D runtime capture（`scripts/capture/mvp-05/capture-phase-d.sh` 就位）· (2) MVP-10 §F.04 DevTools 0 outbound（CLI 不能 · 必须 Arbiter）· (3) MVP-04 §I 22 张截图 + 2 录屏（cargo test 7 PASS / 15 ignore-runtime 已就位 · 仅缺截图）· (4) MVP-09 Phase D runtime（stage/commit 流程截图）· **off-mainline**：MVP-10 Phase C **推 v0.2**（macOS notarize · Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式 + README Gatekeeper bypass 指引替代）· MVP-10 Phase D Ubuntu Claude 进行中（session 20 dispatch）· MVP-10 Phase E v0.1.0 unsigned 模式 GitHub Release · MVP-08 Phase E v0.2 deferred · SPIKE-06 §B Apple Dev **推 v0.2**（不阻塞 v0.1 alpha）· dead code cleanup `theme_set` IPC handler 已于 PR #172 完成 | session end   |
+| **Next concrete action**  | **session 21 收口 · v0.1.0-alpha 双平台已发 + v0.1.1 双批 fix 已收**（4 merged PR + 7 admin direct push · session 21 详见上方展开段 + [session-21.md](./session-history/session-21.md)）· **当前所有 v0.1 主线代码 100% 收官** · **剩余 GUI 截图任务**（Arbiter 本地 1 小时一次性 · 完成后所有 spec frontmatter status 翻 done）：(1) MVP-04 §I 22 张截图 + 2 段 30s 录屏（cargo test 7 PASS / 15 ignore-runtime 已就位）· (2) MVP-05 Phase D `metrics-mvp-05.md` 实测 + 4-7 张 pane split + memory.sh 量化（capture-phase-d.sh 已就位）· (3) MVP-09 Phase D runtime（stage/commit 流程截图 · 性能数据已 done by PR #156）· (4) MVP-10 §F.04 0 outbound DevTools network panel（CLI 完全不能 · 必须 Arbiter）· **主 worktree 本地 cleanup**（5 分钟 · `git checkout main && git branch -D fix/v0.1.1-modal-close-white-border` · session 21 PR #187 close 后留给用户）· **session 22 audit 项**：admin override 模式 7 direct push 是否需要 retroactive trailer 或显式声明 v2-D.1 admin 豁免条款 · **off-mainline**：MVP-10 Phase C macOS notarize **推 v0.2**（Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式替代）· SPIKE-06 §B Apple Dev **推 v0.2** · GitHub Actions billing 恢复（v0.1 GA 后评估升级 GitHub Pro 或公开仓 · branch protection 一并启用） | session end   |
 | **Blocked by**            | **无 v0.1 GA blocker**（session 20 · 2026-04-26 决策 · v0.1 alpha 改 unsigned 模式 · SPIKE-06 §B Apple Dev Program 推 v0.2 · README + Release notes 写明 macOS Gatekeeper bypass 指引）· SPIKE-01/02 Phase B Ubuntu validated（PR #137-#139 · ADR-006 解除 caveat）                                                                                                                                                                                                                                                                                                                                                                                                                | 阻塞变化      |
 | **Missing infra**         | 无（v0.1 GA 双平台已就位 · macOS unsigned + Linux deb/AppImage）· Apple Developer Program 推 v0.2（不阻塞 v0.1 alpha · v0.2 升级触发条件见 MVP-10 §I.D）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Phase 完成时  |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ✅ Ubuntu 24 LTS（已就位 · session 19 PR #137-#139）· ⏳ Apple Dev（推 v0.2 · v0.1 alpha unsigned 模式不依赖）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 新账号/工具时 |
@@ -25,47 +25,53 @@
 
 ## 📍 当前位置
 
-**阶段**：session 20 进行中 · 14 PR merged · **主 agent 主线代码侧 100% 收官 + 2 critical/secondary bug discovered/fixed** · session 19 已 36 PR 收官（PR #117-#152 · 详细见 session-19.md）· `MVP-04` Phase D shell 兼容 done · `MVP-05` Phase A/B/C 全 done · Phase D runtime capture 待 Arbiter 30 min · `MVP-08` Phase A/B/C/D 全 done · Phase E v0.2 deferred · `MVP-09` Phase A done · Phase B Status 面板 + CommitBar done（PR #118）· §D Criterion bench + §E 集成测试 done（PR #156）· **Phase C 错误流 UX 补强 done（PR #159 · 19 dialog/toast CSS class 全填 + Hook stderr Copy 按钮 + exit code · 修补隐藏 critical UX 缺口）** · `MVP-10` Phase A done · Phase B Sentry Spike done（PR #120）· **ADR-015 accepted by Arbiter（PR #152）· Phase B SDK 编码 done（PR #155 · 4 commits · 19 测试全过）· §C.4 endpoint UI + §G.4 H2 proof + §F capture guide + §2.13 dispatch rule done（PR #158）· §B.1 modal mount-time click guard fix（PR #161 · v0.1 GA blocker）· §F.02 theme dual-path fix（PR #163 · spec §F.02 实时生效闭环）· §F evidence 3/4 done（01/02/03 ✓ · 04 DevTools 待 Arbiter）** · `MVP-11` Native Feel Quality 全 done · 5/5 phase（macOS + Linux）· 15 ADR（含 ADR-015 accepted）· v2-D.1 规则稳态运行 · dispatch §2.14 reviewer dev mode 教训制度化（PR #164）
-**日期**：2026-04-26（session 20 启动 · session 19 已归档至 session-19.md · 团队 = 主 agent + 本机 Kimi + Ubuntu Claude Code + Ubuntu Kimi · 当日具体派工见 dispatch prompts）
+**阶段**：session 21 收口 · **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26）· **v0.1.1 实测双批 fix 已收**（admin direct push `2c1044a` 23 文件 + PR #186 17 commits squash · 2026-04-28~29 · GitHub Actions billing 暂停触发首次大规模 admin override 模式）· PR #187 主 worktree dangling history 验证 close（26 commits net effect 已通过 admin push + PR #186 双路径全部进入 main · no-op merge）· **session 20 已归档至 session-20.md** · `MVP-04` Phase D shell 兼容 done（含 v0.1.1 自动检测 fix）· `MVP-05` Phase A/B/C 全 done · Phase D runtime capture 待 Arbiter · `MVP-08` Phase A/B/C/D 全 done · Phase E v0.2 deferred · `MVP-09` Phase A/B/C/D 性能 done · runtime 截图待 GUI capture · `MVP-10` Phase A/B 全 done（Sentry SDK + opt-in modal + endpoint UI + theme realtime + clipboard plugin + Settings 状态栏入口 + shell dropdown）· **Phase D Linux AppImage 实测 done（PR #174 · §E.1-§E.3 全过）· Phase E §F.5 SECURITY.md + §F.6 privacy-policy.md done（PR #171 session 20）+ unsigned 模式 README Gatekeeper bypass 指引 done（PR #175）· §F evidence 3/4 done · 仅 §F.04 DevTools 待 Arbiter** · `MVP-11` Native Feel Quality 全 done · 5/5 phase · 15 ADR（含 ADR-015 accepted）· v2-D.1 规则稳态运行 · session 21 admin override 模式触发 v2-D.1 trailer 合规率回落（4/12 update 有 trailer · 7 direct push 无 · session 22 audit 项）
+**日期**：2026-04-29（session 21 收口 · 跨 4-26~04-29 共 4 天 · session 20 已归档至 session-20.md · 团队 = 主 agent + Arbiter admin override + dependabot auto · 无远程 agent / 多 agent 并发）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（滚动窗口 · 只保留最近 2 session · 更早见 `git log --all` + `docs/session-history/`）**：
+**已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 20（2026-04-26 · 主 agent 主线收尾）
+### Session 21（2026-04-26 ~ 04-29 · v0.1.0 GA 发布 + v0.1.1 双批 fix · 跨 4 天）
 
-入口任务（#152-#157 · 6 PR）:
+#### 1 · v0.1.0 GA 发布配套（3 PR · 2026-04-26）
 
-- **PR #152**：ADR-015 Telemetry crash stack proposed → accepted by Arbiter · Claude Code 主 agent · 解锁 MVP-10 Phase B Sentry SDK 编码
-- **PR #153**：session-history/session-19.md 归档（36 PR · MVP-11 全 done + MVP-05 Phase A/B/C + ADR-006 Ubuntu validated + branch protect 机械化 · 168 行 · 9 主题分组）· Claude Code 主 agent
-- **PR #154**：PROGRESS.md M-2 滚动窗口同步 · session 19 移交至 session-19.md 归档 + session 20 入口段建立 · Ubuntu Claude D2
-- **PR #155**：MVP-10 Phase B Sentry SDK 主体 · 4 commits · `crates/core/src/telemetry.rs` 268 行（ADR-015 §决策约束 · `default_integrations: false` + `send_default_pii: false` + `before_send` 删 contexts.trace）· `crates/core/tests/telemetry_pii_test.rs` 6 PII 测试 · IPC commands `telemetry_opt_in_set` / `telemetry_status_get` / `app_version_get` + permission · `install_panic_hook` + `try_init_sentry_from_env` · `TelemetryOptInModal` 阻塞 WelcomePage · §B.4 atomic 双门控（19 测试全过 · `should_send_telemetry` runtime opt-in 实时生效）· Claude Code 主 agent · B5
-- **PR #156**：MVP-09 §D Criterion bench（git_ops_bench · stage_single_file / commit_typical / stage_all_1000）+ §E 集成测试（`crates/core/tests/git_ops_integration.rs` · Linux 平台基线证据 · stage 0.26ms / commit 0.35ms / stage_1k 31.5ms · 远低于 spec D 性能要求 380×/1400×/63× 余量）· Ubuntu Claude · B4
-- **PR #157**：ADR README 索引同步 + 决策表 #10 行（含 round 2 字节级 self-fix · round 1 Kimi 误覆盖 ADR-015 PR #152 措辞 · round 2 用 `git checkout origin/main -- <file>` 字节级恢复）· Ubuntu Kimi · U2
+- **PR #173**：CHANGELOG v0.1.0 release + PROGRESS M-2 滚动归档（chore/changelog-progress-m2 · +79/-393）· Claude Code 主 agent
+- **PR #174**：MVP-10 Phase D Linux AppImage 实测 · §E.1-§E.3 全过（feat/MVP-10-phase-D-linux-appimage · +41/-2）· deb 5.5 MB / AppImage 78 MB · 双格式产物可装 · v0.1 GA Linux 路径解锁
+- **PR #175**：unsigned 模式决策 · macOS notarize 推 v0.2 + README Gatekeeper bypass 指引（docs/v0.1-unsigned-deferred-notarize · +86/-19）· v0.1 alpha 不依赖 Apple Developer Program $99/year + 2-2 周审批 · 用户首次启动右键 → 打开走 Gatekeeper override
 
-主 agent 主线收尾（#158-#159 · 2 PR）:
+#### 2 · GitHub Actions billing 暂停 → admin override 模式启用（7 direct pushes · 2026-04-28）
 
-- **PR #158**：MVP-10 Phase B follow-up · §C.4 收集端点 host 公开显示 + 复制按钮（`SENTRY_ENDPOINT_HOST` OnceLock + `Copy` 按钮 + "Not configured" fallback）+ §G.4 H2 regression proof（临时改 `font_family` ts(rename) → tsc FAIL 6 处 · annotation rollback）+ §F runtime evidence CAPTURE-GUIDE.md（4 张 GUI 截图采集步骤 · 体积约束 · commit 指令）+ `dispatch-prompt-template.md §2.13`（PR #157 round 1 教训 · 索引同步类禁 inline 已被其他 PR 改过的源文件 · 必须 `git checkout origin/main -- <file>`）+ 顺手修 PR #156 留下的 2 个 clippy errors（`&PathBuf` → `&Path` · `len() > 0` → `!is_empty()`）· Claude Code 主 agent
-- **PR #159**：MVP-09 Phase C 错误流 UX 补强 · 发现 19 个 vs-commit-* / vs-toast-* / vs-dialog-* CSS class 在主 styles.css 完全无定义（裸 HTML 显示 · 隐藏 critical UX 缺口）· 新建 `web/src/panels/CommitBar/styles.css` 363 行（Calm Studio token + scale-in/slide-up 动画）+ Hook stderr "Copy" 按钮（spec §C.4 "可复制"）+ exit code 显示（`hook 退出码 N · 显示 stderr 最后 20 行`）· Claude Code 主 agent
+**首次大规模 admin direct push** · 触发原因：GitHub Actions billing 暂停 · PR-level CI 完全无法运行 · 走 PR 流程没意义 · Arbiter 切 admin override 模式直推 main。
 
-GUI capture 探索 + 2 critical/secondary bug fix（#160-#164 · 5 PR）:
+- **`2c1044a`** · `fix(v0.1.1): MVP-04/05/10/11 UX 修复批（本地 CI 全过）` · Arbiter（Leafile Lune）admin direct push · 23 文件 / +1054 / -123 · 含 clipboard plugin 集成 · 全局 cmd+C/V/A/X · Settings 状态栏入口 · shell dropdown /etc/shells 动态读取 + 白名单 · Settings IPC permission 声明 · Icons.tsx GearIcon SVG 组件 · TabBar/Terminal/PaneTerminal/TerminalPane 视觉补强 · commit body 标注"GitHub Actions billing 暂停，CI 无法跑"作为 implicit Arbiter approval（不规范但实务可接受）
+- **6 dependabot bumps** auto direct push（`7697b8b` actions/upload-artifact 4→7 · `a9336ff` libc 0.2.186 · `347140a` plist 1.9 · `492c283` minor-updates group 4 个 · `93a1317` sha2 0.11 · `739da3d` vite 8.0.10 dev）
 
-- **PR #160**：PROGRESS.md session 20 mid sync · 补 PR #154-#159 6 PR · 主 agent 主线收尾段落新建 + MVP v0.1 进度 phase 级别详化 · Claude Code 主 agent
-- **PR #161 🔴 CRITICAL BUG FIX**：Modal mount-time click guard · 实测发现删 DB 重启 dev mode · `telemetry_opt_in` 在 12.5 秒内被自动写入 · modal **用户完全看不见** · 5 轮 dev restart + DB watcher 半秒 poll 调试定位 webview 启动 race · WKWebView 把"启动 ready"事件误派发到 modal 内第一个 focusable button（Decline）· SolidJS event delegation 路由到 onClick · 触发虚假 `decide(false)` · 加 200ms `MOUNT_CLICK_GUARD_MS` · `onMount` 记录 mountedAt · `decide` 入口 `isEarlyClick()` 检查 silently 丢弃 mount-time 虚假 click · spec §B.1 "首次启动弹对话框 · 阻塞欢迎页" v0.1 GA blocker 修复 + 顺手交付 §F.01 settings-panel + §F.03 telemetry-opt-in modal 截图（247 KB / 324 KB · ADR-011 R4 < 500 KB）· Claude Code 主 agent
-- **PR #162**：MVP-10 §F.02 partial · dark theme single state（settings-realtime 349 KB）+ CLI 自动化 GUI 截图能力边界总结（macOS `screencapture -l <CGWindowID>` + Swift `CGWindowListCopyWindowInfo` + `cliclick` + `osascript` 能做 vs 不能做完整 inventory · webview 内部 keyboard event 路径分离 · DevTools UI / 复杂 LLM stream 实机交互不能脚本化）· 期间发现 secondary dual-path bug 留 follow-up · Claude Code 主 agent
-- **PR #163 🟡 SECONDARY BUG FIX**：theme dual-path · `ThemeSwitch.theme_set` IPC **不 emit `settings_changed`** · status bar click DB 写但 UI 不刷 · violate spec §F.02 "切 theme 后实时生效 · 无重启" · `ThemeProvider` 加 `listen("settings_changed")` 监听 · `ThemeSwitch.handleClick` 双门控调用 setTheme（同步 UI active）+ updateSettings（持久化 + emit）· `AppearanceGroup` 删 redundant `themeCtx.setTheme` · spec §F.02 实时生效闭环 + split before/after evidence（dark + light · 02-settings-realtime-after-light.png 381 KB）· Claude Code 主 agent
-- **PR #164**：dispatch §2.14 reviewer 启 dev 模式跑 critical UX path 教训规则化 · session 20 三连 bug（PR #159 / #161 / #163）共同根因 reviewer 把 "cargo test green + pnpm typecheck 0 + ts-rs contract 一致" 等同 "PR 可 merge" · 但 GUI/IPC 类 PR critical path 必须 dev mode 跑过才能 catch webview race / event delegation / dual IPC path / CSS missing 类问题 · 全局 rule 15 在 reviewer 阶段的具体落地 · implementer §2.3 + reviewer §2.14 双管齐下 · Claude Code 主 agent
+#### 3 · v0.1.1 Linux 实测 bug 修复批（PR #186 · 2026-04-29 squash merge）
 
-剩余 GUI 截图任务（CLI 不能跑 · 等 Arbiter 本地 1 小时一次性）:
+- **PR #186 · `2c01a53`** · v0.1.1 Linux 实测 bug 修复批（fix/v0.1.1-linux-transparent-theme-align · +326/-141 · 17 commits squash · `mergeStateStatus: CLEAN`）· 默认 shell 自动检测 / migration v2/v3 ALTER TABLE 兼容 / 透明窗口修复 / Unicode → SVG 跨平台对齐 / 终端字体栈（DejaVu Sans Mono / Ubuntu Mono / Liberation Mono fallback）/ telemetry modal 等 dbReady 后再显示 / WebGL addon dispose 顺序 / sha2 0.11 API migration（LowerHex → manual hex fold · 配合 dependabot bump）/ Cargo.lock regenerate · Claude Code 主 agent
 
-- MVP-04 §I 22 张截图 + 2 段 30s 录屏（zsh/bash/fish + Claude/Codex CLI 实机 · cargo test 已 7 PASS / 15 ignore-runtime · 仅缺 GUI 录屏）
-- MVP-05 Phase D `metrics-mvp-05.md` 实测 + 4-7 张 pane split + memory.sh 量化（capture-phase-d.sh 已就位）
-- MVP-09 Phase D runtime（stage/commit 流程截图 · 性能数据已 done by PR #156）
-- MVP-10 §F.04 0 outbound DevTools network panel（CLI 完全不能 · 必须 Arbiter）
+#### 4 · PR #187 主 worktree dangling history 验证 close（2026-04-29 本 session 操作）
 
-主 agent 已完成的 §F evidence: §F.01 ✓ §F.02 ✓ §F.03 ✓ · 仅 §F.04 待 Arbiter（3/4 done）。
+主 worktree branch `fix/v0.1.1-modal-close-white-border`（HEAD `803fde2` · 26 commits ahead of main）的处置。
 
-> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/session-history/session-19.md`](./session-history/session-19.md) · 详细 PR 摘要 + 9 主题维度 + 13 项特色教训查归档文件。M-2 滚动窗口规则（每 session 末整理）首次完整执行（session 18 → session 19 归档由 PR #134 处理 · session 19 归档由 PR #153 处理）。
+- **PR #187 · CLOSED no-op**（fix/v0.1.1-modal-close-white-border · +1054/-123 · 26 commits）· **关键发现**：在临时 branch 上 `git merge --squash` + 解 3 conflict（App.tsx GearIcon vs `⚙` Unicode · styles.css 11px vs 12px · Cargo.lock dependabot bumps vs clipboard plugin · 全部取 main 版本）后 · `git diff origin/main` = **0 行** · 26 commits 的 net effect 已通过两条路径全部进入 main：(a) `2c1044a` admin direct push 含 clipboard / Settings 入口 / shell dropdown / Icons.tsx · (b) PR #186 含 Linux 透明 / Unicode → SVG / shell 自动检测 / 字体栈 / sha2 migration · **主 worktree 26 commits 是用户本地迭代历史 · dangling**
+- 处置：`gh pr close 187 --delete-branch` + 主 agent 手动 `git push origin --delete fix/v0.1.1-modal-close-white-border`（gh 因主 worktree checkout 限制未自动删 · 主 agent 补）· 主 worktree 本地 cleanup 留给用户（不能跨 worktree force-checkout 别人在用的 branch）
 
-> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（保留最近 2 session · 当前窗口 session 20 · session 18/19 已归档至 `docs/session-history/`）。
+#### 5 · 协作模式变化：v2-D.1 trailer 合规率回落（admin override 模式副作用）
+
+| Update 形式 | 数量 | trailer 合规 |
+|---|---|---|
+| Merged PR | 4（#173/#174/#175/#186）| 100% |
+| Closed PR | 1（#187）| 100% |
+| Admin direct push | 1（`2c1044a`）| ⚠️ 无 trailer · commit body 写 "GitHub Actions billing 暂停 CI 无法跑" |
+| Dependabot direct push | 6 | ⚠️ 无 trailer · auto-merge 标准行为 |
+
+session 22 audit 项：是否补 7 direct push 的 retroactive PR trailer / 或显式声明 admin override 模式下 trailer 豁免（更新 v2-D.1 ADR）。
+
+> **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/session-history/session-20.md`](./session-history/session-20.md)。
+
+> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/session-history/session-19.md`](./session-history/session-19.md)。
+
+> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 21 · session 18/19/20 已归档至 `docs/session-history/`）。
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -306,6 +312,7 @@ GUI capture 探索 + 2 critical/secondary bug fix（#160-#164 · 5 PR）:
 | **18** | 2026-04-25 | **#106-#116** | 4 track 并发极致产出 · 11 PR · 5 Phase 落地 + 3 spec ready 加强 | [`session-18.md`](./session-history/session-18.md) |
 | **19** | 2026-04-25 | **#117-#152** | MVP-11 全 done + MVP-05 Pane 落地 + ADR-006 Ubuntu validated + branch protect 机械化 · 史上最高产 36 PR | [`session-19.md`](./session-history/session-19.md) |
 | **20** | 2026-04-26 | **#152-#172** | MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix + dispatch §2.13/§2.14 教训规则化 | [`session-20.md`](./session-history/session-20.md) |
+| **21** | 2026-04-26 ~ 04-29 | **#173-#187** | v0.1.0 GA 发布配套 + Phase D Linux AppImage 实测 + GitHub Actions billing 暂停触发首次 admin override 模式 + v0.1.1 双批 fix（admin push + PR #186）+ PR #187 主 worktree dangling history 验证 close | [`session-21.md`](./session-history/session-21.md) |
 
 ### 跨 session 关键里程碑
 
@@ -317,6 +324,8 @@ GUI capture 探索 + 2 critical/secondary bug fix（#160-#164 · 5 PR）:
 - **ADR-006 Ubuntu validated · v0.1 GA 双平台**：session 19 · PR #138
 - **ADR-015 Telemetry accepted · MVP-10 Phase B 解锁**：session 20 · PR #152
 - **CRITICAL bug rescue · v0.1 GA blocker**：session 20 · PR #161 · modal mount-time webview 虚假 click guard
+- **v0.1.0-alpha 双平台发布**：session 21 · 2026-04-26 · macOS .dmg unsigned + Linux .deb / .AppImage（PR #173/#174/#175）· README Gatekeeper bypass 指引 · macOS notarize 推 v0.2
+- **首次 admin override 模式**：session 21 · 2026-04-28 · GitHub Actions billing 暂停 · 7 direct push to main（1 v0.1.1 fix + 6 dependabot bumps）· v2-D.1 trailer 合规率因此回落 · session 22 audit 项
 
 ---
 

@@ -321,6 +321,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {
       // pane already exited
     });
+    try { activeWebglAddon?.dispose(); } catch {}
+    try { activeCanvasAddon?.dispose(); } catch {}
     term?.dispose();
   });
 

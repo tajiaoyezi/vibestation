@@ -372,6 +372,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
     unlistenStdout?.();
     unlistenExited?.();
+    // WebGL/Canvas addon 必须在 term.dispose() 之前清理 · 否则 addon 内部
+    // 访问 this._terminal._core._store._isDisposed 抛 undefined 错误
+    try { activeWebglAddon?.dispose(); } catch {}
+    try { activeCanvasAddon?.dispose(); } catch {}
     term?.dispose();
   });
 

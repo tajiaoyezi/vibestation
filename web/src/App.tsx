@@ -589,7 +589,7 @@ const App: Component = () => {
           onCloseDiff={() => setActiveDiff(null)}
           onCloseWorkspaceView={handleCloseWorkspaceView}
         />
-        <Show when={!telemetryDecided()}>
+        <Show when={dbReady() && !telemetryDecided()}>
           <TelemetryOptInModal />
         </Show>
       </LayoutProvider>

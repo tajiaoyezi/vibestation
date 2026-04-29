@@ -8,7 +8,7 @@ export type ThemeSetting = "light" | "dark" | "auto";
 
 const DEFAULTS: AppSettings = {
   theme: "auto",
-  fontFamily: "JetBrains Mono",
+  fontFamily: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",
   fontSize: 14,
   defaultShell: "/bin/bash",
   pasteProtection: true,

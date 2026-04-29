@@ -185,8 +185,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         "Liberation Mono",
         "monospace",
       ].join(", "),
-      fontSize: 13,
-      lineHeight: 1.22,
+      fontSize: settings.fontSize || 14,
+      lineHeight: 1.4,
       scrollback: 10000,
       theme: createTheme(),
     });

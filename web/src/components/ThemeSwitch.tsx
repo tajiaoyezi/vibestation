@@ -1,22 +1,18 @@
 import { type Component } from "solid-js";
 import { useTheme } from "../stores/theme";
 import { useSettings, type ThemeSetting } from "../stores/settings";
+import { SunIcon, MoonIcon, AutoIcon } from "./Icons";
 
 export const ThemeSwitch: Component = () => {
   const { theme, setTheme } = useTheme();
   const { updateSettings } = useSettings();
 
-  const themes: { id: ThemeSetting; icon: string }[] = [
-    { id: "light", icon: "☀" },
-    { id: "dark", icon: "☾" },
-    { id: "auto", icon: "⊘" },
+  const themes: { id: ThemeSetting; Icon: Component }[] = [
+    { id: "light", Icon: SunIcon },
+    { id: "dark", Icon: MoonIcon },
+    { id: "auto", Icon: AutoIcon },
   ];
 
-  // setTheme 同时走两条 path · 消除 dual-path UI 不刷 bug：
-  // - settings store updateSettings · IPC settings_update · 持久化 + emit settings_changed
-  //   → applyCssVars 设 data-theme attr · UI 主题 token 实时切换（spec §F.02 实时生效）
-  // - useTheme.setTheme · 同步更新 internal signal · ThemeSwitch active radio 即时反映
-  //   （不等 IPC roundtrip · 防 click → 视觉延迟感）
   const handleClick = (id: ThemeSetting) => {
     setTheme(id);
     void updateSettings({ theme: id });
@@ -28,12 +24,13 @@ export const ThemeSwitch: Component = () => {
         <button
           type="button"
           class={`vs-theme-btn${theme() === t.id ? " vs-theme-btn-on" : ""}`}
+          data-theme={t.id}
           role="radio"
           aria-checked={theme() === t.id}
           aria-label={`${t.id} theme`}
           onClick={() => handleClick(t.id)}
         >
-          {t.icon}
+          <t.Icon />
         </button>
       ))}
     </div>

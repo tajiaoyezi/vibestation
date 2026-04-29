@@ -185,7 +185,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   };
 
   const queueFit = () => {
-    if (!props.active || !fitAddon) {
+    if (!fitAddon) {
       return;
     }
 
@@ -237,10 +237,16 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily:
-        "JetBrains Mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, monospace",
+      fontFamily: [
+        settings.fontFamily,
+        "DejaVu Sans Mono",
+        "Ubuntu Mono",
+        "ui-monospace",
+        "Liberation Mono",
+        "monospace",
+      ].join(", "),
       fontSize: 13,
-      lineHeight: 1.22,
+      lineHeight: 1.3,
       scrollback: 10000,
       theme: createTheme(),
     });
@@ -357,9 +363,17 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       );
     });
 
-    queueFit();
+    // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
+    await new Promise<void>((r) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => r()));
+    });
+    try { fitAddon?.fit(); } catch {}
     if (props.runtime.phase === "idle") {
       beginStart();
+      // xterm 首次加载 canvas/webgl 渲染管线可能未完成 · 等 PTY 输出 prompt 后强制重绘
+      setTimeout(() => {
+        try { term?.refresh(0, term.rows - 1); } catch {}
+      }, 80);
     }
   });
 
@@ -372,6 +386,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
     unlistenStdout?.();
     unlistenExited?.();
+    // WebGL/Canvas addon 必须在 term.dispose() 之前清理 · 否则 addon 内部
+    // 访问 this._terminal._core._store._isDisposed 抛 undefined 错误
+    try { activeWebglAddon?.dispose(); } catch {}
+    try { activeCanvasAddon?.dispose(); } catch {}
     term?.dispose();
   });
 

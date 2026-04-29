@@ -363,6 +363,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       );
     });
 
+    // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
+    await new Promise<void>((r) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => r()));
+    });
     try { fitAddon?.fit(); } catch {}
     if (props.runtime.phase === "idle") {
       beginStart();

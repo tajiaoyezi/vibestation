@@ -298,6 +298,10 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       }),
     ]);
 
+    // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
+    await new Promise<void>((r) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => r()));
+    });
     try { fitAddon?.fit(); } catch {}
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;

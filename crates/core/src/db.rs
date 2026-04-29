@@ -107,23 +107,57 @@ fn migrate_v1(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, DbError> {
+    let sql = format!(
+        "SELECT count(*) > 0 FROM pragma_table_info('{}') WHERE name = '{}'",
+        table, column
+    );
+    conn.query_row(&sql, [], |row| row.get(0))
+        .map_err(|e| DbError::Migration {
+            version: 0,
+            reason: e.to_string(),
+        })
+}
+
 fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
-    conn.execute_batch(
-        "ALTER TABLE workspaces ADD COLUMN has_git INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE workspaces ADD COLUMN repo_root TEXT;
-        PRAGMA user_version = 2;",
-    )
-    .map_err(|e| DbError::Migration {
-        version: 2,
-        reason: e.to_string(),
-    })?;
+    if !column_exists(conn, "workspaces", "has_git")? {
+        conn.execute(
+            "ALTER TABLE workspaces ADD COLUMN has_git INTEGER NOT NULL DEFAULT 0",
+            [],
+        )
+        .map_err(|e| DbError::Migration {
+            version: 2,
+            reason: e.to_string(),
+        })?;
+    }
+    if !column_exists(conn, "workspaces", "repo_root")? {
+        conn.execute("ALTER TABLE workspaces ADD COLUMN repo_root TEXT", [])
+            .map_err(|e| DbError::Migration {
+                version: 2,
+                reason: e.to_string(),
+            })?;
+    }
+    conn.execute_batch("PRAGMA user_version = 2;")
+        .map_err(|e| DbError::Migration {
+            version: 2,
+            reason: e.to_string(),
+        })?;
     Ok(())
 }
 
 fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
+    if !column_exists(conn, "workspaces", "layout_state")? {
+        conn.execute(
+            "ALTER TABLE workspaces ADD COLUMN layout_state TEXT",
+            [],
+        )
+        .map_err(|e| DbError::Migration {
+            version: 3,
+            reason: e.to_string(),
+        })?;
+    }
     conn.execute_batch(
-        "ALTER TABLE workspaces ADD COLUMN layout_state TEXT;
-         CREATE TABLE IF NOT EXISTS app_settings (
+        "CREATE TABLE IF NOT EXISTS app_settings (
              key   TEXT PRIMARY KEY,
              value TEXT NOT NULL
          );
@@ -172,21 +206,6 @@ fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
     Ok(())
 }
 
-fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, DbError> {
-    let mut stmt = conn
-        .prepare(&format!("PRAGMA table_info({table})"))
-        .map_err(DbError::from)?;
-    let rows = stmt
-        .query_map([], |row| row.get::<_, String>(1))
-        .map_err(DbError::from)?;
-
-    for row in rows {
-        if row.map_err(DbError::from)? == column {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
 
 fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
     conn.execute_batch(

@@ -284,7 +284,7 @@ mod tests {
         let (_dir, pool) = setup();
         let settings = AppSettingsStore::get_all(&pool);
         assert_eq!(settings.theme, "auto");
-        assert_eq!(settings.font_family, "JetBrains Mono");
+        assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
         assert_eq!(settings.font_size, 14);
         assert!((settings.bg_opacity - 0.85).abs() < f32::EPSILON);
         assert_eq!(settings.bg_blur, 20);

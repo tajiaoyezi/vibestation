@@ -298,7 +298,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       }),
     ]);
 
-    queueFit();
+    try { fitAddon?.fit(); } catch {}
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;
     try {

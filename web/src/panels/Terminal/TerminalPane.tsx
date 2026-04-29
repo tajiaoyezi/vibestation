@@ -363,7 +363,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       );
     });
 
-    queueFit();
+    try { fitAddon?.fit(); } catch {}
     if (props.runtime.phase === "idle") {
       beginStart();
     }

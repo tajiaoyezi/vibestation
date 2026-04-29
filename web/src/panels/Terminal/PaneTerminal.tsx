@@ -315,6 +315,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
           rows,
         } satisfies PanePtySpawnRequest,
       });
+      // xterm 首次加载时 canvas/webgl 渲染管线可能未完成 · write 的数据不显示 ·
+      // 给 PTY 50ms 输出 prompt 后强制整屏 refresh。
+      setTimeout(() => {
+        try { term?.refresh(0, term.rows - 1); } catch {}
+      }, 50);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       setSpawnError(msg);

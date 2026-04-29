@@ -370,6 +370,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     try { fitAddon?.fit(); } catch {}
     if (props.runtime.phase === "idle") {
       beginStart();
+      // xterm 首次加载 canvas/webgl 渲染管线可能未完成 · 等 PTY 输出 prompt 后强制重绘
+      setTimeout(() => {
+        try { term?.refresh(0, term.rows - 1); } catch {}
+      }, 80);
     }
   });
 

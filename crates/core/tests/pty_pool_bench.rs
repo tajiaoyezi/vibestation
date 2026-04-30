@@ -67,11 +67,7 @@ fn print_stats(label: &str, samples: &[f64]) {
     let p90 = sorted[(n * 9).div_ceil(10).saturating_sub(1).min(n - 1)];
     let max = sorted[n - 1];
     let mean = samples.iter().sum::<f64>() / n as f64;
-    let variance = samples
-        .iter()
-        .map(|x| (x - mean).powi(2))
-        .sum::<f64>()
-        / n as f64;
+    let variance = samples.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / n as f64;
     let stddev = variance.sqrt();
 
     println!("\n=== {} (n = {}) ===", label, n);

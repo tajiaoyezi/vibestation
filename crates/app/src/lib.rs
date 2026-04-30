@@ -13,7 +13,7 @@ use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
-use vibestation_core::pty_pool::{PoolConfig, PtyPool, TakeResult};
+use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
 use vibestation_core::{
     pane_pty, pane_service, telemetry, AppSettings, AppSettingsStore, AppVersionInfo, CommitDetail,
     DiffRequest, DiffResponse, DiffService, GitConfigIdentity, GitLogQueryRequest,
@@ -405,7 +405,7 @@ fn tab_scrollback_fetch(
 }
 
 #[tauri::command]
-fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<(), String> {
+fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<SpawnResult, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
     let persisted = TabsDao::get(pool, &req.tab_id).map_err(|e| e.to_string())?;
@@ -427,6 +427,7 @@ fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<(),
 
     // MVP-20 · 优先 PTY 预热池命中 · 命中则 idle PTY 已 rename + cd 注入完成
     // 不命中（pool disable / shell 不匹配 / pool 空）→ 降级 cold spawn
+    // BUG-001 fix · 返回 SpawnResult{warm} 让前端进入 ANSI clear filter 模式
     match state.pty_pool.take(&spawn_req) {
         TakeResult::Warm(_) => {
             // 触发后台 refill 补回 idle · 不阻塞当前 IPC return
@@ -434,9 +435,12 @@ fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<(),
                 PathBuf::from(&spawn_req.shell),
                 PathBuf::from(&spawn_req.cwd),
             );
-            Ok(())
+            Ok(SpawnResult { warm: true })
         }
-        TakeResult::Cold => state.pty.spawn(spawn_req).map_err(|e| e.to_string()),
+        TakeResult::Cold => {
+            state.pty.spawn(spawn_req).map_err(|e| e.to_string())?;
+            Ok(SpawnResult { warm: false })
+        }
     }
 }
 
@@ -482,9 +486,13 @@ fn tab_pty_kill(state: State<'_, AppState>, tab_id: String) -> Result<(), String
 // ─── MVP-05 Phase B · Pane PTY IPC（5 commands · 独立命名空间 §H.6 锁 A） ───
 
 #[tauri::command]
-fn pane_pty_spawn(state: State<'_, AppState>, req: PanePtySpawnRequest) -> Result<(), String> {
+fn pane_pty_spawn(
+    state: State<'_, AppState>,
+    req: PanePtySpawnRequest,
+) -> Result<SpawnResult, String> {
     // MVP-20 · 优先 pane PTY 预热池命中 · pool.take 接受 PtySpawnRequest
     // pane_pty::spawn 内部就是把 pane_id 当 tab_id · 这里直接构造 PtySpawnRequest
+    // BUG-001 fix · 返回 SpawnResult{warm} 让前端进入 ANSI clear filter 模式
     let spawn_req = PtySpawnRequest {
         tab_id: req.pane_id.clone(),
         shell: req.shell.clone(),
@@ -498,9 +506,12 @@ fn pane_pty_spawn(state: State<'_, AppState>, req: PanePtySpawnRequest) -> Resul
                 PathBuf::from(&spawn_req.shell),
                 PathBuf::from(&spawn_req.cwd),
             );
-            Ok(())
+            Ok(SpawnResult { warm: true })
         }
-        TakeResult::Cold => pane_pty::spawn(&state.pane_pty, req).map_err(|e| e.to_string()),
+        TakeResult::Cold => {
+            pane_pty::spawn(&state.pane_pty, req).map_err(|e| e.to_string())?;
+            Ok(SpawnResult { warm: false })
+        }
     }
 }
 

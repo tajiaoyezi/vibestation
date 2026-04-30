@@ -2,13 +2,32 @@ use crate::pty::{
     effective_shell_for_spawn, resolve_shell, PtyManager, PtySession, PtySpawnRequest,
 };
 use crossbeam_channel::{self, Sender};
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
+use ts_rs::TS;
 use uuid::Uuid;
+
+/// MVP-20 BUG-001 修复 · IPC `tab_pty_spawn` / `pane_pty_spawn` 返回类型
+///
+/// `warm: true` 表示 PTY 预热池命中 · 前端必须进入 ANSI clear filter 模式
+/// 隐藏 cd 注入命令的 zsh ZLE echo + syntax-highlighting 重绘 flash
+/// （root cause: zsh 把 stdin 注入当 user input · ZLE 必 echo · syntax-highlighting
+///  redraw 让命令行短暂可见 · clear 命令 fork 慢 ~50-100ms 用户能看到）
+///
+/// 前端实现：见 `web/src/panels/Terminal/PaneTerminal.tsx` 的 ANSI clear filter
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct SpawnResult {
+    /// true = pool 命中（前端 buffer + ANSI clear filter）
+    /// false = cold spawn（前端正常 write）
+    pub warm: bool,
+}
 
 pub const IDLE_MAX_AGE: Duration = Duration::from_secs(300);
 const IDLE_SWEEP_INTERVAL: Duration = Duration::from_secs(30);

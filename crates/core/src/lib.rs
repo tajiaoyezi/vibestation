@@ -55,6 +55,7 @@ pub use pty::{
     PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, ShellInfo,
     PTY_EVENT_QUEUE_CAPACITY,
 };
+pub use pty_pool::SpawnResult;
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
 };

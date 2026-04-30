@@ -33,6 +33,7 @@ import type {
   PanePtyExitedEvent,
   PanePtySpawnRequest,
   PanePtyStdoutEvent,
+  SpawnResult,
 } from "../../bindings";
 import { useSettings } from "../../stores/settings";
 
@@ -284,9 +285,53 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     // listen 订阅必须在 spawn 之前完成 · Tauri emit 不缓冲 · listener 没 ready
     // 时 backend 已 emit 的 stdout 会丢（如 shell 启动后 prompt 第一行）。
     // 用 Promise.all 并行两个 listen（互不依赖）· 省 1 次 round-trip。
+    //
+    // MVP-20 BUG-001 fix · ANSI clear filter · 隐藏 cd 注入命令的 zsh ZLE echo
+    // ----------------------------------------------------------------------
+    // pool warm hit 时 · backend 注入 `cd -- '/path'; clear\n` · zsh ZLE 把它当
+    // user input 字面 echo 给前端 + zsh-syntax-highlighting redraw 让 cd 命令短暂
+    // 可见（截图取证 · 持续 100-300ms）· 然后 clear 命令清屏。
+    // 修复：默认开 warmBuffer ON · invoke return 后基于 spawnResult.warm 决定：
+    // - warm=true：保持 buffer · 等 ANSI clear sequence 出现 · 只 write clear 之后内容
+    // - warm=false（cold）：立即 flush buffer + 关 buffer 模式 · 走正常 write
+    let warmBufferActive = true;
+    let warmBuffer: string[] = [];
+    let warmBufferTimer: number | undefined;
+    // ANSI clear sequences · 兼容 clear 命令 / RIS / cursor home + clear 多种序
+    const ansiClearRegex = /\x1b\[(?:H\x1b\[2J|2J\x1b\[H|2J|3J|c)/;
+    const flushWarmBuffer = (sliceFrom = 0): void => {
+      if (warmBuffer.length === 0) {
+        warmBufferActive = false;
+        return;
+      }
+      const data = warmBuffer.join("");
+      if (sliceFrom > 0 && sliceFrom < data.length) {
+        term?.write(data.substring(sliceFrom));
+      } else if (sliceFrom === 0) {
+        term?.write(data);
+      }
+      // sliceFrom >= data.length · 整段丢弃
+      warmBuffer = [];
+      warmBufferActive = false;
+      if (warmBufferTimer !== undefined) {
+        clearTimeout(warmBufferTimer);
+        warmBufferTimer = undefined;
+      }
+    };
+
     [unlistenStdout, unlistenExited] = await Promise.all([
       listen<PanePtyStdoutEvent>("pane_pty_stdout", (event) => {
         if (event.payload.paneId !== props.paneId) return;
+        if (warmBufferActive) {
+          warmBuffer.push(event.payload.data);
+          const data = warmBuffer.join("");
+          const match = ansiClearRegex.exec(data);
+          if (match) {
+            // 找到 ANSI clear · 写 clear 之后的内容（cd echo 部分被丢弃）
+            flushWarmBuffer(match.index);
+          }
+          return;
+        }
         term?.write(event.payload.data);
       }),
       listen<PanePtyExitedEvent>("pane_pty_exited", (event) => {
@@ -302,11 +347,13 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     await new Promise<void>((r) => {
       requestAnimationFrame(() => requestAnimationFrame(() => r()));
     });
-    try { fitAddon?.fit(); } catch {}
+    try {
+      fitAddon?.fit();
+    } catch {}
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;
     try {
-      await invoke("pane_pty_spawn", {
+      const spawnResult = await invoke<SpawnResult>("pane_pty_spawn", {
         req: {
           paneId: props.paneId,
           shell: props.shell,
@@ -315,10 +362,22 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
           rows,
         } satisfies PanePtySpawnRequest,
       });
+      // MVP-20 BUG-001 fix · 决定 warmBuffer 命运：
+      // warm hit → 设 500ms 兜底 timer（ANSI clear 必然在此前出现 · 否则强制 flush）
+      // cold spawn → 立即 flush + 关 buffer · 后续 stdout 直接 write
+      if (spawnResult.warm) {
+        warmBufferTimer = window.setTimeout(() => {
+          flushWarmBuffer();
+        }, 500);
+      } else {
+        flushWarmBuffer();
+      }
       // xterm 首次加载时 canvas/webgl 渲染管线可能未完成 · write 的数据不显示 ·
       // 给 PTY 50ms 输出 prompt 后强制整屏 refresh。
       setTimeout(() => {
-        try { term?.refresh(0, term.rows - 1); } catch {}
+        try {
+          term?.refresh(0, term.rows - 1);
+        } catch {}
       }, 50);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
@@ -336,8 +395,12 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {
       // pane already exited
     });
-    try { activeWebglAddon?.dispose(); } catch {}
-    try { activeCanvasAddon?.dispose(); } catch {}
+    try {
+      activeWebglAddon?.dispose();
+    } catch {}
+    try {
+      activeCanvasAddon?.dispose();
+    } catch {}
     term?.dispose();
   });
 

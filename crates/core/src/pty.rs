@@ -237,7 +237,7 @@ impl PtySession {
         lock(&self.tab_id).clone()
     }
 
-    fn write_input(&self, input: &str) -> Result<(), PtyError> {
+    pub(crate) fn write_input(&self, input: &str) -> Result<(), PtyError> {
         let mut writer = lock(&self.writer);
         writer.write_all(input.as_bytes())?;
         writer.flush()?;

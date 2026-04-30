@@ -1,13 +1,17 @@
 use crate::pty::{
     effective_shell_for_spawn, resolve_shell, PtyManager, PtySession, PtySpawnRequest,
 };
+use crossbeam_channel::{self, Sender};
 use std::collections::VecDeque;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, Weak};
-use std::thread;
-use std::time::Instant;
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 use uuid::Uuid;
+
+pub const IDLE_MAX_AGE: Duration = Duration::from_secs(300);
+const IDLE_SWEEP_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PoolConfig {
@@ -30,6 +34,9 @@ pub struct PtyPool {
     manager: Weak<PtyManager>,
     last_refill: Arc<Mutex<Option<(PathBuf, PathBuf)>>>,
     inflight: Arc<AtomicUsize>,
+    timer_shutdown_tx: Sender<()>,
+    timer_handle: Mutex<Option<JoinHandle<()>>>,
+    shutdown: Arc<AtomicBool>,
 }
 
 pub struct IdlePty {
@@ -47,16 +54,52 @@ pub enum TakeResult {
 impl PtyPool {
     #[must_use]
     pub fn new(manager: Arc<PtyManager>, config: PoolConfig) -> Self {
+        Self::new_with_timing(manager, config, IDLE_MAX_AGE, IDLE_SWEEP_INTERVAL)
+    }
+
+    #[must_use]
+    fn new_with_timing(
+        manager: Arc<PtyManager>,
+        config: PoolConfig,
+        idle_max_age: Duration,
+        sweep_interval: Duration,
+    ) -> Self {
+        let idle = Arc::new(Mutex::new(VecDeque::new()));
+        let config = Arc::new(Mutex::new(config));
+        let manager = Arc::downgrade(&manager);
+        let last_refill = Arc::new(Mutex::new(None));
+        let inflight = Arc::new(AtomicUsize::new(0));
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let (timer_shutdown_tx, timer_shutdown_rx) = crossbeam_channel::bounded(1);
+        let timer_handle = spawn_timer_thread(TimerState {
+            idle: Arc::clone(&idle),
+            config: Arc::clone(&config),
+            manager: Weak::clone(&manager),
+            last_refill: Arc::clone(&last_refill),
+            inflight: Arc::clone(&inflight),
+            shutdown: Arc::clone(&shutdown),
+            shutdown_rx: timer_shutdown_rx,
+            idle_max_age,
+            sweep_interval,
+        });
+
         Self {
-            idle: Arc::new(Mutex::new(VecDeque::new())),
-            config: Arc::new(Mutex::new(config)),
-            manager: Arc::downgrade(&manager),
-            last_refill: Arc::new(Mutex::new(None)),
-            inflight: Arc::new(AtomicUsize::new(0)),
+            idle,
+            config,
+            manager,
+            last_refill,
+            inflight,
+            timer_shutdown_tx,
+            timer_handle: Mutex::new(Some(timer_handle)),
+            shutdown,
         }
     }
 
     pub fn take(&self, req: &PtySpawnRequest) -> TakeResult {
+        if self.shutdown.load(Ordering::SeqCst) {
+            return TakeResult::Cold;
+        }
+
         if !lock(&self.config).enabled {
             return TakeResult::Cold;
         }
@@ -71,6 +114,7 @@ impl PtyPool {
             return TakeResult::Cold;
         };
         let Some(manager) = self.manager.upgrade() else {
+            lock(&self.idle).push_front(idle);
             return TakeResult::Cold;
         };
 
@@ -80,10 +124,23 @@ impl PtyPool {
             return TakeResult::Cold;
         };
         idle.session = session;
+        if inject_cd_clear(&idle.session, Path::new(&req.cwd)).is_err() {
+            if manager.rename_session(&req.tab_id, old_tab_id).is_ok() {
+                idle.session.set_tab_id(idle.idle_id.clone());
+                lock(&self.idle).push_front(idle);
+            } else {
+                let _ = manager.terminate_session(&idle.session);
+            }
+            return TakeResult::Cold;
+        }
         TakeResult::Warm(idle)
     }
 
     pub fn refill_async(&self, shell: PathBuf, cwd: PathBuf) {
+        if self.shutdown.load(Ordering::SeqCst) {
+            return;
+        }
+
         *lock(&self.last_refill) = Some((shell.clone(), cwd.clone()));
         self.schedule_refill(shell, cwd);
     }
@@ -95,6 +152,40 @@ impl PtyPool {
                 let _ = manager.terminate_session(&idle.session);
             }
         }
+    }
+
+    pub fn apply_config_change(&self, new_config: PoolConfig, current_default_shell: PathBuf) {
+        let old_config = {
+            let mut config = lock(&self.config);
+            let old_config = *config;
+            *config = new_config;
+            old_config
+        };
+
+        if old_config.enabled && !new_config.enabled {
+            self.kill_all();
+            return;
+        }
+
+        if !old_config.enabled && new_config.enabled {
+            let home = std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| PathBuf::from("/"));
+            self.refill_async(current_default_shell, home);
+            return;
+        }
+
+        if old_config.target_size != new_config.target_size {
+            self.set_size(new_config.target_size);
+        }
+    }
+
+    pub fn handle_default_shell_change(&self, new_shell: PathBuf) {
+        self.kill_all();
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/"));
+        self.refill_async(new_shell, home);
     }
 
     pub fn set_size(&self, new_size: u8) {
@@ -110,6 +201,17 @@ impl PtyPool {
     #[must_use]
     pub fn idle_count(&self) -> usize {
         lock(&self.idle).len()
+    }
+
+    pub fn shutdown(&self) {
+        if self.shutdown.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let _ = self.timer_shutdown_tx.send(());
+        if let Some(handle) = lock(&self.timer_handle).take() {
+            let _ = handle.join();
+        }
+        self.kill_all();
     }
 
     fn pop_matching_idle(&self, shell: &PathBuf) -> Option<IdlePty> {
@@ -140,41 +242,151 @@ impl PtyPool {
     }
 
     fn schedule_refill(&self, shell: PathBuf, cwd: PathBuf) {
-        loop {
-            let config = *lock(&self.config);
-            if !config.enabled {
-                return;
-            }
+        schedule_refill_shared(
+            Arc::clone(&self.idle),
+            Arc::clone(&self.config),
+            Weak::clone(&self.manager),
+            Arc::clone(&self.inflight),
+            Arc::clone(&self.shutdown),
+            shell,
+            cwd,
+        );
+    }
+}
 
-            let target_size = config.target_size as usize;
-            let current = self.idle_count() + self.inflight.load(Ordering::SeqCst);
-            if current >= target_size {
-                return;
-            }
+impl Drop for PtyPool {
+    fn drop(&mut self) {
+        self.shutdown();
+    }
+}
 
-            self.inflight.fetch_add(1, Ordering::SeqCst);
-            self.spawn_refill_job(shell.clone(), cwd.clone());
+struct TimerState {
+    idle: Arc<Mutex<VecDeque<IdlePty>>>,
+    config: Arc<Mutex<PoolConfig>>,
+    manager: Weak<PtyManager>,
+    last_refill: Arc<Mutex<Option<(PathBuf, PathBuf)>>>,
+    inflight: Arc<AtomicUsize>,
+    shutdown: Arc<AtomicBool>,
+    shutdown_rx: crossbeam_channel::Receiver<()>,
+    idle_max_age: Duration,
+    sweep_interval: Duration,
+}
+
+fn spawn_timer_thread(state: TimerState) -> JoinHandle<()> {
+    thread::Builder::new()
+        .name("vibestation-pty-pool-timer".to_string())
+        .spawn(move || timer_loop(state))
+        .expect("spawn vibestation-pty-pool-timer")
+}
+
+fn timer_loop(state: TimerState) {
+    while !state.shutdown.load(Ordering::SeqCst) {
+        match state.shutdown_rx.recv_timeout(state.sweep_interval) {
+            Ok(()) | Err(crossbeam_channel::RecvTimeoutError::Disconnected) => break,
+            Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
+                expire_idle(&state);
+            }
+        }
+    }
+}
+
+fn expire_idle(state: &TimerState) {
+    let now = Instant::now();
+    let mut expired = Vec::new();
+    {
+        let mut idle = lock(&state.idle);
+        let mut kept = VecDeque::with_capacity(idle.len());
+        while let Some(candidate) = idle.pop_front() {
+            if now.duration_since(candidate.spawn_at) >= state.idle_max_age {
+                expired.push(candidate);
+            } else {
+                kept.push_back(candidate);
+            }
+        }
+        *idle = kept;
+    }
+
+    if expired.is_empty() {
+        return;
+    }
+
+    if let Some(manager) = state.manager.upgrade() {
+        for idle in expired {
+            let _ = manager.terminate_session(&idle.session);
         }
     }
 
-    fn spawn_refill_job(&self, shell: PathBuf, cwd: PathBuf) {
-        let idle = Arc::clone(&self.idle);
-        let config = Arc::clone(&self.config);
-        let manager = Weak::clone(&self.manager);
-        let inflight = Arc::clone(&self.inflight);
-
-        thread::spawn(move || {
-            let result = spawn_idle(manager.clone(), shell, cwd);
-            if let Some(idle_pty) = result {
-                if should_keep_idle(&idle, &config) {
-                    lock(&idle).push_back(idle_pty);
-                } else if let Some(manager) = manager.upgrade() {
-                    let _ = manager.terminate_session(&idle_pty.session);
-                }
-            }
-            inflight.fetch_sub(1, Ordering::SeqCst);
-        });
+    if let Some((shell, cwd)) = lock(&state.last_refill).clone() {
+        schedule_refill_shared(
+            Arc::clone(&state.idle),
+            Arc::clone(&state.config),
+            Weak::clone(&state.manager),
+            Arc::clone(&state.inflight),
+            Arc::clone(&state.shutdown),
+            shell,
+            cwd,
+        );
     }
+}
+
+fn schedule_refill_shared(
+    idle: Arc<Mutex<VecDeque<IdlePty>>>,
+    config: Arc<Mutex<PoolConfig>>,
+    manager: Weak<PtyManager>,
+    inflight: Arc<AtomicUsize>,
+    shutdown: Arc<AtomicBool>,
+    shell: PathBuf,
+    cwd: PathBuf,
+) {
+    loop {
+        if shutdown.load(Ordering::SeqCst) {
+            return;
+        }
+
+        let config_value = *lock(&config);
+        if !config_value.enabled {
+            return;
+        }
+
+        let target_size = config_value.target_size as usize;
+        let current = lock(&idle).len() + inflight.load(Ordering::SeqCst);
+        if current >= target_size {
+            return;
+        }
+
+        inflight.fetch_add(1, Ordering::SeqCst);
+        spawn_refill_job_shared(
+            Arc::clone(&idle),
+            Arc::clone(&config),
+            Weak::clone(&manager),
+            Arc::clone(&inflight),
+            Arc::clone(&shutdown),
+            shell.clone(),
+            cwd.clone(),
+        );
+    }
+}
+
+fn spawn_refill_job_shared(
+    idle: Arc<Mutex<VecDeque<IdlePty>>>,
+    config: Arc<Mutex<PoolConfig>>,
+    manager: Weak<PtyManager>,
+    inflight: Arc<AtomicUsize>,
+    shutdown: Arc<AtomicBool>,
+    shell: PathBuf,
+    cwd: PathBuf,
+) {
+    thread::spawn(move || {
+        let result = spawn_idle(manager.clone(), shell, cwd);
+        if let Some(idle_pty) = result {
+            if should_keep_idle(&idle, &config, &shutdown) {
+                lock(&idle).push_back(idle_pty);
+            } else if let Some(manager) = manager.upgrade() {
+                let _ = manager.terminate_session(&idle_pty.session);
+            }
+        }
+        inflight.fetch_sub(1, Ordering::SeqCst);
+    });
 }
 
 fn spawn_idle(manager: Weak<PtyManager>, shell: PathBuf, cwd: PathBuf) -> Option<IdlePty> {
@@ -193,9 +405,39 @@ fn spawn_idle(manager: Weak<PtyManager>, shell: PathBuf, cwd: PathBuf) -> Option
     })
 }
 
-fn should_keep_idle(idle: &Arc<Mutex<VecDeque<IdlePty>>>, config: &Arc<Mutex<PoolConfig>>) -> bool {
+fn should_keep_idle(
+    idle: &Arc<Mutex<VecDeque<IdlePty>>>,
+    config: &Arc<Mutex<PoolConfig>>,
+    shutdown: &Arc<AtomicBool>,
+) -> bool {
+    if shutdown.load(Ordering::SeqCst) {
+        return false;
+    }
+
     let config = *lock(config);
     config.enabled && lock(idle).len() < config.target_size as usize
+}
+
+/// 给 idle PTY 注入 cd + clear · 让它从 $HOME 切到目标 workspace。
+/// 返回 Err 时调用方应走 cold spawn（路径不可安全 escape）。
+fn inject_cd_clear(session: &PtySession, target_cwd: &Path) -> Result<(), String> {
+    let cmd = cd_clear_command(target_cwd)?;
+    session
+        .write_input(&cmd)
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
+fn cd_clear_command(target_cwd: &Path) -> Result<String, String> {
+    let path_str = target_cwd.to_string_lossy();
+    let escaped = if !path_str.contains('\'') {
+        format!("'{path_str}'")
+    } else if !path_str.contains('"') {
+        format!("\"{path_str}\"")
+    } else {
+        return Err("path contains both quotes".into());
+    };
+    Ok(format!("cd -- {escaped}; clear\n"))
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -222,14 +464,40 @@ mod tests {
         (manager, pool)
     }
 
+    fn manager_and_pool_with_timing(
+        target_size: u8,
+        idle_max_age: Duration,
+        sweep_interval: Duration,
+    ) -> (Arc<PtyManager>, PtyPool) {
+        let manager = Arc::new(PtyManager::new());
+        let pool = PtyPool::new_with_timing(
+            Arc::clone(&manager),
+            PoolConfig {
+                enabled: true,
+                target_size,
+            },
+            idle_max_age,
+            sweep_interval,
+        );
+        (manager, pool)
+    }
+
     fn request(tab_id: &str, shell: &str) -> PtySpawnRequest {
+        request_with_cwd(tab_id, shell, "/tmp")
+    }
+
+    fn request_with_cwd(tab_id: &str, shell: &str, cwd: &str) -> PtySpawnRequest {
         PtySpawnRequest {
             tab_id: tab_id.to_string(),
             shell: shell.to_string(),
-            cwd: "/tmp".to_string(),
+            cwd: cwd.to_string(),
             cols: 80,
             rows: 24,
         }
+    }
+
+    fn first_idle_id(pool: &PtyPool) -> Option<String> {
+        lock(&pool.idle).front().map(|idle| idle.idle_id.clone())
     }
 
     fn wait_until<F>(timeout: Duration, mut condition: F)
@@ -346,6 +614,116 @@ mod tests {
 
         pool.kill_all();
         assert_eq!(pool.idle_count(), 0);
+    }
+
+    #[test]
+    fn idle_expire_after_max_age() {
+        let (_manager, pool) =
+            manager_and_pool_with_timing(1, Duration::from_millis(80), Duration::from_millis(20));
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 1);
+        let original_idle_id = first_idle_id(&pool).expect("idle PTY should exist");
+
+        wait_until(Duration::from_secs(3), || {
+            pool.idle_count() == 1 && first_idle_id(&pool).is_some_and(|id| id != original_idle_id)
+        });
+        pool.kill_all();
+    }
+
+    #[test]
+    fn apply_config_disable_kills_all() {
+        let (_manager, pool) = manager_and_pool(2);
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 2);
+
+        pool.apply_config_change(
+            PoolConfig {
+                enabled: false,
+                target_size: 2,
+            },
+            PathBuf::from("/bin/sh"),
+        );
+
+        assert_eq!(pool.idle_count(), 0);
+        assert!(!lock(&pool.config).enabled);
+    }
+
+    #[test]
+    fn handle_default_shell_change_kills_old_idle() {
+        let (_manager, pool) = manager_and_pool(1);
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 1);
+        let old_idle_id = first_idle_id(&pool).expect("idle PTY should exist");
+
+        pool.handle_default_shell_change(PathBuf::from("/bin/sh"));
+
+        wait_until(Duration::from_secs(3), || {
+            pool.idle_count() == 1 && first_idle_id(&pool).is_some_and(|id| id != old_idle_id)
+        });
+        pool.kill_all();
+    }
+
+    #[test]
+    fn shutdown_drains_idle_and_blocks_refill() {
+        let (_manager, pool) = manager_and_pool(1);
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 1);
+
+        pool.shutdown();
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        thread::sleep(Duration::from_millis(100));
+
+        assert_eq!(pool.idle_count(), 0);
+    }
+
+    #[test]
+    fn inject_cd_clear_normal_path() {
+        assert_eq!(
+            cd_clear_command(Path::new("/tmp/my-project")).unwrap(),
+            "cd -- '/tmp/my-project'; clear\n"
+        );
+    }
+
+    #[test]
+    fn inject_cd_clear_path_with_single_quote() {
+        assert_eq!(
+            cd_clear_command(Path::new("/tmp/it's-here")).unwrap(),
+            "cd -- \"/tmp/it's-here\"; clear\n"
+        );
+    }
+
+    #[test]
+    fn inject_cd_clear_path_with_double_quote() {
+        assert_eq!(
+            cd_clear_command(Path::new("/tmp/has\"quote")).unwrap(),
+            "cd -- '/tmp/has\"quote'; clear\n"
+        );
+    }
+
+    #[test]
+    fn inject_cd_clear_path_with_both_quotes_returns_err() {
+        assert_eq!(
+            cd_clear_command(Path::new("/tmp/it's\"both")).unwrap_err(),
+            "path contains both quotes"
+        );
+    }
+
+    #[test]
+    fn take_warm_with_cwd_injects_cd() {
+        let (manager, pool) = manager_and_pool(1);
+        let events = manager
+            .take_event_receiver()
+            .expect("event receiver should be available once");
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 1);
+
+        assert!(matches!(
+            pool.take(&request_with_cwd("tab-cd", "/bin/sh", "/tmp")),
+            TakeResult::Warm(_)
+        ));
+        manager.stdin("tab-cd", "pwd\nexit\n").unwrap();
+
+        recv_stdout_for(&events, "tab-cd", "/tmp", Duration::from_secs(5));
     }
 
     #[test]

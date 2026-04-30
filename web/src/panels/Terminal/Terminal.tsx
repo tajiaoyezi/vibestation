@@ -2,6 +2,7 @@ import { ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
+  batch,
   createEffect,
   createMemo,
   createSignal,
@@ -363,13 +364,15 @@ export const Terminal: Component<TerminalProps> = (props) => {
       if (response.tabs.length === 0 && tabs[0]) {
         newlyCreatedTabIds.add(tabs[0].tabId);
       }
-      syncWorkspaceTabs(workspaceId, tabs);
-      setPasteConfirmSkip(workspaceId, false);
 
       // 让所有 tabs 都进 pane mode · 跟 createTab 路径一致 · 否则首个 tab 走 legacy
       // <TerminalPane> + .vs-terminal-host（有 line-soft 内边框）· 而后续新 tab 走
       // <PaneTerminal> + .vs-pane-terminal-host（无 border）· 视觉不一致。
       // pane_init_for_tab 是 idempotent · 已 init 的 tab 直接返回当前 layout。
+      //
+      // BUG-001 round 2 fix · 先收齐所有 paneList · batch 写入 · 避免 tab 先 render
+      // 走 fallback <TerminalPane>（panesByTabId 还没设）· 触发 stale <Show> 警告。
+      const collectedPaneLists: Array<[string, PaneListResponse]> = [];
       for (const tab of tabs) {
         try {
           const paneList = await invoke<PaneListResponse>("pane_init_for_tab", {
@@ -379,7 +382,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
               cwd: tab.cwd,
             } satisfies PaneInitRequest,
           });
-          setPaneListForTab(tab.tabId, paneList);
+          collectedPaneLists.push([tab.tabId, paneList]);
         } catch (paneError) {
           // 失败时不阻塞 · tab 退化到 legacy TerminalPane（仍 work · 仅视觉差异）
           // eslint-disable-next-line no-console
@@ -389,6 +392,13 @@ export const Terminal: Component<TerminalProps> = (props) => {
           );
         }
       }
+      batch(() => {
+        for (const [tabId, paneList] of collectedPaneLists) {
+          setPaneListForTab(tabId, paneList);
+        }
+        syncWorkspaceTabs(workspaceId, tabs);
+        setPasteConfirmSkip(workspaceId, false);
+      });
     } catch (error) {
       showToast(errorMessage(error));
     } finally {
@@ -473,17 +483,22 @@ export const Terminal: Component<TerminalProps> = (props) => {
         );
       }
 
-      updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
-      setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
-      upsertRuntime(tab.tabId, (runtime) => ({
-        ...runtime,
-        phase: "idle",
-        spawnError: null,
-        exitCode: null,
-      }));
-      if (paneList) {
-        setPaneListForTab(tab.tabId, paneList);
-      }
+      // 关键：用 batch 把 4 个 signal update 合一帧 render · 避免 tab 先 render 走
+      // <TerminalPane> fallback（panesByTabId 还没设）· 然后切到 <PaneSplitView> 重 mount。
+      // 双 mount 期间 idle pty stdout 事件触发 stale <Show> accessor 警告。
+      batch(() => {
+        if (paneList) {
+          setPaneListForTab(tab.tabId, paneList);
+        }
+        updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
+        setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
+        upsertRuntime(tab.tabId, (runtime) => ({
+          ...runtime,
+          phase: "idle",
+          spawnError: null,
+          exitCode: null,
+        }));
+      });
     } catch (error) {
       showToast(errorMessage(error));
     }

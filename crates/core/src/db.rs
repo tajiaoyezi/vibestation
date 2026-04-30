@@ -147,14 +147,11 @@ fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
 
 fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
     if !column_exists(conn, "workspaces", "layout_state")? {
-        conn.execute(
-            "ALTER TABLE workspaces ADD COLUMN layout_state TEXT",
-            [],
-        )
-        .map_err(|e| DbError::Migration {
-            version: 3,
-            reason: e.to_string(),
-        })?;
+        conn.execute("ALTER TABLE workspaces ADD COLUMN layout_state TEXT", [])
+            .map_err(|e| DbError::Migration {
+                version: 3,
+                reason: e.to_string(),
+            })?;
     }
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS app_settings (
@@ -205,7 +202,6 @@ fn migrate_v5(conn: &Connection) -> Result<(), DbError> {
     })?;
     Ok(())
 }
-
 
 fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
     conn.execute_batch(

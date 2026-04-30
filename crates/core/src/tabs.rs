@@ -103,9 +103,11 @@ impl TabsDao {
 
         let tab_id = Uuid::new_v4().to_string();
         let name = req.name.clone().unwrap_or_else(|| "Terminal".to_string());
-        let shell = req.shell.clone().filter(|s| !s.trim().is_empty()).unwrap_or_else(|| {
-            crate::pty::resolve_default_shell(Some(pool))
-        });
+        let shell = req
+            .shell
+            .clone()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or_else(|| crate::pty::resolve_default_shell(Some(pool)));
         let cwd = req.cwd.clone().unwrap_or_else(|| "/".to_string());
         let created_at = chrono::Utc::now().timestamp();
 

@@ -150,7 +150,11 @@ impl AppSettingsStore {
         let default_shell = get_parsed(
             pool,
             "default_shell",
-            if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" },
+            if cfg!(target_os = "macos") {
+                "/bin/zsh"
+            } else {
+                "/bin/bash"
+            },
         );
         let paste_protection: bool = get_parsed(pool, "paste_protection", "true");
         let telemetry_opt_in = get_optional_bool(pool, "telemetry_opt_in");

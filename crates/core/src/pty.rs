@@ -214,8 +214,8 @@ impl<T> DropOldestSender<T> {
     }
 }
 
-struct PtySession {
-    tab_id: String,
+pub struct PtySession {
+    tab_id: Mutex<String>,
     fd: RawFd,
     process_id: Option<u32>,
     master: Mutex<Box<dyn MasterPty + Send>>,
@@ -228,6 +228,15 @@ struct PtySession {
 }
 
 impl PtySession {
+    pub fn set_tab_id(&self, new_id: String) {
+        *lock(&self.tab_id) = new_id;
+    }
+
+    #[must_use]
+    pub fn tab_id_clone(&self) -> String {
+        lock(&self.tab_id).clone()
+    }
+
     fn write_input(&self, input: &str) -> Result<(), PtyError> {
         let mut writer = lock(&self.writer);
         writer.write_all(input.as_bytes())?;
@@ -305,7 +314,7 @@ impl PtySession {
         }
 
         events.send(PtyEvent::Stdout(PtyStdoutEvent {
-            tab_id: self.tab_id.clone(),
+            tab_id: self.tab_id_clone(),
             data: data.to_string(),
         }))
     }
@@ -324,7 +333,7 @@ impl PtySession {
         }
 
         events.send(PtyEvent::Exited(PtyExitedEvent {
-            tab_id: self.tab_id.clone(),
+            tab_id: self.tab_id_clone(),
             exit_code,
         }))?;
         Ok(exit_code)
@@ -375,13 +384,14 @@ impl PtySession {
             return;
         };
 
+        let tab_id = self.tab_id_clone();
         if let Err(error) = self.scrollback_tx.send(ScrollbackCommand::Append {
-            tab_id: self.tab_id.clone(),
+            tab_id: tab_id.clone(),
             lines,
         }) {
             eprintln!(
                 "[mvp-04] scrollback queue send failed for {}: {error}",
-                self.tab_id
+                tab_id
             );
         }
     }
@@ -447,18 +457,36 @@ impl PtyManager {
     }
 
     pub fn spawn(&self, req: PtySpawnRequest) -> Result<(), PtyError> {
-        if lock(&self.sessions).contains_key(&req.tab_id) {
-            return Err(PtyError::AlreadyRunning(req.tab_id));
-        }
-
         let shell = effective_shell_for_spawn(&req.shell, std::env::var("SHELL").ok().as_deref());
         let resolved_shell =
             resolve_shell(&shell).ok_or_else(|| PtyError::ShellNotFound(shell.clone()))?;
+        self.spawn_registered_session(
+            req.tab_id.clone(),
+            resolved_shell,
+            PathBuf::from(req.cwd),
+            req.cols,
+            req.rows,
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn spawn_registered_session(
+        &self,
+        tab_id: String,
+        resolved_shell: PathBuf,
+        cwd: PathBuf,
+        cols: u16,
+        rows: u16,
+    ) -> Result<Arc<PtySession>, PtyError> {
+        if lock(&self.sessions).contains_key(&tab_id) {
+            return Err(PtyError::AlreadyRunning(tab_id));
+        }
+
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {
-                rows: req.rows.max(1),
-                cols: req.cols.max(1),
+                rows: rows.max(1),
+                cols: cols.max(1),
                 pixel_width: 0,
                 pixel_height: 0,
             })
@@ -476,7 +504,7 @@ impl PtyManager {
             .map_err(|error| PtyError::OpenFailed(error.to_string()))?;
 
         let mut command = CommandBuilder::new(resolved_shell.as_os_str());
-        command.cwd(&req.cwd);
+        command.cwd(cwd);
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
         command.env("LANG", "en_US.UTF-8");
@@ -490,7 +518,7 @@ impl PtyManager {
 
         let process_id = child.process_id();
         let session = Arc::new(PtySession {
-            tab_id: req.tab_id.clone(),
+            tab_id: Mutex::new(tab_id.clone()),
             fd,
             process_id,
             master: Mutex::new(pair.master),
@@ -502,15 +530,18 @@ impl PtyManager {
             scrollback_tx: self.scrollback_tx.clone(),
         });
 
-        lock(&self.sessions).insert(req.tab_id.clone(), Arc::clone(&session));
+        lock(&self.sessions).insert(tab_id.clone(), Arc::clone(&session));
 
         let token = self.next_token.fetch_add(1, Ordering::Relaxed);
         if let Err(error) = self.send_control(ReaderCommand::Register { token, session }) {
-            lock(&self.sessions).remove(&req.tab_id);
+            lock(&self.sessions).remove(&tab_id);
             return Err(error);
         }
 
-        Ok(())
+        Ok(lock(&self.sessions)
+            .get(&tab_id)
+            .cloned()
+            .expect("registered session should remain available"))
     }
 
     pub fn stdin(&self, tab_id: &str, data: &str) -> Result<(), PtyError> {
@@ -545,6 +576,39 @@ impl PtyManager {
         for tab_id in tab_ids {
             let _ = self.kill(&tab_id);
         }
+    }
+
+    pub(crate) fn rename_session(
+        &self,
+        old_tab_id: &str,
+        new_tab_id: String,
+    ) -> Result<Arc<PtySession>, PtyError> {
+        let session = {
+            let mut sessions = lock(&self.sessions);
+            if sessions.contains_key(&new_tab_id) {
+                return Err(PtyError::AlreadyRunning(new_tab_id));
+            }
+            let session = sessions
+                .remove(old_tab_id)
+                .ok_or_else(|| PtyError::NotFound(old_tab_id.to_string()))?;
+            session.set_tab_id(new_tab_id.clone());
+            sessions.insert(new_tab_id, Arc::clone(&session));
+            session
+        };
+        Ok(session)
+    }
+
+    pub(crate) fn terminate_session(
+        &self,
+        session: &Arc<PtySession>,
+    ) -> Result<Option<i32>, PtyError> {
+        let tab_id = session.tab_id_clone();
+        lock(&self.sessions).remove(&tab_id);
+        let _ = self.send_control(ReaderCommand::Unregister {
+            token: 0,
+            fd: session.fd,
+        });
+        session.terminate(&self.event_tx)
     }
 
     fn session(&self, tab_id: &str) -> Result<Arc<PtySession>, PtyError> {
@@ -623,7 +687,7 @@ fn reader_loop(
                     {
                         eprintln!("[mvp-04] register({token}) failed: {error}");
                         let _ = session.emit_exit_once(&events, None);
-                        lock(&sessions_by_id).remove(&session.tab_id);
+                        lock(&sessions_by_id).remove(&session.tab_id_clone());
                         continue;
                     }
                     sessions.insert(token, session);
@@ -667,7 +731,7 @@ fn reader_loop(
                 let mut source = SourceFd(&fd);
                 let _ = poll.registry().deregister(&mut source);
                 sessions.remove(&event.token().0);
-                lock(&sessions_by_id).remove(&session.tab_id);
+                lock(&sessions_by_id).remove(&session.tab_id_clone());
             }
         }
 
@@ -695,7 +759,7 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
             if let Err(error) = session.emit_stdout(events, &chunk) {
                 eprintln!(
                     "[mvp-04] stdout emit failed for {}: {error}",
-                    session.tab_id
+                    session.tab_id_clone()
                 );
             }
             continue;
@@ -705,7 +769,10 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
             let status = match session.wait_for_exit(EXIT_WAIT_TIMEOUT) {
                 Ok(status) => status,
                 Err(error) => {
-                    eprintln!("[mvp-04] wait failed for {}: {error}", session.tab_id);
+                    eprintln!(
+                        "[mvp-04] wait failed for {}: {error}",
+                        session.tab_id_clone()
+                    );
                     None
                 }
             };
@@ -723,7 +790,10 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
                 let status = match session.wait_for_exit(EXIT_WAIT_TIMEOUT) {
                     Ok(status) => status,
                     Err(wait_error) => {
-                        eprintln!("[mvp-04] wait failed for {}: {wait_error}", session.tab_id);
+                        eprintln!(
+                            "[mvp-04] wait failed for {}: {wait_error}",
+                            session.tab_id_clone()
+                        );
                         None
                     }
                 };
@@ -731,7 +801,10 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
                 return ReadOutcome::Closed;
             }
             _ => {
-                eprintln!("[mvp-04] read failed for {}: {error}", session.tab_id);
+                eprintln!(
+                    "[mvp-04] read failed for {}: {error}",
+                    session.tab_id_clone()
+                );
                 let _ = session.emit_exit_once(events, None);
                 return ReadOutcome::Closed;
             }
@@ -822,7 +895,7 @@ pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
         .and_then(|p| AppSettingsStore::get(p, "default_shell").ok())
         .filter(|s| !s.trim().is_empty());
 
-    let resolved = if let Some(ref s) = stored {
+    if let Some(ref s) = stored {
         // 用户显式选的 shell · 即使不在白名单里也优先尊重（可能 fish 装在 /usr/local/bin/fish）
         // 但如果 PATH 里找不到 · 回退到系统可用 shell
         if resolve_shell(s).is_some() {
@@ -838,12 +911,10 @@ pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
         } else {
             find_available_shell()
         }
-    };
-
-    resolved
+    }
 }
 
-fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
+pub(crate) fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
     let requested = requested.trim();
     let env_shell = env_shell
         .map(str::trim)
@@ -936,7 +1007,7 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
     shells
 }
 
-fn resolve_shell(shell: &str) -> Option<PathBuf> {
+pub(crate) fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {
         return is_executable_file(path).then(|| path.to_path_buf());
@@ -1368,7 +1439,11 @@ mod tests {
         let db_path = dir.path().join("test_shell_settings.db");
         let pool = db::open_pool(&db_path).unwrap();
         // 用系统真实存在的 shell · resolve_default_shell 会验证可执行性
-        let real_shell = if cfg!(target_os = "macos") { "/bin/zsh" } else { "/bin/bash" };
+        let real_shell = if cfg!(target_os = "macos") {
+            "/bin/zsh"
+        } else {
+            "/bin/bash"
+        };
         AppSettingsStore::set(&pool, "default_shell", real_shell).unwrap();
         let shell = resolve_default_shell(Some(&pool));
         assert_eq!(shell, real_shell);
@@ -1385,7 +1460,10 @@ mod tests {
         let shell = resolve_default_shell(Some(&pool));
         // 回退后必须是可执行的真实 shell
         let resolved = resolve_shell(&shell);
-        assert!(resolved.is_some(), "fallback shell {shell} should be executable");
+        assert!(
+            resolved.is_some(),
+            "fallback shell {shell} should be executable"
+        );
     }
 
     #[test]

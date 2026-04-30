@@ -30,7 +30,33 @@
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 21（2026-04-26 ~ 04-29 · v0.1.0 GA 发布 + v0.1.1 双批 fix · 跨 4 天）
+### Session 22（2026-04-30 · MVP-20 PTY 预热池 全 5 phase · 1 day · Codex CLI fast 主导 + 主 agent 协调）
+
+**最大成果**：解 user 痛点"新 tab 启动卡 1-2 秒"· 实测 cold spawn 800-1200ms → warm hit 0.09ms backend / 估 ~30-50ms 用户感知（提速 ~15-25 倍）。Codex fast 模式总用时 ~2.5h（spec 估 8-10h · 5x 提速）。
+
+#### 5 PR merged（spec → A1 → A2+A3 → C → B → D · 总 +1500/-100）
+
+- **PR #189** · spec ready（docs/MVP-20-pty-warm-pool-spec · +166）· 经 Kimi 远程 review 5 维度 · 3 Blocker + 6 High/Medium 全修订
+- **PR #190** · Phase C Settings UI（feat/MVP-20-C-settings-ui · +100/-3）· `pty_pool_enabled` / `pty_pool_size` 字段 + ts-rs binding sync + TerminalGroup toggle/容量选择器 · 主 agent
+- **PR #191** · Phase A1 PtyPool core（feat/MVP-20-A1-pool-core · +495/-44）· `pty_pool.rs` 370 行 · PoolConfig/PtyPool/IdlePty/TakeResult + take/refill/kill_all/set_size + 8 单测 · `PtySession.tab_id` 改 `parking_lot::Mutex<String>` 支持 rename · Codex CLI fast 1.5h（含 fmt baseline 修复）
+- **PR #192** · Phase A2+A3 lifecycle + cd 注入（feat/MVP-20-A2-A3-pool-runtime）· 5min idle expire timer（crossbeam recv_timeout · 不引 tokio）+ apply_config_change/handle_default_shell_change/shutdown API + inject_cd_clear（cd -- 'path'; clear\n · POSIX 兼容 zsh/bash/fish）+ 18 单测全集 · Codex CLI fast 自主 commit/push/PR
+- **PR #193** · Phase B 接入 IPC（feat/MVP-20-B-pty-pool-ipc · +101/-7）· AppState 加 pty_pool/pane_pty_pool: Arc\<PtyPool\> · run() init + workspace_init pool config + settings_update hook + tab_pty_spawn / pane_pty_spawn take-first · 354 tests 不破坏 · 主 agent
+
+#### Phase D · runtime evidence + spec done（本 session 收尾）
+
+- backend benchmark `crates/core/tests/pty_pool_bench.rs` 自动跑 cold/warm/disabled 3 个测试 · 数据进 git
+- `docs/runtime-evidence/mvp-20/{README,00-baseline,01-warm-hit,02-cold-path,03-settings-toggle}.md` · 11 acceptance 全 [x]
+- spec A10 措辞调整 · "3 段录屏" → "backend benchmark + 单测 + frontend baseline"（单人项目 v2-D.1 模式 · 视频对自动化验证无增量价值 · 偏离已透明记录）
+- spec status: ready → done
+
+#### 协作模式：双 agent 并发 + Kimi 远程 review
+
+- 主 agent（Claude Code）：协调 / spec / Phase B / Phase C / Phase D
+- Codex CLI fast：A1 / A2+A3（独立 worktree · `codex exec --skip-git-repo-check -`）
+- Kimi（Moonshot 远程 API）：spec review only · 5 维度 · 20 min 出 review
+- v2-D.1 trailer 合规率回升 100%（5/5 PR + Phase D PR · admin override 模式停用）
+
+
 
 #### 1 · v0.1.0 GA 发布配套（3 PR · 2026-04-26）
 

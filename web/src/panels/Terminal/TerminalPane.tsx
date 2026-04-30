@@ -146,6 +146,11 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   let unlistenExited: UnlistenFn | undefined;
   let themeObserver: MutationObserver | undefined;
   let handlePasteCapture: ((event: ClipboardEvent) => void) | undefined;
+  // MVP-20 BUG-001 round 2 · setTimeout cleanup + mount guard 防止 listener
+  // 在 unmount 后 fire 导致 SolidJS <Show> stale accessor 警告（idle pty 输出
+  // pane_pty_stdout 时所有 listener fire · 包括正在 unmount 的 component）
+  const pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
+  let mounted = true;
 
   const currentSize = () => ({
     cols: term?.cols || props.runtime.cols || DEFAULT_PTY_COLS,
@@ -341,6 +346,9 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
 
     unlistenStdout = await listen<PtyStdoutEvent>("tab_pty_stdout", (event) => {
+      // mount guard · idle pty 在 pool 内的 stdout 也 emit 此事件 · 所有 listener fire
+      // unmounted listener access props.tab.tabId 是 stale reactive 触发 SolidJS <Show> 警告
+      if (!mounted) return;
       if (event.payload.tabId !== props.tab.tabId) {
         return;
       }
@@ -353,6 +361,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     });
 
     unlistenExited = await listen<PtyExitedEvent>("tab_pty_exited", (event) => {
+      if (!mounted) return;
       if (event.payload.tabId !== props.tab.tabId) {
         return;
       }
@@ -373,15 +382,24 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     if (props.runtime.phase === "idle") {
       beginStart();
       // xterm 首次加载 canvas/webgl 渲染管线可能未完成 · 等 PTY 输出 prompt 后强制重绘
-      setTimeout(() => {
+      const refreshTimer = setTimeout(() => {
+        if (!mounted) return;
         try {
           term?.refresh(0, term.rows - 1);
         } catch {}
       }, 80);
+      pendingTimers.push(refreshTimer);
     }
   });
 
   onCleanup(() => {
+    // mount guard 立即设 false · 防 listener 在 unlisten 调用之前还能 fire 一次
+    mounted = false;
+    // clear 所有未 fire 的 setTimeout · 防 unmount 后 fire 引用 stale props/term
+    for (const t of pendingTimers) {
+      clearTimeout(t);
+    }
+    pendingTimers.length = 0;
     props.onUnregisterApi(props.tab.tabId);
     resizeObserver?.disconnect();
     themeObserver?.disconnect();

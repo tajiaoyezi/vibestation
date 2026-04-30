@@ -33,8 +33,9 @@ const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
 const EXIT_WAIT_STEP: Duration = Duration::from_millis(20);
 const SCROLLBACK_FLUSH_INTERVAL: Duration = Duration::from_millis(100);
 const SCROLLBACK_FLUSH_THRESHOLD: usize = 100;
-/// MVP-20 BUG-001 backend filter 兜底超时 · zsh ZLE echo + clear 命令应在此前完成 · 否则强制 flush。
-const CD_ECHO_FILTER_TIMEOUT: Duration = Duration::from_millis(800);
+/// MVP-20 BUG-001 backend filter 兜底超时 · zsh ZLE echo + clear 命令通常 50-150ms 完成 ·
+/// 给 300ms 余量。过长会让 legacy TerminalPane 的 "Waiting for first shell output" UI 卡。
+const CD_ECHO_FILTER_TIMEOUT: Duration = Duration::from_millis(300);
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]

@@ -119,6 +119,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let activeWebglAddon: WebglAddon | undefined;
   let activeCanvasAddon: CanvasAddon | undefined;
   let themeObserver: MutationObserver | undefined;
+  // MVP-20 BUG-001 · 收集所有 setTimeout · onCleanup 时 clear 防 unmount 后 fire
+  // 触发 SolidJS <Show> stale accessor 警告（异步 callback 在 component unmount 后
+  // 访问 reactive props 的典型 race）。
+  const pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
+  let mounted = true;
 
   // 同步 xterm theme · WebglAddon/CanvasAddon 缓存 atlas 必须 dispose+reload 才能用新色
   // （xterm 5.x term.options.theme 单独设不够 · clearTextureAtlas 实测也不彻底 ·
@@ -321,6 +326,9 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
     [unlistenStdout, unlistenExited] = await Promise.all([
       listen<PanePtyStdoutEvent>("pane_pty_stdout", (event) => {
+        // mount guard · 防 IPC 事件在 unlisten 与 unmount 之间的窗口 fire ·
+        // 此时 access props.paneId 是 stale reactive accessor → SolidJS 警告
+        if (!mounted) return;
         if (event.payload.paneId !== props.paneId) return;
         if (warmBufferActive) {
           warmBuffer.push(event.payload.data);
@@ -335,6 +343,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         term?.write(event.payload.data);
       }),
       listen<PanePtyExitedEvent>("pane_pty_exited", (event) => {
+        if (!mounted) return;
         if (event.payload.paneId !== props.paneId) return;
         props.onExit?.(props.paneId, event.payload.exitCode);
         term?.write(
@@ -369,16 +378,19 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         warmBufferTimer = window.setTimeout(() => {
           flushWarmBuffer();
         }, 500);
+        pendingTimers.push(warmBufferTimer);
       } else {
         flushWarmBuffer();
       }
       // xterm 首次加载时 canvas/webgl 渲染管线可能未完成 · write 的数据不显示 ·
       // 给 PTY 50ms 输出 prompt 后强制整屏 refresh。
-      setTimeout(() => {
+      const refreshTimer = setTimeout(() => {
+        if (!mounted) return;
         try {
           term?.refresh(0, term.rows - 1);
         } catch {}
       }, 50);
+      pendingTimers.push(refreshTimer);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       setSpawnError(msg);
@@ -387,6 +399,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   });
 
   onCleanup(() => {
+    // mount guard 立即设 false · 防止 listener 在后续 unlisten 调用之前
+    // 还能 fire 一次 access props（stale reactive accessor 的根源）
+    mounted = false;
+    // clear 所有未 fire 的 setTimeout · 防 unmount 后 fire 引用 stale props/term
+    for (const t of pendingTimers) {
+      clearTimeout(t);
+    }
+    pendingTimers.length = 0;
     props.onUnregisterApi?.(props.paneId);
     resizeObserver?.disconnect();
     themeObserver?.disconnect();

@@ -16,6 +16,7 @@ pub mod pane_pty;
 pub mod pane_service;
 pub mod panes;
 pub mod pty;
+pub mod pty_pool;
 pub mod tabs;
 pub mod telemetry;
 pub mod workspace;

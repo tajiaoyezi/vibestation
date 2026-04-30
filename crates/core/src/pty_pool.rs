@@ -143,6 +143,9 @@ impl PtyPool {
             return TakeResult::Cold;
         };
         idle.session = session;
+        // MVP-20 BUG-001 · 启动 backend cd echo filter · reader thread 会 swallow 后续输出
+        // 直到检测到 ANSI clear sequence（cd 之后的 `clear` 命令产生）· 然后丢弃 cd echo 部分。
+        idle.session.start_cd_echo_filter();
         if inject_cd_clear(&idle.session, Path::new(&req.cwd)).is_err() {
             if manager.rename_session(&req.tab_id, old_tab_id).is_ok() {
                 idle.session.set_tab_id(idle.idle_id.clone());

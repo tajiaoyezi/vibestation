@@ -20,10 +20,10 @@ use vibestation_core::{
     LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
     PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
     PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SplitDir, SplitRatioUpdateRequest,
-    StageFailedItem, StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabState, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
-    WorkspaceMetadata,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -41,6 +41,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
+    println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -108,6 +109,9 @@ fn main() {
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
     ShellInfo::export_all(&config).expect("export ShellInfo");
 
+    // MVP-20 BUG-001 · cd echo flash 修复 · IPC 返回类型
+    SpawnResult::export_all(&config).expect("export SpawnResult");
+
     // MVP-10 Phase B · Telemetry contract（ADR-015）
     CrashReportPayload::export_all(&config).expect("export CrashReportPayload");
     TelemetryOptInRequest::export_all(&config).expect("export TelemetryOptInRequest");
@@ -131,6 +135,7 @@ fn main() {
             "export type { PtyStdoutEvent } from \"./PtyStdoutEvent\";",
             "export type { PtyExitedEvent } from \"./PtyExitedEvent\";",
             "export type { PtySpawnRequest } from \"./PtySpawnRequest\";",
+            "export type { SpawnResult } from \"./SpawnResult\";",
             "export type { PaneState } from \"./PaneState\";",
             "export type { PaneCreateRequest } from \"./PaneCreateRequest\";",
             "export type { PaneInitRequest } from \"./PaneInitRequest\";",

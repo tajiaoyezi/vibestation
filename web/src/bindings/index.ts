@@ -11,6 +11,7 @@ export type { TabListResponse } from "./TabListResponse";
 export type { PtyStdoutEvent } from "./PtyStdoutEvent";
 export type { PtyExitedEvent } from "./PtyExitedEvent";
 export type { PtySpawnRequest } from "./PtySpawnRequest";
+export type { SpawnResult } from "./SpawnResult";
 export type { PaneState } from "./PaneState";
 export type { PaneCreateRequest } from "./PaneCreateRequest";
 export type { PaneInitRequest } from "./PaneInitRequest";

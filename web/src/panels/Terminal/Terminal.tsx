@@ -407,6 +407,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }));
 
     try {
+      // MVP-20 · invoke 返回 SpawnResult{warm} · 但 legacy TerminalPane 路径暂不消费
+      // warm 字段（buffer 逻辑只在主路径 PaneTerminal.tsx）· 这里仅匹配返回类型
       await invoke("tab_pty_spawn", {
         req: {
           tabId: tab.tabId,

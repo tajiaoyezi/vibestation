@@ -27,13 +27,25 @@ export const MoonIcon: Component = () => (
 export const AutoIcon: Component = () => (
   <svg {...iconProps} aria-hidden="true">
     <circle cx="8" cy="8" r="6.5" />
-    <path d="M8 1.5a6.5 6.5 0 0 1 0 13" fill="currentColor" stroke="none" opacity=".35" />
+    <path
+      d="M8 1.5a6.5 6.5 0 0 1 0 13"
+      fill="currentColor"
+      stroke="none"
+      opacity=".35"
+    />
   </svg>
 );
 
 export const GearIcon: Component = () => (
   <svg {...iconProps} aria-hidden="true">
-    <circle cx="8" cy="8" r="4.2" stroke-width="2.8" stroke-dasharray="2.2 3.3" stroke-linecap="butt" />
+    <circle
+      cx="8"
+      cy="8"
+      r="4.2"
+      stroke-width="2.8"
+      stroke-dasharray="2.2 3.3"
+      stroke-linecap="butt"
+    />
     <circle cx="8" cy="8" r="2.8" />
     <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
   </svg>

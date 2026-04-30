@@ -367,12 +367,16 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     await new Promise<void>((r) => {
       requestAnimationFrame(() => requestAnimationFrame(() => r()));
     });
-    try { fitAddon?.fit(); } catch {}
+    try {
+      fitAddon?.fit();
+    } catch {}
     if (props.runtime.phase === "idle") {
       beginStart();
       // xterm 首次加载 canvas/webgl 渲染管线可能未完成 · 等 PTY 输出 prompt 后强制重绘
       setTimeout(() => {
-        try { term?.refresh(0, term.rows - 1); } catch {}
+        try {
+          term?.refresh(0, term.rows - 1);
+        } catch {}
       }, 80);
     }
   });
@@ -388,8 +392,12 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     unlistenExited?.();
     // WebGL/Canvas addon 必须在 term.dispose() 之前清理 · 否则 addon 内部
     // 访问 this._terminal._core._store._isDisposed 抛 undefined 错误
-    try { activeWebglAddon?.dispose(); } catch {}
-    try { activeCanvasAddon?.dispose(); } catch {}
+    try {
+      activeWebglAddon?.dispose();
+    } catch {}
+    try {
+      activeCanvasAddon?.dispose();
+    } catch {}
     term?.dispose();
   });
 

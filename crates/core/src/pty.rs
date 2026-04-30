@@ -33,6 +33,8 @@ const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
 const EXIT_WAIT_STEP: Duration = Duration::from_millis(20);
 const SCROLLBACK_FLUSH_INTERVAL: Duration = Duration::from_millis(100);
 const SCROLLBACK_FLUSH_THRESHOLD: usize = 100;
+/// MVP-20 BUG-001 backend filter 兜底超时 · zsh ZLE echo + clear 命令应在此前完成 · 否则强制 flush。
+const CD_ECHO_FILTER_TIMEOUT: Duration = Duration::from_millis(800);
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -214,6 +216,22 @@ impl<T> DropOldestSender<T> {
     }
 }
 
+/// MVP-20 BUG-001 · backend swallow cd 注入命令的 zsh ZLE echo · 直到检测到 ANSI clear sequence。
+///
+/// 工作流程：
+/// 1. `pty_pool::take` 在 `inject_cd_clear` 之前调 `start()` · 进入 filter 模式
+/// 2. reader thread 把 stdout 数据传给 `emit_stdout` · 后者在 filter 模式下 swallow + 累积 buffer
+/// 3. 检测到 `\x1b[2J` 或 `\x1b[3J`（clear screen） · 关 filter · 把 clear 之后内容 forward 给前端
+/// 4. 兜底超时（800ms）· 强制 flush 所有 buffer 内容（防止 clear 不出现 · 终端永久卡住）
+///
+/// 这个机制比前端 buffer 更稳健 · 不依赖 IPC 时序 · cd echo 被 backend 直接吞掉。
+#[derive(Default)]
+struct CdEchoFilter {
+    active: AtomicBool,
+    buffer: Mutex<Vec<u8>>,
+    started_at: Mutex<Option<Instant>>,
+}
+
 pub struct PtySession {
     tab_id: Mutex<String>,
     fd: RawFd,
@@ -225,6 +243,7 @@ pub struct PtySession {
     exit_emitted: AtomicBool,
     scrollback: Mutex<ScrollbackBuffer>,
     scrollback_tx: Sender<ScrollbackCommand>,
+    cd_echo_filter: CdEchoFilter,
 }
 
 impl PtySession {
@@ -308,14 +327,61 @@ impl PtySession {
         }
     }
 
+    /// MVP-20 BUG-001 · 启动 cd echo filter（pty_pool 在 inject_cd_clear 之前调）。
+    /// 调用后 reader thread emit 的 stdout 进 swallow 模式 · 直到检测到 ANSI clear 或超时。
+    pub(crate) fn start_cd_echo_filter(&self) {
+        lock(&self.cd_echo_filter.buffer).clear();
+        *lock(&self.cd_echo_filter.started_at) = Some(Instant::now());
+        self.cd_echo_filter.active.store(true, Ordering::Relaxed);
+    }
+
+    /// 处理 filter 模式的输出：返回 Some(forwarded) 时 caller 应 emit · None = swallow（cd echo）。
+    /// 检测到 ANSI clear → 关 filter · 返回 clear sequence 起的内容（cd echo 部分丢弃）。
+    /// 超时（800ms）→ 关 filter · 强制 flush 所有 buffer（兜底 · 防 clear 不出现）。
+    fn process_cd_echo_filter(&self, data: &str) -> Option<String> {
+        if !self.cd_echo_filter.active.load(Ordering::Relaxed) {
+            return Some(data.to_string());
+        }
+
+        let mut buffer = lock(&self.cd_echo_filter.buffer);
+        buffer.extend_from_slice(data.as_bytes());
+
+        if let Some(idx) = find_ansi_clear(&buffer) {
+            self.cd_echo_filter.active.store(false, Ordering::Relaxed);
+            let forwarded = String::from_utf8_lossy(&buffer[idx..]).to_string();
+            buffer.clear();
+            return Some(forwarded);
+        }
+
+        let started = *lock(&self.cd_echo_filter.started_at);
+        if let Some(start) = started {
+            if start.elapsed() > CD_ECHO_FILTER_TIMEOUT {
+                self.cd_echo_filter.active.store(false, Ordering::Relaxed);
+                let forwarded = String::from_utf8_lossy(&buffer).to_string();
+                buffer.clear();
+                return Some(forwarded);
+            }
+        }
+
+        None
+    }
+
     fn emit_stdout(&self, events: &DropOldestSender<PtyEvent>, data: &str) -> Result<(), PtyError> {
         if data.is_empty() || self.closed.load(Ordering::Relaxed) {
             return Ok(());
         }
 
+        let Some(forwarded) = self.process_cd_echo_filter(data) else {
+            return Ok(());
+        };
+
+        if forwarded.is_empty() {
+            return Ok(());
+        }
+
         events.send(PtyEvent::Stdout(PtyStdoutEvent {
             tab_id: self.tab_id_clone(),
-            data: data.to_string(),
+            data: forwarded,
         }))
     }
 
@@ -528,6 +594,7 @@ impl PtyManager {
             exit_emitted: AtomicBool::new(false),
             scrollback: Mutex::new(ScrollbackBuffer::default()),
             scrollback_tx: self.scrollback_tx.clone(),
+            cd_echo_filter: CdEchoFilter::default(),
         });
 
         lock(&self.sessions).insert(tab_id.clone(), Arc::clone(&session));
@@ -853,6 +920,14 @@ fn parse_chunk_to_lines(chunk: &str, partial_line: &mut String) -> Vec<String> {
     lines
 }
 
+/// MVP-20 BUG-001 backend filter · 寻找 ANSI clear screen sequence（`ESC [ 2 J` 或 `ESC [ 3 J`）。
+/// 用于 cd echo filter 检测 clear 命令输出 · 找到则丢弃 cd echo 部分。
+fn find_ansi_clear(data: &[u8]) -> Option<usize> {
+    data.windows(4).position(|w| {
+        w[0] == 0x1B && w[1] == b'[' && (w[2] == b'2' || w[2] == b'3') && w[3] == b'J'
+    })
+}
+
 fn parse_signal(signal: &str) -> Result<i32, PtyError> {
     match signal {
         "SIGINT" => Ok(libc::SIGINT),
@@ -1060,6 +1135,35 @@ mod tests {
     use crossbeam_channel::RecvTimeoutError;
     use std::os::unix::fs::PermissionsExt;
     use ts_rs::{Config, TS};
+
+    #[test]
+    fn find_ansi_clear_matches_2j() {
+        let data = b"prefix\x1b[2Jsuffix";
+        assert_eq!(find_ansi_clear(data), Some(6));
+    }
+
+    #[test]
+    fn find_ansi_clear_matches_3j() {
+        let data = b"prefix\x1b[3Jsuffix";
+        assert_eq!(find_ansi_clear(data), Some(6));
+    }
+
+    #[test]
+    fn find_ansi_clear_matches_combined_home_clear() {
+        // 实际 clear 命令通常输出 ESC [ H ESC [ 2 J（cursor home + erase screen）
+        let data = b"cd '/path'; clear\r\n\x1b[H\x1b[2Jrest";
+        let idx = find_ansi_clear(data).expect("should match \\x1b[2J");
+        assert_eq!(&data[idx..idx + 4], b"\x1b[2J");
+    }
+
+    #[test]
+    fn find_ansi_clear_returns_none_for_non_clear() {
+        assert_eq!(find_ansi_clear(b"plain text"), None);
+        assert_eq!(find_ansi_clear(b"\x1b[H"), None); // cursor home only · 不是 clear
+        assert_eq!(find_ansi_clear(b"\x1b[1J"), None); // erase to cursor · 不算
+        assert_eq!(find_ansi_clear(b""), None);
+        assert_eq!(find_ansi_clear(b"\x1b["), None); // 不完整序列
+    }
 
     fn manager_with_events() -> (PtyManager, Receiver<PtyEvent>) {
         let manager = PtyManager::new();

@@ -41,6 +41,11 @@ pub struct AppSettings {
     pub cursor_blink: bool,
     #[ts(type = "number")]
     pub unfocused_pane_opacity: f32,
+    /// MVP-20 · 是否启用 PTY 预热池（新 tab 启动加速）
+    pub pty_pool_enabled: bool,
+    /// MVP-20 · PTY 预热池容量（推荐 1-3 · 实际取值由 UI 限制）
+    #[ts(type = "number")]
+    pub pty_pool_size: u32,
 }
 
 impl Default for AppSettings {
@@ -65,6 +70,8 @@ impl Default for AppSettings {
             cursor_style: "block".to_string(),
             cursor_blink: false,
             unfocused_pane_opacity: 0.7,
+            pty_pool_enabled: true,
+            pty_pool_size: 1,
         }
     }
 }
@@ -88,6 +95,8 @@ pub struct SettingsUpdateRequest {
     pub cursor_style: Option<String>,
     pub cursor_blink: Option<bool>,
     pub unfocused_pane_opacity: Option<f32>,
+    pub pty_pool_enabled: Option<bool>,
+    pub pty_pool_size: Option<u32>,
 }
 
 fn get_parsed<T: std::str::FromStr>(pool: &DbPool, key: &str, default: &str) -> T
@@ -163,6 +172,8 @@ impl AppSettingsStore {
         let cursor_style = get_parsed(pool, "cursor_style", "block");
         let cursor_blink: bool = get_parsed(pool, "cursor_blink", "false");
         let unfocused_pane_opacity: f32 = get_parsed(pool, "unfocused_pane_opacity", "0.7");
+        let pty_pool_enabled: bool = get_parsed(pool, "pty_pool_enabled", "true");
+        let pty_pool_size: u32 = get_parsed(pool, "pty_pool_size", "1");
 
         AppSettings {
             theme,
@@ -180,6 +191,8 @@ impl AppSettingsStore {
             cursor_style,
             cursor_blink,
             unfocused_pane_opacity,
+            pty_pool_enabled,
+            pty_pool_size,
         }
     }
 
@@ -228,6 +241,12 @@ impl AppSettingsStore {
         }
         if let Some(v) = req.unfocused_pane_opacity {
             Self::set(pool, "unfocused_pane_opacity", &v.to_string())?;
+        }
+        if let Some(v) = req.pty_pool_enabled {
+            Self::set(pool, "pty_pool_enabled", &v.to_string())?;
+        }
+        if let Some(v) = req.pty_pool_size {
+            Self::set(pool, "pty_pool_size", &v.to_string())?;
         }
         Ok(())
     }
@@ -293,6 +312,25 @@ mod tests {
         assert_eq!(settings.cursor_style, "block");
         assert!(!settings.cursor_blink);
         assert!((settings.unfocused_pane_opacity - 0.7).abs() < f32::EPSILON);
+        // MVP-20 · PTY 预热池默认开 · 容量 1
+        assert!(settings.pty_pool_enabled);
+        assert_eq!(settings.pty_pool_size, 1);
+    }
+
+    #[test]
+    fn pty_pool_settings_roundtrip() {
+        // MVP-20 · 验证 pty_pool_* 字段持久化 · 关闭 + 容量改 3
+        let (_dir, pool) = setup();
+        let req = SettingsUpdateRequest {
+            pty_pool_enabled: Some(false),
+            pty_pool_size: Some(3),
+            ..Default::default()
+        };
+        AppSettingsStore::update(&pool, &req).unwrap();
+
+        let s = AppSettingsStore::get_all(&pool);
+        assert!(!s.pty_pool_enabled);
+        assert_eq!(s.pty_pool_size, 3);
     }
 
     #[test]

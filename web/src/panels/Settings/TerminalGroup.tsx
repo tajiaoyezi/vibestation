@@ -88,6 +88,49 @@ export const TerminalGroup: Component = () => {
           class="vs-settings-slider"
         />
       </label>
+
+      {/* MVP-20 · PTY 预热池 · 新 tab 启动加速 */}
+      <label class="vs-settings-field vs-settings-field--row">
+        <span class="vs-settings-label">
+          PTY warm pool
+          <span class="vs-settings-help">
+            Pre-spawn an idle shell so new tabs feel instant. Disable if your
+            shell init has side effects.
+          </span>
+        </span>
+        <button
+          type="button"
+          class="vs-settings-toggle"
+          classList={{ active: settings.ptyPoolEnabled }}
+          onClick={() =>
+            updateSettings({ ptyPoolEnabled: !settings.ptyPoolEnabled })
+          }
+          aria-pressed={settings.ptyPoolEnabled}
+          role="switch"
+        >
+          <span class="vs-settings-toggle-knob" />
+        </button>
+      </label>
+
+      <Show when={settings.ptyPoolEnabled}>
+        <label class="vs-settings-field">
+          <span class="vs-settings-label">
+            Pool size{" "}
+            <span class="vs-settings-value">{settings.ptyPoolSize}</span>
+          </span>
+          <select
+            class="vs-settings-select"
+            value={settings.ptyPoolSize}
+            onChange={(e) =>
+              updateSettings({ ptyPoolSize: Number(e.currentTarget.value) })
+            }
+          >
+            <option value={1}>1 — minimal (recommended)</option>
+            <option value={2}>2 — covers rapid tab opening</option>
+            <option value={3}>3 — max (heavier resource use)</option>
+          </select>
+        </label>
+      </Show>
     </div>
   );
 };

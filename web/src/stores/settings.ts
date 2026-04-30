@@ -8,7 +8,8 @@ export type ThemeSetting = "light" | "dark" | "auto";
 
 const DEFAULTS: AppSettings = {
   theme: "auto",
-  fontFamily: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",
+  fontFamily:
+    "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",
   fontSize: 14,
   defaultShell: "/bin/bash",
   pasteProtection: true,
@@ -22,6 +23,9 @@ const DEFAULTS: AppSettings = {
   cursorStyle: "block",
   cursorBlink: false,
   unfocusedPaneOpacity: 0.7,
+  // MVP-20 · PTY 预热池
+  ptyPoolEnabled: true,
+  ptyPoolSize: 1,
 };
 
 const [settings, setSettings] = createStore<AppSettings>({ ...DEFAULTS });
@@ -112,6 +116,10 @@ export function useSettings() {
         req.cursorBlink = partial.cursorBlink;
       if (partial.unfocusedPaneOpacity !== undefined)
         req.unfocusedPaneOpacity = partial.unfocusedPaneOpacity;
+      if (partial.ptyPoolEnabled !== undefined)
+        req.ptyPoolEnabled = partial.ptyPoolEnabled;
+      if (partial.ptyPoolSize !== undefined)
+        req.ptyPoolSize = partial.ptyPoolSize;
 
       try {
         const updated = await invoke<AppSettings>("settings_update", { req });

@@ -8,11 +8,12 @@ mod menu;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
+use vibestation_core::pty_pool::{PoolConfig, PtyPool, TakeResult};
 use vibestation_core::{
     pane_pty, pane_service, telemetry, AppSettings, AppSettingsStore, AppVersionInfo, CommitDetail,
     DiffRequest, DiffResponse, DiffService, GitConfigIdentity, GitLogQueryRequest,
@@ -33,10 +34,14 @@ const GIT_STATUS_CHANGED_EVENT: &str = "git_status:changed";
 struct AppState {
     pool: Mutex<Option<DbPool>>,
     git_status: GitStatusWatchManager,
-    pty: PtyManager,
+    pty: Arc<PtyManager>,
     /// MVP-05 Phase B · 独立 PTY manager for pane（独立 sessions HashMap +
     /// 独立 reader/scrollback thread · 避免 tab/pane id collision）
-    pane_pty: PtyManager,
+    pane_pty: Arc<PtyManager>,
+    /// MVP-20 · PTY 预热池（与 pty 配套 · 共享同一 PtyManager 的 reader thread）
+    pty_pool: Arc<PtyPool>,
+    /// MVP-20 · PTY 预热池（与 pane_pty 配套 · 独立池）
+    pane_pty_pool: Arc<PtyPool>,
 }
 
 struct GitStatusSubscription {
@@ -126,6 +131,32 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
     // telemetry_opt_in=true 也每次启动重弹）。
     let settings = AppSettingsStore::get_all(&pool);
     telemetry::set_runtime_opt_in(settings.telemetry_opt_in);
+
+    // MVP-20 · 用 DB settings 初始化 PTY 预热池配置 · 触发首次 refill
+    // workspace_init 是 frontend 启动后第一个能确保 settings 已 hydrate 的时机 ·
+    // 必须在此 apply config + refill_async 让 idle PTY 在用户点 + 之前预备好。
+    let pool_config = PoolConfig {
+        enabled: settings.pty_pool_enabled,
+        target_size: settings.pty_pool_size as u8,
+    };
+    let default_shell_path = PathBuf::from(&settings.default_shell);
+    let home_path = std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/"));
+    state
+        .pty_pool
+        .apply_config_change(pool_config, default_shell_path.clone());
+    state
+        .pane_pty_pool
+        .apply_config_change(pool_config, default_shell_path.clone());
+    if pool_config.enabled {
+        state
+            .pty_pool
+            .refill_async(default_shell_path.clone(), home_path.clone());
+        state
+            .pane_pty_pool
+            .refill_async(default_shell_path, home_path);
+    }
 
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);
@@ -233,6 +264,9 @@ fn settings_update(
     // （Privacy 面板 toggle 走的是 settings_update 路径 · 不走 telemetry_opt_in_set
     // 必须在此处也同步 · 否则 capture_crash_report 拒绝发送的检查会 stale）
     let opt_in_change = req.telemetry_opt_in;
+    // MVP-20 · 检测 PTY 预热池相关字段改动 · 待 update 后调 apply_config_change
+    let pool_config_changed = req.pty_pool_enabled.is_some() || req.pty_pool_size.is_some();
+    let shell_change = req.default_shell.clone();
 
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
@@ -246,6 +280,29 @@ fn settings_update(
 
     if let Some(opt_in) = opt_in_change {
         telemetry::set_runtime_opt_in(Some(opt_in));
+    }
+
+    // MVP-20 · 同步 PTY 预热池配置（settings 改动实时生效 · spec A7/A8）
+    if pool_config_changed {
+        let new_config = PoolConfig {
+            enabled: updated.pty_pool_enabled,
+            target_size: updated.pty_pool_size as u8,
+        };
+        let shell_path = PathBuf::from(&updated.default_shell);
+        state
+            .pty_pool
+            .apply_config_change(new_config, shell_path.clone());
+        state
+            .pane_pty_pool
+            .apply_config_change(new_config, shell_path);
+    }
+    // MVP-20 · default shell 变更立即 kill 旧 idle + 预热新 shell（spec A3）
+    if let Some(new_shell) = shell_change {
+        let shell_path = PathBuf::from(&new_shell);
+        state
+            .pty_pool
+            .handle_default_shell_change(shell_path.clone());
+        state.pane_pty_pool.handle_default_shell_change(shell_path);
     }
 
     let _ = app.emit("settings_changed", &updated);
@@ -368,7 +425,19 @@ fn tab_pty_spawn(state: State<'_, AppState>, req: PtySpawnRequest) -> Result<(),
         ..req
     };
 
-    state.pty.spawn(spawn_req).map_err(|e| e.to_string())
+    // MVP-20 · 优先 PTY 预热池命中 · 命中则 idle PTY 已 rename + cd 注入完成
+    // 不命中（pool disable / shell 不匹配 / pool 空）→ 降级 cold spawn
+    match state.pty_pool.take(&spawn_req) {
+        TakeResult::Warm(_) => {
+            // 触发后台 refill 补回 idle · 不阻塞当前 IPC return
+            state.pty_pool.refill_async(
+                PathBuf::from(&spawn_req.shell),
+                PathBuf::from(&spawn_req.cwd),
+            );
+            Ok(())
+        }
+        TakeResult::Cold => state.pty.spawn(spawn_req).map_err(|e| e.to_string()),
+    }
 }
 
 #[tauri::command]
@@ -414,7 +483,25 @@ fn tab_pty_kill(state: State<'_, AppState>, tab_id: String) -> Result<(), String
 
 #[tauri::command]
 fn pane_pty_spawn(state: State<'_, AppState>, req: PanePtySpawnRequest) -> Result<(), String> {
-    pane_pty::spawn(&state.pane_pty, req).map_err(|e| e.to_string())
+    // MVP-20 · 优先 pane PTY 预热池命中 · pool.take 接受 PtySpawnRequest
+    // pane_pty::spawn 内部就是把 pane_id 当 tab_id · 这里直接构造 PtySpawnRequest
+    let spawn_req = PtySpawnRequest {
+        tab_id: req.pane_id.clone(),
+        shell: req.shell.clone(),
+        cwd: req.cwd.clone(),
+        cols: req.cols,
+        rows: req.rows,
+    };
+    match state.pane_pty_pool.take(&spawn_req) {
+        TakeResult::Warm(_) => {
+            state.pane_pty_pool.refill_async(
+                PathBuf::from(&spawn_req.shell),
+                PathBuf::from(&spawn_req.cwd),
+            );
+            Ok(())
+        }
+        TakeResult::Cold => pane_pty::spawn(&state.pane_pty, req).map_err(|e| e.to_string()),
+    }
 }
 
 #[tauri::command]
@@ -846,14 +933,19 @@ pub fn run() {
     install_panic_hook();
     try_init_sentry_from_env();
 
-    let pty = PtyManager::new();
+    let pty = Arc::new(PtyManager::new());
     let pty_events = pty
         .take_event_receiver()
         .expect("PTY event receiver should be taken exactly once");
-    let pane_pty = PtyManager::new();
+    let pane_pty = Arc::new(PtyManager::new());
     let pane_pty_events = pane_pty
         .take_event_receiver()
         .expect("Pane PTY event receiver should be taken exactly once");
+
+    // MVP-20 · 创建 PtyPool（与各自 PtyManager 配套 · 持 Weak 引用防循环）
+    // 默认 PoolConfig（enabled=true · size=1）· workspace_init 后用 DB settings 同步
+    let pty_pool = Arc::new(PtyPool::new(Arc::clone(&pty), PoolConfig::default()));
+    let pane_pty_pool = Arc::new(PtyPool::new(Arc::clone(&pane_pty), PoolConfig::default()));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -863,6 +955,8 @@ pub fn run() {
             git_status: GitStatusWatchManager::new(),
             pty,
             pane_pty,
+            pty_pool,
+            pane_pty_pool,
         })
         .invoke_handler(tauri::generate_handler![
             greet,

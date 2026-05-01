@@ -1,0 +1,525 @@
+/* MVP-06 Phase B · Config Import dialog · Calm Studio modal */
+
+.vs-config-import-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000; /* 在普通 modal 之上 · TelemetryOptIn 之下（9999） */
+  background: rgba(8, 9, 12, 0.78);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: vs-config-import-fade-in 200ms ease-out;
+}
+
+@keyframes vs-config-import-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vs-config-import-modal {
+  background: var(--vs-bg-elevated, #1a1c20);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 720px;
+  width: 100%;
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--vs-text-primary, #e8eaed);
+  font-family: var(--font-ui, system-ui);
+  animation: vs-config-import-slide-up 220ms ease-out;
+}
+
+@keyframes vs-config-import-slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.vs-config-import-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.vs-config-import-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.vs-config-import-close {
+  background: transparent;
+  border: none;
+  color: var(--vs-text-secondary, #b3b6bd);
+  font-size: 22px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+
+.vs-config-import-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--vs-text-primary, #e8eaed);
+}
+
+.vs-config-import-stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 12px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vs-config-import-step {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.vs-config-import-step.active {
+  background: var(--vs-accent, #4f9eff);
+  color: #fff;
+  border-color: var(--vs-accent, #4f9eff);
+}
+
+.vs-config-import-step.done {
+  color: var(--vs-text-primary, #e8eaed);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.vs-config-import-step-sep {
+  flex-shrink: 0;
+  height: 1px;
+  width: 20px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.vs-config-import-body {
+  padding: 20px 28px 28px;
+  overflow-y: auto;
+}
+
+.vs-config-import-lede {
+  margin: 0 0 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-config-import-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.vs-config-import-actions button {
+  min-width: 96px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.vs-config-import-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vs-config-import-actions .vs-btn-primary {
+  background: var(--vs-accent, #4f9eff);
+  color: #fff;
+  border: 1px solid var(--vs-accent, #4f9eff);
+}
+
+.vs-config-import-actions .vs-btn-primary:hover:not(:disabled) {
+  background: var(--vs-accent-hover, #3a8cf0);
+}
+
+.vs-config-import-actions .vs-btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vs-text-primary, #e8eaed);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.vs-config-import-actions .vs-btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Step 1 · Source list ─────────────────────────────────────────── */
+
+.vs-config-import-source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vs-config-import-source {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.vs-config-import-source.detected {
+  border-color: rgba(63, 185, 80, 0.4);
+  background: rgba(63, 185, 80, 0.04);
+}
+
+.vs-config-import-source.errored {
+  border-color: rgba(248, 81, 73, 0.4);
+  background: rgba(248, 81, 73, 0.05);
+}
+
+.vs-config-import-source.missing {
+  opacity: 0.6;
+}
+
+.vs-config-import-source-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vs-config-import-source-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.vs-config-import-source-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vs-config-import-source-platform {
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.vs-config-import-source-status {
+  font-size: 12px;
+}
+
+.vs-config-import-source-detected {
+  color: #3fb950;
+}
+
+.vs-config-import-source-errored {
+  color: #f85149;
+}
+
+.vs-config-import-source-missing {
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-config-import-source-path {
+  font-family: var(--font-mono, ui-monospace);
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.vs-config-import-source-action {
+  align-self: center;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--vs-accent, #4f9eff);
+  color: #fff;
+  border: 1px solid var(--vs-accent, #4f9eff);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.vs-config-import-source-action:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--vs-text-secondary, #b3b6bd);
+  border-color: rgba(255, 255, 255, 0.08);
+  cursor: not-allowed;
+}
+
+.vs-config-import-source-action:hover:not(:disabled) {
+  background: var(--vs-accent-hover, #3a8cf0);
+}
+
+.vs-config-import-loading {
+  font-size: 13px;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-config-import-error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  border-radius: 6px;
+  color: #f85149;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vs-config-import-rescan {
+  margin-left: auto;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.vs-config-import-error-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  font-size: 11px;
+  color: #f85149;
+}
+
+/* ─── Step 2 · Preview list ────────────────────────────────────────── */
+
+.vs-config-import-field-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vs-config-import-field {
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px 14px;
+}
+
+.vs-config-import-field-conflict {
+  background: oklch(85% 0.15 95 / 0.12);
+  border-color: oklch(85% 0.15 95 / 0.4);
+}
+
+.vs-config-import-field-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.vs-config-import-field-label input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.vs-config-import-field-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vs-config-import-field-kind {
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vs-config-import-field-value {
+  font-size: 13px;
+  font-family: var(--font-mono, ui-monospace);
+  color: var(--vs-text-primary, #e8eaed);
+}
+
+.vs-config-import-conflict-banner {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: oklch(85% 0.15 95 / 0.16);
+  border: 1px solid oklch(85% 0.15 95 / 0.32);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  column-gap: 10px;
+  row-gap: 8px;
+  font-size: 12px;
+}
+
+.vs-config-import-conflict-icon {
+  color: oklch(70% 0.18 80);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.vs-config-import-conflict-msg {
+  line-height: 1.5;
+}
+
+.vs-config-import-conflict-msg code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.vs-config-import-conflict-choice {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-config-import-conflict-choice label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.vs-config-import-empty {
+  font-size: 13px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  font-style: italic;
+}
+
+/* ─── Step 3 · Confirm summary ─────────────────────────────────────── */
+
+.vs-config-import-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vs-config-import-summary li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.vs-config-import-summary-warn {
+  background: oklch(85% 0.15 95 / 0.1);
+  border-color: oklch(85% 0.15 95 / 0.3);
+}
+
+.vs-config-import-summary-label {
+  flex-shrink: 0;
+  width: 110px;
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-top: 1px;
+}
+
+.vs-config-import-missing-font {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
+/* ─── Step 4 · Result ──────────────────────────────────────────────── */
+
+.vs-config-import-success {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  background: rgba(63, 185, 80, 0.12);
+  border: 1px solid rgba(63, 185, 80, 0.32);
+  border-radius: 6px;
+  color: #3fb950;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.vs-config-import-result section {
+  margin-top: 18px;
+}
+
+.vs-config-import-result h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-config-import-applied,
+.vs-config-import-skipped {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.vs-config-import-applied code,
+.vs-config-import-skipped code {
+  font-family: var(--font-mono, ui-monospace);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.vs-config-import-font-note {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: oklch(85% 0.15 95 / 0.12);
+  border: 1px solid oklch(85% 0.15 95 / 0.32);
+  border-radius: 6px;
+  color: oklch(85% 0.15 95);
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -67,6 +67,10 @@
     "allow-telemetry-opt-in-set",
     "allow-telemetry-status-get",
     "allow-app-version-get",
+    "allow-config-import-scan",
+    "allow-config-import-preview",
+    "allow-config-import-detect-conflicts",
+    "allow-config-import-apply",
     "dialog:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text"

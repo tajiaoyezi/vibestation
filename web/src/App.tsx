@@ -92,6 +92,16 @@ const LayoutShell: Component<{
     if (event.button !== 0 || event.detail !== 1) {
       return;
     }
+    // 跳过交互元素 · 防 startDragging 接管鼠标后吞掉 button onClick
+    // （TopBar 收起按钮放在 header 上 · sidebar 收起后是唯一恢复路径 · 不能丢点击）
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button, a, input, textarea, select, [role=button], [data-no-drag]",
+      )
+    ) {
+      return;
+    }
 
     event.preventDefault();
     event.stopPropagation();
@@ -575,7 +585,7 @@ const App: Component = () => {
 
   return (
     <ThemeProvider>
-      <LayoutProvider activeWorkspaceId={activeWorkspaceId}>
+      <LayoutProvider activeWorkspaceId={activeWorkspaceId} dbReady={dbReady}>
         <LayoutShell
           workspaces={workspaces}
           currentView={currentView}

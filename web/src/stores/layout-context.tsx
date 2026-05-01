@@ -1,5 +1,5 @@
 import { createContext, useContext, type ParentComponent } from "solid-js";
-import { createSignal } from "solid-js";
+import { createEffect, createSignal } from "solid-js";
 import {
   type LayoutState,
   type LayoutAction,
@@ -23,13 +23,18 @@ const GLOBAL_KEYS = ["primaryWidth", "secondaryWidth", "bottomHeight"] as const;
 
 export const LayoutProvider: ParentComponent<{
   activeWorkspaceId: () => string | null;
+  dbReady: () => boolean;
 }> = (props) => {
   const [layout, setLayout] = createSignal<LayoutState>({ ...DEFAULT_LAYOUT });
   let perWsPersistTimer: ReturnType<typeof setTimeout> | null = null;
   let globalPersistTimer: ReturnType<typeof setTimeout> | null = null;
+  let globalHydrated = false;
 
   // 启动时一次性拉全局 layout（width / height）· 之后 workspace 切换不再覆盖
+  // 等 dbReady（workspace_init resolve · pool 已初始化）· 否则 settings_get 会
+  // 在 module-load race 期失败 · 保留 defaults · 用户重启永远看不到上次的宽度
   const initGlobalLayout = async () => {
+    if (globalHydrated) return;
     try {
       const s = await invoke<AppSettings>("settings_get");
       setLayout((prev) => ({
@@ -38,11 +43,17 @@ export const LayoutProvider: ParentComponent<{
         secondaryWidth: s.secondaryWidth || prev.secondaryWidth,
         bottomHeight: s.bottomHeight || prev.bottomHeight,
       }));
+      globalHydrated = true;
     } catch {
-      // 失败保留 DEFAULT_LAYOUT · 不阻塞
+      // 失败保留 DEFAULT_LAYOUT · 不阻塞 · dbReady 下次变 true 时再试
     }
   };
-  void initGlobalLayout();
+
+  createEffect(() => {
+    if (props.dbReady()) {
+      void initGlobalLayout();
+    }
+  });
 
   const schedulePerWorkspacePersist = () => {
     if (perWsPersistTimer) clearTimeout(perWsPersistTimer);

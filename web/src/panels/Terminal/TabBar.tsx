@@ -3,6 +3,7 @@ import {
   createEffect,
   createSignal,
   For,
+  onCleanup,
   Show,
   type Component,
 } from "solid-js";
@@ -12,6 +13,12 @@ type TabBarProps = {
   tabs: readonly TabState[];
   activeTabId: string | null;
   onClose: (tabId: string) => void;
+  /**
+   * 点 × 触发 leave 动画**开始时**同步调用 · 上层应立即把 active 切到 sibling tab ·
+   * 让底部蓝条 indicator 平滑滑过去 · 而不是等 240ms 动画结束才"瞬间跳"。
+   * 真正 unmount 仍在 onClose（240ms 后）· 期间 leaving tab DOM 仍存活但不再 active。
+   */
+  onCloseRequested?: (tabId: string) => void;
   onContextMenuTab?: (tabId: string) => void;
   onCreate: () => void;
   onRename: (tabId: string, name: string) => Promise<void>;
@@ -19,10 +26,57 @@ type TabBarProps = {
   pendingRenameTabId?: string | null;
 };
 
+/**
+ * Tab leave 动画时长 · 必须和 styles.css `@keyframes vs-tab-leave` 匹配（240ms）。
+ * 多维度退场 · fade + 上飞 + 缩小 + 模糊 + 收缩 · Material standard ease。
+ */
+const TAB_LEAVE_DURATION_MS = 240;
+
 export const TabBar: Component<TabBarProps> = (props) => {
   const [editingTabId, setEditingTabId] = createSignal<string | null>(null);
   const [draftName, setDraftName] = createSignal("");
+  // 正在 leave 动画中的 tab id 集合 · CSS 加 `is-leaving` 触发 collapse 动画 ·
+  // 动画结束后才调 props.onClose 真正 unmount · 让用户看到关闭过渡
+  const [leavingTabIds, setLeavingTabIds] = createSignal<Set<string>>(
+    new Set(),
+  );
+  // pending leave timer · 防 unmount 时遗留 timer 调已 stale 的 onClose
+  const leaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
   let renameInput: HTMLInputElement | undefined;
+
+  const startLeave = (tabId: string) => {
+    if (leavingTabIds().has(tabId)) return;
+    // a11y · 用户开了 prefers-reduced-motion 时 · 不等动画 · 立即关
+    const motionReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const duration = motionReduced ? 0 : TAB_LEAVE_DURATION_MS;
+    setLeavingTabIds((prev) => {
+      const next = new Set(prev);
+      next.add(tabId);
+      return next;
+    });
+    // 立即请求上层切 active 到 sibling · 让蓝条 indicator 平滑滑走 ·
+    // 而不是等 240ms unmount 后蓝条"瞬间跳"。leaving tab 仍渲染但失去 is-active。
+    props.onCloseRequested?.(tabId);
+    const timer = setTimeout(() => {
+      leaveTimers.delete(tabId);
+      props.onClose(tabId);
+      setLeavingTabIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tabId);
+        return next;
+      });
+    }, duration);
+    leaveTimers.set(tabId, timer);
+  };
+
+  onCleanup(() => {
+    for (const t of leaveTimers.values()) {
+      clearTimeout(t);
+    }
+    leaveTimers.clear();
+  });
 
   const startRename = (tab: TabState) => {
     setEditingTabId(tab.tabId);
@@ -75,18 +129,80 @@ export const TabBar: Component<TabBarProps> = (props) => {
     }
   });
 
+  // 底部独立 indicator · 跟随 active tab 平滑滑动 · 取代每个 tab 的 border-bottom。
+  // 关键体验改进：active 切换时蓝条平滑过渡 · 不再"瞬间跳"。
+  let scrollContainer: HTMLDivElement | undefined;
+  let indicator: HTMLDivElement | undefined;
+  const [indicatorReady, setIndicatorReady] = createSignal(false);
+
+  const updateIndicator = () => {
+    if (!scrollContainer || !indicator) return;
+    const activeId = props.activeTabId;
+    if (!activeId) {
+      indicator.style.opacity = "0";
+      return;
+    }
+    const activeEl = scrollContainer.querySelector<HTMLDivElement>(
+      `[data-tab-id="${activeId}"]:not(.is-leaving)`,
+    );
+    if (!activeEl) {
+      indicator.style.opacity = "0";
+      return;
+    }
+    const containerRect = scrollContainer.getBoundingClientRect();
+    const tabRect = activeEl.getBoundingClientRect();
+    const left = tabRect.left - containerRect.left + scrollContainer.scrollLeft;
+    indicator.style.transform = `translateX(${left}px)`;
+    indicator.style.width = `${tabRect.width}px`;
+    indicator.style.opacity = "1";
+    if (!indicatorReady()) setIndicatorReady(true);
+  };
+
+  // 监听 active 切换 + tabs 列表变化 + leaving tabs 变化 · 都触发 indicator 重算
+  createEffect(() => {
+    // track signals
+    void props.activeTabId;
+    void props.tabs.length;
+    void leavingTabIds();
+    // 等下一帧让 DOM commit · 拿正确尺寸
+    requestAnimationFrame(() => updateIndicator());
+  });
+
+  // ResizeObserver · 容器宽度变化（窗口 resize / 字体变化）时重算 indicator
+  let resizeObserver: ResizeObserver | undefined;
+  const setScrollRef = (el: HTMLDivElement) => {
+    scrollContainer = el;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        requestAnimationFrame(() => updateIndicator());
+      });
+      resizeObserver.observe(el);
+    }
+  };
+
+  onCleanup(() => {
+    resizeObserver?.disconnect();
+  });
+
   return (
     <div class="vs-terminal-tabbar" role="tablist" aria-label="Terminal tabs">
-      <div class="vs-terminal-tabbar-scroll">
+      <div class="vs-terminal-tabbar-scroll" ref={setScrollRef}>
+        <div
+          class={`vs-terminal-tabbar-indicator ${indicatorReady() ? "is-ready" : ""}`}
+          ref={indicator}
+          aria-hidden="true"
+        />
         <For each={props.tabs}>
           {(tab) => {
             const editing = () => editingTabId() === tab.tabId;
             const active = () => props.activeTabId === tab.tabId;
+            const leaving = () => leavingTabIds().has(tab.tabId);
 
             return (
               <div
-                class={`vs-terminal-tab ${active() ? "is-active" : ""}`}
+                class={`vs-terminal-tab ${active() ? "is-active" : ""} ${leaving() ? "is-leaving" : ""}`}
                 role="presentation"
+                data-tab-id={tab.tabId}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   // 把右键命中的 tab id 提前告诉 Terminal · 让 menu:action listener
@@ -151,7 +267,8 @@ export const TabBar: Component<TabBarProps> = (props) => {
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    props.onClose(tab.tabId);
+                    // 先触发 leave 动画 · 动画结束后真正调 props.onClose
+                    startLeave(tab.tabId);
                   }}
                 >
                   ×

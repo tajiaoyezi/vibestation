@@ -486,11 +486,13 @@ export const Terminal: Component<TerminalProps> = (props) => {
       // 关键：用 batch 把 4 个 signal update 合一帧 render · 避免 tab 先 render 走
       // <TerminalPane> fallback（panesByTabId 还没设）· 然后切到 <PaneSplitView> 重 mount。
       // 双 mount 期间 idle pty stdout 事件触发 stale <Show> accessor 警告。
+      // 新 tab 加到末尾（不是开头）· 跟 iTerm / Warp / 浏览器约定一致 · 避免新建时
+      // 把当前 tab "推走"造成视觉错位。
       batch(() => {
         if (paneList) {
           setPaneListForTab(tab.tabId, paneList);
         }
-        updateWorkspaceTabs(workspace.workspaceId, (tabs) => [tab, ...tabs]);
+        updateWorkspaceTabs(workspace.workspaceId, (tabs) => [...tabs, tab]);
         setWorkspaceActiveTab(workspace.workspaceId, tab.tabId);
         upsertRuntime(tab.tabId, (runtime) => ({
           ...runtime,
@@ -1075,6 +1077,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
         }}
         onClose={(tabId) => {
           void closeTab(tabId);
+        }}
+        onCloseRequested={(tabId) => {
+          // BUG-001 follow-up · leave 动画开始时立即切 active 到 sibling tab ·
+          // 让底部蓝条 indicator 平滑滑过去 · 不再等 240ms 后"瞬间跳"。
+          // 真正 unmount 仍由 onClose（240ms 后）调 closeTab。
+          const workspaceId = activeWorkspaceId();
+          if (!workspaceId) return;
+          if (activeTabByWorkspace()[workspaceId] !== tabId) return;
+          const tabs = tabsByWorkspace()[workspaceId] ?? [];
+          const sibling = pickSiblingTabId(tabs, tabId);
+          setWorkspaceActiveTab(workspaceId, sibling);
         }}
         onRename={(tabId, name) => {
           setPendingRenameTabId(null);

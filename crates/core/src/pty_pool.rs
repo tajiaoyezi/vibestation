@@ -30,6 +30,11 @@ pub struct SpawnResult {
 }
 
 pub const IDLE_MAX_AGE: Duration = Duration::from_secs(300);
+/// MVP-20 BUG-001 round 3 · idle pty 必须等到 zsh 完成 ZLE 初始化（含 omz 加载）才能 take ·
+/// 否则 stdin 注入被 termios cooked-mode echo · 用户屏幕看到 cd 命令字面 · 且 ZLE 接管前
+/// 的 enter (\r) 不触发 accept-line · clear 命令永不执行。
+/// 1500ms 覆盖大多数 zsh + omz 配置（实测 macOS omz 加载约 600-1200ms）· 留余量。
+pub const IDLE_MIN_AGE: Duration = Duration::from_millis(1500);
 const IDLE_SWEEP_INTERVAL: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,6 +61,9 @@ pub struct PtyPool {
     timer_shutdown_tx: Sender<()>,
     timer_handle: Mutex<Option<JoinHandle<()>>>,
     shutdown: Arc<AtomicBool>,
+    /// BUG-001 round 3 · idle pty 最低成熟时间 · 防 zsh 加载未完时 take 走 termios echo。
+    /// 生产默认 IDLE_MIN_AGE · 测试可注入 Duration::ZERO 跳过等待。
+    idle_min_age: Duration,
 }
 
 pub struct IdlePty {
@@ -73,7 +81,13 @@ pub enum TakeResult {
 impl PtyPool {
     #[must_use]
     pub fn new(manager: Arc<PtyManager>, config: PoolConfig) -> Self {
-        Self::new_with_timing(manager, config, IDLE_MAX_AGE, IDLE_SWEEP_INTERVAL)
+        Self::new_with_timing(
+            manager,
+            config,
+            IDLE_MAX_AGE,
+            IDLE_SWEEP_INTERVAL,
+            IDLE_MIN_AGE,
+        )
     }
 
     #[must_use]
@@ -82,6 +96,7 @@ impl PtyPool {
         config: PoolConfig,
         idle_max_age: Duration,
         sweep_interval: Duration,
+        idle_min_age: Duration,
     ) -> Self {
         let idle = Arc::new(Mutex::new(VecDeque::new()));
         let config = Arc::new(Mutex::new(config));
@@ -111,6 +126,7 @@ impl PtyPool {
             timer_shutdown_tx,
             timer_handle: Mutex::new(Some(timer_handle)),
             shutdown,
+            idle_min_age,
         }
     }
 
@@ -132,6 +148,13 @@ impl PtyPool {
         let Some(mut idle) = self.pop_matching_idle(&resolved_shell) else {
             return TakeResult::Cold;
         };
+        // BUG-001 round 3 · idle pty 不够成熟（zsh 可能还在加载 omz · ZLE 没 ready）·
+        // stdin 注入会走 termios cooked echo 而不是 ZLE · cd 命令字面会显示给用户。
+        // 推回 idle queue 队首 · 让它继续成熟 · 本次 take fall back cold spawn。
+        if idle.spawn_at.elapsed() < self.idle_min_age {
+            lock(&self.idle).push_front(idle);
+            return TakeResult::Cold;
+        }
         let Some(manager) = self.manager.upgrade() else {
             lock(&self.idle).push_front(idle);
             return TakeResult::Cold;
@@ -459,7 +482,11 @@ fn cd_clear_command(target_cwd: &Path) -> Result<String, String> {
     } else {
         return Err("path contains both quotes".into());
     };
-    Ok(format!("cd -- {escaped}; clear\n"))
+    // BUG-001 round 3 · zsh ZLE accept-line widget 默认绑定 ^M (\r) · 不是 \n
+    // 用 \n 时 ZLE 只 echo + syntax-highlighting 重绘 · 但**不执行**命令
+    // → clear 不输出 ANSI clear · backend filter 永远 timeout · cd echo 被 forward
+    // 改 \r 触发真 enter · zsh 执行 cd + clear · ANSI clear 出现 · filter 正常吞 cd echo
+    Ok(format!("cd -- {escaped}; clear\r"))
 }
 
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -476,12 +503,16 @@ mod tests {
 
     fn manager_and_pool(target_size: u8) -> (Arc<PtyManager>, PtyPool) {
         let manager = Arc::new(PtyManager::new());
-        let pool = PtyPool::new(
+        // 测试用 idle_min_age = 0 跳过成熟度等待 · 让 take 立即拿到刚 refill 的 idle pty
+        let pool = PtyPool::new_with_timing(
             Arc::clone(&manager),
             PoolConfig {
                 enabled: true,
                 target_size,
             },
+            IDLE_MAX_AGE,
+            IDLE_SWEEP_INTERVAL,
+            Duration::ZERO,
         );
         (manager, pool)
     }
@@ -500,6 +531,7 @@ mod tests {
             },
             idle_max_age,
             sweep_interval,
+            Duration::ZERO,
         );
         (manager, pool)
     }
@@ -573,6 +605,34 @@ mod tests {
             TakeResult::Cold => panic!("expected warm PTY"),
         }
         assert_eq!(pool.idle_count(), 0);
+    }
+
+    #[test]
+    fn take_cold_when_idle_too_young() {
+        // BUG-001 round 3 · idle pty 不够成熟（zsh ZLE 还没 init · stdin 注入会被
+        // termios cooked echo · 用户看到 cd 命令字面）· 必须 fall back cold spawn
+        let manager = Arc::new(PtyManager::new());
+        let pool = PtyPool::new_with_timing(
+            Arc::clone(&manager),
+            PoolConfig {
+                enabled: true,
+                target_size: 1,
+            },
+            IDLE_MAX_AGE,
+            IDLE_SWEEP_INTERVAL,
+            Duration::from_secs(60), // idle_min_age 设很大 · 模拟 idle 永远不成熟
+        );
+        pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
+        wait_until(Duration::from_secs(3), || pool.idle_count() == 1);
+
+        // idle pty 刚生成 · 没到 60s 成熟度门槛 · take 必须返回 Cold
+        assert!(matches!(
+            pool.take(&request("tab-too-young", "/bin/sh")),
+            TakeResult::Cold
+        ));
+        // idle pty 应该还在 queue 里（不 take · 推回）
+        assert_eq!(pool.idle_count(), 1);
+        pool.kill_all();
     }
 
     #[test]
@@ -702,7 +762,7 @@ mod tests {
     fn inject_cd_clear_normal_path() {
         assert_eq!(
             cd_clear_command(Path::new("/tmp/my-project")).unwrap(),
-            "cd -- '/tmp/my-project'; clear\n"
+            "cd -- '/tmp/my-project'; clear\r"
         );
     }
 
@@ -710,7 +770,7 @@ mod tests {
     fn inject_cd_clear_path_with_single_quote() {
         assert_eq!(
             cd_clear_command(Path::new("/tmp/it's-here")).unwrap(),
-            "cd -- \"/tmp/it's-here\"; clear\n"
+            "cd -- \"/tmp/it's-here\"; clear\r"
         );
     }
 
@@ -718,7 +778,7 @@ mod tests {
     fn inject_cd_clear_path_with_double_quote() {
         assert_eq!(
             cd_clear_command(Path::new("/tmp/has\"quote")).unwrap(),
-            "cd -- '/tmp/has\"quote'; clear\n"
+            "cd -- '/tmp/has\"quote'; clear\r"
         );
     }
 

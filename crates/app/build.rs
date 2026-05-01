@@ -16,14 +16,16 @@ use vibestation_core::{
     CommitRequest, CommitResponse, CrashReportPayload, DiffHunk, DiffLine, DiffLineType,
     DiffRequest, DiffResponse, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry,
     GitLogQueryRequest, GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup,
-    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, LayoutApplyRequest, LayoutNode,
-    LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
-    PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
-    PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest, TabState,
-    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, ImportApplyRequest,
+    ImportApplyResult, ImportFieldType, ImportPreview, ImportScanResult, ImportSource,
+    KeyBindingConflict, KeyBindingResolution, LayoutApplyRequest, LayoutNode, LayoutState,
+    PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse,
+    PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent, PaneScrollbackFetchRequest,
+    PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, SetGitIdentityRequest,
+    SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest,
+    StageFailedItem, StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -42,6 +44,9 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
+    println!("cargo:rerun-if-changed=../core/src/config_import/mod.rs");
+    println!("cargo:rerun-if-changed=../core/src/config_import/ipc.rs");
+    println!("cargo:rerun-if-changed=../core/src/config_import/keybinding.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -119,6 +124,16 @@ fn main() {
     TelemetryStatus::export_all(&config).expect("export TelemetryStatus");
     AppVersionInfo::export_all(&config).expect("export AppVersionInfo");
 
+    // MVP-06 Phase B · Config Import IPC contract（spec §G.1 · 7 struct + 1 enum）
+    ImportSource::export_all(&config).expect("export ImportSource");
+    ImportFieldType::export_all(&config).expect("export ImportFieldType");
+    ImportScanResult::export_all(&config).expect("export ImportScanResult");
+    ImportPreview::export_all(&config).expect("export ImportPreview");
+    ImportApplyRequest::export_all(&config).expect("export ImportApplyRequest");
+    ImportApplyResult::export_all(&config).expect("export ImportApplyResult");
+    KeyBindingConflict::export_all(&config).expect("export KeyBindingConflict");
+    KeyBindingResolution::export_all(&config).expect("export KeyBindingResolution");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -186,6 +201,15 @@ fn main() {
             "export type { TelemetryOptInRequest } from \"./TelemetryOptInRequest\";",
             "export type { TelemetryStatus } from \"./TelemetryStatus\";",
             "export type { AppVersionInfo } from \"./AppVersionInfo\";",
+            // MVP-06 Phase B · Config Import contract
+            "export type { ImportSource } from \"./ImportSource\";",
+            "export type { ImportFieldType } from \"./ImportFieldType\";",
+            "export type { ImportScanResult } from \"./ImportScanResult\";",
+            "export type { ImportPreview } from \"./ImportPreview\";",
+            "export type { ImportApplyRequest } from \"./ImportApplyRequest\";",
+            "export type { ImportApplyResult } from \"./ImportApplyResult\";",
+            "export type { KeyBindingConflict } from \"./KeyBindingConflict\";",
+            "export type { KeyBindingResolution } from \"./KeyBindingResolution\";",
             "",
         ]
         .join("\n"),

@@ -1,0 +1,28 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-06 Phase B · 配置导入 IPC permission 集
+# spec docs/tasks/MVP-06-config-import.md §G.1 · 4 个 command 显式 ACL（Tauri v2 默认 deny）
+# - scan：纯只读 · 扫 ~/.config/ghostty/ · ~/Library/Preferences/ · ~/.config/alacritty/
+# - preview：scan + 跨源合并 + 冲突检测 · 不读 DB
+# - detect_conflicts：UI 增量勾选时复用 · 不 IO
+# - apply：唯一会写 DB 的 · 写入 app_settings 表（font/theme/shell/imported_keybindings）
+
+[[permission]]
+identifier = "allow-config-import-scan"
+description = "允许前端扫描默认终端配置路径（Ghostty / iTerm2 / Alacritty） · 仅读不写"
+commands.allow = ["config_import_scan"]
+
+[[permission]]
+identifier = "allow-config-import-preview"
+description = "允许前端构建跨源预览 + 冲突检测 · 不写 DB"
+commands.allow = ["config_import_preview"]
+
+[[permission]]
+identifier = "allow-config-import-detect-conflicts"
+description = "允许前端针对当前勾选字段做冲突检测（UI 增量交互）"
+commands.allow = ["config_import_detect_conflicts"]
+
+[[permission]]
+identifier = "allow-config-import-apply"
+description = "允许前端把勾选字段写入 app_settings 并触发 settings_changed event"
+commands.allow = ["config_import_apply"]

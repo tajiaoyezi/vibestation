@@ -7,6 +7,8 @@ interface PrimarySidebarProps {
   onOpen: (id: string) => void;
   onCreate: () => void;
   onDelete: (id: string) => void;
+  /** MVP-06 · 触发配置导入对话框（欢迎页 / 空状态显示） */
+  onOpenImport?: () => void;
   loading: () => boolean;
   layout: () => { primaryOpen: boolean; primaryWidth: number };
   onResizeStart: (e: MouseEvent) => void;
@@ -88,6 +90,15 @@ export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
         </ul>
         <Show when={props.workspaces().length === 0}>
           <p class="vs-empty-hint">No workspaces yet.</p>
+          <Show when={props.onOpenImport}>
+            <button
+              type="button"
+              class="vs-import-link"
+              onClick={() => props.onOpenImport?.()}
+            >
+              Import settings from another terminal
+            </button>
+          </Show>
         </Show>
       </div>
       <div

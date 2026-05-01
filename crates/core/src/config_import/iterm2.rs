@@ -4,13 +4,13 @@
 //! 格式：binary plist（默认 · 魔数 bplist00）· fallback text plist
 //! 字段：Default Bookmark Guid → 找到 default profile → 提取 Normal Font / Non Ascii Font / ANSI Color N / Shell / Command
 
-use super::{ConfigImportError, ImportScanResult, ImportSource, ImportedField};
+use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use std::path::Path;
 
-pub fn scan(home: &Path) -> ImportScanResult {
+pub fn scan(home: &Path) -> RawScanResult {
     let path = home.join("Library/Preferences/com.googlecode.iterm2.plist");
     if !path.exists() {
-        return ImportScanResult {
+        return RawScanResult {
             source: ImportSource::ITerm2,
             path: None,
             path_exists: false,
@@ -19,14 +19,14 @@ pub fn scan(home: &Path) -> ImportScanResult {
         };
     }
     match parse_file(&path) {
-        Ok(fields) => ImportScanResult {
+        Ok(fields) => RawScanResult {
             source: ImportSource::ITerm2,
             path: Some(path),
             path_exists: true,
             detected_fields: fields,
             errors: Vec::new(),
         },
-        Err(e) => ImportScanResult {
+        Err(e) => RawScanResult {
             source: ImportSource::ITerm2,
             path: Some(path),
             path_exists: true,

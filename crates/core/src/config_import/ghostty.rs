@@ -8,7 +8,7 @@
 //!
 //! schema 可能演进 · 未知字段用 `#[serde(default)]` 跳过 + tracing::warn 记录（spec §已知风险）
 
-use super::{ConfigImportError, ImportScanResult, ImportSource, ImportedField};
+use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -22,7 +22,7 @@ struct GhosttyConfig {
 }
 
 /// 扫描 Ghostty 配置 · 返回结构化结果
-pub fn scan(home: &Path) -> ImportScanResult {
+pub fn scan(home: &Path) -> RawScanResult {
     let primary = home.join(".config/ghostty/config");
     let fallback = home.join("Library/Application Support/com.mitchellh.ghostty/config");
     let path = if primary.exists() {
@@ -34,14 +34,14 @@ pub fn scan(home: &Path) -> ImportScanResult {
     };
     match &path {
         Some(p) => parse_file(p).map_or_else(
-            |e| ImportScanResult {
+            |e| RawScanResult {
                 source: ImportSource::Ghostty,
                 path: Some(p.clone()),
                 path_exists: true,
                 detected_fields: Vec::new(),
                 errors: vec![e.to_string()],
             },
-            |fields| ImportScanResult {
+            |fields| RawScanResult {
                 source: ImportSource::Ghostty,
                 path: Some(p.clone()),
                 path_exists: true,
@@ -49,7 +49,7 @@ pub fn scan(home: &Path) -> ImportScanResult {
                 errors: Vec::new(),
             },
         ),
-        None => ImportScanResult {
+        None => RawScanResult {
             source: ImportSource::Ghostty,
             path: None,
             path_exists: false,

@@ -7,7 +7,7 @@
 //! 字段：font.normal.family / font.size / colors / key_bindings
 //! key_bindings action 映射延后到 Phase B（如 Alacritty SpawnNewInstance → 无映射 warn）
 
-use super::{ConfigImportError, ImportScanResult, ImportSource, ImportedField};
+use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use serde::Deserialize;
 use std::path::Path;
 
@@ -47,7 +47,7 @@ struct AlacrittyFontFamily {
     family: Option<String>,
 }
 
-pub fn scan(home: &Path) -> ImportScanResult {
+pub fn scan(home: &Path) -> RawScanResult {
     let toml_path = home.join(".config/alacritty/alacritty.toml");
     let yaml_path = home.join(".config/alacritty/alacritty.yml");
     let (path, is_yaml) = if toml_path.exists() {
@@ -65,14 +65,14 @@ pub fn scan(home: &Path) -> ImportScanResult {
                 parse_toml(p)
             };
             match result {
-                Ok(fields) => ImportScanResult {
+                Ok(fields) => RawScanResult {
                     source: ImportSource::Alacritty,
                     path: Some(p.clone()),
                     path_exists: true,
                     detected_fields: fields,
                     errors: Vec::new(),
                 },
-                Err(e) => ImportScanResult {
+                Err(e) => RawScanResult {
                     source: ImportSource::Alacritty,
                     path: Some(p.clone()),
                     path_exists: true,
@@ -81,7 +81,7 @@ pub fn scan(home: &Path) -> ImportScanResult {
                 },
             }
         }
-        None => ImportScanResult {
+        None => RawScanResult {
             source: ImportSource::Alacritty,
             path: None,
             path_exists: false,

@@ -8,7 +8,7 @@
 //!
 //! 业务编排：[`scan_all_sources_ipc`] · [`build_preview`] · [`apply`] · [`detect_conflicts_ipc`]
 
-use crate::app_settings::{AppSettingsStore, SettingsUpdateRequest};
+use crate::app_settings::SettingsUpdateRequest;
 use crate::config_import::keybinding::{detect_conflicts, ConflictHit};
 use crate::config_import::{ImportSource, ImportedField, RawScanResult};
 use crate::db::DbPool;
@@ -254,90 +254,175 @@ pub fn detect_conflicts_ipc(fields: &[ImportFieldType]) -> Vec<KeyBindingConflic
 ///   （v0.1 不激活到菜单 · 留 v0.2+ 接入 menu accelerator）
 /// - graceful：单个字段写失败不阻止其他（errors 字段记录）
 pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
+    use crate::config_import::keybinding::{canonicalize_keybinding, detect_conflicts};
+
     let mut applied: Vec<String> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
     let mut skipped_conflicts: Vec<KeyBindingConflict> = Vec::new();
 
-    // 收集 conflict 决策：source_key → resolution
-    let conflict_map: std::collections::HashMap<String, KeyBindingResolution> = req
+    // ─── §1 · 服务端独立冲突检测（Codex review 2026-05-01 finding 2 修复）─────
+    // 不 trust client 传的 conflict_resolutions · server 必须基于 req.fields 重检：
+    // - 默认 KeepVibe（保护 vibe 内置 · 即使 client 没传 / 传错）
+    // - 仅当 client 对该 canonical key explicit Override 才允许覆盖
+    let imported_keybindings_input: Vec<(String, String)> = req
+        .fields
+        .iter()
+        .filter_map(|f| match f {
+            ImportFieldType::KeyBinding { key, action } => Some((key.clone(), action.clone())),
+            _ => None,
+        })
+        .collect();
+    let server_conflicts = detect_conflicts(&imported_keybindings_input);
+    let server_conflict_keys: std::collections::HashSet<String> = server_conflicts
+        .iter()
+        .map(|h| h.source_key.clone())
+        .collect();
+    let client_overrides: std::collections::HashSet<String> = req
         .conflict_resolutions
         .iter()
-        .map(|c| (c.source_key.clone(), c.user_choice.clone()))
+        .filter(|c| matches!(c.user_choice, KeyBindingResolution::Override))
+        .map(|c| c.source_key.clone())
         .collect();
 
+    // ─── §2 · 收集字段意图（with theme validation）──────────────────────────
     let mut update_req = SettingsUpdateRequest::default();
     let mut keybindings_to_persist: Vec<(String, String)> = Vec::new();
+    let mut field_intent: Vec<&'static str> = Vec::new(); // 仅 commit 后转 applied
 
     for field in &req.fields {
         match field {
             ImportFieldType::FontFamily { value } => {
                 update_req.font_family = Some(value.clone());
+                field_intent.push("font_family");
             }
             ImportFieldType::FontSize { value } => {
-                // f32 → u32 round
                 let rounded = value.round().clamp(8.0, 72.0) as u32;
                 update_req.font_size = Some(rounded);
+                field_intent.push("font_size");
             }
             ImportFieldType::Theme { value } => {
-                update_req.theme = Some(value.clone());
+                // Codex review finding 1 修复：vibestation theme 仅支持 light/dark/auto
+                // 写入 Ghostty palette name（如 "tokyo-night"）会让前端 data-theme fallback CSS
+                // 用户感知"导入但没生效"。直接 reject 不支持值 · 显式 errors。
+                let normalized = value.trim().to_lowercase();
+                if matches!(normalized.as_str(), "light" | "dark" | "auto") {
+                    update_req.theme = Some(normalized);
+                    field_intent.push("theme");
+                } else {
+                    errors.push(format!(
+                        "theme '{value}' not supported (only light/dark/auto · v0.2+ evaluate palette import)"
+                    ));
+                }
             }
             ImportFieldType::Shell { value } => {
                 update_req.default_shell = Some(value.clone());
+                field_intent.push("default_shell");
             }
             ImportFieldType::KeyBinding { key, action } => {
-                use crate::config_import::keybinding::canonicalize_keybinding;
                 let canonical = canonicalize_keybinding(key);
                 if canonical.is_empty() {
                     continue;
                 }
-                // 查冲突决策（默认 KeepVibe · 即跳过）
-                if let Some(resolution) = conflict_map.get(&canonical) {
-                    if matches!(resolution, KeyBindingResolution::KeepVibe) {
-                        // 跳过 · 记录到 skipped_conflicts
-                        if let Some(c) = req
-                            .conflict_resolutions
-                            .iter()
-                            .find(|c| c.source_key == canonical)
+                if server_conflict_keys.contains(&canonical) {
+                    if client_overrides.contains(&canonical) {
+                        // explicit Override · 允许覆盖 vibe 内置
+                        keybindings_to_persist.push((canonical, action.clone()));
+                    } else {
+                        // 默认 KeepVibe（保护 vibe 内置 · 即使 client 没传或传 KeepVibe）
+                        if let Some(hit) =
+                            server_conflicts.iter().find(|h| h.source_key == canonical)
                         {
-                            skipped_conflicts.push(c.clone());
+                            skipped_conflicts.push(KeyBindingConflict {
+                                vibe_key: hit.vibe_key.clone(),
+                                source_key: hit.source_key.clone(),
+                                vibe_action: hit.vibe_action.clone(),
+                                source_action: hit.source_action.clone(),
+                                user_choice: KeyBindingResolution::KeepVibe,
+                            });
                         }
-                        continue;
                     }
-                    // Override · 写入 imported_keybindings
+                } else {
+                    keybindings_to_persist.push((canonical, action.clone()));
                 }
-                keybindings_to_persist.push((canonical, action.clone()));
             }
             ImportFieldType::AnsiColor { .. } => {
-                // ANSI color 由前端处理 · 直接转 CSS var 应用 · 不进 app_settings 表
-                // （v0.1 不持久化 ANSI palette · v0.2+ 增 ansi_palette JSON 字段）
+                // ANSI color 由前端处理 · 直接转 CSS var · v0.1 不进 app_settings
             }
         }
     }
 
-    // 先写非 keybindings 字段
-    if let Err(e) = AppSettingsStore::update(pool, &update_req) {
-        errors.push(format!("settings update failed: {e}"));
-    } else {
-        if update_req.font_family.is_some() {
-            applied.push("font_family".to_string());
+    // ─── §3 · 原子写入（Codex review finding 3 修复）──────────────────────
+    // 原实现：N 次独立 `AppSettingsStore::set` · 中途 fail 留半状态 · errors 只报
+    // generic · applied 不准。改成 unchecked_transaction 包整个写入：任一 fail
+    // → rollback · errors 报具体字段 · applied 全空不 misreport。全成功 → commit。
+    let conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            errors.push(format!("pool get failed: {e}"));
+            return ImportApplyResult {
+                applied,
+                skipped_conflicts,
+                errors,
+            };
         }
-        if update_req.font_size.is_some() {
-            applied.push("font_size".to_string());
+    };
+    let tx = match conn.unchecked_transaction() {
+        Ok(t) => t,
+        Err(e) => {
+            errors.push(format!("transaction begin failed: {e}"));
+            return ImportApplyResult {
+                applied,
+                skipped_conflicts,
+                errors,
+            };
         }
-        if update_req.theme.is_some() {
-            applied.push("theme".to_string());
-        }
-        if update_req.default_shell.is_some() {
-            applied.push("default_shell".to_string());
-        }
-    }
+    };
 
-    // 写 imported_keybindings（JSON 字符串 · 即使空数组也写以反映用户操作）
-    if !keybindings_to_persist.is_empty() {
-        let json = serialize_keybindings(&keybindings_to_persist);
-        match AppSettingsStore::set(pool, "imported_keybindings", &json) {
-            Ok(()) => applied.push("imported_keybindings".to_string()),
-            Err(e) => errors.push(format!("imported_keybindings write failed: {e}")),
+    let upsert_sql = "INSERT INTO app_settings (key, value) VALUES (?1, ?2) \
+                      ON CONFLICT(key) DO UPDATE SET value = excluded.value";
+
+    let tx_result: Result<(), String> = (|| {
+        if let Some(ref v) = update_req.font_family {
+            tx.execute(upsert_sql, rusqlite::params!["font_family", v])
+                .map_err(|e| format!("font_family: {e}"))?;
+        }
+        if let Some(v) = update_req.font_size {
+            tx.execute(upsert_sql, rusqlite::params!["font_size", v.to_string()])
+                .map_err(|e| format!("font_size: {e}"))?;
+        }
+        if let Some(ref v) = update_req.theme {
+            tx.execute(upsert_sql, rusqlite::params!["theme", v])
+                .map_err(|e| format!("theme: {e}"))?;
+        }
+        if let Some(ref v) = update_req.default_shell {
+            tx.execute(upsert_sql, rusqlite::params!["default_shell", v])
+                .map_err(|e| format!("default_shell: {e}"))?;
+        }
+        if !keybindings_to_persist.is_empty() {
+            let json = serialize_keybindings(&keybindings_to_persist);
+            tx.execute(upsert_sql, rusqlite::params!["imported_keybindings", json])
+                .map_err(|e| format!("imported_keybindings: {e}"))?;
+        }
+        Ok(())
+    })();
+
+    match tx_result {
+        Ok(()) => match tx.commit() {
+            Ok(()) => {
+                applied.extend(field_intent.iter().map(|s| s.to_string()));
+                if !keybindings_to_persist.is_empty() {
+                    applied.push("imported_keybindings".to_string());
+                }
+            }
+            Err(e) => {
+                errors.push(format!("transaction commit failed: {e}"));
+            }
+        },
+        Err(e) => {
+            errors.push(format!(
+                "settings write failed: {e} (transaction rolled back · no fields written)"
+            ));
+            // tx drop 自动 rollback · 不需显式调用
         }
     }
 
@@ -365,6 +450,7 @@ fn serialize_keybindings(pairs: &[(String, String)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app_settings::AppSettingsStore;
     use crate::db;
     use tempfile::TempDir;
 
@@ -435,6 +521,8 @@ mod tests {
 
     #[test]
     fn apply_writes_font_family_and_theme() {
+        // round 2: theme value 改为 supported（worker A 原写 "tokyo-night" 反映 finding 1
+        // 的 bug 契约 · 现在 theme 验证要 light/dark/auto · 测 supported 值的正常路径）
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
             source: ImportSource::Ghostty,
@@ -444,7 +532,7 @@ mod tests {
                 },
                 ImportFieldType::FontSize { value: 16.0 },
                 ImportFieldType::Theme {
-                    value: "tokyo-night".to_string(),
+                    value: "dark".to_string(),
                 },
             ],
             conflict_resolutions: vec![],
@@ -458,7 +546,7 @@ mod tests {
         let s = AppSettingsStore::get_all(&pool);
         assert_eq!(s.font_family, "JetBrains Mono");
         assert_eq!(s.font_size, 16);
-        assert_eq!(s.theme, "tokyo-night");
+        assert_eq!(s.theme, "dark");
     }
 
     #[test]
@@ -564,5 +652,157 @@ mod tests {
         // ANSI color v0.1 不入 DB · applied 列表不应含 ansi
         assert!(result.errors.is_empty());
         assert!(result.applied.is_empty());
+    }
+
+    // ─── Codex review (2026-05-01) round 2 regression tests ───────────────
+
+    /// Finding 1: 不支持的 theme 值（如 Ghostty palette name "tokyo-night"）必须 reject
+    /// · 不写入 app_settings · errors 含说明
+    #[test]
+    fn apply_rejects_unsupported_theme_value() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![ImportFieldType::Theme {
+                value: "tokyo-night".to_string(),
+            }],
+            conflict_resolutions: vec![],
+        };
+        let result = apply(&pool, &req);
+        assert!(
+            !result.applied.contains(&"theme".to_string()),
+            "tokyo-night 不应进 applied"
+        );
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("tokyo-night") && e.contains("not supported")),
+            "errors 应含 'tokyo-night not supported' · 实际 errors={:?}",
+            result.errors
+        );
+        // DB 不应有 theme 字段被改（保留 default）
+        let s = AppSettingsStore::get_all(&pool);
+        assert_ne!(s.theme, "tokyo-night");
+    }
+
+    /// Finding 1: 支持的 theme 值（light/dark/auto · 含大小写空格）必须 normalize 后写入
+    #[test]
+    fn apply_accepts_supported_theme_value_normalized() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![ImportFieldType::Theme {
+                value: "  Dark  ".to_string(), // 带空格 + 大写
+            }],
+            conflict_resolutions: vec![],
+        };
+        let result = apply(&pool, &req);
+        assert!(result.applied.contains(&"theme".to_string()));
+        assert!(result.errors.is_empty());
+        let s = AppSettingsStore::get_all(&pool);
+        assert_eq!(s.theme, "dark");
+    }
+
+    /// Finding 2: client 不传 conflict_resolutions（绕过 detect_conflicts）·
+    /// server 必须独立检测 · 默认保护 vibe 内置 ⌘T · 不写入 imported_keybindings
+    #[test]
+    fn apply_protects_vibe_builtins_when_client_omits_conflict_resolutions() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![ImportFieldType::KeyBinding {
+                key: "Cmd+T".to_string(), // vibe 内置 tabs.create
+                action: "spawn_tab".to_string(),
+            }],
+            conflict_resolutions: vec![], // ❗client 故意不传冲突决策
+        };
+        let result = apply(&pool, &req);
+        // ⌘T 必须被保护 · 不进 imported_keybindings
+        assert!(
+            !result.applied.contains(&"imported_keybindings".to_string()),
+            "vibe 内置 ⌘T 不应被覆盖 · applied={:?}",
+            result.applied
+        );
+        // 必须出现在 skipped_conflicts（默认 KeepVibe）
+        assert_eq!(result.skipped_conflicts.len(), 1);
+        assert_eq!(result.skipped_conflicts[0].source_key, "Cmd+T");
+        assert_eq!(
+            result.skipped_conflicts[0].user_choice,
+            KeyBindingResolution::KeepVibe
+        );
+        // DB 内 imported_keybindings 不应被写
+        assert!(AppSettingsStore::get(&pool, "imported_keybindings").is_err());
+    }
+
+    /// Finding 2: client explicit Override · server 允许覆盖 vibe 内置
+    #[test]
+    fn apply_allows_explicit_override_of_vibe_builtin() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![ImportFieldType::KeyBinding {
+                key: "Cmd+T".to_string(),
+                action: "spawn_tab".to_string(),
+            }],
+            conflict_resolutions: vec![KeyBindingConflict {
+                vibe_key: "Cmd+T".to_string(),
+                source_key: "Cmd+T".to_string(),
+                vibe_action: "tabs.create".to_string(),
+                source_action: "spawn_tab".to_string(),
+                user_choice: KeyBindingResolution::Override,
+            }],
+        };
+        let result = apply(&pool, &req);
+        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(result.skipped_conflicts.is_empty());
+        let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
+        assert!(raw.contains("Cmd+T"));
+        assert!(raw.contains("spawn_tab"));
+    }
+
+    /// Finding 3: apply 是 transactional · 多字段同时写 · 全 commit 一致
+    /// · applied 反映完整成功状态 · errors empty
+    #[test]
+    fn apply_writes_multiple_fields_atomically() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![
+                ImportFieldType::FontFamily {
+                    value: "JetBrains Mono".to_string(),
+                },
+                ImportFieldType::FontSize { value: 14.5 },
+                ImportFieldType::Theme {
+                    value: "dark".to_string(),
+                },
+                ImportFieldType::Shell {
+                    value: "/bin/zsh".to_string(),
+                },
+                ImportFieldType::KeyBinding {
+                    key: "Cmd+Shift+P".to_string(),
+                    action: "command_palette".to_string(),
+                },
+            ],
+            conflict_resolutions: vec![],
+        };
+        let result = apply(&pool, &req);
+        assert!(
+            result.errors.is_empty(),
+            "errors 应空 · 实际={:?}",
+            result.errors
+        );
+        // 全部 5 个字段都进 applied（含 keybindings）
+        assert!(result.applied.contains(&"font_family".to_string()));
+        assert!(result.applied.contains(&"font_size".to_string()));
+        assert!(result.applied.contains(&"theme".to_string()));
+        assert!(result.applied.contains(&"default_shell".to_string()));
+        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        // DB 内字段都正确持久化
+        let s = AppSettingsStore::get_all(&pool);
+        assert_eq!(s.font_family, "JetBrains Mono");
+        assert_eq!(s.font_size, 15); // 14.5 round → 15
+        assert_eq!(s.theme, "dark");
+        assert_eq!(s.default_shell, "/bin/zsh");
     }
 }

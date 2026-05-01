@@ -150,9 +150,9 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 目标版本 | 估时 | 依赖 |
 |----|------|------|---------|------|------|
-| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft（⚠ id 与 v0.1 MVP-11 Native Feel Quality 冲突 · v0.2 实施前需 rename 或换号） | v0.2 | 5d | MVP-09 |
-| [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft | v0.2 | 8d | MVP-07 |
-| [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete | draft | v0.2 | 4d | MVP-07/09 |
+| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft · **详化 100%**（vibe sprint 2026-05-01 Worker B · 等 Arbiter approve 后翻 ready · ⚠ id 与 v0.1 MVP-11 Native Feel Quality 冲突 · 推荐 rename MVP-21）| v0.2 | 5d | MVP-09 / MVP-13 |
+| [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft（占位 · 待下个 sprint 详化）| v0.2 | 8d | MVP-07 |
+| [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete + Fuzzy Switcher | draft · **详化 100%**（vibe sprint 2026-05-01 Worker B · 等 Arbiter approve 后翻 ready）| v0.2 | 4d | MVP-07 / MVP-09 |
 | [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |
 | [MVP-15](./MVP-15-diff-syntax-highlight.md) | Diff 复杂语法高亮（tree-sitter）| draft | v0.3 | 6d | MVP-08 |
 | [MVP-16](./MVP-16-rebase-merge-cherrypick.md) | Rebase / Merge / Cherry-pick | draft | v0.3 | 7d | MVP-13 |

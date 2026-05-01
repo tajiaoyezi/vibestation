@@ -32,20 +32,23 @@ reviewer: Kimi
 - `§10.5` 降级树：≤ 15h 时可砍 iTerm2/Alacritty（只留 Ghostty 覆盖 Persona C）
 - 三者配置格式：Ghostty TOML / iTerm2 plist / Alacritty TOML（0.14+）+ YAML fallback（0.13-）
 
-## 🛠 实施进度（2026-04-21 · session 14）
+## 🛠 实施进度（2026-05-01 · vibe-sprint v0.1）
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · parser 基础 | `crates/core/src/config_import/` 新模块：Ghostty TOML + iTerm2 plist（binary/text · Default Bookmark Guid → default profile）+ Alacritty TOML/YAML 双格式 · 提 font/shell/theme · `ImportedField` 5 variants · 16 单元测试 · 边界 graceful（文件不存在 / 格式损坏 / 字段缺失 / 未知字段）| ✅ done | [#80](https://github.com/tajiaoyezi/vibestation/pull/80) |
 | Phase A+ · 字段深化 | `ImportedField::AnsiColor { index: u8, hex: String }` 新增 · iTerm2 `Ansi 0-15 Color` RGB→hex 转换 · Ghostty `keybind = X=Y` 重复行逐行扫（toml filter 降级）· Alacritty `[[keyboard.bindings]]` TOML 0.14+ + `key_bindings:` YAML 0.13- · +10 测试（total 26）| ✅ done | [#81](https://github.com/tajiaoyezi/vibestation/pull/81) |
-| Phase B · IPC + UI + apply | `ImportSource` / `ImportScanResult` / `ImportPreview` / `KeyBindingConflict` 等 ts-rs derive（§G.1 7 struct）· Tauri 3-4 commands + `allow-config-import-*` permission · Calm Studio 导入对话框 3 step · canonical form 算法（§H.3 · `Cmd+T` 统一化）· 冲突检测 · 字体 fallback 检测 · 写入 `app_settings` · ANSI color → CSS var 映射 | ⏳ 待 MVP-04 Phase B-F done 后做 | — |
-| Phase C · runtime 证据 | ≥ 3 张截图（导入对话框 · 预览列表 · 冲突 warning）· 放 `docs/runtime-evidence/mvp-06/` | ⏳ Phase B 时一起做 | — |
+| Phase B · IPC + UI + apply | `crates/core/src/config_import/ipc.rs`（7 ts-rs struct + `KeyBindingResolution` enum · spec §G.1 全覆盖 · 9 单测） · `keybinding.rs`（canonical form §H.3 · 17 单测 · `Cmd > Ctrl > Alt > Shift` 排序 · unicode `⌘⌃⌥⇧` 别名）· 4 个 Tauri command（`config_import_scan` / `_preview` / `_detect_conflicts` / `_apply`） · `permissions/config-import.toml` 4 permission · `default.json` capability 引用 · Calm Studio `ConfigImportDialog` 3+1 step（select · preview · confirm · result） · 字体 fallback 检测（`document.fonts.check`） · `app_settings` 写入 font_family / font_size / theme / default_shell / imported_keybindings JSON · ANSI color v0.1 不入 DB（v0.2+ 增 ansi_palette） · 总计 +62 测试（26 → 88） | ✅ done | TBD |
+| Phase C · runtime 证据 | GUI capture · Arbiter 已降级 P3 · 留 Arbiter 后续本地补 ≥ 3 张截图（`docs/runtime-evidence/mvp-06/01-import-dialog-step1.png` · `02-preview-list.png` · `03-conflict-warning.png` · 04 confirm summary · 05 result success） | ⏳ P3 deferred（CI 全绿 · IPC contract 一致 · 单测覆盖核心逻辑） | — |
 
-**Phase A/A+ 累计产出**：`crates/core/src/config_import/` 4 文件 ~770 行 · 26 单元测试 · 5 → 6 个 `ImportedField` variants · 零 IPC / 零 UI / 零 ts-rs derive（Phase B 补）· 零 permission · 零 app crate 修改。
+**Phase B 累计产出**：
+- 新增 `crates/core/src/config_import/ipc.rs`（~440 行 · 9 单测）+ `keybinding.rs`（~330 行 · 17 单测）· `mod.rs` 重命名 `ImportScanResult → RawScanResult`（IPC 类型独立 · 内部 PathBuf 不进 IPC）
+- 新增 `web/src/dialogs/ConfigImport/ConfigImportDialog.tsx`（~640 行 · 4 step + 字段/冲突/字体 UI）+ `styles.css`（~480 行）+ `index.ts`
+- 新增 `crates/app/permissions/config-import.toml`（4 permission）
+- 修改 `crates/app/src/lib.rs` 加 4 IPC commands · `crates/app/build.rs` 加 8 个 ts-rs export · `crates/app/capabilities/default.json` 加 4 permission 引用 · `crates/core/src/lib.rs` 重新 re-export
+- 修改 `web/src/App.tsx`（importVisible state + ConfigImportDialog mount）· `PrimarySidebar.tsx`（onOpenImport prop · 空状态 link）· `panels/Settings/SettingsPanel.tsx`（header "Import…" 按钮）· `styles.css` + Settings styles 加触发样式
 
-**Phase B 启动信号**：MVP-04 Phase C（xterm 前端）+ Phase D（shell 兼容）done 后。届时 `app_settings` 表已完整启用 · apply 逻辑才有落地点。
-
-**保持 `status: ready`**：整体 MVP-06 未 done · 允许 Phase B executor 直接认领。
+**保持 `status: ready`**：Acceptance 全过 · 但 spec 仍要 P3 runtime capture 后翻 done · v2-D.1 流程下保持 ready 让 Arbiter approve PR + capture 后翻转。
 
 ---
 

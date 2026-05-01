@@ -1,25 +1,35 @@
-//! 配置导入 parser 模块 · MVP-06 Phase A
+//! 配置导入 parser + IPC 模块 · MVP-06
 //!
-//! Scope：只做 parse 纯逻辑 · 不含 IPC / UI / ts-rs derive
-//! Phase B（后续 · MVP-04 Phase B-F done 后）再做 IPC command 暴露 + UI 接入
+//! - Phase A（PR #80 / #81）：parser 纯逻辑 · 三家解析（Ghostty TOML / iTerm2 plist /
+//!   Alacritty TOML+YAML）+ ImportedField + RawScanResult（内部使用 · 含 PathBuf）
+//! - Phase B（本 PR）：ts-rs IPC 类型（[`ipc`] 子模块）+ canonical form 算法
+//!   ([`keybinding`] 子模块）+ 4 个 Tauri command + 写入 `app_settings`
 //!
-//! spec 依据：docs/tasks/MVP-06-config-import.md §Scope + §H.1 解析库选型
+//! spec 依据：docs/tasks/MVP-06-config-import.md §G IPC + §H 决策锁定
 
 pub mod alacritty;
 pub mod ghostty;
+pub mod ipc;
 pub mod iterm2;
+pub mod keybinding;
 
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use ts_rs::TS;
 
-/// 导入源枚举（Phase A 内部用 · Phase B 会 ts-rs derive 给 IPC）
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// 导入源枚举（spec §G.2）· 既给 Phase A parser 内部用 · 也是 IPC 类型
+///
+/// JSON serialization：`"ghostty" | "iTerm2" | "alacritty"`（serde camelCase enum）
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
 pub enum ImportSource {
     Ghostty,
     ITerm2,
     Alacritty,
 }
 
-/// 解析后的单个字段（Phase A 内部用）
+/// 解析后的单个字段（Phase A 内部用 · 不直接 IPC · IPC 用 [`ipc::ImportFieldType`]）
 #[derive(Debug, Clone, PartialEq)]
 pub enum ImportedField {
     FontFamily(String),
@@ -30,9 +40,11 @@ pub enum ImportedField {
     AnsiColor { index: u8, hex: String },
 }
 
-/// 单个源扫描 + 解析结果
+/// 单个源扫描 + 解析的 raw 结果（Phase A 内部 · 含 PathBuf · 不进 IPC）
+///
+/// IPC 表示：[`ipc::ImportScanResult`] · 通过 [`ipc::ImportScanResult::from`] 转换
 #[derive(Debug, Clone)]
-pub struct ImportScanResult {
+pub struct RawScanResult {
     pub source: ImportSource,
     pub path: Option<PathBuf>, // 实际找到的路径（None 若未检测到）
     pub path_exists: bool,
@@ -56,16 +68,15 @@ pub enum ConfigImportError {
     UnsupportedFormat(String),
 }
 
-/// 扫描默认路径 · 返回所有检测到的源
+/// 扫描默认路径 · 返回所有检测到的源（Phase A 内部 raw 结果）
 ///
-/// Phase A：只返回结构化结果 · 不做 UI / 不写 DB
-pub fn scan_all_sources(home: &Path) -> Vec<ImportScanResult> {
-    let results = vec![
+/// IPC 入口：[`ipc::scan_all_sources_ipc`] · 在此函数基础上做 IPC 转换
+pub fn scan_all_sources(home: &Path) -> Vec<RawScanResult> {
+    vec![
         ghostty::scan(home),
         iterm2::scan(home),
         alacritty::scan(home),
-    ];
-    results
+    ]
 }
 
 #[cfg(test)]

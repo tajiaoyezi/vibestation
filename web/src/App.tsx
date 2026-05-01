@@ -31,6 +31,7 @@ import { GearIcon } from "./components/Icons";
 import { TopBar } from "./components/TopBar";
 import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
+import { ConfigImportDialog } from "./dialogs/ConfigImport";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -82,6 +83,8 @@ const LayoutShell: Component<{
 }> = (props) => {
   const { layout, dispatch, loadForWorkspace } = useLayout();
   const [settingsVisible, setSettingsVisible] = createSignal(false);
+  // MVP-06 · 配置导入对话框（首次启动 / Settings 头部触发）
+  const [importVisible, setImportVisible] = createSignal(false);
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
@@ -241,6 +244,7 @@ const LayoutShell: Component<{
           onOpen={props.onOpen}
           onCreate={props.onCreate}
           onDelete={props.onDeleteConfirm}
+          onOpenImport={() => setImportVisible(true)}
           loading={props.loading}
           layout={() => ({
             primaryOpen: layout().primaryOpen,
@@ -346,7 +350,18 @@ const LayoutShell: Component<{
       <SettingsPanel
         visible={settingsVisible()}
         onClose={() => setSettingsVisible(false)}
+        onOpenImport={() => setImportVisible(true)}
       />
+
+      <Show when={importVisible()}>
+        <ConfigImportDialog
+          onClose={() => setImportVisible(false)}
+          onApplied={() => {
+            // settings store 已通过 settings_changed event 自动 reload
+            // 此处仅做用户感知反馈 · 不做额外刷新
+          }}
+        />
+      </Show>
     </div>
   );
 };

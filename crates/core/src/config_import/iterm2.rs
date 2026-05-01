@@ -4,13 +4,13 @@
 //! 格式：binary plist（默认 · 魔数 bplist00）· fallback text plist
 //! 字段：Default Bookmark Guid → 找到 default profile → 提取 Normal Font / Non Ascii Font / ANSI Color N / Shell / Command
 
-use super::{ConfigImportError, ImportScanResult, ImportSource, ImportedField};
+use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use std::path::Path;
 
-pub fn scan(home: &Path) -> ImportScanResult {
+pub fn scan(home: &Path) -> RawScanResult {
     let path = home.join("Library/Preferences/com.googlecode.iterm2.plist");
     if !path.exists() {
-        return ImportScanResult {
+        return RawScanResult {
             source: ImportSource::ITerm2,
             path: None,
             path_exists: false,
@@ -19,14 +19,14 @@ pub fn scan(home: &Path) -> ImportScanResult {
         };
     }
     match parse_file(&path) {
-        Ok(fields) => ImportScanResult {
+        Ok(fields) => RawScanResult {
             source: ImportSource::ITerm2,
             path: Some(path),
             path_exists: true,
             detected_fields: fields,
             errors: Vec::new(),
         },
-        Err(e) => ImportScanResult {
+        Err(e) => RawScanResult {
             source: ImportSource::ITerm2,
             path: Some(path),
             path_exists: true,
@@ -317,5 +317,146 @@ mod tests {
         assert_eq!(rgb_to_hex(1.0, 1.0, 1.0), "#ffffff");
         // 0.1, 0.2, 0.3 → 0.1*255=25.5→26(0x1a), 0.2*255=51.0→51(0x33), 0.3*255=76.5→77(0x4d)
         assert_eq!(rgb_to_hex(0.1, 0.2, 0.3), "#1a334d");
+    }
+
+    // ─── /review-pr round 5 regression: Default Bookmark Guid 多 profile 路径 ────
+
+    /// 多 profile + Default Bookmark Guid 命中**非第一个** profile · 必须按 GUID 取
+    /// （现实用户配置都有多 profile · 不能 fallback 第一个）
+    #[test]
+    fn scan_selects_profile_by_default_bookmark_guid() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Default Bookmark Guid</key>
+    <string>profile-2</string>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Guid</key>
+            <string>profile-1</string>
+            <key>Normal Font</key>
+            <string>SF Mono 12</string>
+            <key>Command</key>
+            <string>/bin/bash</string>
+        </dict>
+        <dict>
+            <key>Guid</key>
+            <string>profile-2</string>
+            <key>Normal Font</key>
+            <string>JetBrains Mono 16</string>
+            <key>Command</key>
+            <string>/bin/zsh</string>
+        </dict>
+    </array>
+</dict>
+</plist>"#;
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        assert!(r.errors.is_empty());
+        // 必须取 profile-2（GUID 命中）· 不是 profile-1
+        let has_jetbrains = r
+            .detected_fields
+            .iter()
+            .any(|f| matches!(f, ImportedField::FontFamily(name) if name == "JetBrains Mono"));
+        let has_zsh = r
+            .detected_fields
+            .iter()
+            .any(|f| matches!(f, ImportedField::Shell(s) if s == "/bin/zsh"));
+        assert!(
+            has_jetbrains,
+            "GUID profile-2 应该用 JetBrains Mono · 不是 profile-1 SF Mono · fields={:?}",
+            r.detected_fields
+        );
+        assert!(has_zsh, "GUID profile-2 应该用 /bin/zsh · 不是 /bin/bash");
+    }
+
+    /// 无 Default Bookmark Guid · fallback 第一个 profile（兼容性 · spec §B）
+    #[test]
+    fn scan_falls_back_to_first_profile_when_no_guid() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Normal Font</key>
+            <string>Menlo 11</string>
+            <key>Command</key>
+            <string>/bin/sh</string>
+        </dict>
+        <dict>
+            <key>Normal Font</key>
+            <string>Hack 14</string>
+        </dict>
+    </array>
+</dict>
+</plist>"#;
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // 无 Default Bookmark Guid · 取第一个 profile（Menlo / /bin/sh）
+        let has_menlo = r
+            .detected_fields
+            .iter()
+            .any(|f| matches!(f, ImportedField::FontFamily(name) if name == "Menlo"));
+        assert!(
+            has_menlo,
+            "无 GUID · 应该 fallback 第一个 profile Menlo · fields={:?}",
+            r.detected_fields
+        );
+    }
+
+    /// Default Bookmark Guid 指向不存在的 profile · 应该 graceful fallback（不 panic）
+    #[test]
+    fn scan_default_guid_missing_falls_back() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Default Bookmark Guid</key>
+    <string>nonexistent-guid</string>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Guid</key>
+            <string>profile-x</string>
+            <key>Normal Font</key>
+            <string>Courier New 13</string>
+        </dict>
+    </array>
+</dict>
+</plist>"#;
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(r.path_exists);
+        // GUID 找不到 · 应该 fallback 第一个 profile（Courier New）· 不 panic
+        let has_courier = r
+            .detected_fields
+            .iter()
+            .any(|f| matches!(f, ImportedField::FontFamily(name) if name == "Courier New"));
+        assert!(
+            has_courier,
+            "GUID missing · 应该 fallback profile-x Courier New · fields={:?}",
+            r.detected_fields
+        );
     }
 }

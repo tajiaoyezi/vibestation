@@ -362,6 +362,65 @@ fn app_version_get() -> AppVersionInfo {
     telemetry::build_version_info()
 }
 
+// ─── MVP-06 Phase B · Config Import IPC（4 commands · spec §G.1） ───────
+
+/// 扫描默认路径 · 返回 3 个源（Ghostty / iTerm2 / Alacritty）的扫描结果
+///
+/// 不读 DB · 纯文件解析 · 失败 graceful（errors 字段记录字段级错误 · 整体不崩）
+#[tauri::command]
+fn config_import_scan() -> Vec<vibestation_core::ImportScanResult> {
+    let home = home_dir_or_root();
+    vibestation_core::config_import_scan(&home)
+}
+
+/// 构建预览 · 跨源合并 + 全局冲突检测
+///
+/// `selected_sources` 为空时所有源参与冲突检测（默认）
+#[tauri::command]
+fn config_import_preview(
+    selected_sources: Vec<vibestation_core::ImportSource>,
+) -> vibestation_core::ImportPreview {
+    let home = home_dir_or_root();
+    vibestation_core::config_import_build_preview(&home, &selected_sources)
+}
+
+/// 检测冲突（UI 切换勾选时调）
+#[tauri::command]
+fn config_import_detect_conflicts(
+    fields: Vec<vibestation_core::ImportFieldType>,
+) -> Vec<vibestation_core::KeyBindingConflict> {
+    vibestation_core::config_import_detect_conflicts(&fields)
+}
+
+/// 应用导入 · 写 app_settings · emit settings_changed
+///
+/// graceful：单字段写失败不阻止其他（errors 字段记录）
+#[tauri::command]
+fn config_import_apply(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: vibestation_core::ImportApplyRequest,
+) -> Result<vibestation_core::ImportApplyResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let result = vibestation_core::config_import_apply(pool, &req);
+
+    // 写完后拉一份 settings · emit · 让前端 settings store 立即刷新
+    // （主题 / 字体 / shell 切换走和 settings_update 一致的 event 通道）
+    let updated = AppSettingsStore::get_all(pool);
+    drop(guard);
+
+    let _ = app.emit("settings_changed", &updated);
+    Ok(result)
+}
+
+/// 计算用户 home 目录 · 失败回退根目录（让扫描看到 path_exists=false 而不是 panic）
+fn home_dir_or_root() -> PathBuf {
+    std::env::var("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/"))
+}
+
 #[tauri::command]
 fn tab_list(state: State<'_, AppState>, workspace_id: String) -> Result<TabListResponse, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
@@ -998,6 +1057,10 @@ pub fn run() {
             telemetry_opt_in_set,
             telemetry_status_get,
             app_version_get,
+            config_import_scan,
+            config_import_preview,
+            config_import_detect_conflicts,
+            config_import_apply,
             tab_list,
             tab_create,
             tab_close,

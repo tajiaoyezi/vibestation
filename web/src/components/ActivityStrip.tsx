@@ -12,9 +12,9 @@ export const ActivityStrip: Component = () => {
     label: string;
     shortcut: string;
   }[] = [
-    { id: "primary", icon: "⊞", label: "Primary panel", shortcut: "⌘1" },
-    { id: "secondary", icon: "⊟", label: "Secondary panel", shortcut: "⌘2" },
-    { id: "bottom", icon: "◴", label: "Bottom panel", shortcut: "⌘J" },
+    { id: "primary", icon: "⊞", label: "Workspaces", shortcut: "⌘1" },
+    { id: "secondary", icon: "⊟", label: "Git Log", shortcut: "⌘2" },
+    { id: "bottom", icon: "◴", label: "Git Status", shortcut: "⌘J" },
   ];
 
   const isOpen = (id: PanelId): boolean => {
@@ -33,7 +33,7 @@ export const ActivityStrip: Component = () => {
     <aside
       class="vs-activity-strip"
       role="toolbar"
-      aria-label="Tool window toggles"
+      aria-label="Panel toggles"
     >
       <For each={items}>
         {(item) => (
@@ -42,6 +42,7 @@ export const ActivityStrip: Component = () => {
             class={`vs-as-btn${isOpen(item.id) ? " vs-as-btn-on" : ""}`}
             aria-label={item.label}
             aria-pressed={isOpen(item.id)}
+            title={`${item.label} (${item.shortcut})`}
             onClick={() => dispatch({ kind: `toggle-${item.id}` as const })}
           >
             <span aria-hidden="true">{item.icon}</span>

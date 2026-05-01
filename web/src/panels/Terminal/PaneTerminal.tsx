@@ -391,6 +391,12 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         } catch {}
       }, 50);
       pendingTimers.push(refreshTimer);
+      // mount-time auto focus · 修新建 tab 后焦点不在 terminal 的问题：
+      // createEffect(props.active+focused) 在 onMount 异步之前已 run · 当时 term
+      // 还没创建 · term?.focus() no-op。这里 term 已 ready · 补一次 focus。
+      if (props.active && props.focused) {
+        term.focus();
+      }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       setSpawnError(msg);

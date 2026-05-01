@@ -399,7 +399,11 @@ pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
                 .map_err(|e| format!("default_shell: {e}"))?;
         }
         if !keybindings_to_persist.is_empty() {
-            let json = serialize_keybindings(&keybindings_to_persist);
+            // review round 5 fix: serialize_keybindings 返回 Result · 失败显式向上传播
+            // （改前 unwrap_or "[]" 静默吞 serde_json error · 写空数组进 DB · applied 仍含
+            // imported_keybindings · 用户看到成功但数据丢失）
+            let json = serialize_keybindings(&keybindings_to_persist)
+                .map_err(|e| format!("imported_keybindings serialize: {e}"))?;
             tx.execute(upsert_sql, rusqlite::params!["imported_keybindings", json])
                 .map_err(|e| format!("imported_keybindings: {e}"))?;
         }
@@ -434,7 +438,11 @@ pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
 }
 
 /// 把 (key, action) 序列化为 JSON 字符串 · 写入 app_settings.imported_keybindings
-fn serialize_keybindings(pairs: &[(String, String)]) -> String {
+///
+/// 返回 Result · 失败让 caller 显式处理（review round 5 fix · 改前 unwrap_or "[]"
+/// 静默吞 serde error · 写空数组进 DB · applied 仍含 imported_keybindings ·
+/// 用户看到成功但数据丢失）
+fn serialize_keybindings(pairs: &[(String, String)]) -> Result<String, serde_json::Error> {
     #[derive(Serialize)]
     struct Entry<'a> {
         key: &'a str,
@@ -444,7 +452,7 @@ fn serialize_keybindings(pairs: &[(String, String)]) -> String {
         .iter()
         .map(|(k, a)| Entry { key: k, action: a })
         .collect();
-    serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string())
+    serde_json::to_string(&entries)
 }
 
 #[cfg(test)]
@@ -560,6 +568,56 @@ mod tests {
         let _ = apply(&pool, &req);
         let s = AppSettingsStore::get_all(&pool);
         assert_eq!(s.font_size, 8); // clamp 下限 8
+    }
+
+    /// /review-pr round 5 regression: font_size 上界 72 boundary symmetry
+    /// 原 spec 只测下界 · 上界没测 · 现补
+    #[test]
+    fn apply_clamps_font_size_upper_bound() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![ImportFieldType::FontSize { value: 144.0 }], // 远超 72 上限
+            conflict_resolutions: vec![],
+        };
+        let _ = apply(&pool, &req);
+        let s = AppSettingsStore::get_all(&pool);
+        assert_eq!(s.font_size, 72); // clamp 上限 72
+    }
+
+    /// /review-pr round 5 regression: theme reject + 其他字段成功的 graceful 测试
+    /// 原 transactional 测试只测 happy path · 没测部分字段 reject 时其他字段是否仍写入
+    #[test]
+    fn apply_graceful_reject_theme_writes_other_fields() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            source: ImportSource::Ghostty,
+            fields: vec![
+                ImportFieldType::FontFamily {
+                    value: "JetBrains Mono".to_string(),
+                },
+                ImportFieldType::Theme {
+                    value: "tokyo-night".to_string(), // unsupported · reject
+                },
+                ImportFieldType::FontSize { value: 16.0 },
+            ],
+            conflict_resolutions: vec![],
+        };
+        let result = apply(&pool, &req);
+        // theme reject · 不进 applied · errors 含说明
+        assert!(!result.applied.contains(&"theme".to_string()));
+        assert!(result
+            .errors
+            .iter()
+            .any(|e| e.contains("tokyo-night") && e.contains("not supported")));
+        // 但其他字段（font_family + font_size）必须仍写入（graceful · 部分 reject 不阻塞 transaction）
+        assert!(result.applied.contains(&"font_family".to_string()));
+        assert!(result.applied.contains(&"font_size".to_string()));
+        let s = AppSettingsStore::get_all(&pool);
+        assert_eq!(s.font_family, "JetBrains Mono");
+        assert_eq!(s.font_size, 16);
+        // theme 保留 default（不被 tokyo-night 覆盖）
+        assert_ne!(s.theme, "tokyo-night");
     }
 
     #[test]

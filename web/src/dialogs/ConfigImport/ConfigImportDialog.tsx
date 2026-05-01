@@ -65,6 +65,9 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
   const [scanResults, setScanResults] = createSignal<ImportScanResult[]>([]);
   const [scanning, setScanning] = createSignal(true);
   const [scanError, setScanError] = createSignal<string | null>(null);
+  // review round 5 fix: 拆分 scan / preview 错误状态 · 防 chooseSource preview 失败时
+  // step 仍 "select" 但 selectedSource 已 set 的状态不一致 · UI 也无法区分两阶段错误
+  const [previewError, setPreviewError] = createSignal<string | null>(null);
 
   const [selectedSource, setSelectedSource] = createSignal<ImportSource | null>(
     null,
@@ -100,6 +103,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
 
   async function chooseSource(source: ImportSource): Promise<void> {
     setSelectedSource(source);
+    setPreviewError(null); // 清旧错误 · 进入新 preview
     try {
       const p = await invoke<ImportPreview>("config_import_preview", {
         selectedSources: [source],
@@ -115,7 +119,10 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
 
       setStep("preview");
     } catch (err) {
-      setScanError(err instanceof Error ? err.message : String(err));
+      // review round 5 fix: preview 失败用独立 previewError signal（不污染 scanError）
+      // 防 step 留 "select" 但 selectedSource 已 set 的状态不一致
+      setPreviewError(err instanceof Error ? err.message : String(err));
+      setSelectedSource(null); // rollback 选源 · 让用户重新选
     }
   }
 
@@ -292,6 +299,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
               <SelectStep
                 scanning={scanning}
                 scanError={scanError}
+                previewError={previewError}
                 scanResults={scanResults}
                 onChoose={chooseSource}
                 onSkip={skipManual}
@@ -341,6 +349,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
 interface SelectStepProps {
   scanning: () => boolean;
   scanError: () => string | null;
+  previewError: () => string | null;
   scanResults: () => ImportScanResult[];
   onChoose: (source: ImportSource) => void;
   onSkip: () => void;
@@ -366,6 +375,13 @@ const SelectStep: Component<SelectStepProps> = (props) => {
           >
             Retry
           </button>
+        </p>
+      </Show>
+
+      <Show when={props.previewError()}>
+        <p class="vs-config-import-error" role="alert">
+          Preview failed: {props.previewError()} · Try selecting a different
+          source.
         </p>
       </Show>
 

@@ -167,11 +167,15 @@ pub struct ConflictHit {
 /// 检测一组导入快捷键和 Vibestation 内置的冲突
 ///
 /// 返回的 `vibe_key` / `source_key` 都是 canonical form
+///
+/// 同一 canonical key 多次出现时（如配置文件多次绑定同一快捷键到不同 action）·
+/// 只保留**第一个** ConflictHit · 避免 skipped_conflicts 出现重复条目（review round 5 fix）
 #[must_use]
 pub fn detect_conflicts(imported: &[(String, String)], // (key, action)
 ) -> Vec<ConflictHit> {
+    use std::collections::HashMap;
     let builtins = vibestation_builtins();
-    let mut hits = Vec::new();
+    let mut hits: HashMap<String, ConflictHit> = HashMap::new();
     for (raw_key, source_action) in imported {
         let canonical = canonicalize_keybinding(raw_key);
         if canonical.is_empty() {
@@ -179,16 +183,18 @@ pub fn detect_conflicts(imported: &[(String, String)], // (key, action)
         }
         for (vibe_canonical, vibe_action) in &builtins {
             if &canonical == vibe_canonical {
-                hits.push(ConflictHit {
-                    vibe_key: vibe_canonical.clone(),
-                    source_key: canonical.clone(),
-                    vibe_action: (*vibe_action).to_string(),
-                    source_action: source_action.clone(),
-                });
+                // 仅在该 canonical key 还没记录时插入 · 防同 key 多次绑定产生重复 hit
+                hits.entry(canonical.clone())
+                    .or_insert_with(|| ConflictHit {
+                        vibe_key: vibe_canonical.clone(),
+                        source_key: canonical.clone(),
+                        vibe_action: (*vibe_action).to_string(),
+                        source_action: source_action.clone(),
+                    });
             }
         }
     }
-    hits
+    hits.into_values().collect()
 }
 
 #[cfg(test)]

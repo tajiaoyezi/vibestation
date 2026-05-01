@@ -124,13 +124,19 @@ fn config_to_fields(cfg: AlacrittyConfig) -> Vec<ImportedField> {
 
     for binding in all_bindings {
         if let Some(key) = binding.key {
+            // review round 5 fix: filter 空 action（含 None 或空字符串）·
+            // 避免 ("Cmd+N", "") 这种无意义 binding 静默写 imported_keybindings
+            let action = match binding.action {
+                Some(a) if !a.trim().is_empty() => a,
+                _ => continue, // 无 action · 跳过此 binding
+            };
             let combined_key = match binding.mods {
                 Some(mods) if !mods.is_empty() => format!("{}+{}", mods, key),
                 _ => key,
             };
             fields.push(ImportedField::KeyBinding {
                 key: combined_key,
-                action: binding.action.unwrap_or_default(),
+                action,
             });
         }
     }

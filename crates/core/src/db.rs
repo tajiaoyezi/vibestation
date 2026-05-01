@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 6;
+const CURRENT_SCHEMA_VERSION: u32 = 7;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -827,5 +827,123 @@ mod tests {
         drop(conn);
         drop(pool);
         drop(dir);
+    }
+
+    #[test]
+    fn v7_migration_adds_position_column() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v7add.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        migrate_v7(&conn).unwrap();
+
+        assert!(
+            column_exists(&conn, "tabs", "position").unwrap(),
+            "tabs.position column should exist after v7 migration"
+        );
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 7);
+    }
+
+    #[test]
+    fn v7_migration_backfills_position_by_created_at() {
+        // 在 v6 schema 下插入 3 个 tabs（created_at 不同）· migrate_v7 应该按
+        // created_at + rowid 顺序给它们赋递增 position 0/1/2。
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v7backfill.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO workspaces (workspace_id, name, path, has_git, repo_root, created_at, last_opened)
+             VALUES ('w1', 'Workspace', '/tmp/vibestation', 0, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        // 反向插入（created_at 30 → 10 → 20）· backfill 应仍按 created_at 排序：t2 → t3 → t1
+        conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
+             VALUES ('t1', 'w1', 'Tab1', '/bin/zsh', '/tmp', '[]', 30)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
+             VALUES ('t2', 'w1', 'Tab2', '/bin/zsh', '/tmp', '[]', 10)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
+             VALUES ('t3', 'w1', 'Tab3', '/bin/zsh', '/tmp', '[]', 20)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v7(&conn).unwrap();
+
+        let mut stmt = conn
+            .prepare("SELECT tab_id, position FROM tabs ORDER BY position ASC")
+            .unwrap();
+        let rows: Vec<(String, i64)> = stmt
+            .query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(
+            rows,
+            vec![
+                ("t2".to_string(), 0),
+                ("t3".to_string(), 1),
+                ("t1".to_string(), 2),
+            ],
+            "position backfill should be 0..N by created_at ASC"
+        );
+    }
+
+    #[test]
+    fn v7_migration_is_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("v7idem.db");
+        let conn = Connection::open(&db_path).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        migrate_v7(&conn).unwrap();
+        migrate_v7(&conn).unwrap();
+
+        let position_col_count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM pragma_table_info('tabs') WHERE name = 'position'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            position_col_count, 1,
+            "position column should not duplicate"
+        );
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 7);
     }
 }

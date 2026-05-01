@@ -403,7 +403,8 @@ criterion_main!(benches);
 | `FetchRequest` | fetch 输入 · `{ workspace_id, remote, prune }` | 新增 |
 | `FetchResult` | fetch 输出 · `{ fetched_refs, pruned_refs }` | 新增 |
 | `AuthMethod` | enum · `SshAgent` / `SshKeyFile { path, passphrase: Option<String> }` / `HttpsHelper` / `HttpsManual { username, password }` | 新增 |
-| `AuthRequest` | 输入侧（auth modal 提交后回调）· `{ workspace_id, method }` | 新增 |
+| `AuthRequest` | 输入侧（auth modal 提交后回调）· `{ workspace_id, auth_challenge_id, task_id, remote_url, allowed_methods, method }` · **必须** challenge-bound（防多远端并发凭证错绑） | 新增 |
+| `AuthChallenge` | 输出侧（后端发起 auth 提示前广播）· `{ workspace_id, auth_challenge_id, task_id, remote_url, host_fingerprint, allowed_methods, expires_at }` | 新增 |
 | `NetworkOpError` | 错误枚举 · 含 payload | 新增 |
 | `MergeConflictInfo` | conflict 详情 · `{ files: ConflictFile[], aborted: bool }` | 新增 |
 | `ConflictFile` | 单个冲突文件 · `{ path, ours_oid, theirs_oid }` | 新增 |
@@ -523,11 +524,14 @@ pub struct ConflictFile {
 
 ### G.3 强制规范
 
-- [ ] 所有 IPC struct + enum 必须 `#[derive(Debug, Clone, Serialize, Deserialize, TS)]` + `#[ts(export)]` + `#[serde(rename_all = "camelCase")]`
+- [ ] 所有 IPC struct + enum **默认** `#[derive(Debug, Clone, Serialize, Deserialize, TS)]` + `#[ts(export)]` + `#[serde(rename_all = "camelCase")]`
 - [ ] 简单无 payload enum（`PullStrategy`）用 string union（`rename_all` + 无 tag）· 含 payload enum 用 tagged union
-- [ ] **绝不 derive `Serialize` 在含密码的字段**（如 `SshKeyFile.passphrase` / `HttpsManual.password`）从 IPC 输入侧到 backend 单向 · backend 收到后立即喂 git2 · 不持久化（D.7 安全要求 · 用 `#[serde(skip_serializing)]` 反方向防御 · 仅 deserialize）
-
-  > **实施提示**：实际写法是 `passphrase` / `password` 字段保持 `Serialize`（因为前端要发到 backend）但**禁止**在 backend 任何 log / `Display` impl / `Debug` impl 输出这两个字段（手动实现 `Debug` 把这两个字段打成 `"<redacted>"`）· 详见 §H.5 的 "AuthMethod 安全实现"
+- [ ] **敏感类型例外**（**覆盖** "默认 derive Debug" 规则 · 适用 `AuthMethod` 含 `passphrase` / `password` 字段的类型）：
+  - **禁止** `#[derive(Debug)]` · 必须 manual `impl Debug` 把 sensitive 字段渲染成 `"***REDACTED***"`
+  - `Serialize` / `Deserialize` 保留（前端→backend 单向需要）· 但 `Display` impl 也禁含 sensitive 字段
+  - 实施 PR 必须含 regression test：构造 AuthMethod 实例 · 走 `format!("{:?}", auth)` / `tracing::debug!` / `panic!` 任一路径 · assert 输出**不含** passphrase / password 明文
+  - 完整 manual Debug 模板见 §G.2 AuthMethod 段（v0.2 实施 copy-paste）
+- [ ] bindings 由 `crates/app/build.rs` 在 `cargo build` 时自动生成到 `web/src/bindings/`
 
 - [ ] bindings 由 `crates/app/build.rs` 在 `cargo build` 时自动生成到 `web/src/bindings/`
 - [ ] 前端**禁止**手写 `interface PushRequest { ... }`——所有类型必须从 `./bindings/*` import
@@ -726,14 +730,18 @@ impl std::fmt::Debug for AuthMethod {
 //    - panic backtrace 不含 password
 ```
 
-### H.6 Force push 保护策略
+### H.6 Force push 保护策略 + force-with-lease（**强制**）
+
+force push 必须同时满足 **2 道防线**：
+
+**防线 1 · 保护分支名单**（黑名单）：
 
 ```rust
 // crates/core/src/git_sync.rs · push 函数前置检查
 
 const PROTECTED_BRANCHES: &[&str] = &["main", "master", "trunk"];
 
-fn pre_push_check(req: &PushRequest) -> Result<(), NetworkOpError> {
+fn check_protected_branch(req: &PushRequest) -> Result<(), NetworkOpError> {
     if req.force && PROTECTED_BRANCHES.contains(&req.branch.as_str()) {
         return Err(NetworkOpError::RejectedByRemote {
             detail: format!(
@@ -746,7 +754,59 @@ fn pre_push_check(req: &PushRequest) -> Result<(), NetworkOpError> {
 }
 ```
 
-v0.3+ 升级：`PROTECTED_BRANCHES` 移到设置面板（用户可自定义）· 同时支持 glob pattern（如 `release/*`）。
+**防线 2 · force-with-lease 强制**（防 confirmation 后远端 advance）：
+
+```rust
+fn check_force_with_lease(
+    repo: &Repository,
+    req: &PushRequest,
+) -> Result<(), NetworkOpError> {
+    if !req.force {
+        return Ok(()); // 非 force push · 跳过 lease 检查（git push 自身处理 non-fast-forward）
+    }
+    // force=true · expected_remote_oid 必须填（PushRequest §G.2 spec 要求）
+    let expected = req.expected_remote_oid.as_ref().ok_or_else(|| {
+        NetworkOpError::Aborted {
+            reason: "force=true requires expected_remote_oid (force-with-lease) · UI 须在 confirmation modal 弹出前 fetch 一次".into(),
+        }
+    })?;
+
+    // 立即 fetch 确认远端当前 head（不只读 origin/<branch> 缓存 · 必须 fresh fetch）
+    let mut remote = repo.find_remote(&req.remote).map_err(network_op_error_from_git2)?;
+    remote.fetch(&[&req.branch], None, None).map_err(network_op_error_from_git2)?;
+
+    let actual_ref = format!("refs/remotes/{}/{}", req.remote, req.branch);
+    let actual_oid = repo
+        .find_reference(&actual_ref)
+        .and_then(|r| r.target().ok_or_else(|| git2::Error::from_str("no target")))
+        .map_err(network_op_error_from_git2)?;
+    let actual_str = actual_oid.to_string();
+
+    if &actual_str != expected {
+        return Err(NetworkOpError::StaleLease {
+            expected: expected.clone(),
+            actual: actual_str,
+        });
+    }
+    Ok(())
+}
+
+// push 流程：依次 check_protected_branch → check_force_with_lease → push
+fn pre_push_check(repo: &Repository, req: &PushRequest) -> Result<(), NetworkOpError> {
+    check_protected_branch(req)?;
+    check_force_with_lease(repo, req)?;
+    Ok(())
+}
+```
+
+**Acceptance（实施 PR 必须含）**：
+
+- [ ] `force=true` 但 `expected_remote_oid: None` → 后端拒绝 `NetworkOpError::Aborted` · UI 提示用户先 fetch
+- [ ] `force=true` + `expected_remote_oid` 不匹配远端当前 head → 后端拒绝 `NetworkOpError::StaleLease { expected, actual }` · UI 重新 fetch + 弹新 confirmation
+- [ ] race 测试：confirmation modal 弹出后 mock 远端 advance · 用旧 lease push → 必须返回 StaleLease（实测可用 `tempfile` + 双 repo + 手动改 ref）
+- [ ] `force=false`（普通 push）：lease 字段忽略 · git push 自身处理 non-fast-forward 返回 NonFastForward
+
+v0.3+ 升级：`PROTECTED_BRANCHES` 移到设置面板（用户可自定义）· 支持 glob pattern（如 `release/*`）。
 
 ### H.7 跨平台依赖
 

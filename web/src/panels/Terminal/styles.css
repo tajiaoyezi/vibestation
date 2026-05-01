@@ -77,24 +77,26 @@
   height: 6px;
 }
 
-/* 底部独立 indicator · JS 通过 transform translateX + width 跟随 active tab。
-   transition 让 active 切换时蓝条平滑滑动 · 取代原来"瞬间跳"的 border-bottom 切换。
+/* 底部独立 indicator · JS 通过 transform translateX + scaleX 跟随 active tab。
+   关键：用 scaleX 替代 width 实现拉伸 · transform 是 GPU 加速 compositor 属性 ·
+   单一 transition 同时滑动 + 缩放 · 不会出现 width transition 跟不上 transform 的
+   "先变短再变长" 视觉错乱（旧实现 width + transform 双 transition · width layout
+    属性不在 compositor 上 · 节奏不一致）。
    3px 高 · 跟原 active border-bottom-width 一致 · 视觉无变化 · 只是行为变平滑。 */
 .vs-terminal-tabbar-indicator {
   position: absolute;
   bottom: 0;
   left: 0;
   height: 3px;
+  width: 0;
   background: var(--accent);
   border-radius: 2px 2px 0 0;
   pointer-events: none;
   opacity: 0;
-  transform: translateX(0);
-  width: 0;
-  /* JS first paint 之前 opacity:0 防 flash · is-ready 后才显 · 同时启用 transition */
+  /* JS 设 left + width · transition 让两者同步过渡到新值 · 视觉上是"滑动 + 拉伸" */
   transition:
-    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
-    width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    left 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 200ms cubic-bezier(0.4, 0, 0.2, 1),
     opacity 120ms ease;
   z-index: 2;
 }
@@ -115,31 +117,30 @@
   border-bottom: 2px solid transparent;
   border-radius: var(--r-6) var(--r-6) 0 0;
   background: transparent;
+  /* enter 用 transition 而非 CSS animation · 防 SolidJS <For> reorder 时
+     insertBefore 触发 DOM detach/reattach · CSS animation 默认会从 0% 重启
+     （spec 行为）· 让 active tab 的 max-width/padding 中间帧抖动 · indicator
+     跟着 ResizeObserver 漂移。CSS transition 是 property change-based · reattach
+     不触发 · 一劳永逸。
+     mount 瞬间由 .is-entering class 提供压缩起始态 · 双 rAF 后移除 · 触发
+     transition 同步展开 max-width / padding / opacity / transform。 */
   transition:
+    max-width var(--dur-normal) var(--ease),
+    padding var(--dur-normal) var(--ease),
+    opacity var(--dur-normal) var(--ease),
+    transform var(--dur-normal) var(--ease),
     border-color var(--dur-fast) var(--ease),
     background-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
-  /* 新 tab mount 时从压缩状态展开 · `both` fill mode 让 from 状态在第一帧前生效 ·
-     避免 mount 瞬间出现"先满宽后压缩展开"的 flicker。app 启动时所有 tabs 也会
-     一次 enter · 视觉是渐入 · 接受。 */
-  animation: vs-tab-enter var(--dur-normal) var(--ease) both;
 }
 
-@keyframes vs-tab-enter {
-  from {
-    opacity: 0;
-    max-width: 0;
-    padding-left: 0;
-    padding-right: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    max-width: 240px;
-    padding-left: var(--space-3);
-    padding-right: var(--space-2);
-    transform: translateY(0);
-  }
+/* mount 瞬间起始态 · TabBar.tsx ref 函数 add · 双 rAF 后 remove 触发 enter transition */
+.vs-terminal-tab.is-entering {
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  transform: translateY(2px);
 }
 
 /* leave 动画 · TabBar.tsx 点 × 时加 .is-leaving · 240ms 总时长。
@@ -295,6 +296,59 @@
 .vs-terminal-new-tab:active {
   transform: scale(0.94);
   transition: transform 60ms var(--ease);
+}
+
+/* ===== Drag & Drop · tab 拖拽调换顺序 ===== */
+
+/* tab 默认可拖拽 · grab cursor 暗示 */
+.vs-terminal-tab {
+  cursor: grab;
+  position: relative; /* drop indicator ::before/::after 定位基准 */
+}
+
+.vs-terminal-tab:active {
+  cursor: grabbing;
+}
+
+/* 拖拽中的 ghost · 半透明 · 让用户看到原位置 */
+.vs-terminal-tab.is-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* drop indicator · vertical accent line · before/after 区分插入位置 */
+.vs-terminal-tab.is-drop-before::before,
+.vs-terminal-tab.is-drop-after::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  z-index: 5;
+  pointer-events: none;
+  /* 平滑出现 · 不闪 */
+  animation: vs-drop-indicator-fade 80ms ease-out;
+}
+
+.vs-terminal-tab.is-drop-before::before {
+  left: -3px;
+}
+
+.vs-terminal-tab.is-drop-after::after {
+  right: -3px;
+}
+
+@keyframes vs-drop-indicator-fade {
+  from {
+    opacity: 0;
+    transform: scaleY(0.3);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 /*

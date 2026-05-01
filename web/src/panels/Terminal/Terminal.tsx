@@ -25,6 +25,7 @@ import type {
   TabCreateRequest,
   TabListResponse,
   TabRenameRequest,
+  TabReorderRequest,
   TabState,
   WorkspaceMetadata,
 } from "../../bindings";
@@ -695,6 +696,41 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
   };
 
+  /**
+   * MVP-20 follow-up · 拖拽 reorder · 调 backend `tab_reorder` IPC 持久化 ·
+   * 用返回的完整 tabs 列表 sync 前端 store · 保证前后端顺序一致。
+   * 失败时不动 store · 让用户看到原顺序 + toast。
+   *
+   * **关键** · 必须保留旧 TabState 对象引用 reorder · 否则 SolidJS keyed `<For>`
+   * 看到新引用会 unmount + remount tab DOM · 触发 enter animation 重跑（width 0→240）·
+   * 期间 indicator scaleX 拿到中间值 · 视觉上"蓝条漂移 / 闪一下"。
+   */
+  const reorderTab = async (tabId: string, newIndex: number) => {
+    const tab = findTab(tabId);
+    if (!tab) return;
+
+    try {
+      const reordered = await invoke<TabState[]>("tab_reorder", {
+        req: {
+          tabId,
+          newIndex,
+        } satisfies TabReorderRequest,
+      });
+      // 保留旧 TabState 引用 reorder · 避免 <For> reference 变化触发 remount + 动画重跑
+      setTabsByWorkspace((prev) => {
+        const oldTabs = prev[tab.workspaceId] ?? [];
+        const oldMap = new Map(oldTabs.map((t) => [t.tabId, t]));
+        const reorderedRefs = reordered.map((t) => oldMap.get(t.tabId) ?? t);
+        return {
+          ...prev,
+          [tab.workspaceId]: reorderedRefs,
+        };
+      });
+    } catch (error) {
+      showToast(`Tab 排序失败：${errorMessage(error)}`);
+    }
+  };
+
   const closeTab = async (tabId: string) => {
     const tab = findTab(tabId);
     if (!tab) {
@@ -1092,6 +1128,9 @@ export const Terminal: Component<TerminalProps> = (props) => {
         onRename={(tabId, name) => {
           setPendingRenameTabId(null);
           return renameTab(tabId, name);
+        }}
+        onReorder={(tabId, newIndex) => {
+          void reorderTab(tabId, newIndex);
         }}
         onSelect={(tabId) => {
           const workspaceId = activeWorkspaceId();

@@ -57,7 +57,8 @@ pub use pty::{
 };
 pub use pty_pool::SpawnResult;
 pub use tabs::{
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
+    TabState, TabsDao,
 };
 pub use telemetry::{
     build_status as telemetry_build_status, build_version_info as telemetry_build_version_info,

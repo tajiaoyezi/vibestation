@@ -7,6 +7,7 @@ export type { TabState } from "./TabState";
 export type { TabCreateRequest } from "./TabCreateRequest";
 export type { TabCloseRequest } from "./TabCloseRequest";
 export type { TabRenameRequest } from "./TabRenameRequest";
+export type { TabReorderRequest } from "./TabReorderRequest";
 export type { TabListResponse } from "./TabListResponse";
 export type { PtyStdoutEvent } from "./PtyStdoutEvent";
 export type { PtyExitedEvent } from "./PtyExitedEvent";

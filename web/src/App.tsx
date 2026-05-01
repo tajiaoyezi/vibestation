@@ -28,6 +28,7 @@ import { MainContent } from "./components/MainContent";
 import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { GearIcon } from "./components/Icons";
+import { TopBar } from "./components/TopBar";
 import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 
@@ -89,6 +90,16 @@ const LayoutShell: Component<{
 
   const handleTitleBarMouseDown = (event: MouseEvent) => {
     if (event.button !== 0 || event.detail !== 1) {
+      return;
+    }
+    // 跳过交互元素 · 防 startDragging 接管鼠标后吞掉 button onClick
+    // （TopBar 收起按钮放在 header 上 · sidebar 收起后是唯一恢复路径 · 不能丢点击）
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button, a, input, textarea, select, [role=button], [data-no-drag]",
+      )
+    ) {
       return;
     }
 
@@ -177,6 +188,12 @@ const LayoutShell: Component<{
         e.preventDefault();
         dispatch({ kind: "toggle-primary" });
         break;
+      case "b":
+      case "B":
+        // VSCode / Cursor 标准 · ⌘B / Ctrl+B toggle primary sidebar
+        e.preventDefault();
+        dispatch({ kind: "toggle-primary" });
+        break;
       case "2":
         e.preventDefault();
         dispatch({ kind: "toggle-secondary" });
@@ -210,10 +227,10 @@ const LayoutShell: Component<{
 
   return (
     <div class="vs-shell">
-      <div
-        class="title-bar-drag"
-        data-tauri-drag-region
-        aria-hidden="true"
+      <TopBar
+        activeWorkspace={activeWorkspace}
+        primaryOpen={() => layout().primaryOpen}
+        onTogglePrimary={() => dispatch({ kind: "toggle-primary" })}
         onMouseDown={handleTitleBarMouseDown}
       />
 
@@ -568,7 +585,7 @@ const App: Component = () => {
 
   return (
     <ThemeProvider>
-      <LayoutProvider activeWorkspaceId={activeWorkspaceId}>
+      <LayoutProvider activeWorkspaceId={activeWorkspaceId} dbReady={dbReady}>
         <LayoutShell
           workspaces={workspaces}
           currentView={currentView}

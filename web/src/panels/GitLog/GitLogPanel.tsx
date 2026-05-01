@@ -129,6 +129,35 @@ export type GitLogStore = ReturnType<typeof createGitLogStore>;
 export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const store = createGitLogStore();
   let scrollContainer: HTMLDivElement | undefined;
+  let panelRoot: HTMLDivElement | undefined;
+
+  // detail 区高度 · 可拖动 · 记忆到组件实例上 · 关掉 detail 再打开仍保留
+  const [detailHeight, setDetailHeight] = createSignal(280);
+  const [isResizing, setIsResizing] = createSignal(false);
+
+  const startResize = (e: PointerEvent) => {
+    e.preventDefault();
+    const panelHeight = panelRoot?.clientHeight ?? 800;
+    const minH = 96;
+    const maxH = Math.max(minH + 80, panelHeight * 0.85);
+    const startY = e.clientY;
+    const startHeight = detailHeight();
+    setIsResizing(true);
+
+    const onMove = (ev: PointerEvent) => {
+      // 鼠标向上拖（clientY 减小）→ detail 增高
+      const delta = startY - ev.clientY;
+      const next = Math.max(minH, Math.min(maxH, startHeight + delta));
+      setDetailHeight(next);
+    };
+    const onUp = () => {
+      setIsResizing(false);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
 
   const workspaceId = () => {
     const ws = props.activeWorkspace();
@@ -193,7 +222,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
         </div>
       }
     >
-      <div class="vs-git-log">
+      <div class="vs-git-log" ref={panelRoot}>
         <div class="vs-git-log-search">
           <input
             type="text"
@@ -281,7 +310,22 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
         </div>
 
         <Show when={store.detail()}>
-          <div class="vs-git-log-detail">
+          <div
+            class="vs-git-log-splitter"
+            classList={{ "is-resizing": isResizing() }}
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize commit detail"
+            onPointerDown={startResize}
+          />
+          <div
+            class="vs-git-log-detail"
+            style={{
+              height: `${detailHeight()}px`,
+              "max-height": "none",
+              "flex-shrink": "0",
+            }}
+          >
             <h4 class="vs-git-log-detail-title">
               Commit: {store.detail()?.shortSha}
             </h4>

@@ -13,6 +13,11 @@ interface PrimarySidebarProps {
   onResizeReset: () => void;
 }
 
+// /Users/leaf/Foo/Bar → ~/Foo/Bar · /home/leaf/Foo → ~/Foo · 其他保持原样
+function prettyPath(p: string): string {
+  return p.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|\/root)(?=\/|$)/, "~");
+}
+
 export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
   return (
     <div
@@ -45,6 +50,9 @@ export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
             {(ws) => (
               <li
                 role="option"
+                aria-selected={
+                  props.activeWorkspace()?.workspaceId === ws.workspaceId
+                }
                 classList={{
                   "vs-ws-item": true,
                   "vs-ws-item-active":
@@ -52,23 +60,28 @@ export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
                 }}
                 onClick={() => props.onOpen(ws.workspaceId)}
               >
-                <span class="vs-ws-name">{ws.name}</span>
-                <Show when={ws.hasGit}>
-                  <span class="vs-git-badge" aria-label="Git repository">
-                    Git
-                  </span>
-                </Show>
-                <button
-                  type="button"
-                  class="vs-ws-delete"
-                  aria-label={`Delete ${ws.name}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    props.onDelete(ws.workspaceId);
-                  }}
-                >
-                  ×
-                </button>
+                <div class="vs-ws-row-main">
+                  <span class="vs-ws-name">{ws.name}</span>
+                  <Show when={ws.hasGit}>
+                    <span class="vs-git-badge" aria-label="Git repository">
+                      Git
+                    </span>
+                  </Show>
+                  <button
+                    type="button"
+                    class="vs-ws-delete"
+                    aria-label={`Delete ${ws.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      props.onDelete(ws.workspaceId);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <span class="vs-ws-path" title={ws.path}>
+                  {prettyPath(ws.path)}
+                </span>
               </li>
             )}
           </For>

@@ -77,6 +77,24 @@ const createTheme = () => {
     cursor: read("--text-1", "#f5f7ff"),
     cursorAccent: read("--bg-1", "#11141b"),
     selectionBackground: read("--accent-soft", "rgba(120, 169, 255, 0.18)"),
+    // 完整 16 ANSI 调色板 · 否则 xterm 走默认偏暗调色板 · 视觉灰蒙蒙。
+    // 与 legacy TerminalPane.tsx 保持一致 · 防 pane vs tab 颜色分裂。
+    black: read("--bg-0", "#0d1016"),
+    brightBlack: read("--text-4", "#6c7485"),
+    red: read("--danger", "#ff7575"),
+    brightRed: read("--danger", "#ff7575"),
+    green: read("--success", "#4cd38f"),
+    brightGreen: read("--success", "#4cd38f"),
+    yellow: read("--warning", "#f6c24a"),
+    brightYellow: read("--warning", "#f6c24a"),
+    blue: read("--accent", "#6fa9ff"),
+    brightBlue: read("--accent", "#6fa9ff"),
+    magenta: read("--accent", "#6fa9ff"),
+    brightMagenta: read("--accent", "#6fa9ff"),
+    cyan: read("--accent", "#6fa9ff"),
+    brightCyan: read("--accent", "#6fa9ff"),
+    white: read("--text-2", "#c3cad8"),
+    brightWhite: read("--text-1", "#f5f7ff"),
   };
 };
 
@@ -189,6 +207,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         "Ubuntu Mono",
         "ui-monospace",
         "Liberation Mono",
+        // CJK 字符 fallback · 主 mono 字体不含中日韩字符时 · 浏览器走这里 ·
+        // 优先选系统已有 / 接近严格 mono ratio 的字体 · 避免光标错位。
+        "Sarasa Term SC", // 等距更纱 (用户可选装 · 严格 1:2 mono · 完美对齐)
+        "PingFang SC", // macOS 默认中文
+        "Hiragino Sans GB", // macOS 备选
+        "Microsoft YaHei", // Windows
+        "Noto Sans CJK SC", // Linux / 跨平台
+        "WenQuanYi Micro Hei", // Linux 备选
         "monospace",
       ].join(", "),
       fontSize: 13,
@@ -391,6 +417,28 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         } catch {}
       }, 50);
       pendingTimers.push(refreshTimer);
+
+      // 兜底 fit · 修 mount 时 host layout 还没稳定 · 第一次 fit 拿到默认 80x24 ·
+      // 之后 ResizeObserver 因 host size 没变也不再触发 · PTY 永远停在 80 cols 的边界 case。
+      // 实测：createTheme 多读 CSS vars 触发 forced reflow 后 · 偶发 mount race · spawn
+      // 用错的 cols 起子进程 · TUI 程序（Claude Code）按 80 cols 渲染 · 屏幕右半空白。
+      // 这里 spawn 已完成 · host layout 必稳 · 强制再 fit + 同步 backend resize。
+      const fitGuardTimer = setTimeout(() => {
+        if (!mounted || !term || !fitAddon) return;
+        try {
+          fitAddon.fit();
+          const cols = term.cols;
+          const rows = term.rows;
+          if (cols > 0 && rows > 0) {
+            void invoke("pane_pty_resize", {
+              paneId: props.paneId,
+              cols,
+              rows,
+            });
+          }
+        } catch {}
+      }, 100);
+      pendingTimers.push(fitGuardTimer);
       // mount-time auto focus · 修新建 tab 后焦点不在 terminal 的问题：
       // createEffect(props.active+focused) 在 onMount 异步之前已 run · 当时 term
       // 还没创建 · term?.focus() no-op。这里 term 已 ready · 补一次 focus。

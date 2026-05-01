@@ -157,14 +157,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
     equals: (a, b) => a.length === b.length && a.every((v, i) => v === b[i]),
   });
 
-  const activeRenderer = createMemo(() => {
-    const tabId = currentActiveTabId();
-    if (!tabId) {
-      return null;
-    }
-
-    return runtimeByTabId()[tabId]?.renderer ?? null;
-  });
+  // activeRenderer 之前用于顶部 row 显示 "webgl renderer" 等 debug 信息 ·
+  // workspace meta row 整段移到全局 TopBar 后 · 该信息暂不在 UI 显示 ·
+  // runtimeByTabId 仍然记录 renderer · 保留 createMemo 以便将来 settings 面板复用。
+  void runtimeByTabId; // 防 typecheck 报 unused
 
   const showToast = (
     message: string,
@@ -1084,21 +1080,9 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
   return (
     <div class="vs-terminal-shell">
-      <div class="vs-terminal-workspace-row">
-        <div class="vs-terminal-workspace-meta">
-          <span class="vs-terminal-workspace-name">
-            {props.activeWorkspace()?.name}
-          </span>
-          <span class="vs-terminal-workspace-path">
-            {props.activeWorkspace()?.path}
-          </span>
-        </div>
-        <div class="vs-terminal-session-meta">
-          {activeRenderer()
-            ? `${activeRenderer()} renderer`
-            : "renderer pending"}
-        </div>
-      </div>
+      {/* workspace name + path 已移到全局 TopBar（不受 sidebar 收缩影响） ·
+          renderer status 是开发期 debug 信息 · v0.1 alpha 暂不在 UI 显示 ·
+          activeRenderer() signal 仍然 set · 后续如需可挪到 settings panel。 */}
 
       <TabBar
         tabs={currentTabs()}

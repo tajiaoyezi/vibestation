@@ -7,7 +7,7 @@ import type { AppSettings, SettingsUpdateRequest } from "../bindings";
 export type ThemeSetting = "light" | "dark" | "auto";
 
 const DEFAULTS: AppSettings = {
-  theme: "auto",
+  theme: "dark",
   fontFamily:
     "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",
   fontSize: 14,
@@ -26,6 +26,10 @@ const DEFAULTS: AppSettings = {
   // MVP-20 · PTY 预热池
   ptyPoolEnabled: true,
   ptyPoolSize: 1,
+  // 全局 sidebar 尺寸 · 跨 workspace 共享 · 与 DEFAULT_LAYOUT 对齐
+  primaryWidth: 236,
+  secondaryWidth: 400,
+  bottomHeight: 240,
 };
 
 const [settings, setSettings] = createStore<AppSettings>({ ...DEFAULTS });

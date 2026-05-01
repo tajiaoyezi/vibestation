@@ -694,14 +694,68 @@ MVP-11 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-
 |------|----------------|
 | Remote list | `Repository::remotes()` → `Vec<&str>` (远端名)→ `Repository::find_remote(name)` |
 | Push | `Repository::find_remote("origin")` → `Remote::push(refspecs, Some(&PushOptions))` · `PushOptions` 含 `RemoteCallbacks` |
-| Pull (fetch + ff) | `Remote::fetch(...)` + `Repository::merge_analysis(annot)` 检测 ff → `Repository::reset(target_commit, Hard, ...)` 直接 ff |
-| Pull (merge) | `Remote::fetch(...)` + `Repository::merge(...)` + 检 conflict + `Repository::commit(...)` 创建 merge commit |
-| Pull (rebase) | `Remote::fetch(...)` + `Repository::rebase(Some(branch), Some(upstream), None, RebaseOptions)` + 循环 `next` + `commit` |
+| Pull (fetch + ff) | **必须先 backend snapshot dirty check**（见下方 race guard）→ `Remote::fetch(...)` + `Repository::merge_analysis(annot)` 检测 ff → `Repository::reset(target_commit, Hard, ...)` 直接 ff |
+| Pull (merge) | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::merge(...)` + 检 conflict + `Repository::commit(...)` 创建 merge commit |
+| Pull (rebase) | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::rebase(Some(branch), Some(upstream), None, RebaseOptions)` + 循环 `next` + `commit` |
 | Fetch | `Remote::fetch(refspecs, opts, msg)` · `FetchOptions::prune(FetchPrune::On)` for prune |
 | Auth callback | `RemoteCallbacks::credentials(\|url, username, allowed\| { match allowed { ... } })` |
 | Progress callback | `RemoteCallbacks::transfer_progress(\|stats\| { emit_event(...); true })` · 返回 false 表 cancel |
 | Merge abort | `Repository::cleanup_state()` + `Repository::reset(orig_head, Hard, ...)` 双保险（§R5） |
 | 错误分诊 | `git2::Error::class()` / `git2::Error::code()` → 映射到 `NetworkOpError` enum |
+
+### H.4.1 Pull / Rebase race guard（**强制** backend-side dirty check）
+
+**问题**：spec §A 要求 dirty tree pull 弹"先 stash / discard / cancel" · 但该检查由 frontend 调 `git_status` 完成。frontend 检查 → 用户点 OK → backend 跑 pull 之间 · 其他进程（IDE 自动保存 / git CLI / formatter）可能写入 worktree。如果 backend 不再做检查直接 `reset(Hard)` 或 `merge` · 会**字节级丢失**用户编辑（违反 byte-level no-worktree-loss 保证）。
+
+**解法**：backend 必须在 fetch 之后、reset/merge/rebase 之前**自己再做一次 status check** · 与 PullRequest 中携带的 frontend snapshot 比较 · 不一致 → 抛 `NetworkOpError::DirtyWorkingTree { ... }`。
+
+```rust
+// PullRequest 增加字段（spec §G 必须更新）：
+//   pub frontend_status_snapshot: GitStatusSnapshot   // frontend 上次 git_status 的快照
+//   pub frontend_status_taken_at: i64                  // unix epoch · debug 用
+
+// backend pull 流程：
+fn pull(repo: &Repository, req: &PullRequest) -> Result<PullResult, NetworkOpError> {
+    // 1. fetch（不动 worktree · 安全）
+    let mut remote = repo.find_remote(&req.remote)?;
+    remote.fetch(...)?;
+
+    // 2. 关键 · backend 自己再做一次 status snapshot
+    let backend_snapshot = compute_status_snapshot(repo)?;
+    if backend_snapshot != req.frontend_status_snapshot {
+        // 出现漂移 · 拒绝 pull · 让 UI 重新检查
+        return Err(NetworkOpError::DirtyWorkingTree {
+            modified: backend_snapshot.modified,
+            staged: backend_snapshot.staged,
+            untracked: backend_snapshot.untracked,
+        });
+    }
+
+    // 3. 现在才能安全 reset/merge/rebase
+    match req.strategy {
+        PullStrategy::Merge => repo.merge(...)?,
+        PullStrategy::Rebase => repo.rebase(...)?,
+    }
+    Ok(PullResult { ... })
+}
+
+// abort 路径同样必须先 snapshot check · 不能盲 reset
+fn abort_pull(repo: &Repository, orig_head: Oid) -> Result<(), NetworkOpError> {
+    let snapshot = compute_status_snapshot(repo)?;
+    if snapshot.has_uncommitted_changes() {
+        return Err(NetworkOpError::DirtyWorkingTree { ... });
+    }
+    repo.cleanup_state()?;
+    repo.reset(orig_head, Hard, ...)?;
+    Ok(())
+}
+```
+
+**Acceptance**（实施 PR 必须含）：
+
+- [ ] PullRequest 含 `frontend_status_snapshot` 字段（spec §G.1 表必须更新）
+- [ ] race 测试：frontend 拿 status A → 用户点 pull → mock 其他进程写文件 → backend pull 时 snapshot B ≠ A → 必须返回 DirtyWorkingTree · worktree 不变
+- [ ] abort race 测试：rebase 中途用户改文件 → abort_pull 时 snapshot 检查 → 拒绝 reset · 提示用户先 stash
 
 ### H.5 AuthMethod 安全实现（防泄露）
 
@@ -730,6 +784,72 @@ impl std::fmt::Debug for AuthMethod {
 //    - panic backtrace 不含 password
 ```
 
+### H.5.1 SSH host key verification（**强制**）
+
+**问题**：libgit2 默认 `RemoteCallbacks::credentials` 走 ssh-agent / SSH key file · 但**不验证远端 host key**。如果不显式配 `certificate_check` callback · 等于 disable host verification · 用户连第一次见的远端 host 就 push 凭证 · MITM 攻击窗口 / DNS 劫持下凭证可被截获。
+
+**强制**：所有 SSH push/pull/fetch 必须配 `RemoteCallbacks::certificate_check` callback · 走 known_hosts + first-seen TOFU（trust on first use）模式：
+
+```rust
+use git2::{CertificateCheckStatus, RemoteCallbacks};
+use std::path::PathBuf;
+
+fn ssh_known_hosts_path() -> PathBuf {
+    dirs::home_dir().unwrap().join(".ssh/known_hosts")
+}
+
+fn certificate_check_callback(
+    callbacks: &mut RemoteCallbacks,
+    workspace_id: String,
+) {
+    callbacks.certificate_check(move |cert, host| {
+        // 1. 取远端 host key fingerprint（cert.as_hostkey() 或 cert.as_x509()）
+        let fingerprint = compute_host_fingerprint(cert)?;
+
+        // 2. 查 known_hosts
+        match lookup_known_hosts(&ssh_known_hosts_path(), host, &fingerprint)? {
+            HostKeyMatch::Known => Ok(CertificateCheckStatus::CertificateOk),
+
+            HostKeyMatch::Changed { stored } => {
+                // ⚠ MITM 警告 · 块连接 · 用户必须显式手动恢复
+                emit_event(
+                    "git:host-key-changed",
+                    HostKeyChange {
+                        workspace_id: workspace_id.clone(),
+                        host: host.to_string(),
+                        stored_fingerprint: stored,
+                        new_fingerprint: fingerprint,
+                    },
+                );
+                Err(git2::Error::from_str(
+                    "SSH host key changed · refusing connection (potential MITM) · review ~/.ssh/known_hosts",
+                ))
+            }
+
+            HostKeyMatch::Unknown => {
+                // 首次见此 host · 弹 UI confirmation · 用户 explicit trust 后写入 known_hosts
+                let trusted = prompt_user_first_seen_trust(workspace_id.clone(), host, &fingerprint)?;
+                if trusted {
+                    append_to_known_hosts(host, &fingerprint)?;
+                    Ok(CertificateCheckStatus::CertificateOk)
+                } else {
+                    Err(git2::Error::from_str("SSH host not trusted by user"))
+                }
+            }
+        }
+    });
+}
+```
+
+**Acceptance**（实施 PR 必须含）：
+
+- [ ] 所有 push/pull/fetch RemoteCallbacks **必须** 配 certificate_check（无配的 PR 拒收）
+- [ ] **测试 unknown host**：mock 一个新 host · 调 push → UI 弹 first-seen trust 确认 modal · 用户拒绝 → push 失败 · 用户接受 → known_hosts 追加 + push 成功
+- [ ] **测试 changed host key**：mock 已 known host 但 fingerprint 改变 · 调 push → 必须 fail with `SSH host key changed` · UI 弹"远端可能被劫持"警告 · 用户必须手动 vi ~/.ssh/known_hosts 才能恢复（不提供一键覆盖按钮 · 防误点）
+- [ ] **测试 known good host**：调 push → certificate_check 返回 Ok · 不弹 UI
+
+**v0.3+ 升级**：known_hosts 路径 / 信任策略移到设置面板（用户可选 strict / TOFU / disabled · disabled 必须显式 opt-in 警告）
+
 ### H.6 Force push 保护策略 + force-with-lease（**强制**）
 
 force push 必须同时满足 **2 道防线**：
@@ -754,57 +874,90 @@ fn check_protected_branch(req: &PushRequest) -> Result<(), NetworkOpError> {
 }
 ```
 
-**防线 2 · force-with-lease 强制**（防 confirmation 后远端 advance）：
+**防线 2 · 真 force-with-lease**（绑在 push operation · 不是 preflight）：
+
+⚠️ **关键认识**：preflight check（push 前 fetch + 比较 OID）**不是真 lease** · 是 TOCTOU 漏洞 · check 后 push 前远端再 advance 仍会被覆盖。**真 lease 必须绑在 push operation** · 通过 git2 `RemoteCallbacks::push_negotiation` callback 实现（git2 0.20 已支持 · 已 verify）。
 
 ```rust
-fn check_force_with_lease(
+use git2::{PushOptions, Remote, RemoteCallbacks, Repository};
+
+fn force_push_with_lease(
     repo: &Repository,
     req: &PushRequest,
 ) -> Result<(), NetworkOpError> {
-    if !req.force {
-        return Ok(()); // 非 force push · 跳过 lease 检查（git push 自身处理 non-fast-forward）
-    }
-    // force=true · expected_remote_oid 必须填（PushRequest §G.2 spec 要求）
-    let expected = req.expected_remote_oid.as_ref().ok_or_else(|| {
-        NetworkOpError::Aborted {
-            reason: "force=true requires expected_remote_oid (force-with-lease) · UI 须在 confirmation modal 弹出前 fetch 一次".into(),
-        }
-    })?;
+    // §防线 1 仍然在最前 · 拒绝 protected branch
+    check_protected_branch(req)?;
 
-    // 立即 fetch 确认远端当前 head（不只读 origin/<branch> 缓存 · 必须 fresh fetch）
-    let mut remote = repo.find_remote(&req.remote).map_err(network_op_error_from_git2)?;
-    remote.fetch(&[&req.branch], None, None).map_err(network_op_error_from_git2)?;
-
-    let actual_ref = format!("refs/remotes/{}/{}", req.remote, req.branch);
-    let actual_oid = repo
-        .find_reference(&actual_ref)
-        .and_then(|r| r.target().ok_or_else(|| git2::Error::from_str("no target")))
-        .map_err(network_op_error_from_git2)?;
-    let actual_str = actual_oid.to_string();
-
-    if &actual_str != expected {
-        return Err(NetworkOpError::StaleLease {
-            expected: expected.clone(),
-            actual: actual_str,
+    if req.force && req.expected_remote_oid.is_none() {
+        return Err(NetworkOpError::Aborted {
+            reason: "force=true requires expected_remote_oid (force-with-lease)".into(),
         });
     }
-    Ok(())
-}
 
-// push 流程：依次 check_protected_branch → check_force_with_lease → push
-fn pre_push_check(repo: &Repository, req: &PushRequest) -> Result<(), NetworkOpError> {
-    check_protected_branch(req)?;
-    check_force_with_lease(repo, req)?;
-    Ok(())
+    let expected_oid = req.expected_remote_oid.clone();
+    let force = req.force;
+
+    // ⭐ 真 lease：push_negotiation callback 在 push operation 内被 libgit2 调用
+    // server 已经 advertised 了 ref 当前状态 · libgit2 把 (src_oid, dst_oid_remote, refname)
+    // 三元组传进来 · 我们在这一刻 verify `dst_oid_remote == expected_oid`
+    // 如果不匹配 · 返回 Err 让 push 中止（不发 pack data）
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.push_negotiation(move |updates| {
+        if !force {
+            return Ok(()); // 非 force push · 跳过 lease 检查
+        }
+        let expected = expected_oid.as_ref().ok_or_else(|| {
+            git2::Error::from_str("force-with-lease: expected_remote_oid missing")
+        })?;
+        for update in updates {
+            // update.dst() 是远端**当前**该 ref 的 OID（server 实时 advertise 的）· 不是缓存
+            let remote_oid = update.dst().to_string();
+            if &remote_oid != expected {
+                return Err(git2::Error::from_str(&format!(
+                    "force-with-lease: stale (expected {expected} · actual {remote_oid})"
+                )));
+            }
+        }
+        Ok(())
+    });
+    // 同时配 credentials / certificate_check / push_update_reference 等其他 callback（略）
+
+    let mut push_opts = PushOptions::new();
+    push_opts.remote_callbacks(callbacks);
+
+    let mut remote = repo
+        .find_remote(&req.remote)
+        .map_err(network_op_error_from_git2)?;
+    let refspec = format!("refs/heads/{0}:refs/heads/{0}", req.branch);
+    let force_refspec = if req.force {
+        format!("+{refspec}") // git refspec 语法 · `+` 前缀 = force
+    } else {
+        refspec
+    };
+
+    // push_negotiation callback 错误会以 git2::Error 形式从 push() 抛出 · 在外层捕获并映射 StaleLease
+    remote.push(&[&force_refspec], Some(&mut push_opts)).map_err(|e| {
+        if e.message().contains("force-with-lease: stale") {
+            // 解析 expected/actual · 返回 StaleLease
+            NetworkOpError::StaleLease {
+                expected: expected_oid.clone().unwrap_or_default(),
+                actual: e.message().to_string(),
+            }
+        } else {
+            network_op_error_from_git2(e)
+        }
+    })
 }
 ```
 
 **Acceptance（实施 PR 必须含）**：
 
-- [ ] `force=true` 但 `expected_remote_oid: None` → 后端拒绝 `NetworkOpError::Aborted` · UI 提示用户先 fetch
-- [ ] `force=true` + `expected_remote_oid` 不匹配远端当前 head → 后端拒绝 `NetworkOpError::StaleLease { expected, actual }` · UI 重新 fetch + 弹新 confirmation
-- [ ] race 测试：confirmation modal 弹出后 mock 远端 advance · 用旧 lease push → 必须返回 StaleLease（实测可用 `tempfile` + 双 repo + 手动改 ref）
-- [ ] `force=false`（普通 push）：lease 字段忽略 · git push 自身处理 non-fast-forward 返回 NonFastForward
+- [ ] `force=true` 但 `expected_remote_oid: None` → 后端拒绝 `NetworkOpError::Aborted`
+- [ ] `force=true` + lease 在 push_negotiation callback 内不匹配 → 后端返回 `NetworkOpError::StaleLease { expected, actual }` · push pack 不发 · 远端 ref 不变
+- [ ] **race 测试 1**（preflight gap）：confirmation modal 弹出后 fetch 旧 OID · 远端 advance · push 时 push_negotiation 在 actual ref 上 verify · 必须返回 StaleLease
+- [ ] **race 测试 2**（in-flight gap）：push_negotiation callback 后到 actual ref update 之间 · 远端再 advance · 由 libgit2 server 协议层（fetch-pack atomic ref update）处理 · 实施时验证 git2 0.20 + libgit2 1.7 行为：若不能保证 · spec 必须明确接受残余 race · 或砍 force push 推 v0.3
+- [ ] `force=false`（普通 push）：push_negotiation callback 直接返回 Ok · git push 自身处理 non-fast-forward 返回 NonFastForward
+- [ ] 验证 git2 0.20 `RemoteCallbacks::push_negotiation` 实际行为：`docs.rs/git2/0.20.0/git2/struct.RemoteCallbacks.html#method.push_negotiation` · 实施 spike 第一步必须 PoC · 不假设
 
 v0.3+ 升级：`PROTECTED_BRANCHES` 移到设置面板（用户可自定义）· 支持 glob pattern（如 `release/*`）。
 

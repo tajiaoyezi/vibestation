@@ -56,7 +56,7 @@ reviewer:
   - Detached HEAD → checkout 已有 branch 后退出 detached 状态
   - Remote 分支 checkout：`origin/feat/x` → 自动建本地 tracking branch `feat/x`（`git2::Branch::set_upstream`）
 - **Branch delete（写）**：
-  - 安全删除 `git branch -d`：未合并 + 不是当前 branch + 不是 main/master 保护 → 通过；否则拒绝 + 解释原因
+  - 安全删除 `git branch -d`：**已合并到当前 HEAD**（reachability check · 见 §H.4）+ 不是当前 branch + 不是 main/master 保护 → 通过；**未合并 → 拒绝 + 抛 `BranchError::Unmerged { name, missing_commits }`**（见 §G.2 enum · 必须先 force=true 才能删）
   - 强制删除 `git branch -D`：UI 二次确认 + 显式 "Force delete (data loss)" 红色按钮 · 5s undo toast（git2 `Reference::delete` 不可逆 · undo 通过缓存的 commit SHA 重建 ref）
 - **Fuzzy Switcher**：`⌘B` 弹 modal · 输入过滤 · ↑↓ 选 · Enter checkout · Esc 取消 · 类似 VSCode `⌘P` Quick Open
 - **分支树即时刷新**：CRUD 后通过 Tauri event `git:branch-changed` 推送 · 前端 store 增量更新 · 无需手动 refresh

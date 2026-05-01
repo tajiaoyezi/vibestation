@@ -81,6 +81,9 @@ pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     if user_version < 6 {
         migrate_v6(conn)?;
     }
+    if user_version < 7 {
+        migrate_v7(conn)?;
+    }
 
     Ok(())
 }
@@ -244,6 +247,43 @@ fn migrate_v6(conn: &Connection) -> Result<(), DbError> {
     conn.execute_batch("PRAGMA user_version = 6;")
         .map_err(|e| DbError::Migration {
             version: 6,
+            reason: e.to_string(),
+        })?;
+    Ok(())
+}
+
+/// MVP-20 follow-up · 加 `position` 列支持 tab 拖拽排序持久化。
+/// 用 INTEGER · DEFAULT 0 · backfill 时按 created_at ASC 给现有 tabs 赋递增 position。
+/// list_by_workspace 改用 ORDER BY position ASC · 替代之前的 created_at ASC。
+fn migrate_v7(conn: &Connection) -> Result<(), DbError> {
+    if !column_exists(conn, "tabs", "position")? {
+        conn.execute(
+            "ALTER TABLE tabs ADD COLUMN position INTEGER NOT NULL DEFAULT 0",
+            [],
+        )
+        .map_err(|e| DbError::Migration {
+            version: 7,
+            reason: e.to_string(),
+        })?;
+        // backfill · 按 created_at ASC + rowid 顺序给现有 tabs 重新赋 position 0..N
+        // 每个 workspace 内独立编号 · 用 ROW_NUMBER 窗口函数（SQLite 3.25+ 支持）
+        conn.execute_batch(
+            "UPDATE tabs
+             SET position = (
+                 SELECT COUNT(*) FROM tabs t2
+                 WHERE t2.workspace_id = tabs.workspace_id
+                 AND (t2.created_at < tabs.created_at
+                      OR (t2.created_at = tabs.created_at AND t2.rowid < tabs.rowid))
+             );",
+        )
+        .map_err(|e| DbError::Migration {
+            version: 7,
+            reason: e.to_string(),
+        })?;
+    }
+    conn.execute_batch("PRAGMA user_version = 7;")
+        .map_err(|e| DbError::Migration {
+            version: 7,
             reason: e.to_string(),
         })?;
     Ok(())

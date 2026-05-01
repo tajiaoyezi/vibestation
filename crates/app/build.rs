@@ -22,8 +22,8 @@ use vibestation_core::{
     PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
     SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
     SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest, TabState,
+    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -57,6 +57,7 @@ fn main() {
     TabCreateRequest::export_all(&config).expect("export TabCreateRequest");
     TabCloseRequest::export_all(&config).expect("export TabCloseRequest");
     TabRenameRequest::export_all(&config).expect("export TabRenameRequest");
+    TabReorderRequest::export_all(&config).expect("export TabReorderRequest");
     TabListResponse::export_all(&config).expect("export TabListResponse");
     PtyStdoutEvent::export_all(&config).expect("export PtyStdoutEvent");
     PtyExitedEvent::export_all(&config).expect("export PtyExitedEvent");
@@ -131,6 +132,7 @@ fn main() {
             "export type { TabCreateRequest } from \"./TabCreateRequest\";",
             "export type { TabCloseRequest } from \"./TabCloseRequest\";",
             "export type { TabRenameRequest } from \"./TabRenameRequest\";",
+            "export type { TabReorderRequest } from \"./TabReorderRequest\";",
             "export type { TabListResponse } from \"./TabListResponse\";",
             "export type { PtyStdoutEvent } from \"./PtyStdoutEvent\";",
             "export type { PtyExitedEvent } from \"./PtyExitedEvent\";",

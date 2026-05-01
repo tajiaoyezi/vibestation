@@ -23,6 +23,7 @@
     "allow-tab-create",
     "allow-tab-close",
     "allow-tab-rename",
+    "allow-tab-reorder",
     "allow-tab-scrollback-fetch",
     "allow-tab-pty-spawn",
     "allow-tab-pty-stdin",

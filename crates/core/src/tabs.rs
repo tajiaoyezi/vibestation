@@ -55,6 +55,17 @@ pub struct TabRenameRequest {
     pub name: String,
 }
 
+/// Parameters for reordering a tab via drag-drop · MVP-20 follow-up。
+/// `new_index` 是 0-based · workspace 内的目标位置。后端会重新分配该 workspace
+/// 所有 tabs 的 position 让其连续递增（避免 gap 累积）。
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TabReorderRequest {
+    pub tab_id: String,
+    pub new_index: u32,
+}
+
 /// Response for listing tabs in a workspace.
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -110,11 +121,28 @@ impl TabsDao {
             .unwrap_or_else(|| crate::pty::resolve_default_shell(Some(pool)));
         let cwd = req.cwd.clone().unwrap_or_else(|| "/".to_string());
         let created_at = chrono::Utc::now().timestamp();
+        // 新 tab 的 position = 当前 workspace 内最大 position + 1 · 让新 tab 在末尾。
+        // SELECT COALESCE(MAX(position), -1) · 空 workspace 时返回 -1 · +1 = 0。
+        let next_position: i64 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(position), -1) + 1 FROM tabs WHERE workspace_id = ?1",
+                [&req.workspace_id],
+                |row| row.get(0),
+            )
+            .map_err(DbError::from)?;
 
         conn.execute(
-            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, '[]', ?6)",
-            rusqlite::params![tab_id, req.workspace_id, name, shell, cwd, created_at],
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at, position)
+             VALUES (?1, ?2, ?3, ?4, ?5, '[]', ?6, ?7)",
+            rusqlite::params![
+                tab_id,
+                req.workspace_id,
+                name,
+                shell,
+                cwd,
+                created_at,
+                next_position
+            ],
         )
         .map_err(|e| match e {
             rusqlite::Error::SqliteFailure(ref err, _)
@@ -141,11 +169,11 @@ impl TabsDao {
         let conn = pool.get().map_err(DbError::from)?;
         let mut stmt = conn
             .prepare(
-                // 新建 tab 应在右边末尾（iTerm / Warp / 浏览器约定）·
-                // ASC 让最早创建的 tab 在前 · 新建的 push 到末尾。
-                // rowid 作 secondary sort 防 timestamp 相同（同秒内 create 多个）时顺序不稳定。
+                // 按 position 排序 · 支持拖拽 reorder 持久化（schema v7 加的列）。
+                // created_at + rowid 作 secondary sort · 防 position 重复时顺序不确定。
                 "SELECT tab_id, workspace_id, name, shell, cwd, created_at
-                 FROM tabs WHERE workspace_id = ?1 ORDER BY created_at ASC, rowid ASC",
+                 FROM tabs WHERE workspace_id = ?1
+                 ORDER BY position ASC, created_at ASC, rowid ASC",
             )
             .map_err(DbError::from)?;
 
@@ -211,6 +239,67 @@ impl TabsDao {
             return Err(TabError::NotFound(tab_id.to_string()));
         }
         Ok(())
+    }
+
+    /// MVP-20 follow-up · 把 tab 移动到 workspace 内的 new_index 位置。
+    /// 整个 workspace 的 tabs 重新连续编号（0, 1, 2, ...）· 避免 gap 累积导致
+    /// 长期使用后 position 数值膨胀。事务内执行 · 失败回滚不破坏现有顺序。
+    pub fn reorder(pool: &DbPool, req: &TabReorderRequest) -> Result<Vec<TabState>, TabError> {
+        let mut conn = pool.get().map_err(DbError::from)?;
+        let tx = conn.transaction().map_err(DbError::from)?;
+
+        // 找到 tab 的 workspace_id · 验证 tab 存在
+        let workspace_id: String = tx
+            .query_row(
+                "SELECT workspace_id FROM tabs WHERE tab_id = ?1",
+                [&req.tab_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => TabError::NotFound(req.tab_id.clone()),
+                other => TabError::Db(DbError::Query(other.to_string())),
+            })?;
+
+        // 拿当前 workspace 内所有 tab_id 按 position ASC 排
+        let mut tab_ids: Vec<String> = {
+            let mut stmt = tx
+                .prepare(
+                    "SELECT tab_id FROM tabs WHERE workspace_id = ?1
+                     ORDER BY position ASC, created_at ASC, rowid ASC",
+                )
+                .map_err(DbError::from)?;
+            let rows = stmt
+                .query_map([&workspace_id], |row| row.get::<_, String>(0))
+                .map_err(DbError::from)?;
+            let mut ids = Vec::new();
+            for row in rows {
+                ids.push(row.map_err(DbError::from)?);
+            }
+            ids
+        };
+
+        // 找 source · 移除 · 插入到 new_index
+        let from_idx = tab_ids
+            .iter()
+            .position(|id| id == &req.tab_id)
+            .ok_or_else(|| TabError::NotFound(req.tab_id.clone()))?;
+        let tab = tab_ids.remove(from_idx);
+        let to_idx = (req.new_index as usize).min(tab_ids.len());
+        tab_ids.insert(to_idx, tab);
+
+        // 批量重写 position · 连续编号 0..N
+        for (i, id) in tab_ids.iter().enumerate() {
+            tx.execute(
+                "UPDATE tabs SET position = ?1 WHERE tab_id = ?2",
+                rusqlite::params![i as i64, id],
+            )
+            .map_err(DbError::from)?;
+        }
+
+        tx.commit().map_err(DbError::from)?;
+
+        // 返回 reorder 后的完整 list（前端可直接 sync · 不再需另一次 list_by_workspace）
+        Self::list_by_workspace(pool, &workspace_id)
     }
 
     pub fn scrollback_append(
@@ -390,6 +479,66 @@ mod tests {
     fn get_nonexistent_tab_errors() {
         let (_dir, pool, _) = setup();
         let result = TabsDao::get(&pool, "nonexistent-id");
+        assert!(matches!(result, Err(TabError::NotFound(_))));
+    }
+
+    #[test]
+    fn reorder_moves_tab_to_new_index() {
+        let (_dir, pool, ws_id) = setup();
+        let t1 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
+        let t2 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
+        let t3 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
+
+        // 把 t1 从 index 0 移到 index 2 · 顺序应变成 [t2, t3, t1]
+        let result = TabsDao::reorder(
+            &pool,
+            &TabReorderRequest {
+                tab_id: t1.tab_id.clone(),
+                new_index: 2,
+            },
+        )
+        .unwrap();
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].tab_id, t2.tab_id);
+        assert_eq!(result[1].tab_id, t3.tab_id);
+        assert_eq!(result[2].tab_id, t1.tab_id);
+
+        // 持久化验证：再 list 一次顺序应该一致
+        let listed = TabsDao::list_by_workspace(&pool, &ws_id).unwrap();
+        assert_eq!(listed[0].tab_id, t2.tab_id);
+        assert_eq!(listed[1].tab_id, t3.tab_id);
+        assert_eq!(listed[2].tab_id, t1.tab_id);
+    }
+
+    #[test]
+    fn reorder_clamps_new_index_to_max() {
+        let (_dir, pool, ws_id) = setup();
+        let t1 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
+        let t2 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
+
+        // new_index 超出范围 · 应该 clamp 到 len-1（即 1）· t1 移到末尾
+        let result = TabsDao::reorder(
+            &pool,
+            &TabReorderRequest {
+                tab_id: t1.tab_id.clone(),
+                new_index: 99,
+            },
+        )
+        .unwrap();
+        assert_eq!(result[0].tab_id, t2.tab_id);
+        assert_eq!(result[1].tab_id, t1.tab_id);
+    }
+
+    #[test]
+    fn reorder_nonexistent_tab_errors() {
+        let (_dir, pool, _ws_id) = setup();
+        let result = TabsDao::reorder(
+            &pool,
+            &TabReorderRequest {
+                tab_id: "nonexistent-id".to_string(),
+                new_index: 0,
+            },
+        );
         assert!(matches!(result, Err(TabError::NotFound(_))));
     }
 

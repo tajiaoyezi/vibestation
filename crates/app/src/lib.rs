@@ -23,8 +23,9 @@ use vibestation_core::{
     PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
     PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
     SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabState, TabsDao,
-    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
+    TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -389,6 +390,16 @@ fn tab_rename(state: State<'_, AppState>, req: TabRenameRequest) -> Result<TabSt
     let pool = guard.as_ref().ok_or("database not initialized")?;
     TabsDao::rename(pool, &req.tab_id, &req.name).map_err(|e| e.to_string())?;
     TabsDao::get(pool, &req.tab_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn tab_reorder(
+    state: State<'_, AppState>,
+    req: TabReorderRequest,
+) -> Result<Vec<TabState>, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    TabsDao::reorder(pool, &req).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -991,6 +1002,7 @@ pub fn run() {
             tab_create,
             tab_close,
             tab_rename,
+            tab_reorder,
             tab_scrollback_fetch,
             tab_pty_spawn,
             tab_pty_stdin,

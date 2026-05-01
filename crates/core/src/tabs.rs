@@ -141,8 +141,11 @@ impl TabsDao {
         let conn = pool.get().map_err(DbError::from)?;
         let mut stmt = conn
             .prepare(
+                // 新建 tab 应在右边末尾（iTerm / Warp / 浏览器约定）·
+                // ASC 让最早创建的 tab 在前 · 新建的 push 到末尾。
+                // rowid 作 secondary sort 防 timestamp 相同（同秒内 create 多个）时顺序不稳定。
                 "SELECT tab_id, workspace_id, name, shell, cwd, created_at
-                 FROM tabs WHERE workspace_id = ?1 ORDER BY created_at DESC",
+                 FROM tabs WHERE workspace_id = ?1 ORDER BY created_at ASC, rowid ASC",
             )
             .map_err(DbError::from)?;
 
@@ -362,16 +365,16 @@ mod tests {
     }
 
     #[test]
-    fn list_ordered_by_created_at_desc() {
+    fn list_ordered_by_created_at_asc() {
         let (_dir, pool, ws_id) = setup();
         let t1 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
         let t2 = TabsDao::create(&pool, &make_req(&ws_id)).unwrap();
 
         let tabs = TabsDao::list_by_workspace(&pool, &ws_id).unwrap();
         assert_eq!(tabs.len(), 2);
-        let ids: Vec<&str> = tabs.iter().map(|t| t.tab_id.as_str()).collect();
-        assert!(ids.contains(&t1.tab_id.as_str()));
-        assert!(ids.contains(&t2.tab_id.as_str()));
+        // 最早创建的在前 · 新创建的在末尾（rowid 作 secondary sort 保证 timestamp 同秒时 t1 在前）
+        assert_eq!(tabs[0].tab_id, t1.tab_id);
+        assert_eq!(tabs[1].tab_id, t2.tab_id);
     }
 
     #[test]

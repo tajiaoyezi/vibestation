@@ -69,10 +69,38 @@
   gap: var(--space-1);
   overflow-x: auto;
   padding: var(--space-1) 0 0;
+  /* relative 定位让 .vs-terminal-tabbar-indicator absolute 找到正确父级 */
+  position: relative;
 }
 
 .vs-terminal-tabbar-scroll::-webkit-scrollbar {
   height: 6px;
+}
+
+/* 底部独立 indicator · JS 通过 transform translateX + width 跟随 active tab。
+   transition 让 active 切换时蓝条平滑滑动 · 取代原来"瞬间跳"的 border-bottom 切换。
+   3px 高 · 跟原 active border-bottom-width 一致 · 视觉无变化 · 只是行为变平滑。 */
+.vs-terminal-tabbar-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(0);
+  width: 0;
+  /* JS first paint 之前 opacity:0 防 flash · is-ready 后才显 · 同时启用 transition */
+  transition:
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 120ms ease;
+  z-index: 2;
+}
+
+.vs-terminal-tabbar-indicator.is-ready {
+  /* opacity 由 JS updateIndicator 控制（active 存在 → 1 · 不存在 → 0） */
 }
 
 .vs-terminal-tab {
@@ -91,6 +119,68 @@
     border-color var(--dur-fast) var(--ease),
     background-color var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease);
+  /* 新 tab mount 时从压缩状态展开 · `both` fill mode 让 from 状态在第一帧前生效 ·
+     避免 mount 瞬间出现"先满宽后压缩展开"的 flicker。app 启动时所有 tabs 也会
+     一次 enter · 视觉是渐入 · 接受。 */
+  animation: vs-tab-enter var(--dur-normal) var(--ease) both;
+}
+
+@keyframes vs-tab-enter {
+  from {
+    opacity: 0;
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    max-width: 240px;
+    padding-left: var(--space-3);
+    padding-right: var(--space-2);
+    transform: translateY(0);
+  }
+}
+
+/* leave 动画 · TabBar.tsx 点 × 时加 .is-leaving · 240ms 总时长。
+   多维度退场：原位 fade + 上飞 + 缩小 + 微模糊 → 然后宽度收缩让位。
+   60% 完成消失 + 后 40% 完成收缩 · 让"消失"和"让位"分清节奏。
+   Material standard ease (0.4, 0, 0.2, 1) · 比 ease-in-out 略灵动。 */
+.vs-terminal-tab.is-leaving {
+  animation: vs-tab-leave 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+  /* z-index 抬高 · leaving tab overlay 在邻近 tab 上 · 收缩时不被推走的 ghost 视觉 */
+  position: relative;
+  z-index: 1;
+  /* transform-origin 中心偏下 · 让缩小看起来像"沉下去" · 而不是从左上角缩 */
+  transform-origin: center 60%;
+}
+
+@keyframes vs-tab-leave {
+  0% {
+    opacity: 1;
+    max-width: 240px;
+    padding-left: var(--space-3);
+    padding-right: var(--space-2);
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  60% {
+    opacity: 0;
+    max-width: 240px;
+    padding-left: var(--space-3);
+    padding-right: var(--space-2);
+    transform: translateY(-6px) scale(0.82);
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 0;
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    transform: translateY(-6px) scale(0.82);
+    filter: blur(1.5px);
+  }
 }
 
 /* inactive tab hover · 给 chip 形态出来 · close × 也跟着显出来 */
@@ -99,12 +189,10 @@
 }
 
 .vs-terminal-tab.is-active {
-  /* active tab bg 跟 stage（--bg-1）一致 · 视觉上 tab + terminal 内容是同一面板凸出 ·
-     accent underline 加粗到 3px · 跟 inactive 拉开。不再用 accent gradient（太弱 · 且
-     在 dark/light 都缺乏 punch）·改成纯色 surface + bottom rule。 */
+  /* active tab bg 跟 stage（--bg-1）一致 · 视觉上 tab + terminal 内容是同一面板凸出。
+     accent 蓝条改用底部独立 .vs-terminal-tabbar-indicator 元素 · JS 跟随 active tab
+     平滑滑动 · 取代原来 border-bottom 切换"瞬间跳"。 */
   background: var(--bg-1);
-  border-bottom-color: var(--accent);
-  border-bottom-width: 3px;
 }
 
 .vs-terminal-tab-trigger {
@@ -201,6 +289,12 @@
   border-color: var(--line);
   background: var(--bg-2);
   color: var(--text-1);
+}
+
+/* + 按钮按下微反馈 · 给用户"已点击"的物理感 · 60ms ease 不打断快速连点节奏 */
+.vs-terminal-new-tab:active {
+  transform: scale(0.94);
+  transition: transform 60ms var(--ease);
 }
 
 /*

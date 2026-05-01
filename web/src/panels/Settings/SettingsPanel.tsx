@@ -8,6 +8,8 @@ import "./styles.css";
 interface SettingsPanelProps {
   visible: boolean;
   onClose: () => void;
+  /** MVP-06 · 触发配置导入对话框（Settings 头部 "Import" 按钮） */
+  onOpenImport?: () => void;
 }
 
 type GroupDef = {
@@ -47,14 +49,27 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
         <div class="vs-settings-drawer" onClick={(e) => e.stopPropagation()}>
           <div class="vs-settings-header">
             <h2 class="vs-settings-title">Preferences</h2>
-            <button
-              type="button"
-              class="vs-settings-close"
-              onClick={props.onClose}
-              aria-label="Close settings"
-            >
-              ✕
-            </button>
+            <div class="vs-settings-header-actions">
+              <Show when={props.onOpenImport}>
+                <button
+                  type="button"
+                  class="vs-settings-import-btn"
+                  onClick={() => {
+                    props.onOpenImport?.();
+                  }}
+                >
+                  Import…
+                </button>
+              </Show>
+              <button
+                type="button"
+                class="vs-settings-close"
+                onClick={props.onClose}
+                aria-label="Close settings"
+              >
+                ✕
+              </button>
+            </div>
           </div>
 
           <div class="vs-settings-body">

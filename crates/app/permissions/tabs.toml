@@ -24,6 +24,11 @@ description = "允许前端重命名 Tab 标题"
 commands.allow = ["tab_rename"]
 
 [[permission]]
+identifier = "allow-tab-reorder"
+description = "允许前端拖拽调换 Tab 顺序（持久化到 SQLite position 列）"
+commands.allow = ["tab_reorder"]
+
+[[permission]]
 identifier = "allow-tab-scrollback-fetch"
 description = "允许前端按需拉取 Tab scrollback buffer（IPC contract 排除全量 scroll_back · 按需分页拉取）"
 commands.allow = ["tab_scrollback_fetch"]

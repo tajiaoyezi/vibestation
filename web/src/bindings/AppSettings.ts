@@ -8,4 +8,9 @@ ptyPoolEnabled: boolean,
 /**
  * MVP-20 · PTY 预热池容量（推荐 1-3 · 实际取值由 UI 限制）
  */
-ptyPoolSize: number, };
+ptyPoolSize: number, 
+/**
+ * 全局 sidebar 宽度（像素）· 跨 workspace 共享 · 类似 VSCode/Cursor 设计 ·
+ * 区别于 per-workspace LayoutState 的 open/close。
+ */
+primaryWidth: number, secondaryWidth: number, bottomHeight: number, };

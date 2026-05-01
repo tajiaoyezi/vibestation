@@ -245,6 +245,10 @@ pub struct PtySession {
     scrollback: Mutex<ScrollbackBuffer>,
     scrollback_tx: Sender<ScrollbackCommand>,
     cd_echo_filter: CdEchoFilter,
+    /// 跨 read chunk 边界的 UTF-8 leftover · 防中文等多字节字符被 read 切断
+    /// 后变成 U+FFFD 替换字符（屏幕上的 ���）。每次 read 完后只把"完整 UTF-8 字符"
+    /// 部分发出去 · 末尾不完整的字节留到下次 read 拼接。最多 3 字节（4 字节字符的前缀）。
+    partial_utf8: Mutex<Vec<u8>>,
 }
 
 impl PtySession {
@@ -365,6 +369,33 @@ impl PtySession {
         }
 
         None
+    }
+
+    /// 把 raw bytes 拼到 leftover · 返回"可安全转 String 的连续完整 UTF-8 段"·
+    /// 末尾不完整的 multi-byte 起始字节留在 leftover · 等下次 chunk 来拼。
+    /// 中间真正非法的字节序列（不是 incomplete · 是真坏）才走 lossy 转 ��� ·
+    /// 这种是真出问题 · 该亮就亮。
+    fn drain_utf8_safe(&self, new_data: &[u8]) -> String {
+        let mut leftover = lock(&self.partial_utf8);
+        leftover.extend_from_slice(new_data);
+
+        let take = match std::str::from_utf8(&leftover) {
+            Ok(_) => leftover.len(),
+            Err(e) => {
+                let valid_up_to = e.valid_up_to();
+                match e.error_len() {
+                    // None = 末尾是 incomplete UTF-8 起始字节 · 留到下次拼接 · 只发已完整部分
+                    None if leftover.len() - valid_up_to <= 3 => valid_up_to,
+                    // 其他情况：真坏字节 · 或 leftover 已积累 > 3 字节没解析（异常）·
+                    // 直接全部 lossy 转 · 让 ��� 出现（这才是真正"该亮"的乱码信号）
+                    _ => leftover.len(),
+                }
+            }
+        };
+
+        let result = String::from_utf8_lossy(&leftover[..take]).to_string();
+        leftover.drain(..take);
+        result
     }
 
     fn emit_stdout(&self, events: &DropOldestSender<PtyEvent>, data: &str) -> Result<(), PtyError> {
@@ -596,6 +627,7 @@ impl PtyManager {
             scrollback: Mutex::new(ScrollbackBuffer::default()),
             scrollback_tx: self.scrollback_tx.clone(),
             cd_echo_filter: CdEchoFilter::default(),
+            partial_utf8: Mutex::new(Vec::with_capacity(4)),
         });
 
         lock(&self.sessions).insert(tab_id.clone(), Arc::clone(&session));
@@ -822,7 +854,13 @@ fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent
         };
 
         if read > 0 {
-            let chunk = String::from_utf8_lossy(&buffer[..read as usize]).to_string();
+            // 用 leftover-aware 拼接 · 避免 UTF-8 字符跨 chunk 边界被切断 · 否则
+            // 中文等多字节字符会被 from_utf8_lossy 替换成 ��� (U+FFFD) · 终端乱码。
+            let chunk = session.drain_utf8_safe(&buffer[..read as usize]);
+            if chunk.is_empty() {
+                // 全部是 incomplete UTF-8 · 留待下次 read · 不浪费 emit
+                continue;
+            }
             session.record_scrollback_chunk(&chunk);
             if let Err(error) = session.emit_stdout(events, &chunk) {
                 eprintln!(

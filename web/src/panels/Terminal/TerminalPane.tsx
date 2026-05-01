@@ -248,6 +248,13 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
         "Ubuntu Mono",
         "ui-monospace",
         "Liberation Mono",
+        // CJK 字符 fallback · 与 PaneTerminal.tsx 保持一致 · 防中文光标错位。
+        "Sarasa Term SC",
+        "PingFang SC",
+        "Hiragino Sans GB",
+        "Microsoft YaHei",
+        "Noto Sans CJK SC",
+        "WenQuanYi Micro Hei",
         "monospace",
       ].join(", "),
       fontSize: 13,

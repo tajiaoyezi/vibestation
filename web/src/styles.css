@@ -242,6 +242,89 @@ textarea {
   position: relative;
 }
 
+/* ══════ TOP BAR · 跨全宽固定顶栏（Cursor 风格）══════
+   sidebar 收缩 / 展开都不影响这条 bar 的位置 · workspace meta 永远固定 ·
+   collapse 按钮放在 traffic lights 右侧 · 收缩后仍然可见可点。
+   macOS 下 padding-left 让出 traffic lights · 整条 bar 同时是 drag region。 */
+.vs-top-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--top-bar-height, 36px);
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg-0);
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+  position: relative;
+  z-index: 25;
+}
+
+.platform-macos .vs-top-bar {
+  /* macOS traffic lights 占据左 76px · 让出空间防按钮被遮挡 */
+  padding-left: 80px;
+}
+
+/* 顶栏内可交互元素都不参与 drag · 否则 button 点击会被 webkit 拦截 */
+.vs-top-bar button,
+.vs-top-bar [role="button"],
+.vs-top-bar input,
+.vs-top-bar a {
+  -webkit-app-region: no-drag;
+}
+
+.vs-top-bar-toggle {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--accent);
+  border-radius: var(--r-4);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.vs-top-bar-toggle:hover {
+  background: var(--accent-soft);
+}
+
+/* sidebar 收起时 toggle 变灰 · 提示"非激活状态"·  hover 仍变 accent */
+.vs-top-bar-toggle-off {
+  color: var(--text-3);
+}
+
+.vs-top-bar-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1;
+  -webkit-app-region: drag;
+}
+
+.vs-top-bar-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+
+.vs-top-bar-path {
+  font-size: 0.6875rem;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 /* Main grid: Primary | Main | Secondary | Activity Strip */
 .vs-main-grid {
   display: grid;
@@ -266,10 +349,8 @@ textarea {
   position: relative;
 }
 
-.platform-macos .vs-primary-sidebar .vs-panel-head {
-  height: calc(32px + var(--title-bar-height));
-  padding-top: var(--title-bar-height);
-}
+/* sidebar 顶部不再需要让出 traffic lights 空间 · TopBar 已经覆盖顶部 36px ·
+   sidebar 从 TopBar 下方开始 · panel-head 维持标准 32px。 */
 
 .vs-primary-sidebar.vs-panel-hidden {
   width: 0 !important;
@@ -626,6 +707,16 @@ textarea {
   background: var(--bg-2);
 }
 
+/* sidebar 当前打开时图标用 accent · 提示"已激活"状态 · 类似 Cursor 行为 */
+.vs-status-icon-btn-on {
+  color: var(--accent);
+}
+
+.vs-status-icon-btn-on:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 /* ══════ THEME SWITCH ══════ */
 
 .vs-theme-switch {
@@ -692,6 +783,30 @@ textarea {
   cursor: not-allowed;
 }
 
+/* sidebar header 内的"折叠 sidebar"按钮 · 风格刻意比 + 按钮低调 ·
+   主入口语义但视觉不抢戏 · hover 才显出 accent。 */
+.vs-panel-collapse-btn {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: var(--r-4);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-panel-collapse-btn:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .vs-ws-list {
   list-style: none;
   margin: 0;
@@ -701,33 +816,79 @@ textarea {
 }
 
 .vs-ws-item {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0; /* 允许子项 ellipsis · 防 path 撑开 li → sidebar 抖动 */
+  min-height: 64px;
+  padding: 8px var(--space-3);
   cursor: pointer;
-  border-left: 2px solid transparent;
+  border-left: 3px solid transparent;
   transition:
     background-color var(--dur-fast) var(--ease),
     border-color var(--dur-fast) var(--ease);
 }
 
-.vs-ws-item:hover {
+.vs-ws-list .vs-ws-item + .vs-ws-item {
+  margin-top: 2px;
+}
+
+.vs-ws-item:not(.vs-ws-item-active):hover {
   background: var(--bg-2);
 }
 
-.vs-ws-item-active {
-  background: var(--bg-2);
+.vs-ws-item-active,
+.vs-ws-item-active:hover {
+  /* 用 color-mix 让 active 在 light/dark 都有清晰可辨的色块层次 ·
+     light 模式 14% accent on bg-1 · dark 模式因 bg-1 暗 · 同样比 bg-2 更"被点亮"。 */
+  background: color-mix(in oklch, var(--accent) 14%, var(--bg-1));
   border-left-color: var(--accent);
+}
+
+.vs-ws-row-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
 }
 
 .vs-ws-name {
   flex: 1;
-  font-size: 0.8125rem;
-  color: var(--text-1);
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--text-2);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.vs-ws-item-active .vs-ws-name {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+/* 路径副标题 · 灰色 · mono 字体提示这是文件路径 ·
+   字号 11px 与 name 17px 形成 1.55x 比例 · name 主导但 path 依然有视觉重量。
+   display: block · inline span 的 text-overflow: ellipsis 不生效 ·
+   必须 block / inline-block 才能截断 · 否则长 path 撑开 li 影响 sidebar 宽度。 */
+.vs-ws-path {
+  display: block;
+  max-width: 100%;
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+}
+
+.vs-ws-item-active .vs-ws-path {
+  color: var(--text-2);
 }
 
 .vs-ws-delete {
@@ -1405,12 +1566,35 @@ textarea {
 }
 
 .vs-git-log-detail {
-  border-top: 1px solid var(--line-soft);
   padding: var(--space-3);
   background: var(--bg-1);
   flex-shrink: 0;
-  max-height: 40%;
+  /* height 由 inline style 控制 · 由 .vs-git-log-splitter 拖动 · 默认 280px */
+  height: 280px;
   overflow-y: auto;
+}
+
+/* commit list 与 detail 之间的水平拖拽条 ·
+   视觉只有 1px 细线（与 list/detail 边界融合）· 鼠标命中区域 ±6px = 13px ·
+   不会让用户感觉横亘一道粗杠。 */
+.vs-git-log-splitter {
+  flex: 0 0 1px;
+  position: relative;
+  background: var(--line-soft);
+  cursor: ns-resize;
+  transition: background-color var(--dur-fast) var(--ease);
+  z-index: 1;
+}
+
+.vs-git-log-splitter::before {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+
+.vs-git-log-splitter:hover,
+.vs-git-log-splitter.is-resizing {
+  background: var(--accent);
 }
 
 .vs-git-log-detail-title {

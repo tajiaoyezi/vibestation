@@ -46,13 +46,21 @@ pub struct AppSettings {
     /// MVP-20 · PTY 预热池容量（推荐 1-3 · 实际取值由 UI 限制）
     #[ts(type = "number")]
     pub pty_pool_size: u32,
+    /// 全局 sidebar 宽度（像素）· 跨 workspace 共享 · 类似 VSCode/Cursor 设计 ·
+    /// 区别于 per-workspace LayoutState 的 open/close。
+    #[ts(type = "number")]
+    pub primary_width: u32,
+    #[ts(type = "number")]
+    pub secondary_width: u32,
+    #[ts(type = "number")]
+    pub bottom_height: u32,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            theme: "auto".to_string(),
-            font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace".to_string(),
+            theme: "dark".to_string(),
+            font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace".to_string(),
             font_size: 14,
             default_shell: if cfg!(target_os = "macos") {
                 "/bin/zsh".to_string()
@@ -72,6 +80,10 @@ impl Default for AppSettings {
             unfocused_pane_opacity: 0.7,
             pty_pool_enabled: true,
             pty_pool_size: 1,
+            // 全局 sidebar 默认值 · 与原 DEFAULT_LAYOUT (web/src/stores/layout.ts) 一致
+            primary_width: 236,
+            secondary_width: 400,
+            bottom_height: 240,
         }
     }
 }
@@ -97,6 +109,9 @@ pub struct SettingsUpdateRequest {
     pub unfocused_pane_opacity: Option<f32>,
     pub pty_pool_enabled: Option<bool>,
     pub pty_pool_size: Option<u32>,
+    pub primary_width: Option<u32>,
+    pub secondary_width: Option<u32>,
+    pub bottom_height: Option<u32>,
 }
 
 fn get_parsed<T: std::str::FromStr>(pool: &DbPool, key: &str, default: &str) -> T
@@ -153,8 +168,8 @@ impl AppSettingsStore {
     }
 
     pub fn get_all(pool: &DbPool) -> AppSettings {
-        let theme = get_parsed(pool, "theme", "auto");
-        let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
+        let theme = get_parsed(pool, "theme", "dark");
+        let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
         let default_shell = get_parsed(
             pool,
@@ -178,6 +193,9 @@ impl AppSettingsStore {
         let unfocused_pane_opacity: f32 = get_parsed(pool, "unfocused_pane_opacity", "0.7");
         let pty_pool_enabled: bool = get_parsed(pool, "pty_pool_enabled", "true");
         let pty_pool_size: u32 = get_parsed(pool, "pty_pool_size", "1");
+        let primary_width: u32 = get_parsed(pool, "primary_width", "236");
+        let secondary_width: u32 = get_parsed(pool, "secondary_width", "400");
+        let bottom_height: u32 = get_parsed(pool, "bottom_height", "240");
 
         AppSettings {
             theme,
@@ -197,6 +215,9 @@ impl AppSettingsStore {
             unfocused_pane_opacity,
             pty_pool_enabled,
             pty_pool_size,
+            primary_width,
+            secondary_width,
+            bottom_height,
         }
     }
 
@@ -252,6 +273,15 @@ impl AppSettingsStore {
         if let Some(v) = req.pty_pool_size {
             Self::set(pool, "pty_pool_size", &v.to_string())?;
         }
+        if let Some(v) = req.primary_width {
+            Self::set(pool, "primary_width", &v.to_string())?;
+        }
+        if let Some(v) = req.secondary_width {
+            Self::set(pool, "secondary_width", &v.to_string())?;
+        }
+        if let Some(v) = req.bottom_height {
+            Self::set(pool, "bottom_height", &v.to_string())?;
+        }
         Ok(())
     }
 }
@@ -306,8 +336,8 @@ mod tests {
     fn get_all_returns_defaults_when_empty() {
         let (_dir, pool) = setup();
         let settings = AppSettingsStore::get_all(&pool);
-        assert_eq!(settings.theme, "auto");
-        assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace");
+        assert_eq!(settings.theme, "dark");
+        assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         assert_eq!(settings.font_size, 14);
         assert!((settings.bg_opacity - 0.85).abs() < f32::EPSILON);
         assert_eq!(settings.bg_blur, 20);

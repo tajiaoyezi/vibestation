@@ -136,3 +136,5 @@ flamegraph.svg
 # Claude Code 工具产物（本地状态 · 不入 repo）
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+# dmux（多 agent 编排工具）本地状态
+.dmux/

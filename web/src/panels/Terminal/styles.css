@@ -111,7 +111,8 @@
   max-width: 240px;
   flex: 0 0 auto;
   align-items: center;
-  gap: var(--space-1);
+  /* 不用 gap · 否则 trigger 和 close 之间会留出无主空白区域 · click 无响应 ·
+     视觉间距改用 trigger 自身 padding-right 实现 · trigger 命中区延伸到 close 边缘。 */
   height: 32px;
   padding: 0 var(--space-2) 0 var(--space-3);
   border-bottom: 2px solid transparent;
@@ -208,7 +209,9 @@
   color: var(--text-3);
   cursor: pointer;
   font: inherit;
-  padding: 0;
+  /* padding-right 提供与 close × 之间的视觉间距 · 同时把 trigger 自身的
+     click 命中区扩展到 close 边缘 · 消除中间空白死区。 */
+  padding: 0 var(--space-1) 0 0;
   transition: color var(--dur-fast) var(--ease);
 }
 
@@ -300,14 +303,11 @@
 
 /* ===== Drag & Drop · tab 拖拽调换顺序 ===== */
 
-/* tab 默认可拖拽 · grab cursor 暗示 */
+/* tab 默认 cursor 跟随子元素（trigger 是 button → 自然 pointer）·
+   不在 hover 时暗示 "可拖动" · 与 VSCode / Chrome 标签行为一致。
+   真正进入拖拽时由 TabBar.tsx 把 document.body.cursor 锁成 grabbing。 */
 .vs-terminal-tab {
-  cursor: grab;
   position: relative; /* drop indicator ::before/::after 定位基准 */
-}
-
-.vs-terminal-tab:active {
-  cursor: grabbing;
 }
 
 /* 拖拽中的 ghost · 半透明 · 让用户看到原位置 */

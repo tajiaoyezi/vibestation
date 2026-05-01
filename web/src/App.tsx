@@ -28,6 +28,7 @@ import { MainContent } from "./components/MainContent";
 import type { DiffTarget } from "./components/MainContent";
 import { ThemeSwitch } from "./components/ThemeSwitch";
 import { GearIcon } from "./components/Icons";
+import { TopBar } from "./components/TopBar";
 import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 
@@ -177,6 +178,12 @@ const LayoutShell: Component<{
         e.preventDefault();
         dispatch({ kind: "toggle-primary" });
         break;
+      case "b":
+      case "B":
+        // VSCode / Cursor 标准 · ⌘B / Ctrl+B toggle primary sidebar
+        e.preventDefault();
+        dispatch({ kind: "toggle-primary" });
+        break;
       case "2":
         e.preventDefault();
         dispatch({ kind: "toggle-secondary" });
@@ -210,10 +217,10 @@ const LayoutShell: Component<{
 
   return (
     <div class="vs-shell">
-      <div
-        class="title-bar-drag"
-        data-tauri-drag-region
-        aria-hidden="true"
+      <TopBar
+        activeWorkspace={activeWorkspace}
+        primaryOpen={() => layout().primaryOpen}
+        onTogglePrimary={() => dispatch({ kind: "toggle-primary" })}
         onMouseDown={handleTitleBarMouseDown}
       />
 

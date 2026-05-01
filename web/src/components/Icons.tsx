@@ -50,3 +50,21 @@ export const GearIcon: Component = () => (
     <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
   </svg>
 );
+
+/** Toggle primary sidebar 图标 · Cursor / VSCode 标准样式：
+ *  外框矩形 + 左侧实心条表示 sidebar · 与 ⌘B 行为一致 */
+export const SidebarLeftIcon: Component = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="2" y="3" width="12" height="10" rx="1.5" />
+    <line x1="6" y1="3" x2="6" y2="13" />
+    <rect
+      x="2.5"
+      y="3.5"
+      width="3"
+      height="9"
+      fill="currentColor"
+      stroke="none"
+      rx="1"
+    />
+  </svg>
+);

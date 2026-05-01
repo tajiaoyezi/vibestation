@@ -1,5 +1,23 @@
+---
+id: MVP-11
+type: mvp
+title: Git Push / Pull / Fetch（远端同步）
+status: draft
+owner:
+phase: v0.2
+depends_on: ["MVP-09", "MVP-13"]
+blocks: []
+blocked_by: []
+blocked_from:
+blocked_note:
+estimate: 5d
+plan_ref: implementation-plan.md §10.1（MVP B 折中砍到 v0.2）· §6.2 git_push/pull/fetch IPC · §6.3 git:push/fetch-progress event · §11 W14 路线图 · §11.3 R23 push/pull 错误恢复
+risk_ref: R23（auto-updater 网络错误恢复 · 类比 push/pull 网络可恢复性）
+reviewer:
+---
+
 <!--
-  ⚠️ ID 冲突警告（详化时增补 · 2026-05-01 vibe sprint Worker B）
+  ⚠️ ID 冲突警告（详化时增补 · 2026-05-01 vibe sprint Worker B · Round 2 frontmatter fix）
 
   v0.1 已存在 MVP-11 = "Native Feel Quality"（已 done · spec PR #119/#125 · 5/5 全 done）
   本 spec（v0.2 候选）原 id 也是 MVP-11 = "Git Push / Pull / Fetch"
@@ -18,25 +36,10 @@
   - 文件名同步 rename 为 MVP-21-git-push-pull-fetch.md · 索引 README.md 一并更新
 
   本 spec 详化阶段保持 id: MVP-11 · 等 Arbiter 审 PR 时拍板 · 翻 ready 前完成 rename。
--->
 
----
-id: MVP-11
-type: mvp
-title: Git Push / Pull / Fetch（远端同步）
-status: draft
-owner:
-phase: v0.2
-depends_on: ["MVP-09", "MVP-13"]
-blocks: []
-blocked_by: []
-blocked_from:
-blocked_note:
-estimate: 5d
-plan_ref: implementation-plan.md §10.1（MVP B 折中砍到 v0.2）· §6.2 git_push/pull/fetch IPC · §6.3 git:push/fetch-progress event · §11 W14 路线图 · §11.3 R23 push/pull 错误恢复
-risk_ref: R23（auto-updater 网络错误恢复 · 类比 push/pull 网络可恢复性）
-reviewer:
----
+  注：注释从 frontmatter 前移至 frontmatter 后 · 满足 task-spec-validator.mjs 要求
+  （Codex round 1 review CRITICAL finding · 2026-05-01）
+-->
 
 # MVP-11: Git Push / Pull / Fetch（远端同步）
 
@@ -422,6 +425,14 @@ pub struct PushRequest {
     pub remote: String,         // "origin" / 用户指定
     pub branch: String,
     pub force: bool,            // force push · 后端额外校验保护名单
+    /// force-with-lease: 期望的远端 head OID（hex）
+    /// - force=false 时忽略（None）
+    /// - force=true 时**必填** · 后端 push 前 verify `origin/<branch>` 当前 OID == expected_remote_oid
+    ///   - 不一致 → 拒绝 push 返回 `NetworkOpError::StaleLease { expected, actual }` · UI 重新 fetch + 弹新 confirmation
+    ///   - 防止 confirmation modal 弹出后远端 advance · 用户在不知情下覆盖新 commits
+    /// - 实施时：UI 在 confirmation 前 fetch 一次 · 把 `origin/<branch>` 当前 OID 存到 PushRequest.expected_remote_oid
+    /// - 见 §H.X force-with-lease 语义说明
+    pub expected_remote_oid: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -442,7 +453,10 @@ pub enum PullStrategy {
     Rebase,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+// AuthMethod 含敏感凭证字段 · **禁止 derive Debug**（会通过 log/panic/tracing 泄漏 password）
+// 实施时必须 manual impl Debug · passphrase / password 字段渲染为 "***REDACTED***"
+// 参考下方 impl 模板（v0.2 实施时按此模板写 · 不要省略）
+#[derive(Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum AuthMethod {
@@ -451,6 +465,32 @@ pub enum AuthMethod {
     HttpsHelper,                                  // 走 git credential helper
     HttpsManual { username: String, password: String },
 }
+
+// 必须的 manual Debug · 永远不暴露 passphrase / password 明文（v0.2 实施时强制实现）
+impl std::fmt::Debug for AuthMethod {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::SshAgent => write!(f, "AuthMethod::SshAgent"),
+            Self::SshKeyFile { path, passphrase } => f
+                .debug_struct("AuthMethod::SshKeyFile")
+                .field("path", path)
+                .field(
+                    "passphrase",
+                    &passphrase.as_ref().map(|_| "***REDACTED***"),
+                )
+                .finish(),
+            Self::HttpsHelper => write!(f, "AuthMethod::HttpsHelper"),
+            Self::HttpsManual { username, .. } => f
+                .debug_struct("AuthMethod::HttpsManual")
+                .field("username", username)
+                .field("password", &"***REDACTED***")
+                .finish(),
+        }
+    }
+}
+
+// 进阶（可选 v0.3+ · 不强制 v0.2）：用 `secrecy::SecretString` 或 `zeroize::Zeroizing<String>`
+// 包 password / passphrase · drop 时自动清零内存 · 防 process dump 泄漏
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -464,6 +504,7 @@ pub enum NetworkOpError {
     Aborted { reason: String },                                 // 用户 cancel
     DirtyWorkingTree { modified: Vec<String>, staged: Vec<String>, untracked: Vec<String> },
     RejectedByRemote { detail: String },                        // 远端 hook 拒绝（pre-receive）
+    StaleLease { expected: String, actual: String },            // force-with-lease 失败 · 远端 advance · UI 需重新 fetch + 弹新 confirmation（防覆盖未见 commits）
     SslError { detail: String },                                // SSL 证书无效
     Git2Error { class: String, code: i32, message: String },
 }

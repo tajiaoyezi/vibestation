@@ -484,7 +484,8 @@ MVP-13 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 | Create | `Repository::find_commit(target_oid)` → `Repository::branch(name, &commit, force)` |
 | Checkout | `Repository::find_branch(name, BranchType::Local)` → `Branch::get().name()` → `Repository::set_head(...)` → `Repository::checkout_head(opts)` |
 | Force checkout | `CheckoutBuilder::new().force()` |
-| Delete | `Repository::find_branch(name, t)` → `Branch::delete()` |
+| Delete (safe · `force=false`) | **必须先做 reachability check**：`Repository::find_branch(name, t)` → 取 branch tip OID → `Repository::head()` 取当前 HEAD OID → `Repository::merge_base(tip, head)` → 比较 `merge_base == tip`？是 → 已合并 · 安全 · `Branch::delete()` · 否 → 抛 `BranchError::NotMerged { name, tip_oid }` · 让 UI 提示用户改用 force |
+| Delete (force · `force=true`) | 跳过 reachability check · 直接 `Repository::find_branch(name, t)` → `Branch::delete()`（但保护分支名单 main/master/trunk 仍硬阻拦） |
 | Set upstream | `Branch::set_upstream(Some("origin/feat/x"))` |
 | Name validate | `git2::Reference::is_valid_name(format!("refs/heads/{name}").as_str())` |
 | Detached HEAD detect | `Repository::head_detached()` |

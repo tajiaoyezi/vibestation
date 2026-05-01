@@ -398,7 +398,7 @@ criterion_main!(benches);
 | `RemoteInfo` | 单个 remote 元数据 | 新增 |
 | `PushRequest` | push 输入 · `{ workspace_id, remote, branch, force }` | 新增 |
 | `PushResult` | push 输出 · `{ pushed_commits, new_remote_head }` | 新增 |
-| `PullRequest` | pull 输入 · `{ workspace_id, remote, branch, strategy: "merge" \| "rebase" }` | 新增 |
+| `PullRequest` | pull 输入 · `{ workspace_id, remote, branch, strategy: "merge" \| "rebase", frontend_status_snapshot: GitStatusResponse, frontend_status_taken_at: i64 }` · snapshot 字段是 race guard 必需（§H.4.1 · backend 重检 dirty drift 用） | 新增 |
 | `PullResult` | pull 输出 · `{ stage: "ff" \| "merge" \| "rebase", new_head, merged_commits }` | 新增 |
 | `FetchRequest` | fetch 输入 · `{ workspace_id, remote, prune }` | 新增 |
 | `FetchResult` | fetch 输出 · `{ fetched_refs, pruned_refs }` | 新增 |
@@ -532,8 +532,6 @@ pub struct ConflictFile {
   - 实施 PR 必须含 regression test：构造 AuthMethod 实例 · 走 `format!("{:?}", auth)` / `tracing::debug!` / `panic!` 任一路径 · assert 输出**不含** passphrase / password 明文
   - 完整 manual Debug 模板见 §G.2 AuthMethod 段（v0.2 实施 copy-paste）
 - [ ] bindings 由 `crates/app/build.rs` 在 `cargo build` 时自动生成到 `web/src/bindings/`
-
-- [ ] bindings 由 `crates/app/build.rs` 在 `cargo build` 时自动生成到 `web/src/bindings/`
 - [ ] 前端**禁止**手写 `interface PushRequest { ... }`——所有类型必须从 `./bindings/*` import
 - [ ] `.prettierignore` 已排除 `web/src/bindings/`（防止 prettier 与生成格式冲突）
 
@@ -577,11 +575,12 @@ MVP-11 实施前必须明确复用 / 新增边界：
 | `FetchRequest` | fetch 输入 | `import type { FetchRequest } from "../bindings/FetchRequest"` |
 | `FetchResult` | fetch 输出 · `{ fetchedRefs, prunedRefs }` | `import type { FetchResult } from "../bindings/FetchResult"` |
 | `AuthMethod` | auth 枚举 · 含 payload tagged union | `import type { AuthMethod } from "../bindings/AuthMethod"` |
-| `AuthRequest` | auth modal 提交回调 | `import type { AuthRequest } from "../bindings/AuthRequest"` |
-| `NetworkOpError` | 错误枚举 · 含 payload tagged union（9 variant）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
+| `AuthRequest` | auth modal 提交回调 · challenge-bound | `import type { AuthRequest } from "../bindings/AuthRequest"` |
+| `AuthChallenge` | 后端发起 auth 提示前广播（§G.1 · spec round 2 fix 加） | `import type { AuthChallenge } from "../bindings/AuthChallenge"` |
+| `NetworkOpError` | 错误枚举 · 含 payload tagged union（10 variant · 含 StaleLease + DirtyWorkingTree）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
 | `MergeConflictInfo` / `ConflictFile` | conflict 详情 · 2 binding | `import type { MergeConflictInfo, ConflictFile } from "../bindings/..."` |
 
-> 加上复用上游 2 个（`BranchInfo` / `GitStatusResponse`）· 实施时 bindings 目录新增 **12 个** `.ts` 文件（MergeConflictInfo + ConflictFile + RemoteListReq + Resp + PullRequest + PullStrategy + PullResult + PushRequest + PushResult + FetchRequest + FetchResult + AuthMethod + AuthRequest + NetworkOpError + RemoteInfo = 15 total · 减去打包计算后实际 12 个文件 · 因为 PullStrategy / ConflictFile 等小 enum 可能被 TS 内联）。
+> 复用上游：`BranchInfo`（MVP-13）· `GitStatusResponse`（MVP-08 · 用于 PullRequest.frontend_status_snapshot · §H.4.1 race guard）· 实施时 bindings 目录新增约 **15 个** `.ts` 文件（ts-rs 每个 `#[derive(TS)]` 生成独立文件 · 实际数以 `cargo build` 后 `web/src/bindings/` 实际产物为准 · 不假设小 enum 被内联）。
 
 ### G.7 · Tauri Event Payload（progress streaming）
 
@@ -710,8 +709,8 @@ MVP-11 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-
 **解法**：backend 必须在 fetch 之后、reset/merge/rebase 之前**自己再做一次 status check** · 与 PullRequest 中携带的 frontend snapshot 比较 · 不一致 → 抛 `NetworkOpError::DirtyWorkingTree { ... }`。
 
 ```rust
-// PullRequest 增加字段（spec §G 必须更新）：
-//   pub frontend_status_snapshot: GitStatusSnapshot   // frontend 上次 git_status 的快照
+// PullRequest 增加字段（已在 §G.1 表更新 · 复用 MVP-08 GitStatusResponse · 不新建 struct）：
+//   pub frontend_status_snapshot: GitStatusResponse   // frontend 上次 git_status 的快照（复用 MVP-08 type）
 //   pub frontend_status_taken_at: i64                  // unix epoch · debug 用
 
 // backend pull 流程：

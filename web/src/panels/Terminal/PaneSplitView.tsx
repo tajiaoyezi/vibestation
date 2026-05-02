@@ -11,7 +11,7 @@
  * Phase C scaffolding · 暂未与 [`Terminal.tsx`] 集成 · 集成留 PR #145。
  */
 import { Show, type Component } from "solid-js";
-import type { LayoutNode, PaneState } from "../../bindings";
+import type { LayoutNode, PaneState, SplitDir } from "../../bindings";
 import { PaneSplitter } from "./PaneSplitter";
 import { PaneTerminal, type PaneTerminalApi } from "./PaneTerminal";
 
@@ -26,6 +26,11 @@ type PaneSplitViewProps = {
   onPaneExit?: (paneId: string, exitCode: number | null) => void;
   onRegisterPaneApi?: (paneId: string, api: PaneTerminalApi) => void;
   onUnregisterPaneApi?: (paneId: string) => void;
+  // MVP-05 visible toolbar · 按钮触发 split / close · wire 到 Terminal.tsx
+  onPaneSplit?: (direction: SplitDir, paneId: string) => void;
+  onPaneClose?: (paneId: string) => void;
+  // cmd+V paste guard 透传 · 与 menu paste 路径共享 setPendingPaste 流程
+  onPanePasteRequest?: (paneId: string, text: string) => void;
 };
 
 const findPane = (panes: PaneState[], paneId: string): PaneState | null =>
@@ -58,10 +63,9 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
   const pane = () => findPane(props.panes, paneId);
 
   return (
-    <Show
-      when={pane()}
-      fallback={<div class="vs-pane-missing">Pane {paneId} 缺失</div>}
-    >
+    // fallback 用空 placeholder · 防 layout 切换瞬间 SolidJS 在旧 RenderSingle 子树 dispose
+    // 完成前重 evaluate pane() = null · 闪现 "Pane 缺失" 字样几 ms。
+    <Show when={pane()} fallback={<div class="vs-pane-missing" />}>
       {(p) => (
         <PaneTerminal
           paneId={paneId}
@@ -74,6 +78,9 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
           onError={props.onPaneError}
           onRegisterApi={props.onRegisterPaneApi}
           onUnregisterApi={props.onUnregisterPaneApi}
+          onSplit={props.onPaneSplit}
+          onClose={props.onPaneClose}
+          onPasteRequest={props.onPanePasteRequest}
         />
       )}
     </Show>
@@ -104,6 +111,9 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           onPaneExit={props.onPaneExit}
           onRegisterPaneApi={props.onRegisterPaneApi}
           onUnregisterPaneApi={props.onUnregisterPaneApi}
+          onPaneSplit={props.onPaneSplit}
+          onPaneClose={props.onPaneClose}
+          onPanePasteRequest={props.onPanePasteRequest}
         />
       </div>
       <PaneSplitter
@@ -124,6 +134,9 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           onPaneExit={props.onPaneExit}
           onRegisterPaneApi={props.onRegisterPaneApi}
           onUnregisterPaneApi={props.onUnregisterPaneApi}
+          onPaneSplit={props.onPaneSplit}
+          onPaneClose={props.onPaneClose}
+          onPanePasteRequest={props.onPanePasteRequest}
         />
       </div>
     </div>

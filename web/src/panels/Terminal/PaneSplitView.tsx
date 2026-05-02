@@ -29,6 +29,8 @@ type PaneSplitViewProps = {
   // MVP-05 visible toolbar · 按钮触发 split / close · wire 到 Terminal.tsx
   onPaneSplit?: (direction: SplitDir, paneId: string) => void;
   onPaneClose?: (paneId: string) => void;
+  // cmd+V paste guard 透传 · 与 menu paste 路径共享 setPendingPaste 流程
+  onPanePasteRequest?: (paneId: string, text: string) => void;
 };
 
 const findPane = (panes: PaneState[], paneId: string): PaneState | null =>
@@ -78,6 +80,7 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
           onUnregisterApi={props.onUnregisterPaneApi}
           onSplit={props.onPaneSplit}
           onClose={props.onPaneClose}
+          onPasteRequest={props.onPanePasteRequest}
         />
       )}
     </Show>
@@ -110,6 +113,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           onUnregisterPaneApi={props.onUnregisterPaneApi}
           onPaneSplit={props.onPaneSplit}
           onPaneClose={props.onPaneClose}
+          onPanePasteRequest={props.onPanePasteRequest}
         />
       </div>
       <PaneSplitter
@@ -132,6 +136,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           onUnregisterPaneApi={props.onUnregisterPaneApi}
           onPaneSplit={props.onPaneSplit}
           onPaneClose={props.onPaneClose}
+          onPanePasteRequest={props.onPanePasteRequest}
         />
       </div>
     </div>

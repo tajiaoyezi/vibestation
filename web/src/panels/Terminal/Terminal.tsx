@@ -300,6 +300,30 @@ export const Terminal: Component<TerminalProps> = (props) => {
   };
 
   /**
+   * 统一 paste guard 入口 · 所有 paste 路径（menu paste / pane mode cmd+V / legacy
+   * TerminalPane DOM paste）走此 helper · 单点决策 multiline + skipPasteConfirm。
+   * - paneId 提供时 · paste 走 paneApis.get(paneId) （pane mode 精确目标）
+   * - paneId 未提供时 · paste 走 getActivePaneApi(tabId) (legacy / menu fallback)
+   * 防 multiline 内容 bypass guard 直接注入 shell（Codex review #208 round 6 / round 7
+   * self-review finding · 修 cmd+V bypass 与 menu paste 行为不一致）。
+   */
+  const requestPaste = (tabId: string, text: string, paneId: string | null) => {
+    if (!text) return;
+    const tab = findTab(tabId);
+    if (!tab) return;
+    const workspaceId = tab.workspaceId;
+    const skip = skipPasteConfirmByWorkspace()[workspaceId] ?? false;
+    const needsConfirm = /[\r\n]/.test(text) && !skip;
+    if (needsConfirm) {
+      setPendingPaste({ tabId, text, workspaceId });
+    } else if (paneId) {
+      paneApis.get(paneId)?.paste(text);
+    } else {
+      getActivePaneApi(tabId)?.paste(text);
+    }
+  };
+
+  /**
    * 解析当前 active pane API · 处理 pane mode / legacy fallback 双键 schema：
    * - pane mode（panesByTabId[tabId] 存在）· paneApis 以 paneId 为 key · 用 focusedPaneId 查
    * - legacy fallback（TerminalPane 渲染）· paneApis 以 tabId 为 key · 直接查 tabId
@@ -1198,23 +1222,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "paste":
           if (tabId) {
+            const localTabId = tabId;
             void navigator.clipboard.readText().then((text) => {
-              if (!text) return;
-              // Multiline / destructive 内容 paste 前必须走 confirmation dialog · 与 legacy
-              // TerminalPane DOM paste handler 一致（TerminalPane.tsx:232 检测 /[\r\n]/ 触发
-              // onPasteRequest → setPendingPaste → PasteConfirmDialog）。menu paste 直接走
-              // paneApi.paste 会 bypass guard · 让 multiline shell 命令无确认注入（Codex
-              // review #208 round 6 high finding）。workspace 标记 skip 时直接 paste。
-              const tab = findTab(tabId);
-              if (!tab) return; // race · tab 已关 · 丢弃 paste
-              const workspaceId = tab.workspaceId;
-              const skip = skipPasteConfirmByWorkspace()[workspaceId] ?? false;
-              const needsConfirm = /[\r\n]/.test(text) && !skip;
-              if (needsConfirm) {
-                setPendingPaste({ tabId, text, workspaceId });
-              } else {
-                getActivePaneApi(tabId)?.paste(text);
-              }
+              // 统一走 requestPaste · 与 cmd+V / legacy DOM paste 共享 multiline + skip 决策
+              requestPaste(localTabId, text ?? "", null);
             });
           }
           break;
@@ -1354,6 +1365,12 @@ export const Terminal: Component<TerminalProps> = (props) => {
                           }}
                           onPaneClose={(paneId) => {
                             void handlePaneClose(paneId);
+                          }}
+                          onPanePasteRequest={(paneId, text) => {
+                            // pane mode cmd+V 触发 · 走统一 requestPaste · multiline 弹
+                            // PasteConfirmDialog · 与 menu paste / legacy paste 行为一致
+                            // (Codex round 6 / round 7 self-review finding)。
+                            requestPaste(tabId, text, paneId);
                           }}
                           onRegisterPaneApi={(paneId, api) => {
                             // pane mode · paneApis 用 paneId 作 key（与 legacy fallback

@@ -79,6 +79,11 @@ type PaneTerminalProps = {
   // MVP-05 visible split UI · toolbar 按钮 wire 到这两个 handler
   onSplit?: (direction: SplitDir, paneId: string) => void;
   onClose?: (paneId: string) => void;
+  // cmd+V paste guard 路径 · 与 menu paste / legacy TerminalPane DOM paste 对齐：
+  // PaneTerminal 不知道 workspace skip state · 把 paste 委托给上层决策（multiline check
+  // + skipPasteConfirmByWorkspace） · 上层根据需要 setPendingPaste 弹 confirm dialog 或
+  // 直接 paneApi.paste。未提供 callback 时 fallback 直接 paste（向后兼容）。
+  onPasteRequest?: (paneId: string, text: string) => void;
 };
 
 const createTheme = () => {
@@ -280,7 +285,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         event.preventDefault();
         void readClipboardText()
           .then((text) => {
-            if (text) term?.paste(text);
+            if (!text) return;
+            // 走上层 paste guard · multiline + skipPasteConfirm 决策由 Terminal.tsx 做
+            if (props.onPasteRequest) {
+              props.onPasteRequest(props.paneId, text);
+            } else {
+              // 向后兼容 · onPasteRequest 未提供时直接 paste（与原行为一致）
+              term?.paste(text);
+            }
           })
           .catch((err) => {
             console.warn("[clipboard] readText failed", err);

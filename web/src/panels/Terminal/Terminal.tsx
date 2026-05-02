@@ -596,22 +596,33 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const t0 = performance.now();
     try {
       // MVP-05 reload 修复 · close 前 snapshot 保留 panes（被关 paneId 跳过）· 让重 mount
-      // 后通过 paneSnapshots 恢复 xterm 显示。被关 pane 的 PTY 显式 kill 防泄漏。
+      // 后通过 paneSnapshots 恢复 xterm 显示。
       for (const pane of list.panes) {
         if (pane.paneId === paneId) continue;
         const api = paneApis.get(pane.paneId);
         const snapshot = api?.serialize?.();
         if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
       }
-      // 显式 kill 被关 pane 的 PTY · 因为 PaneTerminal.onCleanup 默认不再 kill（防 layout
-      // 切换误杀保留 pane 的 PTY）。kill 失败（pane 已 exited）忽略。
-      await invoke("pane_pty_kill", { paneId }).catch(() => {});
+      // 先 commit backend layout close · 成功后再 kill PTY · 顺序逆转后即使 pane_close
+      // 失败（pool 未 init / DB 错 / stale paneId）· 用户的 shell 进程仍存活 · 可重试 ·
+      // 不会从 "可恢复的 close 失败" 变成 "不可恢复的 session 丢失"（Codex review #208 finding）。
       const response = await invoke<PaneListResponse>("pane_close", {
         req: {
           paneId,
         } satisfies PaneCloseRequest,
       });
       setPaneListForTab(tabId, response);
+      // pane_close 已 commit · 现在显式 kill PTY · 因为 PaneTerminal.onCleanup 默认不再 kill。
+      // kill 失败不静默吞 · 提示用户存在 PTY leak（pane 已从 layout 移除 · 进程仍在 backend
+      // pty_pool · 直到 closeWorkspaceTabs 或应用退出才清理）。
+      try {
+        await invoke("pane_pty_kill", { paneId });
+      } catch (killErr) {
+        const msg = errorMessage(killErr);
+        if (!/not\s*found|already.*exited/i.test(msg)) {
+          showToast(`Pane PTY leak warning: ${msg}`);
+        }
+      }
       requestAnimationFrame(() => {
         const dt = performance.now() - t0;
         // eslint-disable-next-line no-console
@@ -1262,6 +1273,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
                           }}
                           onPaneClose={(paneId) => {
                             void handlePaneClose(paneId);
+                          }}
+                          onRegisterPaneApi={(paneId, api) => {
+                            // pane mode · paneApis 用 paneId 作 key（与 legacy fallback
+                            // 用 tabId 不冲突：同一 tab 同时只走一种 mode）。这里漏接
+                            // 会让 handlePaneSplit / handlePaneClose 的 serialize() 永远拿
+                            // 不到 PaneTerminalApi · paneSnapshots 永远空 · SerializeAddon
+                            // 形同虚设（Codex review #208 finding）。
+                            paneApis.set(paneId, api);
+                          }}
+                          onUnregisterPaneApi={(paneId) => {
+                            paneApis.delete(paneId);
                           }}
                         />
                       </div>

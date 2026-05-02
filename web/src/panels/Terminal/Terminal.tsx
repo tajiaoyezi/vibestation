@@ -30,6 +30,7 @@ import type {
   WorkspaceMetadata,
 } from "../../bindings";
 import { PaneSplitView } from "./PaneSplitView";
+import { paneSnapshots } from "./PaneTerminal";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
@@ -61,8 +62,9 @@ type PaneApi = {
   focus: () => void;
   paste: (text: string) => void;
   clear: () => void;
-  copy: () => void;
-  selectAll: () => void;
+  copy?: () => void; // legacy TerminalPane 提供 · pane mode 不一定有
+  selectAll?: () => void; // 同上
+  serialize?: () => string; // pane mode PaneTerminal 提供 · MVP-05 layout 切换 reload 修复用
 };
 
 type TerminalProps = {
@@ -119,6 +121,25 @@ export const Terminal: Component<TerminalProps> = (props) => {
    * MVP-05 Phase C §C · Smart Layouts 命令面板开关 · ⌘⇧P 触发。
    */
   const [smartLayoutOpen, setSmartLayoutOpen] = createSignal(false);
+
+  /**
+   * MVP-05 视觉细节 · 点击 pane 外（sidebar / tab 区 / 空白）时隐藏 focused pane 的蓝色
+   * outline。focusedPaneId 仍保留在 store · 方便切回 webview / re-click pane 时恢复。
+   * 由全局 mousedown listener 切换 · 在 pane 内点击 → false（显示）· pane 外 → true。
+   */
+  const [paneFocusSuppressed, setPaneFocusSuppressed] = createSignal(false);
+
+  onMount(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      const insidePane = !!target?.closest?.(
+        ".vs-pane-terminal, .vs-pane-actions",
+      );
+      setPaneFocusSuppressed(!insidePane);
+    };
+    document.addEventListener("mousedown", onDown, true);
+    onCleanup(() => document.removeEventListener("mousedown", onDown, true));
+  });
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
@@ -276,6 +297,46 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
 
     return null;
+  };
+
+  /**
+   * 统一 paste guard 入口 · 所有 paste 路径（menu paste / pane mode cmd+V / legacy
+   * TerminalPane DOM paste）走此 helper · 单点决策 multiline + skipPasteConfirm。
+   * - paneId 提供时 · paste 走 paneApis.get(paneId) （pane mode 精确目标）
+   * - paneId 未提供时 · paste 走 getActivePaneApi(tabId) (legacy / menu fallback)
+   * 防 multiline 内容 bypass guard 直接注入 shell（Codex review #208 round 6 / round 7
+   * self-review finding · 修 cmd+V bypass 与 menu paste 行为不一致）。
+   */
+  const requestPaste = (tabId: string, text: string, paneId: string | null) => {
+    if (!text) return;
+    const tab = findTab(tabId);
+    if (!tab) return;
+    const workspaceId = tab.workspaceId;
+    const skip = skipPasteConfirmByWorkspace()[workspaceId] ?? false;
+    const needsConfirm = /[\r\n]/.test(text) && !skip;
+    if (needsConfirm) {
+      setPendingPaste({ tabId, text, workspaceId });
+    } else if (paneId) {
+      paneApis.get(paneId)?.paste(text);
+    } else {
+      getActivePaneApi(tabId)?.paste(text);
+    }
+  };
+
+  /**
+   * 解析当前 active pane API · 处理 pane mode / legacy fallback 双键 schema：
+   * - pane mode（panesByTabId[tabId] 存在）· paneApis 以 paneId 为 key · 用 focusedPaneId 查
+   * - legacy fallback（TerminalPane 渲染）· paneApis 以 tabId 为 key · 直接查 tabId
+   * 所有 reader（focusActivePane / confirmPaste / menu actions clear/copy/paste/select_all）
+   * 必须走此 helper · 不能直接 paneApis.get(tabId) · 否则 pane mode 下 silent no-op（Codex
+   * review #208 round 5 finding · grep paneApis.get 找出 6 处违反）。
+   */
+  const getActivePaneApi = (tabId: string): PaneApi | undefined => {
+    const list = panesByTabId()[tabId];
+    if (list?.focusedPaneId) {
+      return paneApis.get(list.focusedPaneId);
+    }
+    return paneApis.get(tabId);
   };
 
   const syncWorkspaceTabs = (workspaceId: string, tabs: TabState[]) => {
@@ -517,6 +578,16 @@ export const Terminal: Component<TerminalProps> = (props) => {
     // MVP-05 Phase C §F.4 instrumentation · keydown → DOM commit P99 < 150ms 目标
     const t0 = performance.now();
     try {
+      // MVP-05 reload 修复 · split 前 snapshot 所有现有 pane · 让重 mount 后 PaneTerminal
+      // 通过 paneSnapshots 恢复 xterm 显示。新 pane 的 paneId 不在快照里 · cold spawn 走默认。
+      const currentList = panesByTabId()[tabId];
+      if (currentList) {
+        for (const pane of currentList.panes) {
+          const api = paneApis.get(pane.paneId);
+          const snapshot = api?.serialize?.();
+          if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+        }
+      }
       const response = await invoke<PaneListResponse>("pane_split", {
         req: {
           tabId,
@@ -564,12 +635,34 @@ export const Terminal: Component<TerminalProps> = (props) => {
     // MVP-05 Phase C §F.5 instrumentation · keydown → 重排 DOM commit P99 < 100ms 目标
     const t0 = performance.now();
     try {
+      // MVP-05 reload 修复 · close 前 snapshot 保留 panes（被关 paneId 跳过）· 让重 mount
+      // 后通过 paneSnapshots 恢复 xterm 显示。
+      for (const pane of list.panes) {
+        if (pane.paneId === paneId) continue;
+        const api = paneApis.get(pane.paneId);
+        const snapshot = api?.serialize?.();
+        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+      }
+      // 先 commit backend layout close · 成功后再 kill PTY · 顺序逆转后即使 pane_close
+      // 失败（pool 未 init / DB 错 / stale paneId）· 用户的 shell 进程仍存活 · 可重试 ·
+      // 不会从 "可恢复的 close 失败" 变成 "不可恢复的 session 丢失"（Codex review #208 finding）。
       const response = await invoke<PaneListResponse>("pane_close", {
         req: {
           paneId,
         } satisfies PaneCloseRequest,
       });
       setPaneListForTab(tabId, response);
+      // pane_close 已 commit · 现在显式 kill PTY · 因为 PaneTerminal.onCleanup 默认不再 kill。
+      // kill 失败不静默吞 · 提示用户存在 PTY leak（pane 已从 layout 移除 · 进程仍在 backend
+      // pty_pool · 直到 closeWorkspaceTabs 或应用退出才清理）。
+      try {
+        await invoke("pane_pty_kill", { paneId });
+      } catch (killErr) {
+        const msg = errorMessage(killErr);
+        if (!/not\s*found|already.*exited/i.test(msg)) {
+          showToast(`Pane PTY leak warning: ${msg}`);
+        }
+      }
       requestAnimationFrame(() => {
         const dt = performance.now() - t0;
         // eslint-disable-next-line no-console
@@ -627,6 +720,20 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
     // MVP-05 Phase C §F.6 instrumentation · 命令面板确认 → 最终布局 DOM commit P99 < 200ms 目标
     const t0 = performance.now();
+    // PaneTerminal.onCleanup 默认不再 kill PTY · backend pane_layout_apply 对 solo / aiAndRunner
+    // 等 preset 会 DELETE 多余 panes · 前端必须 diff pre/post panes 显式 kill 被删 PTY · 否则
+    // 进程留在 pty_pool 没人控制 · resource leak（Codex review #208 finding）。
+    // 同时对**保留** panes serialize 快照 · 让 layout 切换后 PaneTerminal 重 mount 时通过
+    // paneSnapshots 恢复 xterm 显示 · 否则保留 pane 仍会出现"空白 → 等待 stdout"（round 3 finding）。
+    const preList = panesByTabId()[tabId];
+    const prePaneIds = new Set(preList?.panes.map((p) => p.paneId) ?? []);
+    if (preList) {
+      for (const pane of preList.panes) {
+        const api = paneApis.get(pane.paneId);
+        const snapshot = api?.serialize?.();
+        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+      }
+    }
     const response = await invoke<PaneListResponse>("pane_layout_apply", {
       req: {
         tabId,
@@ -635,6 +742,22 @@ export const Terminal: Component<TerminalProps> = (props) => {
       } satisfies LayoutApplyRequest,
     });
     setPaneListForTab(tabId, response);
+    // 比较前后 panes · 显式 kill 被预设删除的 PTY · 失败（已 exited）静默跳过 · 真错误 toast 警告 leak。
+    // 同时清掉被删 paneId 的 snapshot · 防内存泄漏 + 防 paneId 复用时 stale snapshot 误用。
+    const postPaneIds = new Set(response.panes.map((p) => p.paneId));
+    for (const id of prePaneIds) {
+      if (!postPaneIds.has(id)) {
+        paneSnapshots.delete(id);
+        try {
+          await invoke("pane_pty_kill", { paneId: id });
+        } catch (killErr) {
+          const msg = errorMessage(killErr);
+          if (!/not\s*found|already.*exited/i.test(msg)) {
+            showToast(`Pane PTY leak warning: ${msg}`);
+          }
+        }
+      }
+    }
     requestAnimationFrame(() => {
       const dt = performance.now() - t0;
       // eslint-disable-next-line no-console
@@ -747,12 +870,40 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
 
     try {
-      await killTabPty(tabId);
+      // 先 commit backend tab_close · 成功后再 kill 所有 PTY（含 legacy tab PTY + panes
+      // PTY）· 即使 tab_close 失败 · 用户 shell 进程仍存活 · 可重试。与 handlePaneClose
+      // 顺序一致（Codex review #208 round 3 finding · 之前漏了 killTabPty 这行）。
+      // pre 阶段 snapshot pane id 列表 · 防 setPaneListForTab 后 store 被清空拿不到。
+      const paneList = panesByTabId()[tabId];
+      const panePaneIds = paneList?.panes.map((p) => p.paneId) ?? [];
       await invoke("tab_close", {
         req: {
           tabId,
         } satisfies TabCloseRequest,
       });
+
+      // tab_close 已 commit · kill PTY · 失败 toast 警告 leak。
+      // pane mode tab 没有 legacy tab_pty session · 跳过 killTabPty 省一次冗余 IPC（Codex
+      // round 5 finding · 另 killTabPty 内部已 swallow "tab not found" · 当前不 toast 但
+      // pane mode 显式 skip 更干净）。
+      if (!paneList) {
+        try {
+          await killTabPty(tabId);
+        } catch (killErr) {
+          showToast(`Tab PTY leak warning: ${errorMessage(killErr)}`);
+        }
+      }
+      for (const pid of panePaneIds) {
+        paneSnapshots.delete(pid);
+        try {
+          await invoke("pane_pty_kill", { paneId: pid });
+        } catch (killErr) {
+          const msg = errorMessage(killErr);
+          if (!/not\s*found|already.*exited/i.test(msg)) {
+            showToast(`Pane PTY leak warning: ${msg}`);
+          }
+        }
+      }
 
       newlyCreatedTabIds.delete(tabId);
       removeRuntime(tabId);
@@ -778,7 +929,23 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
   const closeWorkspaceTabs = async (workspaceId: string) => {
     const tabs = tabsByWorkspace()[workspaceId] ?? [];
+    // workspace cleanup（切走 workspace · 不调 tab_close 保留 DB 状态）· 仅 kill in-memory PTY
+    // 进程。kill 失败不静默吞 · toast 警告 leak（一致于 closeTab / handlePaneClose · Codex review）。
     for (const tab of tabs) {
+      const paneList = panesByTabId()[tab.tabId];
+      if (paneList) {
+        for (const pane of paneList.panes) {
+          paneSnapshots.delete(pane.paneId);
+          try {
+            await invoke("pane_pty_kill", { paneId: pane.paneId });
+          } catch (killErr) {
+            const msg = errorMessage(killErr);
+            if (!/not\s*found|already.*exited/i.test(msg)) {
+              showToast(`Pane PTY leak warning: ${msg}`);
+            }
+          }
+        }
+      }
       try {
         await killTabPty(tab.tabId);
       } catch (error) {
@@ -845,7 +1012,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       return;
     }
 
-    paneApis.get(tabId)?.focus();
+    getActivePaneApi(tabId)?.focus();
   };
 
   const confirmPaste = (rememberForWorkspace: boolean) => {
@@ -858,7 +1025,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       setPasteConfirmSkip(pending.workspaceId, true);
     }
 
-    const paneApi = paneApis.get(pending.tabId);
+    const paneApi = getActivePaneApi(pending.tabId);
     if (paneApi) {
       paneApi.paste(pending.text);
       paneApi.focus();
@@ -1045,26 +1212,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "clear_terminal":
           if (tabId) {
-            paneApis.get(tabId)?.clear();
+            getActivePaneApi(tabId)?.clear();
           }
           break;
         case "copy":
           if (tabId) {
-            paneApis.get(tabId)?.copy();
+            getActivePaneApi(tabId)?.copy?.();
           }
           break;
         case "paste":
           if (tabId) {
+            const localTabId = tabId;
             void navigator.clipboard.readText().then((text) => {
-              if (text) {
-                paneApis.get(tabId)?.paste(text);
-              }
+              // 统一走 requestPaste · 与 cmd+V / legacy DOM paste 共享 multiline + skip 决策
+              requestPaste(localTabId, text ?? "", null);
             });
           }
           break;
         case "select_all":
           if (tabId) {
-            paneApis.get(tabId)?.selectAll();
+            getActivePaneApi(tabId)?.selectAll?.();
           }
           break;
       }
@@ -1179,7 +1346,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
                   >
                     {(list) => (
                       <div
-                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
+                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"} ${paneFocusSuppressed() ? "is-focus-suppressed" : ""}`}
                         aria-hidden={!tabActive()}
                       >
                         <PaneSplitView
@@ -1192,6 +1359,29 @@ export const Terminal: Component<TerminalProps> = (props) => {
                           }}
                           onPaneError={(paneId, message) => {
                             showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
+                          }}
+                          onPaneSplit={(direction, paneId) => {
+                            void handlePaneSplit(direction, paneId);
+                          }}
+                          onPaneClose={(paneId) => {
+                            void handlePaneClose(paneId);
+                          }}
+                          onPanePasteRequest={(paneId, text) => {
+                            // pane mode cmd+V 触发 · 走统一 requestPaste · multiline 弹
+                            // PasteConfirmDialog · 与 menu paste / legacy paste 行为一致
+                            // (Codex round 6 / round 7 self-review finding)。
+                            requestPaste(tabId, text, paneId);
+                          }}
+                          onRegisterPaneApi={(paneId, api) => {
+                            // pane mode · paneApis 用 paneId 作 key（与 legacy fallback
+                            // 用 tabId 不冲突：同一 tab 同时只走一种 mode）。这里漏接
+                            // 会让 handlePaneSplit / handlePaneClose 的 serialize() 永远拿
+                            // 不到 PaneTerminalApi · paneSnapshots 永远空 · SerializeAddon
+                            // 形同虚设（Codex review #208 finding）。
+                            paneApis.set(paneId, api);
+                          }}
+                          onUnregisterPaneApi={(paneId) => {
+                            paneApis.delete(paneId);
                           }}
                         />
                       </div>

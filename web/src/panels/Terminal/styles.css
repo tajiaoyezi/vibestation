@@ -699,6 +699,14 @@
   outline-offset: -1px;
 }
 
+/* 点击 pane 外区域时（sidebar / tab 区 / 空白）隐藏 focused outline · focused 状态本身
+ * 仍保留 · 切回 webview / 再次点击 pane 时由 :not(.is-focus-suppressed) 自动恢复。 */
+.vs-pane-tab-host.is-focus-suppressed
+  .vs-pane-split
+  .vs-pane-terminal.is-focused {
+  outline-color: transparent;
+}
+
 .vs-pane-terminal-host {
   flex: 1;
   min-height: 0;
@@ -729,6 +737,72 @@
   color: var(--text-3);
   padding: var(--space-3);
   font-size: 0.8125rem;
+}
+
+/* MVP-05 visible split actions · pane 右上角悬浮按钮组
+ * 默认 dim · pane hover / focused 时高亮 · 不占用 terminal 内容区域 */
+.vs-pane-actions {
+  position: absolute;
+  top: calc(var(--space-3) + 6px);
+  right: calc(var(--space-3) + 6px);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: color-mix(in oklch, var(--bg-1) 92%, transparent);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0.45;
+  transition:
+    opacity 0.15s ease,
+    border-color 0.15s ease;
+  z-index: 4;
+  user-select: none;
+}
+
+.vs-pane-terminal:hover > .vs-pane-actions,
+.vs-pane-terminal.is-focused > .vs-pane-actions,
+.vs-pane-actions:hover,
+.vs-pane-actions:focus-within {
+  opacity: 1;
+}
+
+.vs-pane-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.vs-pane-action-btn:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+.vs-pane-action-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  color: var(--text-1);
+}
+
+.vs-pane-action-btn:active {
+  background: var(--bg-3);
+}
+
+.vs-pane-action-btn-danger:hover {
+  background: color-mix(in oklch, var(--danger) 22%, transparent);
+  color: var(--danger);
 }
 
 /* MVP-05 Phase C · Smart Layouts 菜单（Solo / AI+Runner 预设 + dry-run 预览） */

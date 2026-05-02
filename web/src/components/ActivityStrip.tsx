@@ -30,11 +30,7 @@ export const ActivityStrip: Component = () => {
   };
 
   return (
-    <aside
-      class="vs-activity-strip"
-      role="toolbar"
-      aria-label="Panel toggles"
-    >
+    <aside class="vs-activity-strip" role="toolbar" aria-label="Panel toggles">
       <For each={items}>
         {(item) => (
           <button

@@ -18,6 +18,7 @@ import {
 
 import { CanvasAddon } from "@xterm/addon-canvas";
 import { FitAddon } from "@xterm/addon-fit";
+import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -34,6 +35,7 @@ import type {
   PanePtySpawnRequest,
   PanePtyStdoutEvent,
   SpawnResult,
+  SplitDir,
 } from "../../bindings";
 import { useSettings } from "../../stores/settings";
 
@@ -51,7 +53,17 @@ export type PaneTerminalApi = {
   focus: () => void;
   paste: (text: string) => void;
   clear: () => void;
+  // MVP-05 layout 切换 reload 修复 · 让 caller 在 split / close 之前拿到当前 xterm 完整
+  // 状态（buffer + alt screen + cursor + 颜色）的 ANSI 字符串 · remount 时 write 回去恢复。
+  serialize: () => string;
 };
+
+/**
+ * 模块级 snapshot store · key=paneId · value=SerializeAddon 输出的 ANSI 字符串。
+ * 在 layout 切换前由 Terminal.tsx 的 handlePaneSplit / handlePaneClose 写入 ·
+ * 新 PaneTerminal mount 时读取并 write 到新 xterm 后删除 entry。
+ */
+export const paneSnapshots = new Map<string, string>();
 
 type PaneTerminalProps = {
   paneId: string;
@@ -64,6 +76,9 @@ type PaneTerminalProps = {
   onClick?: (paneId: string) => void;
   onExit?: (paneId: string, exitCode: number | null) => void;
   onError?: (paneId: string, message: string) => void;
+  // MVP-05 visible split UI · toolbar 按钮 wire 到这两个 handler
+  onSplit?: (direction: SplitDir, paneId: string) => void;
+  onClose?: (paneId: string) => void;
 };
 
 const createTheme = () => {
@@ -130,6 +145,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let hostRef: HTMLDivElement | undefined;
   let term: XTerm | undefined;
   let fitAddon: FitAddon | undefined;
+  let serializeAddon: SerializeAddon | undefined;
   let resizeObserver: ResizeObserver | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
@@ -225,6 +241,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
     fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
+    serializeAddon = new SerializeAddon();
+    term.loadAddon(serializeAddon);
     term.loadAddon(new Unicode11Addon());
     term.unicode.activeVersion = "11";
     term.loadAddon(new WebLinksAddon());
@@ -234,6 +252,15 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     const renderers = setupRenderer(term, props.paneId);
     activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
+
+    // MVP-05 layout 切换 reload 修复 · 检查 snapshot · 有则 write 恢复屏幕（含 alt screen +
+    // cursor + 颜色）· 然后删除 entry 防止下次 mount 误用。spawn 在下方 await rAF 后走 ·
+    // 命中 AlreadyRunning 时 catch 走 warm 路径 · listener 续接 backend stdout。
+    const snapshot = paneSnapshots.get(props.paneId);
+    if (snapshot) {
+      paneSnapshots.delete(props.paneId);
+      term.write(snapshot);
+    }
 
     // 拦截 cmd/ctrl+C 复制 · cmd/ctrl+V 粘贴 · cmd/ctrl+A 全选。
     // xterm canvas/webgl 渲染不是原生 selectable 文本 · 系统 cmd+C 路径拿不到字。
@@ -281,6 +308,9 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       focus: () => term?.focus(),
       paste: (text) => term?.paste(text),
       clear: () => term?.reset(),
+      // SerializeAddon 会输出可重放的 ANSI 字符串（含 normal+alt screen + cursor + 颜色）·
+      // term 未 ready 时返回空串。
+      serialize: () => serializeAddon?.serialize() ?? "",
     });
 
     term.onData((data) => {
@@ -388,15 +418,28 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     const cols = term.cols || DEFAULT_COLS;
     const rows = term.rows || DEFAULT_ROWS;
     try {
-      const spawnResult = await invoke<SpawnResult>("pane_pty_spawn", {
-        req: {
-          paneId: props.paneId,
-          shell: props.shell,
-          cwd: props.cwd,
-          cols,
-          rows,
-        } satisfies PanePtySpawnRequest,
-      });
+      let spawnResult: SpawnResult;
+      try {
+        spawnResult = await invoke<SpawnResult>("pane_pty_spawn", {
+          req: {
+            paneId: props.paneId,
+            shell: props.shell,
+            cwd: props.cwd,
+            cols,
+            rows,
+          } satisfies PanePtySpawnRequest,
+        });
+      } catch (err: unknown) {
+        // Race · 旧 PaneTerminal 的 onCleanup invoke pane_pty_kill 是 async · 新 PaneTerminal
+        // 同时 mount 调 pane_pty_spawn · backend 看到 PTY 仍 active → AlreadyRunning。
+        // 当作 warm reattach：listener 已订阅 · 后续 stdout 自动写入 · 不弹红色错误条。
+        const msg = err instanceof Error ? err.message : String(err);
+        if (/already\s*running/i.test(msg)) {
+          spawnResult = { warm: true };
+        } else {
+          throw err;
+        }
+      }
       // MVP-20 BUG-001 fix · 决定 warmBuffer 命运：
       // warm hit → 设 500ms 兜底 timer（ANSI clear 必然在此前出现 · 否则强制 flush）
       // cold spawn → 立即 flush + 关 buffer · 后续 stdout 直接 write
@@ -466,9 +509,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     themeObserver?.disconnect();
     unlistenStdout?.();
     unlistenExited?.();
-    void invoke("pane_pty_kill", { paneId: props.paneId }).catch(() => {
-      // pane already exited
-    });
+    // MVP-05 layout 切换 reload 修复 · onCleanup 默认**不 kill PTY** · 让 backend PTY 进程
+    // 在 layout 切换（split↔single）时保留 · 新 PaneTerminal mount 时 spawn 命中
+    // AlreadyRunning · catch 走 warm reattach + write snapshot 恢复显示。
+    // 真"关闭" pane 的 PTY kill 由 caller（handlePaneClose / closeTab）在 invoke backend
+    // 之前显式调 pane_pty_kill 完成 · 防 PTY 泄漏。
     try {
       activeWebglAddon?.dispose();
     } catch {}
@@ -485,6 +530,99 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       role="presentation"
     >
       <div ref={hostRef} class="vs-pane-terminal-host" />
+      <div class="vs-pane-actions" data-pane-actions>
+        <button
+          type="button"
+          class="vs-pane-action-btn"
+          title="右分屏 (⌘\\)"
+          aria-label="右分屏"
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onSplit?.("horizontal", props.paneId);
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect
+              x="1.5"
+              y="2.5"
+              width="13"
+              height="11"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <line
+              x1="8"
+              y1="2.5"
+              x2="8"
+              y2="13.5"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="vs-pane-action-btn"
+          title="下分屏 (⌘⇧\\)"
+          aria-label="下分屏"
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onSplit?.("vertical", props.paneId);
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect
+              x="1.5"
+              y="2.5"
+              width="13"
+              height="11"
+              rx="1.5"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+            <line
+              x1="1.5"
+              y1="8"
+              x2="14.5"
+              y2="8"
+              stroke="currentColor"
+              stroke-width="1.3"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="vs-pane-action-btn vs-pane-action-btn-danger"
+          title="关闭 Pane (⌘⌃W)"
+          aria-label="关闭 Pane"
+          onClick={(e) => {
+            e.stopPropagation();
+            props.onClose?.(props.paneId);
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <line
+              x1="4"
+              y1="4"
+              x2="12"
+              y2="12"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+            <line
+              x1="12"
+              y1="4"
+              x2="4"
+              y2="12"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </div>
       {spawnError() ? (
         <div class="vs-pane-terminal-error">PTY 启动失败: {spawnError()}</div>
       ) : null}

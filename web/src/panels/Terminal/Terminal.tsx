@@ -30,6 +30,7 @@ import type {
   WorkspaceMetadata,
 } from "../../bindings";
 import { PaneSplitView } from "./PaneSplitView";
+import { paneSnapshots } from "./PaneTerminal";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
@@ -61,8 +62,9 @@ type PaneApi = {
   focus: () => void;
   paste: (text: string) => void;
   clear: () => void;
-  copy: () => void;
-  selectAll: () => void;
+  copy?: () => void; // legacy TerminalPane 提供 · pane mode 不一定有
+  selectAll?: () => void; // 同上
+  serialize?: () => string; // pane mode PaneTerminal 提供 · MVP-05 layout 切换 reload 修复用
 };
 
 type TerminalProps = {
@@ -119,6 +121,25 @@ export const Terminal: Component<TerminalProps> = (props) => {
    * MVP-05 Phase C §C · Smart Layouts 命令面板开关 · ⌘⇧P 触发。
    */
   const [smartLayoutOpen, setSmartLayoutOpen] = createSignal(false);
+
+  /**
+   * MVP-05 视觉细节 · 点击 pane 外（sidebar / tab 区 / 空白）时隐藏 focused pane 的蓝色
+   * outline。focusedPaneId 仍保留在 store · 方便切回 webview / re-click pane 时恢复。
+   * 由全局 mousedown listener 切换 · 在 pane 内点击 → false（显示）· pane 外 → true。
+   */
+  const [paneFocusSuppressed, setPaneFocusSuppressed] = createSignal(false);
+
+  onMount(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      const insidePane = !!target?.closest?.(
+        ".vs-pane-terminal, .vs-pane-actions",
+      );
+      setPaneFocusSuppressed(!insidePane);
+    };
+    document.addEventListener("mousedown", onDown, true);
+    onCleanup(() => document.removeEventListener("mousedown", onDown, true));
+  });
 
   const paneApis = new Map<string, PaneApi>();
   const loadingWorkspaces = new Set<string>();
@@ -517,6 +538,16 @@ export const Terminal: Component<TerminalProps> = (props) => {
     // MVP-05 Phase C §F.4 instrumentation · keydown → DOM commit P99 < 150ms 目标
     const t0 = performance.now();
     try {
+      // MVP-05 reload 修复 · split 前 snapshot 所有现有 pane · 让重 mount 后 PaneTerminal
+      // 通过 paneSnapshots 恢复 xterm 显示。新 pane 的 paneId 不在快照里 · cold spawn 走默认。
+      const currentList = panesByTabId()[tabId];
+      if (currentList) {
+        for (const pane of currentList.panes) {
+          const api = paneApis.get(pane.paneId);
+          const snapshot = api?.serialize?.();
+          if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+        }
+      }
       const response = await invoke<PaneListResponse>("pane_split", {
         req: {
           tabId,
@@ -564,6 +595,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
     // MVP-05 Phase C §F.5 instrumentation · keydown → 重排 DOM commit P99 < 100ms 目标
     const t0 = performance.now();
     try {
+      // MVP-05 reload 修复 · close 前 snapshot 保留 panes（被关 paneId 跳过）· 让重 mount
+      // 后通过 paneSnapshots 恢复 xterm 显示。被关 pane 的 PTY 显式 kill 防泄漏。
+      for (const pane of list.panes) {
+        if (pane.paneId === paneId) continue;
+        const api = paneApis.get(pane.paneId);
+        const snapshot = api?.serialize?.();
+        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+      }
+      // 显式 kill 被关 pane 的 PTY · 因为 PaneTerminal.onCleanup 默认不再 kill（防 layout
+      // 切换误杀保留 pane 的 PTY）。kill 失败（pane 已 exited）忽略。
+      await invoke("pane_pty_kill", { paneId }).catch(() => {});
       const response = await invoke<PaneListResponse>("pane_close", {
         req: {
           paneId,
@@ -747,6 +789,18 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
 
     try {
+      // MVP-05 reload 修复 · PaneTerminal.onCleanup 默认不再 kill PTY · 这里 tab close 时
+      // 必须显式 kill 该 tab 所有 pane 的 PTY · 防进程泄漏。
+      const paneList = panesByTabId()[tabId];
+      if (paneList) {
+        await Promise.all(
+          paneList.panes.map((p) =>
+            invoke("pane_pty_kill", { paneId: p.paneId }).catch(() => {}),
+          ),
+        );
+        // 清掉相关 snapshot · 防 tab 重建时复用 stale 快照
+        for (const p of paneList.panes) paneSnapshots.delete(p.paneId);
+      }
       await killTabPty(tabId);
       await invoke("tab_close", {
         req: {
@@ -780,6 +834,16 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const tabs = tabsByWorkspace()[workspaceId] ?? [];
     for (const tab of tabs) {
       try {
+        // 同 closeTab · 显式 kill 该 tab 所有 pane 的 PTY 防泄漏
+        const paneList = panesByTabId()[tab.tabId];
+        if (paneList) {
+          await Promise.all(
+            paneList.panes.map((p) =>
+              invoke("pane_pty_kill", { paneId: p.paneId }).catch(() => {}),
+            ),
+          );
+          for (const p of paneList.panes) paneSnapshots.delete(p.paneId);
+        }
         await killTabPty(tab.tabId);
       } catch (error) {
         showToast(errorMessage(error));
@@ -1050,7 +1114,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "copy":
           if (tabId) {
-            paneApis.get(tabId)?.copy();
+            paneApis.get(tabId)?.copy?.();
           }
           break;
         case "paste":
@@ -1064,7 +1128,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "select_all":
           if (tabId) {
-            paneApis.get(tabId)?.selectAll();
+            paneApis.get(tabId)?.selectAll?.();
           }
           break;
       }
@@ -1179,7 +1243,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
                   >
                     {(list) => (
                       <div
-                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"}`}
+                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"} ${paneFocusSuppressed() ? "is-focus-suppressed" : ""}`}
                         aria-hidden={!tabActive()}
                       >
                         <PaneSplitView
@@ -1192,6 +1256,12 @@ export const Terminal: Component<TerminalProps> = (props) => {
                           }}
                           onPaneError={(paneId, message) => {
                             showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
+                          }}
+                          onPaneSplit={(direction, paneId) => {
+                            void handlePaneSplit(direction, paneId);
+                          }}
+                          onPaneClose={(paneId) => {
+                            void handlePaneClose(paneId);
                           }}
                         />
                       </div>

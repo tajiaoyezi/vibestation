@@ -1199,7 +1199,20 @@ export const Terminal: Component<TerminalProps> = (props) => {
         case "paste":
           if (tabId) {
             void navigator.clipboard.readText().then((text) => {
-              if (text) {
+              if (!text) return;
+              // Multiline / destructive 内容 paste 前必须走 confirmation dialog · 与 legacy
+              // TerminalPane DOM paste handler 一致（TerminalPane.tsx:232 检测 /[\r\n]/ 触发
+              // onPasteRequest → setPendingPaste → PasteConfirmDialog）。menu paste 直接走
+              // paneApi.paste 会 bypass guard · 让 multiline shell 命令无确认注入（Codex
+              // review #208 round 6 high finding）。workspace 标记 skip 时直接 paste。
+              const tab = findTab(tabId);
+              if (!tab) return; // race · tab 已关 · 丢弃 paste
+              const workspaceId = tab.workspaceId;
+              const skip = skipPasteConfirmByWorkspace()[workspaceId] ?? false;
+              const needsConfirm = /[\r\n]/.test(text) && !skip;
+              if (needsConfirm) {
+                setPendingPaste({ tabId, text, workspaceId });
+              } else {
                 getActivePaneApi(tabId)?.paste(text);
               }
             });

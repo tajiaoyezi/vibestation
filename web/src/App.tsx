@@ -187,13 +187,10 @@ const LayoutShell: Component<{
     const mod = e.metaKey || e.ctrlKey;
     if (!mod) return;
     switch (e.key) {
-      case "1":
-        e.preventDefault();
-        dispatch({ kind: "toggle-primary" });
-        break;
       case "b":
       case "B":
         // VSCode / Cursor 标准 · ⌘B / Ctrl+B toggle primary sidebar
+        // ⌘1 历史上也 toggle primary · 已删除 · 释放给未来 MVP-04 ⌘1..9 跳 Tab
         e.preventDefault();
         dispatch({ kind: "toggle-primary" });
         break;

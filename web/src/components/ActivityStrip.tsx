@@ -4,7 +4,8 @@ import { useLayout } from "../stores/layout-context";
 export const ActivityStrip: Component = () => {
   const { layout, dispatch } = useLayout();
 
-  type PanelId = "primary" | "secondary" | "bottom";
+  // primary sidebar 已由左上角 TopBar 按钮（⌘B）负责 toggle · 此处不再重复入口
+  type PanelId = "secondary" | "bottom";
 
   const items: {
     id: PanelId;
@@ -12,7 +13,6 @@ export const ActivityStrip: Component = () => {
     label: string;
     shortcut: string;
   }[] = [
-    { id: "primary", icon: "⊞", label: "Workspaces", shortcut: "⌘1" },
     { id: "secondary", icon: "⊟", label: "Git Log", shortcut: "⌘2" },
     { id: "bottom", icon: "◴", label: "Git Status", shortcut: "⌘J" },
   ];
@@ -20,8 +20,6 @@ export const ActivityStrip: Component = () => {
   const isOpen = (id: PanelId): boolean => {
     const l = layout();
     switch (id) {
-      case "primary":
-        return l.primaryOpen;
       case "secondary":
         return l.secondaryOpen;
       case "bottom":

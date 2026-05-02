@@ -683,8 +683,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
     // PaneTerminal.onCleanup 默认不再 kill PTY · backend pane_layout_apply 对 solo / aiAndRunner
     // 等 preset 会 DELETE 多余 panes · 前端必须 diff pre/post panes 显式 kill 被删 PTY · 否则
     // 进程留在 pty_pool 没人控制 · resource leak（Codex review #208 finding）。
+    // 同时对**保留** panes serialize 快照 · 让 layout 切换后 PaneTerminal 重 mount 时通过
+    // paneSnapshots 恢复 xterm 显示 · 否则保留 pane 仍会出现"空白 → 等待 stdout"（round 3 finding）。
     const preList = panesByTabId()[tabId];
     const prePaneIds = new Set(preList?.panes.map((p) => p.paneId) ?? []);
+    if (preList) {
+      for (const pane of preList.panes) {
+        const api = paneApis.get(pane.paneId);
+        const snapshot = api?.serialize?.();
+        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+      }
+    }
     const response = await invoke<PaneListResponse>("pane_layout_apply", {
       req: {
         tabId,
@@ -694,6 +703,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     });
     setPaneListForTab(tabId, response);
     // 比较前后 panes · 显式 kill 被预设删除的 PTY · 失败（已 exited）静默跳过 · 真错误 toast 警告 leak。
+    // 同时清掉被删 paneId 的 snapshot · 防内存泄漏 + 防 paneId 复用时 stale snapshot 误用。
     const postPaneIds = new Set(response.panes.map((p) => p.paneId));
     for (const id of prePaneIds) {
       if (!postPaneIds.has(id)) {
@@ -820,19 +830,24 @@ export const Terminal: Component<TerminalProps> = (props) => {
     }
 
     try {
-      // 先 commit backend tab_close · 成功后再 kill PTY · 即使 tab_close 失败 · 用户的
-      // shell 进程仍存活 · 可重试。与 handlePaneClose 顺序一致（Codex review #208 finding）。
+      // 先 commit backend tab_close · 成功后再 kill 所有 PTY（含 legacy tab PTY + panes
+      // PTY）· 即使 tab_close 失败 · 用户 shell 进程仍存活 · 可重试。与 handlePaneClose
+      // 顺序一致（Codex review #208 round 3 finding · 之前漏了 killTabPty 这行）。
       // pre 阶段 snapshot pane id 列表 · 防 setPaneListForTab 后 store 被清空拿不到。
       const paneList = panesByTabId()[tabId];
       const panePaneIds = paneList?.panes.map((p) => p.paneId) ?? [];
-      await killTabPty(tabId);
       await invoke("tab_close", {
         req: {
           tabId,
         } satisfies TabCloseRequest,
       });
 
-      // tab_close 已 commit · 显式 kill 该 tab 所有 pane 的 PTY · 失败 toast 警告 leak。
+      // tab_close 已 commit · kill legacy tab PTY + 所有 pane PTY · 失败 toast 警告 leak。
+      try {
+        await killTabPty(tabId);
+      } catch (killErr) {
+        showToast(`Tab PTY leak warning: ${errorMessage(killErr)}`);
+      }
       for (const pid of panePaneIds) {
         paneSnapshots.delete(pid);
         try {

@@ -253,15 +253,6 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
 
-    // MVP-05 layout 切换 reload 修复 · 检查 snapshot · 有则 write 恢复屏幕（含 alt screen +
-    // cursor + 颜色）· 然后删除 entry 防止下次 mount 误用。spawn 在下方 await rAF 后走 ·
-    // 命中 AlreadyRunning 时 catch 走 warm 路径 · listener 续接 backend stdout。
-    const snapshot = paneSnapshots.get(props.paneId);
-    if (snapshot) {
-      paneSnapshots.delete(props.paneId);
-      term.write(snapshot);
-    }
-
     // 拦截 cmd/ctrl+C 复制 · cmd/ctrl+V 粘贴 · cmd/ctrl+A 全选。
     // xterm canvas/webgl 渲染不是原生 selectable 文本 · 系统 cmd+C 路径拿不到字。
     // navigator.clipboard 在 Tauri WKWebView 不稳定 · 用 tauri-plugin-clipboard-manager
@@ -407,6 +398,18 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         );
       }),
     ]);
+
+    // MVP-05 reload 修复 · listener 已注册 · 此刻 backend emit 的 stdout 进 warmBuffer ·
+    // 不会丢失 (Codex review #208 round 3 finding 缓解)。snapshot.write 写历史画面 ·
+    // 后面 spawn 之后 flushWarmBuffer 接续 live stdout · 顺序：历史 → live · 不重叠。
+    // 注：listener 注册前 (旧 PaneTerminal unlisten 与新 PaneTerminal listen 之间) 仍有
+    // 几 ms race window · 该 window 内 backend emit 的 stdout 仍丢失 · 完全消除需 backend
+    // pane scrollback replay IPC（超出本 PR · 已记录为 limitation）。
+    const snapshot = paneSnapshots.get(props.paneId);
+    if (snapshot) {
+      paneSnapshots.delete(props.paneId);
+      term.write(snapshot);
+    }
 
     // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
     await new Promise<void>((r) => {

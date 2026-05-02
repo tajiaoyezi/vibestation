@@ -299,6 +299,22 @@ export const Terminal: Component<TerminalProps> = (props) => {
     return null;
   };
 
+  /**
+   * 解析当前 active pane API · 处理 pane mode / legacy fallback 双键 schema：
+   * - pane mode（panesByTabId[tabId] 存在）· paneApis 以 paneId 为 key · 用 focusedPaneId 查
+   * - legacy fallback（TerminalPane 渲染）· paneApis 以 tabId 为 key · 直接查 tabId
+   * 所有 reader（focusActivePane / confirmPaste / menu actions clear/copy/paste/select_all）
+   * 必须走此 helper · 不能直接 paneApis.get(tabId) · 否则 pane mode 下 silent no-op（Codex
+   * review #208 round 5 finding · grep paneApis.get 找出 6 处违反）。
+   */
+  const getActivePaneApi = (tabId: string): PaneApi | undefined => {
+    const list = panesByTabId()[tabId];
+    if (list?.focusedPaneId) {
+      return paneApis.get(list.focusedPaneId);
+    }
+    return paneApis.get(tabId);
+  };
+
   const syncWorkspaceTabs = (workspaceId: string, tabs: TabState[]) => {
     setTabsByWorkspace((prev) => ({
       ...prev,
@@ -842,11 +858,16 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies TabCloseRequest,
       });
 
-      // tab_close 已 commit · kill legacy tab PTY + 所有 pane PTY · 失败 toast 警告 leak。
-      try {
-        await killTabPty(tabId);
-      } catch (killErr) {
-        showToast(`Tab PTY leak warning: ${errorMessage(killErr)}`);
+      // tab_close 已 commit · kill PTY · 失败 toast 警告 leak。
+      // pane mode tab 没有 legacy tab_pty session · 跳过 killTabPty 省一次冗余 IPC（Codex
+      // round 5 finding · 另 killTabPty 内部已 swallow "tab not found" · 当前不 toast 但
+      // pane mode 显式 skip 更干净）。
+      if (!paneList) {
+        try {
+          await killTabPty(tabId);
+        } catch (killErr) {
+          showToast(`Tab PTY leak warning: ${errorMessage(killErr)}`);
+        }
       }
       for (const pid of panePaneIds) {
         paneSnapshots.delete(pid);
@@ -967,7 +988,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       return;
     }
 
-    paneApis.get(tabId)?.focus();
+    getActivePaneApi(tabId)?.focus();
   };
 
   const confirmPaste = (rememberForWorkspace: boolean) => {
@@ -980,7 +1001,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       setPasteConfirmSkip(pending.workspaceId, true);
     }
 
-    const paneApi = paneApis.get(pending.tabId);
+    const paneApi = getActivePaneApi(pending.tabId);
     if (paneApi) {
       paneApi.paste(pending.text);
       paneApi.focus();
@@ -1167,26 +1188,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
           break;
         case "clear_terminal":
           if (tabId) {
-            paneApis.get(tabId)?.clear();
+            getActivePaneApi(tabId)?.clear();
           }
           break;
         case "copy":
           if (tabId) {
-            paneApis.get(tabId)?.copy?.();
+            getActivePaneApi(tabId)?.copy?.();
           }
           break;
         case "paste":
           if (tabId) {
             void navigator.clipboard.readText().then((text) => {
               if (text) {
-                paneApis.get(tabId)?.paste(text);
+                getActivePaneApi(tabId)?.paste(text);
               }
             });
           }
           break;
         case "select_all":
           if (tabId) {
-            paneApis.get(tabId)?.selectAll?.();
+            getActivePaneApi(tabId)?.selectAll?.();
           }
           break;
       }

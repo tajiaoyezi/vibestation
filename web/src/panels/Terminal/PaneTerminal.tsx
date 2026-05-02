@@ -300,8 +300,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       paste: (text) => term?.paste(text),
       clear: () => term?.reset(),
       // SerializeAddon 会输出可重放的 ANSI 字符串（含 normal+alt screen + cursor + 颜色）·
-      // term 未 ready 时返回空串。
-      serialize: () => serializeAddon?.serialize() ?? "",
+      // term 未 ready 时返回空串。限 scrollback 1000 行 · 不传是 full buffer（PaneTerminal
+      // 配 10000）· 跑过长输出（cargo build / npm install）后 split/close 同步序列化全 buffer
+      // 阻塞 UI 100-300ms · 破 MVP-05 §F P99 latency 目标（Codex review #208 round 4 finding）。
+      // 1000 行覆盖正常视觉范围 + 适量向上滚动历史 · viewport + alt screen + cursor 总是含。
+      serialize: () => serializeAddon?.serialize({ scrollback: 1000 }) ?? "",
     });
 
     term.onData((data) => {

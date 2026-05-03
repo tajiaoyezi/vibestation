@@ -2,26 +2,154 @@ import {
   type Component,
   createSignal,
   createEffect,
+  createMemo,
   onMount,
   onCleanup,
   For,
   Show,
 } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
+  AuthMethod,
+  AuthRequest,
+  BranchListRequest,
+  BranchListResponse,
+  ConflictFile,
+  FetchProgressEvent,
+  FetchRequest,
+  FetchResult,
   GitLogEntry,
   GitLogQueryRequest,
   GitLogQueryResponse,
+  GitStatusResponse,
+  NetworkOpError,
+  OperationDoneEvent,
+  PullRequest,
+  PullResult,
+  PullStrategy,
+  PushProgressEvent,
+  PushRequest,
+  PushResult,
+  RemoteInfo,
+  RemoteListRequest,
+  RemoteListResponse,
   CommitDetail,
   WorkspaceMetadata,
 } from "../../bindings";
 import { queryLog, fetchDetail, clearCache } from "./gitLogApi";
 import type { DiffTarget } from "../../components/MainContent";
+import {
+  GitSyncProgressDialog,
+  type GitSyncKind,
+  type GitSyncProgressValue,
+  type GitSyncStage,
+} from "../../dialogs/GitSyncProgress/GitSyncProgressDialog";
+import { AuthDialog } from "../../dialogs/AuthDialog/AuthDialog";
+import {
+  ForcePushDialog,
+  type ForcePushCommit,
+} from "../../dialogs/ForcePushDialog/ForcePushDialog";
+import { PullConflictDialog } from "../../dialogs/PullConflictDialog/PullConflictDialog";
+import { RemoteSelector } from "../../dialogs/RemoteSelector/RemoteSelector";
 
 export interface GitLogPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
   onOpenDiff?: (target: DiffTarget) => void;
+  onOpenGitStatus?: () => void;
 }
+
+type ToastKind = "success" | "error" | "warning" | "info";
+
+interface ToastState {
+  message: string;
+  kind: ToastKind;
+  actionLabel?: string;
+  onAction?: () => void;
+  timeoutMs?: number;
+}
+
+interface ActiveOperation {
+  kind: GitSyncKind | null;
+  taskId: string | null;
+  remote: string;
+  branch: string;
+  stage: GitSyncStage;
+  progress: GitSyncProgressValue;
+  abortable: boolean;
+  pullStrategy: PullStrategy;
+  prune: boolean;
+  lastBytes: number;
+  lastAt: number;
+}
+
+type RemoteOperation = "push" | "pull" | "fetch";
+
+interface PendingRemoteSelection {
+  operation: RemoteOperation;
+  branch: string;
+  remotes: RemoteInfo[];
+  initialRemote: string;
+}
+
+interface OperationRetry {
+  operation: RemoteOperation;
+  remote: string;
+  branch: string;
+  prune?: boolean;
+  strategy?: PullStrategy;
+  force?: boolean;
+  expectedRemoteOid?: string | null;
+  authMethod?: AuthMethod | null;
+}
+
+interface PendingAuth {
+  remoteUrl: string;
+  retry: OperationRetry;
+  error: string | null;
+}
+
+interface PendingForcePush {
+  remote: string;
+  branch: string;
+  localAhead: number;
+  remoteAhead: number;
+  expectedRemoteOid: string | null;
+  commits: ForcePushCommit[];
+}
+
+interface PendingConflict {
+  remote: string;
+  branch: string;
+  files: ConflictFile[];
+}
+
+const GIT_PUSH_PROGRESS_EVENT = "git:push-progress";
+const GIT_FETCH_PROGRESS_EVENT = "git:fetch-progress";
+const GIT_OPERATION_DONE_EVENT = "git:operation-done";
+const PROTECTED_BRANCHES = new Set(["main", "master", "trunk"]);
+
+const emptyProgress: GitSyncProgressValue = {
+  current: 0,
+  total: 0,
+  bytesDone: 0,
+  bytesTotal: 0,
+  bytesPerSec: 0,
+};
+
+const emptyOperation: ActiveOperation = {
+  kind: null,
+  taskId: null,
+  remote: "",
+  branch: "",
+  stage: "fetch",
+  progress: emptyProgress,
+  abortable: false,
+  pullStrategy: "merge",
+  prune: false,
+  lastBytes: 0,
+  lastAt: 0,
+};
 
 export function createGitLogStore() {
   const [entries, setEntries] = createSignal<GitLogEntry[]>([]);
@@ -131,10 +259,25 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const store = createGitLogStore();
   let scrollContainer: HTMLDivElement | undefined;
   let panelRoot: HTMLDivElement | undefined;
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
+  let closeProgressTimer: ReturnType<typeof setTimeout> | undefined;
 
   // detail 区高度 · 可拖动 · 记忆到组件实例上 · 关掉 detail 再打开仍保留
   const [detailHeight, setDetailHeight] = createSignal(280);
   const [isResizing, setIsResizing] = createSignal(false);
+  const [operation, setOperation] =
+    createSignal<ActiveOperation>(emptyOperation);
+  const [toast, setToast] = createSignal<ToastState | null>(null);
+  const [remoteSelection, setRemoteSelection] =
+    createSignal<PendingRemoteSelection | null>(null);
+  const [pendingAuth, setPendingAuth] = createSignal<PendingAuth | null>(null);
+  const [submittingAuth, setSubmittingAuth] = createSignal(false);
+  const [forcePush, setForcePush] = createSignal<PendingForcePush | null>(null);
+  const [forceConfirmation, setForceConfirmation] = createSignal("");
+  const [forceSubmitting, setForceSubmitting] = createSignal(false);
+  const [pullConflict, setPullConflict] = createSignal<PendingConflict | null>(
+    null,
+  );
 
   const startResize = (e: PointerEvent) => {
     e.preventDefault();
@@ -170,10 +313,630 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     return ws ? ws.hasGit : false;
   };
 
+  const workspacePath = () =>
+    props.activeWorkspace()?.repoRoot ?? props.activeWorkspace()?.path ?? "";
+  const activeOperation = createMemo(() => operation());
+
+  const showToast = (nextToast: ToastState) => {
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
+    setToast(nextToast);
+    toastTimer = setTimeout(
+      () => setToast(null),
+      nextToast.timeoutMs ?? (nextToast.actionLabel ? 30000 : 3600),
+    );
+  };
+
+  const closeToast = () => {
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
+    setToast(null);
+  };
+
+  const startOperation = (
+    kind: GitSyncKind,
+    remote: string,
+    branch: string,
+    taskId: string,
+    options: {
+      stage?: GitSyncStage;
+      strategy?: PullStrategy;
+      prune?: boolean;
+    } = {},
+  ) => {
+    if (closeProgressTimer) {
+      clearTimeout(closeProgressTimer);
+    }
+    setOperation({
+      kind,
+      taskId,
+      remote,
+      branch,
+      stage: options.stage ?? (kind === "push" ? "writing" : "fetch"),
+      progress: { ...emptyProgress },
+      abortable: true,
+      pullStrategy: options.strategy ?? "merge",
+      prune: Boolean(options.prune),
+      lastBytes: 0,
+      lastAt: performance.now(),
+    });
+  };
+
+  const finishOperation = (stage: GitSyncStage = "done") => {
+    setOperation((prev) => ({ ...prev, stage, abortable: false }));
+    closeProgressTimer = setTimeout(() => {
+      setOperation(emptyOperation);
+    }, 1000);
+  };
+
+  const stopOperation = () => {
+    if (closeProgressTimer) {
+      clearTimeout(closeProgressTimer);
+    }
+    setOperation(emptyOperation);
+  };
+
+  const updateProgress = (
+    taskId: string,
+    stage: GitSyncStage,
+    current: number,
+    total: number,
+    bytesDone: number,
+    bytesTotal: number,
+  ) => {
+    const currentOperation = operation();
+    if (!currentOperation.taskId || currentOperation.taskId !== taskId) {
+      return;
+    }
+    const now = performance.now();
+    const elapsed = Math.max(1, now - currentOperation.lastAt) / 1000;
+    const deltaBytes = Math.max(0, bytesDone - currentOperation.lastBytes);
+    setOperation((prev) => ({
+      ...prev,
+      stage,
+      progress: {
+        current,
+        total,
+        bytesDone,
+        bytesTotal,
+        bytesPerSec: deltaBytes / elapsed,
+      },
+      lastBytes: bytesDone,
+      lastAt: now,
+    }));
+  };
+
+  const makeTaskId = (kind: RemoteOperation | "auth") =>
+    `${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const listRemotes = async (): Promise<RemoteInfo[] | null> => {
+    const id = workspaceId();
+    if (!id) return null;
+    const req: RemoteListRequest = { workspaceId: id };
+    try {
+      const response = await invoke<RemoteListResponse>("git_remote_list", {
+        req,
+      });
+      if (response.remotes.length === 0) {
+        showToast({
+          kind: "error",
+          message: "未配置 remote · 请用终端 git remote add origin <url>",
+        });
+        return null;
+      }
+      return response.remotes;
+    } catch (error) {
+      showToast({
+        kind: "error",
+        message: networkErrorMessage(parseNetworkError(error), error),
+      });
+      return null;
+    }
+  };
+
+  const loadBranchList = async (): Promise<BranchListResponse | null> => {
+    const id = workspaceId();
+    if (!id) return null;
+    const req: BranchListRequest = { workspaceId: id };
+    try {
+      return await invoke<BranchListResponse>("branch_list", { req });
+    } catch (error) {
+      showToast({
+        kind: "error",
+        message: `读取当前分支失败：${stringifyUnknown(error)}`,
+      });
+      return null;
+    }
+  };
+
+  const currentBranchName = async (): Promise<string | null> => {
+    const list = await loadBranchList();
+    if (!list?.headName) {
+      showToast({
+        kind: "error",
+        message: "当前处于 detached HEAD · 远端同步需要先切到本地分支",
+      });
+      return null;
+    }
+    return list.headName;
+  };
+
+  const remoteUrl = (remoteName: string, remotes?: RemoteInfo[]) =>
+    remotes?.find((item) => item.name === remoteName)?.url ?? remoteName;
+
+  const remoteHeadOid = async (
+    remote: string,
+    branch: string,
+  ): Promise<string | null> => {
+    const list = await loadBranchList();
+    return (
+      list?.branches.find(
+        (item) => item.kind === "remote" && item.name === `${remote}/${branch}`,
+      )?.headCommit ?? null
+    );
+  };
+
+  const beginRemoteOperation = async (nextOperation: RemoteOperation) => {
+    if (!hasGit() || !workspaceId()) {
+      return;
+    }
+    const branch =
+      nextOperation === "fetch"
+        ? ((await loadBranchList())?.headName ?? "HEAD")
+        : await currentBranchName();
+    if (!branch) {
+      return;
+    }
+    const remotes = await listRemotes();
+    if (!remotes) {
+      return;
+    }
+    const initialRemote =
+      remotes.find((item) => item.name === "origin")?.name ?? remotes[0]?.name;
+
+    if (nextOperation === "fetch" || remotes.length > 1) {
+      setRemoteSelection({
+        operation: nextOperation,
+        branch,
+        remotes,
+        initialRemote,
+      });
+      return;
+    }
+
+    await runRemoteOperation({
+      operation: nextOperation,
+      remote: initialRemote,
+      branch,
+      strategy: "merge",
+      prune: false,
+    });
+  };
+
+  const runRemoteOperation = async (retry: OperationRetry): Promise<void> => {
+    switch (retry.operation) {
+      case "push":
+        await runPush(retry.remote, retry.branch, {
+          force: Boolean(retry.force),
+          expectedRemoteOid: retry.expectedRemoteOid ?? null,
+          authMethod: retry.authMethod ?? null,
+        });
+        break;
+      case "pull":
+        await runPull(retry.remote, retry.branch, retry.strategy ?? "merge", {
+          authMethod: retry.authMethod ?? null,
+        });
+        break;
+      case "fetch":
+        await runFetch(retry.remote, retry.branch, Boolean(retry.prune), {
+          authMethod: retry.authMethod ?? null,
+        });
+        break;
+    }
+  };
+
+  const runPush = async (
+    remote: string,
+    branch: string,
+    options: {
+      force?: boolean;
+      expectedRemoteOid?: string | null;
+      authMethod?: AuthMethod | null;
+    } = {},
+  ) => {
+    const id = workspaceId();
+    if (!id) return;
+    if (options.force && PROTECTED_BRANCHES.has(branch)) {
+      showToast({
+        kind: "error",
+        message: "受保护分支 · 不允许 force push · 请改名其他 branch",
+      });
+      return;
+    }
+    if (options.force && !options.expectedRemoteOid) {
+      showToast({
+        kind: "error",
+        message: "无法确认远端 lease · 请先 fetch 后重试 force push",
+      });
+      return;
+    }
+
+    const taskId = makeTaskId("push");
+    startOperation("push", remote, branch, taskId, { stage: "writing" });
+    const req: PushRequest = {
+      workspaceId: id,
+      remote,
+      branch,
+      force: Boolean(options.force),
+      expectedRemoteOid: options.expectedRemoteOid ?? null,
+      authMethod: options.authMethod ?? null,
+      taskId,
+    };
+
+    try {
+      const result = await invoke<PushResult>("git_push", { req });
+      finishOperation("done");
+      showToast({
+        kind: options.force ? "warning" : "success",
+        message: `已推送 ${result.pushedCommits} 个 commit 到 ${remote}/${branch}`,
+      });
+      store.clearCache();
+      await store.load(id);
+    } catch (error) {
+      stopOperation();
+      await handleNetworkError(error, {
+        operation: "push",
+        remote,
+        branch,
+        force: Boolean(options.force),
+        expectedRemoteOid: options.expectedRemoteOid ?? null,
+        authMethod: options.authMethod ?? null,
+      });
+    }
+  };
+
+  const runPull = async (
+    remote: string,
+    branch: string,
+    strategy: PullStrategy,
+    options: { authMethod?: AuthMethod | null } = {},
+  ) => {
+    const id = workspaceId();
+    if (!id) return;
+
+    let statusSnapshot: GitStatusResponse;
+    try {
+      statusSnapshot = await invoke<GitStatusResponse>("git_status_query", {
+        req: { workspaceId: id },
+      });
+    } catch (error) {
+      showToast({
+        kind: "error",
+        message: `读取 Git status 失败：${stringifyUnknown(error)}`,
+      });
+      return;
+    }
+
+    if (isDirty(statusSnapshot)) {
+      showToast({
+        kind: "warning",
+        message: "工作区有未提交修改 · 请先 commit / stash / discard",
+        actionLabel: "Git Status",
+        onAction: () => {
+          closeToast();
+          props.onOpenGitStatus?.();
+        },
+      });
+      props.onOpenGitStatus?.();
+      return;
+    }
+
+    const taskId = makeTaskId("pull");
+    startOperation("pull", remote, branch, taskId, {
+      stage: "fetch",
+      strategy,
+    });
+    const req: PullRequest = {
+      workspaceId: id,
+      remote,
+      branch,
+      strategy,
+      frontendStatusSnapshot: statusSnapshot,
+      frontendStatusTakenAt: null,
+      authMethod: options.authMethod ?? null,
+      taskId,
+    };
+
+    try {
+      const result = await invoke<PullResult>("git_pull", { req });
+      finishOperation(result.stage === "rebase" ? "rebase" : "merge");
+      showToast({
+        kind: "success",
+        message: pullSuccessMessage(remote, branch, result),
+      });
+      store.clearCache();
+      await store.load(id);
+    } catch (error) {
+      stopOperation();
+      await handleNetworkError(error, {
+        operation: "pull",
+        remote,
+        branch,
+        strategy,
+        authMethod: options.authMethod ?? null,
+      });
+    }
+  };
+
+  const runFetch = async (
+    remote: string,
+    branch: string,
+    prune: boolean,
+    options: { authMethod?: AuthMethod | null } = {},
+  ) => {
+    const id = workspaceId();
+    if (!id) return;
+    const taskId = makeTaskId("fetch");
+    startOperation("fetch", remote, branch, taskId, {
+      stage: "fetch",
+      prune,
+    });
+    const req: FetchRequest = {
+      workspaceId: id,
+      remote,
+      prune,
+      authMethod: options.authMethod ?? null,
+      taskId,
+    };
+
+    try {
+      const result = await invoke<FetchResult>("git_fetch", { req });
+      finishOperation("done");
+      const pruned =
+        result.prunedRefs.length > 0
+          ? ` · 已删除 ${result.prunedRefs.length} 个远端已不存在的 ref`
+          : "";
+      showToast({
+        kind: "success",
+        message: `已 fetch · 远端 ${result.fetchedRefs.length} refs${pruned}`,
+      });
+    } catch (error) {
+      stopOperation();
+      await handleNetworkError(error, {
+        operation: "fetch",
+        remote,
+        branch,
+        prune,
+        authMethod: options.authMethod ?? null,
+      });
+    }
+  };
+
+  const handleNetworkError = async (
+    error: unknown,
+    retry: OperationRetry,
+  ): Promise<void> => {
+    const parsed = parseNetworkError(error);
+    if (!parsed) {
+      showToast({ kind: "error", message: stringifyUnknown(error) });
+      return;
+    }
+
+    switch (parsed.kind) {
+      case "authFailed":
+        setPendingAuth({
+          remoteUrl: remoteUrl(retry.remote),
+          retry,
+          error: parsed.detail,
+        });
+        break;
+      case "nonFastForward": {
+        const expectedRemoteOid = await remoteHeadOid(
+          retry.remote,
+          retry.branch,
+        );
+        const commits = expectedRemoteOid
+          ? [
+              {
+                sha: expectedRemoteOid,
+                message: "remote tip at confirmation time",
+              },
+            ]
+          : [];
+        showToast({
+          kind: "error",
+          message: `${retry.remote}/${retry.branch} 已有更新 · 请先 pull 或 force push`,
+          actionLabel: "Force Push",
+          onAction: () => {
+            closeToast();
+            setForcePush({
+              remote: retry.remote,
+              branch: retry.branch,
+              localAhead: parsed.localAhead,
+              remoteAhead: parsed.remoteAhead,
+              expectedRemoteOid,
+              commits,
+            });
+          },
+        });
+        break;
+      }
+      case "mergeConflict":
+        setPullConflict({
+          remote: retry.remote,
+          branch: retry.branch,
+          files: parsed.files,
+        });
+        break;
+      case "dirtyWorkingTree":
+        showToast({
+          kind: "warning",
+          message: "工作区有未提交修改 · 请先 commit / stash / discard",
+          actionLabel: "Git Status",
+          onAction: () => {
+            closeToast();
+            props.onOpenGitStatus?.();
+          },
+        });
+        props.onOpenGitStatus?.();
+        break;
+      case "remoteNotFound":
+        showToast({
+          kind: "error",
+          message: `未配置 remote ${parsed.remote} · 请用终端 git remote add ${parsed.remote} <url>`,
+        });
+        break;
+      case "networkUnreachable":
+        showToast({
+          kind: "error",
+          message: `网络不通 · 请检查代理 / DNS：${parsed.detail}`,
+          actionLabel: "Retry",
+          onAction: () => {
+            closeToast();
+            void runRemoteOperation(retry);
+          },
+        });
+        break;
+      case "sslError":
+        showToast({
+          kind: "error",
+          message: `SSL 证书无效 · 请检查 url 或在终端临时配置 http.sslVerify：${parsed.detail}`,
+        });
+        break;
+      case "staleLease":
+        showToast({
+          kind: "error",
+          message: "远端在确认后发生变化 · 请 fetch 后重新确认 force push",
+          actionLabel: "Fetch",
+          onAction: () => {
+            closeToast();
+            void runFetch(retry.remote, retry.branch, false);
+          },
+        });
+        break;
+      case "aborted":
+        showToast({ kind: "warning", message: `已取消：${parsed.reason}` });
+        break;
+      case "rejectedByRemote":
+        showToast({
+          kind: "error",
+          message: `远端拒绝操作：${parsed.detail}`,
+        });
+        break;
+      case "git2Error":
+        showToast({
+          kind: "error",
+          message: `${parsed.message} (code ${parsed.code}, class ${parsed.class})`,
+        });
+        break;
+    }
+  };
+
+  const submitAuth = async (method: AuthMethod) => {
+    const pending = pendingAuth();
+    const id = workspaceId();
+    if (!pending || !id) return;
+    setSubmittingAuth(true);
+    const taskId = makeTaskId("auth");
+    const req: AuthRequest = {
+      workspaceId: id,
+      authChallengeId: taskId,
+      taskId,
+      remoteUrl: pending.remoteUrl,
+      allowedMethods: [],
+      method,
+      expiresAt: Math.floor(Date.now() / 1000) + 300,
+    };
+    try {
+      await invoke("git_auth_provide", { req });
+      setPendingAuth(null);
+      await runRemoteOperation({ ...pending.retry, authMethod: method });
+    } catch (error) {
+      setPendingAuth({
+        ...pending,
+        error: networkErrorMessage(parseNetworkError(error), error),
+      });
+    } finally {
+      setSubmittingAuth(false);
+    }
+  };
+
+  const confirmForcePush = async () => {
+    const pending = forcePush();
+    if (!pending) return;
+    setForceSubmitting(true);
+    setForcePush(null);
+    setForceConfirmation("");
+    await runPush(pending.remote, pending.branch, {
+      force: true,
+      expectedRemoteOid: pending.expectedRemoteOid,
+    });
+    setForceSubmitting(false);
+  };
+
+  const cancelOperation = async () => {
+    const current = operation();
+    const id = workspaceId();
+    stopOperation();
+    if (id) {
+      try {
+        await invoke("git_merge_abort", { workspaceId: id });
+      } catch {
+        // best-effort cancel path; backend may have no merge/rebase in progress.
+      }
+    }
+    showToast({
+      kind: "warning",
+      message: current.kind === "push" ? "已取消推送" : "已取消远端同步",
+    });
+  };
+
   onMount(() => {
     if (hasGit() && workspaceId()) {
       store.load(workspaceId());
     }
+
+    const unlisteners: UnlistenFn[] = [];
+
+    void listen<PushProgressEvent>(GIT_PUSH_PROGRESS_EVENT, (event) => {
+      if (event.payload.workspaceId !== workspaceId()) return;
+      updateProgress(
+        event.payload.taskId,
+        event.payload.stage === "writing" ? "writing" : "compressing",
+        event.payload.objectsDone,
+        event.payload.objectsTotal,
+        event.payload.bytesDone,
+        event.payload.bytesTotal,
+      );
+    }).then((unlisten) => unlisteners.push(unlisten));
+
+    void listen<FetchProgressEvent>(GIT_FETCH_PROGRESS_EVENT, (event) => {
+      if (event.payload.workspaceId !== workspaceId()) return;
+      updateProgress(
+        event.payload.taskId,
+        "fetching",
+        event.payload.receivedObjects,
+        event.payload.totalObjects,
+        event.payload.receivedBytes,
+        event.payload.receivedBytes,
+      );
+    }).then((unlisten) => unlisteners.push(unlisten));
+
+    void listen<OperationDoneEvent>(GIT_OPERATION_DONE_EVENT, (event) => {
+      if (event.payload.workspaceId !== workspaceId()) return;
+      if (event.payload.taskId !== operation().taskId) return;
+      if (event.payload.outcome === "success") {
+        setOperation((prev) => ({ ...prev, stage: "done", abortable: false }));
+      }
+    }).then((unlisten) => unlisteners.push(unlisten));
+
+    onCleanup(() => {
+      for (const unlisten of unlisteners) {
+        unlisten();
+      }
+    });
   });
 
   createEffect(() => {
@@ -185,6 +948,12 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
 
   onCleanup(() => {
     store.clearCache();
+    if (toastTimer) {
+      clearTimeout(toastTimer);
+    }
+    if (closeProgressTimer) {
+      clearTimeout(closeProgressTimer);
+    }
   });
 
   createEffect(() => {
@@ -253,6 +1022,49 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
       }
     >
       <div class="vs-git-log" ref={panelRoot}>
+        <div class="vs-panel-head vs-git-sync-panel-head">
+          <span class="vs-panel-title">Git Log</span>
+          <div class="vs-panel-actions vs-git-sync-actions">
+            <span class="vs-kbd-tip">⌘2</span>
+            <button
+              type="button"
+              class="vs-git-sync-icon-btn"
+              title="Pull"
+              aria-label="Pull"
+              onClick={() => void beginRemoteOperation("pull")}
+              disabled={operation().kind !== null}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 11V3 M4 7l4 4 4-4 M3 13h10" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="vs-git-sync-icon-btn"
+              title="Push"
+              aria-label="Push"
+              onClick={() => void beginRemoteOperation("push")}
+              disabled={operation().kind !== null}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M8 3v8 M4 7l4-4 4 4 M3 13h10" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="vs-git-sync-icon-btn"
+              title="Fetch / Prune"
+              aria-label="Fetch"
+              onClick={() => void beginRemoteOperation("fetch")}
+              disabled={operation().kind !== null}
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M3 8a5 5 0 0 1 8.2-3.8M13 4v4H9 M13 8a5 5 0 0 1-8.2 3.8M3 12V8h4" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <div class="vs-git-log-search">
           <input
             type="text"
@@ -437,7 +1249,228 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
             </Show>
           </div>
         </Show>
+
+        <Show when={activeOperation().kind}>
+          <GitSyncProgressDialog
+            kind={activeOperation().kind!}
+            remote={activeOperation().remote}
+            branch={activeOperation().branch}
+            stage={activeOperation().stage}
+            progress={activeOperation().progress}
+            abortable={activeOperation().abortable}
+            pullStrategy={activeOperation().pullStrategy}
+            prune={activeOperation().prune}
+            largeTransfer={
+              activeOperation().progress.bytesDone > 100 * 1024 * 1024 ||
+              activeOperation().progress.bytesTotal > 100 * 1024 * 1024
+            }
+            onPullStrategyChange={(strategy) =>
+              setOperation((prev) => ({ ...prev, pullStrategy: strategy }))
+            }
+            onPruneChange={(prune) =>
+              setOperation((prev) => ({ ...prev, prune }))
+            }
+            onCancel={() => void cancelOperation()}
+          />
+        </Show>
+
+        <Show when={remoteSelection()}>
+          {(selection) => (
+            <RemoteSelector
+              operation={selection().operation}
+              branch={selection().branch}
+              remotes={selection().remotes}
+              initialRemote={selection().initialRemote}
+              onCancel={() => setRemoteSelection(null)}
+              onConfirm={(remote, prune) => {
+                const current = selection();
+                setRemoteSelection(null);
+                void runRemoteOperation({
+                  operation: current.operation,
+                  remote,
+                  branch: current.branch,
+                  prune,
+                  strategy: operation().pullStrategy,
+                });
+              }}
+            />
+          )}
+        </Show>
+
+        <Show when={pendingAuth()}>
+          {(pending) => (
+            <AuthDialog
+              remoteUrl={pending().remoteUrl}
+              submitting={submittingAuth()}
+              error={pending().error}
+              onSubmit={submitAuth}
+              onCancel={() => {
+                setPendingAuth(null);
+                showToast({
+                  kind: "warning",
+                  message: "已取消 · 凭证未提供",
+                });
+              }}
+            />
+          )}
+        </Show>
+
+        <Show when={forcePush()}>
+          {(pending) => (
+            <ForcePushDialog
+              remote={pending().remote}
+              branch={pending().branch}
+              remoteAhead={pending().remoteAhead}
+              expectedRemoteOid={pending().expectedRemoteOid}
+              commits={pending().commits}
+              confirmation={forceConfirmation()}
+              submitting={forceSubmitting()}
+              onConfirmationChange={setForceConfirmation}
+              onConfirm={confirmForcePush}
+              onCancel={() => {
+                setForcePush(null);
+                setForceConfirmation("");
+              }}
+            />
+          )}
+        </Show>
+
+        <Show when={pullConflict()}>
+          {(conflict) => (
+            <PullConflictDialog
+              workspacePath={workspacePath()}
+              remote={conflict().remote}
+              branch={conflict().branch}
+              files={conflict().files}
+              onCopied={() =>
+                showToast({
+                  kind: "success",
+                  message: "已复制 · 在终端粘贴执行",
+                })
+              }
+              onClose={() => setPullConflict(null)}
+            />
+          )}
+        </Show>
+
+        <Show when={toast()}>
+          {(currentToast) => (
+            <div
+              class={`vs-git-sync-toast is-${currentToast().kind}`}
+              role="status"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <span>{currentToast().message}</span>
+              <Show
+                when={currentToast().actionLabel && currentToast().onAction}
+              >
+                <button
+                  type="button"
+                  onClick={() => currentToast().onAction?.()}
+                >
+                  {currentToast().actionLabel}
+                </button>
+              </Show>
+            </div>
+          )}
+        </Show>
       </div>
     </Show>
   );
 };
+
+function isDirty(status: GitStatusResponse): boolean {
+  return (
+    status.staged.length + status.unstaged.length + status.untracked.length > 0
+  );
+}
+
+function pullSuccessMessage(
+  remote: string,
+  branch: string,
+  result: PullResult,
+): string {
+  switch (result.stage) {
+    case "ff":
+      return `已 fast-forward 到 ${remote}/${branch} · ${result.mergedCommits} commits`;
+    case "merge":
+      return `已合并 ${remote}/${branch} · 创建合并 commit ${result.newHead.slice(0, 8)}`;
+    case "rebase":
+      return `已 rebase ${result.mergedCommits} 个 commit 到 ${remote}/${branch}`;
+    case "upToDate":
+      return `${remote}/${branch} 已是最新`;
+    default:
+      return `已完成 pull ${remote}/${branch}`;
+  }
+}
+
+function parseNetworkError(error: unknown): NetworkOpError | null {
+  if (isNetworkError(error)) {
+    return error;
+  }
+
+  const raw = error instanceof Error ? error.message : stringifyUnknown(error);
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return isNetworkError(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isNetworkError(error: unknown): error is NetworkOpError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "kind" in error &&
+    typeof (error as { kind: unknown }).kind === "string"
+  );
+}
+
+function networkErrorMessage(
+  error: NetworkOpError | null,
+  fallback: unknown,
+): string {
+  if (!error) {
+    return stringifyUnknown(fallback);
+  }
+
+  switch (error.kind) {
+    case "authFailed":
+      return `凭证错误 · 请检查 username / password / token：${error.detail}`;
+    case "networkUnreachable":
+      return `网络不通 · 请检查代理 / DNS：${error.detail}`;
+    case "remoteNotFound":
+      return `未配置 remote ${error.remote}`;
+    case "nonFastForward":
+      return `${error.remoteBranch} 已有更新 · 请先 pull 或 force push`;
+    case "mergeConflict":
+      return `合并冲突 · ${error.files.length} 个文件`;
+    case "aborted":
+      return `已取消：${error.reason}`;
+    case "dirtyWorkingTree":
+      return "工作区有未提交修改 · 请先 commit / stash / discard";
+    case "rejectedByRemote":
+      return `远端拒绝操作：${error.detail}`;
+    case "staleLease":
+      return "远端在确认后发生变化 · 请重新 fetch";
+    case "sslError":
+      return `SSL 证书无效：${error.detail}`;
+    case "git2Error":
+      return `${error.message} (code ${error.code}, class ${error.class})`;
+  }
+}
+
+function stringifyUnknown(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}

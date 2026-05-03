@@ -65,7 +65,7 @@ reviewer: Claude Code
 
 - **Branch rename**（`git branch -m`）→ v0.3 MVP-16 同 PR
 - **Auto-stash on checkout**（dirty tree 自动 stash 再 checkout）→ v0.2 后期 / v0.3 评估 · 见 §H.3 决策原因
-- **Push deleted branch to origin**（`git push origin --delete`）→ MVP-11（push/pull/fetch）范围
+- **Push deleted branch to origin**（`git push origin --delete`）→ MVP-21（push/pull/fetch）范围
 - **Branch protection rules**（基于配置阻止删除特定 branch）→ v0.3+ 设置面板范围
 - **Cherry-pick / merge / rebase 触发的分支创建**（`git rebase -i` 中创建 fixup branch）→ v0.3 MVP-16 范围
 - **Submodule 内分支 CRUD**（保持 v0.2 不崩即可 · v0.3+ 单列 issue）
@@ -102,7 +102,7 @@ MVP-13 估时 **4d** · 拆 4 Phase 串行实施：
 
 **下次 agent 起点**（spec 详化完后）：等 Arbiter approve PR · 翻 `ready` · 派 Phase A 实施 agent（首选 OpenCode · 如 OpenCode 不可用走 Codex / Kimi）。
 
-**依赖关系说明**：MVP-13 依赖 MVP-07 done（branch list 读路径） + MVP-09 done（git2 写路径基础）· 两者均已 done · 所以 MVP-13 v0.2 启动时无前置阻塞。MVP-13 自身 4 phase 内部串行。文件域与 MVP-11（push/pull/fetch）**完全隔离**（MVP-13 只动 `crates/core/src/branch_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/BranchTree/` + `web/src/dialogs/BranchSwitcher/`）· 可并行启动。
+**依赖关系说明**：MVP-13 依赖 MVP-07 done（branch list 读路径） + MVP-09 done（git2 写路径基础）· 两者均已 done · 所以 MVP-13 v0.2 启动时无前置阻塞。MVP-13 自身 4 phase 内部串行。文件域与 MVP-21（push/pull/fetch）**完全隔离**（MVP-13 只动 `crates/core/src/branch_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/BranchTree/` + `web/src/dialogs/BranchSwitcher/`）· 可并行启动。
 
 ## 🖼 UI 引用
 
@@ -305,7 +305,7 @@ criterion_main!(benches);
 - ADR-007 Git 栈混用决策
 - `implementation-plan.md` §10.1 v0.2 砍到分支 · §6.2 git_branch_* IPC · §11 W13
 - 上游：MVP-07（branch list 读路径 · BranchInfo binding）· MVP-09（git2 写路径基础设施）· SPIKE-04（git2 写 smoke test）
-- 下游：MVP-11 push/pull/fetch（push deleted branch 联动）· MVP-16 rebase/merge/cherry-pick（v0.3）
+- 下游：MVP-21 push/pull/fetch（push deleted branch 联动）· MVP-16 rebase/merge/cherry-pick（v0.3）
 
 ## §G. IPC Contract（ts-rs）
 
@@ -540,11 +540,11 @@ fn validate_name(name: &str) -> Result<(), BranchError> {
 | Linux（Ubuntu 24 X11 / Wayland） | ✅ v0.2 支持 | git2 0.20 同样可用 · ext4 case-sensitive · 测试验证 `feat/x` ≠ `feat/X` 不视为同名（与 macOS 行为差异 · UI 不做隐藏） |
 | Windows | ❌ v0.3+ | NTFS case-insensitive + path separator `\` · v0.3 单独 spike + Windows-specific 路径处理 |
 
-### H.8 与 MVP-11 push/pull/fetch 的边界
+### H.8 与 MVP-21 push/pull/fetch 的边界
 
 MVP-13 仅本地 branch 操作 · **不调用任何网络**。
 
-| 场景 | MVP-13 责任 | MVP-11 责任 |
+| 场景 | MVP-13 责任 | MVP-21 责任 |
 |------|-------------|-------------|
 | 本地 branch CRUD | ✅ | ❌ |
 | Remote branch checkout（自动建本地 tracking） | ✅（local create + set_upstream · 不 fetch）| ❌ |
@@ -575,7 +575,7 @@ MVP-13 仅本地 branch 操作 · **不调用任何网络**。
    - 不做：rename / auto-stash / push delete / branch protection rules / cherry-pick / merge / rebase / submodule branch / Windows · 全在 §Don't 明示推后
    - 不引入：fuzzy 第三方 crate（自实现 30 行内）/ 第三方 git 库
 5. **对齐上游 binding**（§G.5）：复用 MVP-07 `BranchInfo / BranchKind` + MVP-08 `GitStatusResponse` · 不造平行类型 · 新增 9 个独立 binding 清单明确
-6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 不碰列表 / H.3 stash 策略 / H.4 API 调用链 / H.5 detached HEAD / H.6 name 校验 / H.7 跨平台 / H.8 与 MVP-11 边界 · 防 v0.2 实施期反复讨论
+6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 不碰列表 / H.3 stash 策略 / H.4 API 调用链 / H.5 detached HEAD / H.6 name 校验 / H.7 跨平台 / H.8 与 MVP-21 边界 · 防 v0.2 实施期反复讨论
 7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-13/`（按 `.claude/rules/runtime-evidence-location.md` R1）
 
 ---

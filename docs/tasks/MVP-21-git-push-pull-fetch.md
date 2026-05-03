@@ -99,7 +99,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 | Phase A · git2 网络层后端 + Auth + IPC | git_push / git_pull / git_fetch / remote_list 后端封装 + SSH/HTTPS auth callback + ts-rs bindings + 单元测试（fixture: 本地 bare repo 做 remote）| ⏳ todo | — |
 | Phase B · UI 集成（push/pull/fetch 按钮 + 进度条 + 错误流） | Git Log 工具栏 Push/Pull 按钮（design line 1046-1051）+ progress modal + force push 二次确认 + auth modal + conflict graceful 提示 | ⏳ todo | — |
 | Phase C · Conflict 处理 + 状态栏 ahead/behind | merge --abort 流程 + status bar 显示 `↑N ↓M` + post-fetch refresh | ⏳ todo | — |
-| Phase D · runtime 证据 + 性能量化 + 跨平台验证 | 截图 + 录屏（push 进度 / pull conflict abort / fetch prune）+ 性能 P99（push 1MB / 100 commits） + macOS + Linux 双平台跑 + 放 `docs/runtime-evidence/mvp-11/` | ⏳ todo | — |
+| Phase D · runtime 证据 + 性能量化 + 跨平台验证 | 截图 + 录屏（push 进度 / pull conflict abort / fetch prune）+ 性能 P99（push 1MB / 100 commits） + macOS + Linux 双平台跑 + 放 `docs/runtime-evidence/mvp-21/` | ⏳ todo | — |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动 · 复用 MVP-09 模式）：
 
@@ -156,7 +156,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
   - body：`"以下 N 个文件含冲突 · 工作区已恢复到 pull 前状态：\n - <file 1>\n - <file 2>\n..."`
   - 提示文案：`"v0.2 不支持 GUI 解决 · 请在终端运行 git pull 后用 git mergetool / 编辑器手动解决"`
   - 按钮：`"复制 git pull 命令"` / `OK`
-- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-11/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
+- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-21/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
 
 ## ✅ Acceptance
 
@@ -260,7 +260,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 仿 SPIKE-04 §C 模式 · 所有 fixture 用 `tempfile::TempDir` + `git2::Repository::init_bare()` + `Repository::clone_local()` 在测试运行时生成 · **不依赖外部网络**：
 
 ```rust
-// crates/core/tests/fixtures/mvp_11_helpers.rs（新建）
+// crates/core/tests/fixtures/mvp_21_helpers.rs（新建）
 use git2::{Repository, Signature, RepositoryInitOptions};
 use tempfile::TempDir;
 use std::path::PathBuf;
@@ -1007,8 +1007,8 @@ MVP-21 是**网络层** · 严格隔离：
    - 不引入：第三方 keyring crate（用 OS git credential helper）/ 第三方 git 库
 5. **对齐上游 binding**（§G.5）：复用 MVP-07 `BranchInfo` + MVP-08 `GitStatusResponse` · 不造平行类型 · 新增 12 个独立 binding 清单明确
 6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 Auth 矩阵 / H.3 Merge vs Rebase 默认 / H.4 API 调用链 / H.5 Auth 安全 / H.6 Force push 保护 / H.7 跨平台依赖 / H.8 与 MVP-09/13 边界 · 防 v0.2 实施期反复讨论
-7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-11/`（按 `.claude/rules/runtime-evidence-location.md` R1 · v0.2 启动后如 rename 为 MVP-21 · 路径同步改为 `docs/runtime-evidence/mvp-21/`）
-8. **ID 冲突已显式标注**：文件顶部 HTML 注释警告 + frontmatter 上方说明 + 推荐 [A] rename 为 MVP-21 · 等 Arbiter 审 PR 拍板
+7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-21/`（按 `.claude/rules/runtime-evidence-location.md` R1）
+8. **ID 冲突已解决**：2026-05-03 session 23 PR #210 完成 rename · 文件顶部历史 HTML 注释保留作 trace
 
 ---
 

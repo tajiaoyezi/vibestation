@@ -1,8 +1,8 @@
 ---
-id: MVP-11
+id: MVP-21
 type: mvp
 title: Git Push / Pull / Fetch（远端同步）
-status: draft
+status: ready
 owner:
 phase: v0.2
 depends_on: ["MVP-09", "MVP-13"]
@@ -13,41 +13,30 @@ blocked_note:
 estimate: 5d
 plan_ref: implementation-plan.md §10.1（MVP B 折中砍到 v0.2）· §6.2 git_push/pull/fetch IPC · §6.3 git:push/fetch-progress event · §11 W14 路线图 · §11.3 R23 push/pull 错误恢复
 risk_ref: R23（auto-updater 网络错误恢复 · 类比 push/pull 网络可恢复性）
-reviewer:
+reviewer: Claude Code
 ---
 
 <!--
-  ⚠️ ID 冲突警告（详化时增补 · 2026-05-01 vibe sprint Worker B · Round 2 frontmatter fix）
+  历史说明（2026-05-03 rename · 单人项目 v2-D.1 self-review + Arbiter approval）
 
-  v0.1 已存在 MVP-11 = "Native Feel Quality"（已 done · spec PR #119/#125 · 5/5 全 done）
-  本 spec（v0.2 候选）原 id 也是 MVP-11 = "Git Push / Pull / Fetch"
+  本 spec 原 id 与 v0.1 已 done 的同号 spec "Native Feel Quality"
+  （PR #119/#125 · 5/5 全 done · 同 id 文件名 `<old-id>-native-feel-quality.md` · old-id 见 git mv history）
+  frontmatter id 冲突 · 文件名不同但 id 同号 · 容易污染未来 PR / 引用 / search。
 
-  两者 id 冲突 · 文件名不同（MVP-11-native-feel-quality.md vs MVP-11-git-push-pull-fetch.md）但 frontmatter id
-  同号 · 容易混淆未来 PR / 引用 / search。
-
-  Arbiter 审 PR 时建议三选一：
-  - [A] 本 spec rename 为 MVP-21（v0.2 第二个 spec · 但和 MVP-21 v0.3+ 占位无冲突 · 本仓 MVP-21 不存在）
-  - [B] 本 spec rename 为 MVP-11b（保留 MVP-11 主号 · b 后缀区分版本）
-  - [C] 保持冲突 · 让人手动按 PR / 文件名区分（不推荐 · 未来 audit 易错）
-
-  推荐 [A] · 原因：
-  - 本 spec 在 v0.2 实施时是新 task · 未来 reference 都用新号 · 不污染 v0.1 已 done MVP-11
-  - MVP-21 在仓库中尚未占用 · v0.3+ 占位也无相关条目
-  - 文件名同步 rename 为 MVP-21-git-push-pull-fetch.md · 索引 README.md 一并更新
-
-  本 spec 详化阶段保持 id: MVP-11 · 等 Arbiter 审 PR 时拍板 · 翻 ready 前完成 rename。
-
-  注：注释从 frontmatter 前移至 frontmatter 后 · 满足 task-spec-validator.mjs 要求
-  （Codex round 1 review CRITICAL finding · 2026-05-01）
+  按详化阶段（vibe sprint 2026-05-01 Worker B）建议方案 [A] · rename 为本 id：
+  - v0.2 实施时是新 task · 未来 reference 都用新号 · 不污染 v0.1 同号 spec
+  - 本 id（MVP-21）在仓库中无占用 · v0.3+ 占位也无相关条目
+  - 文件 rename: 旧同号文件 → MVP-21-git-push-pull-fetch.md
+  - 索引 docs/tasks/README.md 一并更新
+  - 同 PR 翻 status: draft → ready（Arbiter approval · 2026-05-03）
 -->
 
-# MVP-11: Git Push / Pull / Fetch（远端同步）
+# MVP-21: Git Push / Pull / Fetch（远端同步）
 
-> **状态**：`draft`（v0.2 候选 · 详化完成度 100%）
+> **状态**：`ready`（v0.2 候选 · 详化完成度 100% · 2026-05-03 Arbiter approve 翻 ready · 等待认领）
 > **依赖**：MVP-09（git2 写路径已通 · commit 基础设施）+ MVP-13（branch CRUD · push/pull 需要在不同 branch 间切换）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · v0.2 W14 Push/Pull/Fetch
-> **详化时间**：2026-05-01 sprint vibe · Worker B（Claude Code）
-> **Arbiter approve 后建议状态**：`ready` · **同时 rename id 为 MVP-21**（见文件顶部 ID 冲突警告）
+> **详化时间**：2026-05-01 sprint vibe · Worker B（Claude Code）· 2026-05-03 rename + draft → ready
 
 ---
 
@@ -103,7 +92,7 @@ reviewer:
 
 ## 🛠 实施进度
 
-MVP-11 估时 **5d** · 拆 4 Phase 串行实施：
+MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
@@ -135,7 +124,7 @@ MVP-11 估时 **5d** · 拆 4 Phase 串行实施：
 
 **下次 agent 起点**（spec 详化完后）：等 Arbiter approve PR · 翻 `ready`（同时按文件顶部 ID 冲突警告 rename）· 派 Phase A 实施 agent（首选 Codex / OpenCode 因 Phase A 涉及 git2 网络层细节 · Kimi 需要远程 prompt 附 spec 原文）。
 
-**依赖关系说明**：MVP-11 依赖 MVP-09 done（git2 写路径基础）+ MVP-13 done（branch CRUD · push 需要切到目标 branch）· 文件域与 MVP-13 **完全隔离**（MVP-11 只动 `crates/core/src/git_sync.rs` + IPC 注册 + `web/src/dialogs/AuthDialog/` + `web/src/dialogs/PushProgress/` + `web/src/dialogs/PullConflict/`）· 但**实施顺序应 W13 → W14**（用户在测试 push 时需要先创建 branch）· v0.2 sprint 启动顺序 MVP-13 先 · MVP-11 后。
+**依赖关系说明**：MVP-21 依赖 MVP-09 done（git2 写路径基础）+ MVP-13 done（branch CRUD · push 需要切到目标 branch）· 文件域与 MVP-13 **完全隔离**（MVP-21 只动 `crates/core/src/git_sync.rs` + IPC 注册 + `web/src/dialogs/AuthDialog/` + `web/src/dialogs/PushProgress/` + `web/src/dialogs/PullConflict/`）· 但**实施顺序应 W13 → W14**（用户在测试 push 时需要先创建 branch）· v0.2 sprint 启动顺序 MVP-13 先 · MVP-21 后。
 
 ## 🖼 UI 引用
 
@@ -369,13 +358,13 @@ criterion_main!(benches);
 
 ## 📝 Notes
 
-- MVP-11（即将 rename 为 MVP-21）是 v0.2 第二个 git 写路径扩展 · 模式（git2 backend + ts-rs binding + Tauri permission + cmd 注册）和 MVP-09 / MVP-13 完全一致 · 实施 agent 直接复用
+- MVP-21 是 v0.2 第二个 git 写路径扩展 · 模式（git2 backend + ts-rs binding + Tauri permission + cmd 注册）和 MVP-09 / MVP-13 完全一致 · 实施 agent 直接复用
 - **GUI Mergetool**（v0.3 评估）：等 v0.3 评估 three-way diff UI + 文件级别合并 UX · v0.2 用户必须切终端
 - **Push tags / Push --all**（v0.3 单独 spec）：v0.2 仅 push current branch + tracking · 因为多 ref push 错误处理复杂度爆炸
 - **Windows v0.3+**：win32-openssh 集成 + path separator + credential helper 差异 · v0.2 不投入
 - **设置面板集成**：默认 pull 策略 / fetch prune 默认值 / 设置 SSH key path 优先级 / HTTPS 凭证清除按钮 · 都依赖 MVP-10 设置面板（已 done）扩展 · v0.2 sprint 内一并落地
 - **测试架构**：本地 bare repo + sshd / nginx fixture 比真实 GitHub repo 更稳定 · CI 不依赖外部服务 · GitHub real-repo 测试仅在手动 QA 阶段做
-- **id 冲突**（重要）：见文件顶部 ID 冲突警告 · v0.2 启动前必须 rename 为 MVP-21（推荐）或其他号 · 否则 future PR / index 引用混乱
+- **id 冲突历史**（已解决 · 2026-05-03）：本 spec 详化时与 v0.1 已 done "Native Feel Quality" 同号冲突 · 已 rename 为 MVP-21（详化阶段建议方案 [A]）· 详见文件顶部历史说明 + git mv history
 
 ## 🔗 相关
 
@@ -545,24 +534,24 @@ pub struct ConflictFile {
 4. **预期**：`tsc` 报 `TS2339: Property 'xxx' does not exist on type 'PushRequest'`——FAIL 证明防御生效
 5. **回滚**：撤销 `#[ts(rename = ...)]` · 确认 `pnpm typecheck` 恢复 PASS
 
-> 本 proof 只需做一次 · 结果写入 PR description 或 `docs/runtime-evidence/MVP-11/`。
+> 本 proof 只需做一次 · 结果写入 PR description 或 `docs/runtime-evidence/mvp-21/`。
 
 ### G.5 · 与上游已落地 binding 的复用决策
 
-MVP-11 实施前必须明确复用 / 新增边界：
+MVP-21 实施前必须明确复用 / 新增边界：
 
-| 已有 binding | MVP-11 §G.1 涉及 | 决策 | 理由 |
+| 已有 binding | MVP-21 §G.1 涉及 | 决策 | 理由 |
 |---|---|---|---|
-| `BranchInfo`（MVP-07 已生成 · 含 `name / upstream / ahead / behind`）| status bar `↑N ↓M` 数字来源 | ✅ **复用** · 不重新查 | MVP-07 + MVP-13 已通过 BranchInfo 提供 ahead/behind · MVP-11 fetch 后只需触发 BranchInfo 重算事件 |
-| `BranchKind` / `CommitAuthor` | 不直接涉及 | ⛔ 不复用 | MVP-11 不操作 commit metadata · 不引入 |
+| `BranchInfo`（MVP-07 已生成 · 含 `name / upstream / ahead / behind`）| status bar `↑N ↓M` 数字来源 | ✅ **复用** · 不重新查 | MVP-07 + MVP-13 已通过 BranchInfo 提供 ahead/behind · MVP-21 fetch 后只需触发 BranchInfo 重算事件 |
+| `BranchKind` / `CommitAuthor` | 不直接涉及 | ⛔ 不复用 | MVP-21 不操作 commit metadata · 不引入 |
 | `FileChange`（MVP-07/08）| `MergeConflictInfo.files` 含路径 | ⛔ 不复用 · 用独立 `ConflictFile` | conflict 文件需要 ours_oid / theirs_oid 元数据 · `FileChange` 没有 · 强行复用会让 union 膨胀 |
-| `GitStatusResponse`（MVP-08）| pull 前 dirty tree 检测 | ✅ 前端**复用** · 不新建 | MVP-11 前端调 MVP-08 已有 `git_status` IPC 检测 dirty · 不重复实现 |
+| `GitStatusResponse`（MVP-08）| pull 前 dirty tree 检测 | ✅ 前端**复用** · 不新建 | MVP-21 前端调 MVP-08 已有 `git_status` IPC 检测 dirty · 不重复实现 |
 | `CommitError`（MVP-09）| 不直接涉及 | ⛔ 不复用 · 新建独立 `NetworkOpError` | 错误语义完全不同（push/pull 是网络层 · commit 是本地写）· 强行复用让 union 膨胀 |
 | `BranchError`（MVP-13）| 不直接涉及 | ⛔ 不复用 · 同上 | branch 操作错误 ≠ 网络操作错误 |
 
-### G.6 · MVP-11 新增 binding 清单（明确数量）
+### G.6 · MVP-21 新增 binding 清单（明确数量）
 
-以下 **12 个 binding** 为 MVP-11 **新增** · 实施时 `web/src/bindings/` 应新增 12 个 `.ts` 文件：
+以下 **12 个 binding** 为 MVP-21 **新增** · 实施时 `web/src/bindings/` 应新增 12 个 `.ts` 文件：
 
 | Rust struct / enum | 用途 | 前端 import 路径 |
 |---|---|---|
@@ -584,7 +573,7 @@ MVP-11 实施前必须明确复用 / 新增边界：
 
 ### G.7 · Tauri Event Payload（progress streaming）
 
-MVP-11 用 Tauri event 推送 push/pull/fetch 进度 · 不走 IPC return（异步 streaming · 类似 MVP-04 PTY stdout pattern）：
+MVP-21 用 Tauri event 推送 push/pull/fetch 进度 · 不走 IPC return（异步 streaming · 类似 MVP-04 PTY stdout pattern）：
 
 ```rust
 // crates/core/src/git_sync.rs
@@ -648,9 +637,9 @@ const unlisten = await listen<PushProgressEvent>("git:push-progress", (e) => {
 });
 ```
 
-## §H. Git 栈约束 + 决策锁定（MVP-11 专有 · 防 v0.2 实施期反复讨论）
+## §H. Git 栈约束 + 决策锁定（MVP-21 专有 · 防 v0.2 实施期反复讨论）
 
-MVP-11 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accepted · [ADR-007](../adr/ADR-007-git-stack.md)）· 必须明确：
+MVP-21 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accepted · [ADR-007](../adr/ADR-007-git-stack.md)）· 必须明确：
 
 ### H.1 本 MVP Git 栈（写 + 网络全用 git2）
 
@@ -978,9 +967,9 @@ git2 = { version = "0.20", default-features = false, features = ["vendored-libgi
 
 ### H.8 与 MVP-09 / MVP-13 的边界
 
-MVP-11 是**网络层** · 严格隔离：
+MVP-21 是**网络层** · 严格隔离：
 
-| 场景 | MVP-09 责任 | MVP-13 责任 | MVP-11 责任 |
+| 场景 | MVP-09 责任 | MVP-13 责任 | MVP-21 责任 |
 |------|------------|------------|-------------|
 | 本地 commit | ✅ | ❌ | ❌ |
 | Branch CRUD | ❌ | ✅ | ❌ |
@@ -991,7 +980,7 @@ MVP-11 是**网络层** · 严格隔离：
 | Conflict 处理 | ❌ | ❌ | ✅（仅 abort · GUI mergetool v0.3）|
 | 状态栏 ahead/behind 计算 | ❌ | ❌（仅触发 BranchInfo 刷新）| ✅（fetch 后更新） |
 
-实施时严格遵循 · MVP-11 PR 不应碰 `git_ops.rs` / `branch_ops.rs`。
+实施时严格遵循 · MVP-21 PR 不应碰 `git_ops.rs` / `branch_ops.rs`。
 
 ---
 

@@ -1,0 +1,50 @@
+.vs-force-push-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.vs-force-push-body {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.vs-force-push-lease {
+  margin: var(--space-2) 0;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-force-push-commit-list {
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  overflow: hidden;
+}
+
+.vs-force-push-commit-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.vs-force-push-commit-list li:first-child {
+  border-top: 0;
+}
+
+.vs-force-push-commit-list code {
+  flex: 0 0 auto;
+  color: var(--danger);
+}
+
+.vs-force-push-commit-list span {
+  min-width: 0;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

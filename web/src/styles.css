@@ -1141,6 +1141,103 @@ textarea {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  position: relative;
+}
+
+.vs-git-sync-panel-head {
+  padding-right: var(--space-2);
+}
+
+.vs-git-sync-actions {
+  align-items: center;
+}
+
+.vs-git-sync-icon-btn {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-git-sync-icon-btn:hover:not(:disabled) {
+  color: var(--text-1);
+  background: var(--bg-2);
+  border-color: var(--line-soft);
+}
+
+.vs-git-sync-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vs-git-sync-icon-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.vs-git-sync-toast {
+  position: fixed;
+  right: 18px;
+  bottom: 38px;
+  z-index: 320;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(520px, calc(100vw - 36px));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  background: var(--bg-1);
+  box-shadow: 0 14px 36px rgb(0 0 0 / 0.3);
+  color: var(--text-1);
+  font-size: 0.8125rem;
+  animation: vs-toast-slide-up 200ms var(--ease);
+}
+
+.vs-git-sync-toast.is-success {
+  border-color: oklch(0.72 0.13 150 / 0.35);
+}
+
+.vs-git-sync-toast.is-warning,
+.vs-git-sync-toast.is-info {
+  border-color: oklch(0.82 0.13 80 / 0.35);
+}
+
+.vs-git-sync-toast.is-error {
+  border-color: oklch(0.72 0.19 25 / 0.4);
+}
+
+.vs-git-sync-toast span {
+  min-width: 0;
+}
+
+.vs-git-sync-toast button {
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--bg-2);
+  color: var(--text-1);
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .vs-git-status {

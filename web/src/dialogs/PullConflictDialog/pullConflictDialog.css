@@ -1,0 +1,44 @@
+.vs-pull-conflict-dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.vs-pull-conflict-body {
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.vs-pull-conflict-list {
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  overflow: hidden;
+}
+
+.vs-pull-conflict-list li {
+  padding: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.vs-pull-conflict-list li:first-child {
+  border-top: 0;
+}
+
+.vs-pull-conflict-more {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.vs-pull-conflict-copy {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--bg-1);
+  color: var(--text-3);
+}

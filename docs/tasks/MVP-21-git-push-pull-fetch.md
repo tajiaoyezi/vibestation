@@ -97,7 +97,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · git2 网络层后端 + Auth + IPC | git_push / git_pull / git_fetch / remote_list 后端封装 + SSH/HTTPS auth callback + ts-rs bindings + 单元测试（fixture: 本地 bare repo 做 remote）| ✅ done · PR #228 | #228 |
-| Phase B · UI 集成（push/pull/fetch 按钮 + 进度条 + 错误流） | Git Log 工具栏 Push/Pull 按钮（design line 1046-1051）+ progress modal + force push 二次确认 + auth modal + conflict graceful 提示 | ⏳ todo | — |
+| Phase B · UI 集成（push/pull/fetch 按钮 + 进度条 + 错误流） | Git Log 工具栏 Push/Pull 按钮（design line 1046-1051）+ progress modal + force push 二次确认 + auth modal + conflict graceful 提示 | ✅ done · PR #231 | #231 |
 | Phase C · Conflict 处理 + 状态栏 ahead/behind | merge --abort 流程 + status bar 显示 `↑N ↓M` + post-fetch refresh | ⏳ todo | — |
 | Phase D · runtime 证据 + 性能量化 + 跨平台验证 | 截图 + 录屏（push 进度 / pull conflict abort / fetch prune）+ 性能 P99（push 1MB / 100 commits） + macOS + Linux 双平台跑 + 放 `docs/runtime-evidence/mvp-21/` | ⏳ todo | — |
 

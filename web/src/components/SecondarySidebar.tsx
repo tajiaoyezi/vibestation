@@ -9,6 +9,7 @@ interface SecondarySidebarProps {
   onResizeReset: () => void;
   activeWorkspace: () => WorkspaceMetadata | null;
   onOpenDiff: (target: DiffTarget) => void;
+  onOpenGitStatus: () => void;
 }
 
 export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
@@ -23,16 +24,11 @@ export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
           : "0",
       }}
     >
-      <div class="vs-panel-head">
-        <span class="vs-panel-title">Git Log</span>
-        <div class="vs-panel-actions">
-          <span class="vs-kbd-tip">⌘2</span>
-        </div>
-      </div>
       <div class="vs-panel-body">
         <GitLogPanel
           activeWorkspace={props.activeWorkspace}
           onOpenDiff={props.onOpenDiff}
+          onOpenGitStatus={props.onOpenGitStatus}
         />
       </div>
       <div

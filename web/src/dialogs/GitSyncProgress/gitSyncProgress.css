@@ -1,0 +1,104 @@
+.vs-git-sync-progress-dialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.vs-git-sync-progress-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.vs-git-sync-progress-sub {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.vs-git-sync-chip {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  color: var(--accent);
+  font-family: var(--font-mono);
+}
+
+.vs-git-sync-segmented {
+  display: flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+}
+
+.vs-git-sync-segmented button {
+  appearance: none;
+  border: 0;
+  border-left: 1px solid var(--line-soft);
+  background: var(--bg-1);
+  color: var(--text-3);
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-git-sync-segmented button:first-child {
+  border-left: 0;
+}
+
+.vs-git-sync-segmented button.is-active {
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+.vs-git-sync-prune {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 var(--space-2);
+  color: var(--text-2);
+  font-size: 0.75rem;
+}
+
+.vs-git-sync-progress-track {
+  height: 8px;
+  margin-top: var(--space-4);
+  overflow: hidden;
+  border-radius: var(--r-4);
+  background: var(--bg-0);
+  border: 1px solid var(--line-soft);
+}
+
+.vs-git-sync-progress-fill {
+  height: 100%;
+  min-width: 2px;
+  background: var(--accent);
+  transition: width var(--dur-fast) var(--ease);
+}
+
+.vs-git-sync-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-git-sync-large {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2);
+  color: var(--warning);
+  background: oklch(0.82 0.13 80 / 0.08);
+  border: 1px solid oklch(0.82 0.13 80 / 0.16);
+  border-radius: var(--r-4);
+  font-size: 0.75rem;
+}

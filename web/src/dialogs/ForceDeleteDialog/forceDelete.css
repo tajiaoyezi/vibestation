@@ -1,0 +1,46 @@
+.vs-force-delete-dialog {
+  width: min(560px, 92vw);
+}
+
+.vs-force-delete-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.vs-force-delete-body p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.vs-force-commit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  overflow: hidden;
+}
+
+.vs-force-commit-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 6px var(--space-3);
+  background: var(--bg-2);
+}
+
+.vs-force-commit-list code {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  color: var(--danger);
+}
+
+.vs-force-commit-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-3);
+}

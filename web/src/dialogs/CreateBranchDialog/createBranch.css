@@ -1,0 +1,13 @@
+.vs-create-branch-dialog {
+  width: min(520px, 92vw);
+}
+
+.vs-branch-input-invalid,
+.vs-branch-input-invalid:focus {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px oklch(0.72 0.19 25 / 0.18);
+}
+
+.vs-branch-select {
+  cursor: pointer;
+}

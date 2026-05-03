@@ -1,0 +1,262 @@
+.vs-branch-tree-panel {
+  border-top: 1px solid var(--line-soft);
+  margin-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.vs-branch-sub-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 var(--space-3) 0 14px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vs-branch-add {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--bg-1);
+  color: var(--text-2);
+  cursor: pointer;
+  line-height: 1;
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-branch-add:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.vs-branch-tree {
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-2) var(--space-1);
+}
+
+.vs-branch-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--r-4);
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    transform 150ms var(--ease);
+}
+
+.vs-branch-row:hover {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+.vs-branch-row.active {
+  background: var(--accent-soft);
+  color: var(--text-1);
+}
+
+.vs-branch-row.acknowledged {
+  transform: translateX(2px);
+}
+
+.vs-branch-row.is-tag {
+  cursor: default;
+}
+
+.vs-branch-row.is-head {
+  cursor: default;
+  color: var(--text-3);
+}
+
+.vs-branch-guide {
+  flex: 0 0 auto;
+  width: 18px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-4);
+}
+
+.vs-ref-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.vs-ref-dot.local {
+  background: var(--accent);
+}
+
+.vs-ref-dot.remote {
+  background: var(--success);
+}
+
+.vs-ref-dot.tag {
+  background: var(--warning);
+}
+
+.vs-branch-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.vs-branch-badge {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1.4;
+}
+
+.vs-branch-loading,
+.vs-branch-empty p {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  color: var(--text-4);
+  font-size: 0.75rem;
+}
+
+.vs-branch-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.vs-branch-retry {
+  align-self: flex-start;
+  appearance: none;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-2);
+  color: var(--text-1);
+  border-radius: var(--r-4);
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.vs-branch-context-menu {
+  position: fixed;
+  z-index: 220;
+  min-width: 180px;
+  padding: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  background: var(--bg-1);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.32);
+}
+
+.vs-branch-context-menu button {
+  display: flex;
+  width: 100%;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-2);
+  border-radius: var(--r-4);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vs-branch-context-menu button:hover:not(:disabled) {
+  background: var(--bg-2);
+  color: var(--text-1);
+}
+
+.vs-branch-context-menu button.danger {
+  color: var(--danger);
+}
+
+.vs-branch-context-menu button:disabled {
+  color: var(--text-4);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.vs-branch-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--status-bar-height) + var(--space-4));
+  z-index: 240;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(720px, 88vw);
+  transform: translateX(-50%);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  color: var(--bg-0);
+  font-size: 0.8125rem;
+  animation: vs-branch-toast-slide-up 200ms var(--ease);
+}
+
+.vs-branch-toast.is-success {
+  background: var(--success);
+}
+
+.vs-branch-toast.is-warning {
+  background: var(--warning);
+}
+
+.vs-branch-toast.is-error {
+  background: var(--danger);
+  color: var(--text-1);
+}
+
+.vs-branch-toast span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs-branch-toast button {
+  appearance: none;
+  border: 1px solid currentColor;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: inherit;
+  padding: 2px 8px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+@keyframes vs-branch-toast-slide-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+}

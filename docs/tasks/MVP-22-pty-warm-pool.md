@@ -1,5 +1,5 @@
 ---
-id: MVP-20
+id: MVP-22
 type: mvp
 title: PTY 预热池 · 新 tab 瞬时出 prompt
 status: done
@@ -13,7 +13,28 @@ risk_ref:
 reviewer: tajiaoyezi (Arbiter · 单人项目 v2-D.1 self-review)
 ---
 
-# MVP-20: PTY 预热池 · 新 tab 瞬时出 prompt
+<!--
+  历史说明（2026-05-03 session 23 rename · 单人项目 v2-D.1 self-review + Arbiter approval）
+
+  本 spec 实施时（session 22 · 2026-04-30）id 为 MVP-20 · 与 v1.0 占位 spec
+  "AI 一键回滚（session 级 revert）"（docs/tasks/MVP-20-ai-one-click-rollback.md）
+  frontmatter id 冲突 · 文件名不同但 id 同号。
+
+  按 "晚到的 spec 用新号" 原则（v1.0 占位 design 在先）· session 23 rename：
+  - 文件 rename: docs/tasks/MVP-20-pty-warm-pool.md → MVP-22-pty-warm-pool.md
+  - runtime evidence rename: docs/runtime-evidence/mvp-20/ → mvp-22/
+  - frontmatter id MVP-20 → MVP-22
+  - 全文 self-ref MVP-20 → MVP-22
+  - README v0.2 占位表加 MVP-22 行 · MVP-20 行保留指向 ai-one-click-rollback
+
+  实施时历史 trace 不动（保留历史真实性）：
+  - PROGRESS.md PR #189-#193 提"MVP-20 PTY 预热池"· 实施时是 MVP-20
+  - branch name `feat/MVP-20-*`（git history · 无法改）
+  - commit message 含 MVP-20（不改 · 历史 trace）
+  - bench code `crates/core/tests/pty_pool_bench.rs` 注释（如有）作为实施时 trace 保留
+-->
+
+# MVP-22: PTY 预热池 · 新 tab 瞬时出 prompt
 
 > **状态**：`draft` → `ready` → `in-progress` → `done`
 > **依赖**：MVP-04 PTY runtime（已 done）
@@ -86,7 +107,7 @@ evaluator 按此逐项对照：
 - [x] **A7 · 设置实时生效**：Settings toggle off → 立即 kill 现有 idle pool；toggle on → 立即开始预热 · 不需重启 app（实测录屏）
 - [x] **A8 · 池容量调整生效**：1 → 2 立即补到 2；2 → 1 立即 kill 1 个多余 idle
 - [x] **A9 · 跨平台编译通过**：macOS + Linux 都能 `cargo build --workspace` + `cargo test --workspace` 全过 · CI 绿
-- [x] **A10 · runtime 证据**（v2 · Phase D 实施时调整 · 单人项目场景）：在 `docs/runtime-evidence/mvp-20/` 下提供以下材料替代原"3 段录屏":
+- [x] **A10 · runtime 证据**（v2 · Phase D 实施时调整 · 单人项目场景）：在 `docs/runtime-evidence/mvp-22/` 下提供以下材料替代原"3 段录屏":
   - `00-baseline-cold-spawn.md`：frontend baseline 10 样本（IPC→onData · 用户实测 · console.time 测量）
   - `01-warm-hit.md`：backend warm hit 10 样本（pool.take→stdout · 来自 `cargo test --test pty_pool_bench` 自动化）
   - `02-cold-path.md`：backend cold path with pool disabled · A2 等价性数据

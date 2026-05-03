@@ -138,7 +138,7 @@ draft ────────► ready ─────────────�
 | [MVP-02](./MVP-02-workspace-management.md) | Workspace 管理 + 项目识别 + 多 workspace 并存 | done | 4d | MVP-01 |
 | [MVP-03](./MVP-03-tool-windows-layout.md) | Tool Windows 布局（Primary/Secondary/Bottom + Activity Strip）| done | 4d | MVP-01/02 |
 | [MVP-04](./MVP-04-multi-tab-terminal.md) | 多 Tab 终端（PTY + xterm + Shell/CLI 兼容）| ready（Phase A PR #72 · Phase B PR #82 · Phase C PR #91 · Phase E PR #95 · Phase F PR #99 · 仅 Phase D shell 兼容待）| 8d | MVP-03 · SPIKE-05/06 |
-| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| in-progress（spec PR #74 · Phase A storage prep done · Phase B 全 done · PR #141-#143 4 pure functions + 5 layout IPC + 5 PTY IPC + 30 tests · Phase C scaffolding done PR #144 · 集成完整版 todo 估 2-3h）| 4d | MVP-04 |
+| [MVP-05](./MVP-05-pane-split-single-level.md) | Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）| ready（spec PR #74 · Phase A/B/C 全 done · PR #141-#151 序列 + lifecycle bug 修 PR #208 · 集成完整 · 仅 Phase D runtime capture 待 Arbiter 30-45 min 跑 [CAPTURE-PLAYBOOK](../runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md)（PR #211 · 4 轮 codex review · 14 invariant）· 跑完翻 done）| 4d | MVP-04 |
 | [MVP-06](./MVP-06-config-import.md) | 配置导入（Ghostty + iTerm2 + Alacritty）| ready（spec PR #77 · **parser 层 Phase A PR #80 + A+ PR #81 · Kimi × 2** · Phase B IPC/UI 待 MVP-04 Phase B-F done 后）| 3d | MVP-04 |
 | [MVP-07](./MVP-07-git-log-readonly.md) | Git Log 只读视图 + Commit 详情 | **done**（spec PR #66 · 实施 **PR #83 · OpenCode** · gix 0.70 读路径 + SolidJS panel + H2 regression proof · 92 tests · UI 截图 + kernel benchmark GA gate 补）| 5d | MVP-02/03 · SPIKE-03 |
 | [MVP-08](./MVP-08-diff-and-git-status.md) | Diff 基础视图（自绘）+ Git Status 只读面板 | ready（spec PR #70 · Phase A PR #100 · Phase B PR #101 · Phase C/D done · Phase E partial · v0.2 fixture generator 进 git PR #140 · R-PHASE-E 3 DevTools P99 待 0.5d 主 agent 顺手）| 5d | MVP-07 |
@@ -151,6 +151,7 @@ draft ────────► ready ─────────────�
 | ID | 标题 | 状态 | 目标版本 | 估时 | 依赖 |
 |----|------|------|---------|------|------|
 | [MVP-21](./MVP-21-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| **ready**（vibe sprint 2026-05-01 Worker B 详化 100% · 2026-05-03 rename 自原 MVP-11 + Arbiter approve 翻 ready · 等待认领）| v0.2 | 5d | MVP-09 / MVP-13 |
+| [MVP-22](./MVP-22-pty-warm-pool.md) | PTY 预热池 · 新 tab 瞬时出 prompt | **done**（session 22 实施 · PR #189-#193 + Phase D 收尾 · 实施时 id 为 MVP-20 · session 23 rename 解 v1.0 占位 ai-one-click-rollback 同号冲突 · cold spawn 800-1200ms → warm hit 0.09ms backend）| v0.2 | 1.5d | MVP-04 |
 | [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft（占位 · 待下个 sprint 详化）| v0.2 | 8d | MVP-07 |
 | [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete + Fuzzy Switcher | draft · **详化 100%**（vibe sprint 2026-05-01 Worker B · 等 Arbiter approve 后翻 ready）| v0.2 | 4d | MVP-07 / MVP-09 |
 | [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |
@@ -163,7 +164,12 @@ draft ────────► ready ─────────────�
 
 > 占位 spec 用途：在 `<TYPE>-NN-<slug>` 编号连续性 + 依赖可视化上提前占位，v0.2 / v0.3 / v1.0 启动时按 kickoff 详化到实施 spec（补具体 UI 截图 / Acceptance 可量化门槛 / 数据模型细节）。
 >
-> ⚠ **ID 历史**（2026-05-03）：上表"MVP-21" 历史 id 为 MVP-11 · 详化时与 v0.1 已 done 的 MVP-11 "Native Feel Quality" frontmatter id 冲突 · 已 rename 为 MVP-21（详化阶段建议方案 [A]）· 表中保留在原占位行（v0.2 段聚集）以减少视觉重排 · 详见 [`MVP-21-git-push-pull-fetch.md`](./MVP-21-git-push-pull-fetch.md) 顶部历史说明 + git mv history。MVP-11 编号已永久指向 [Native Feel Quality](./MVP-11-native-feel-quality.md)（v0.1 done）· 不再可用。
+> ⚠ **ID 历史**（2026-05-03 · session 23 累积）：
+>
+> 1. **MVP-21** 历史 id 为 MVP-11 · 详化时与 v0.1 已 done 的 MVP-11 "Native Feel Quality" frontmatter id 冲突 · 已 rename 为 MVP-21（详化阶段建议方案 [A]）· MVP-11 编号已永久指向 [Native Feel Quality](./MVP-11-native-feel-quality.md)（v0.1 done）· 不再可用。
+> 2. **MVP-22** 实施时 id 为 MVP-20（session 22 · PR #189-#193）· 与 v1.0 占位 [MVP-20 AI 一键回滚](./MVP-20-ai-one-click-rollback.md) 同号 · session 23 rename 为 MVP-22 · 解冲突。MVP-20 编号永久指向 v1.0 占位 ai-one-click-rollback · 实施时历史 trace（PROGRESS PR #189-#193 / branch / commit message 含 MVP-20）保留不动。
+>
+> rename 详见各 spec 顶部历史 comment + git mv history。
 
 ### BUG / FEAT
 

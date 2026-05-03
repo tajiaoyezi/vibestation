@@ -44,7 +44,7 @@ reviewer: Claude Code
 
 **Do**：
 
-- **Branch list（读）**：复用 MVP-07 已生成的 `BranchInfo` binding · Primary Sidebar 分支树渲染本地 + remote + tag 三类
+- **Branch list（读）**：使用 MVP-13 PR #220 首次定义的 `BranchInfo` binding（spec §G.5 表 stale assumption 已修正 · 实际仓库 MVP-07 时未生成此 binding）· Primary Sidebar 分支树渲染本地 + remote + tag 三类
 - **Branch create（写）**：
   - 默认从 `HEAD` 新建（`git branch <name>` 等价）· 不自动 checkout
   - 可选 `from <other-branch>` 起点（fuzzy switcher 选）
@@ -96,7 +96,7 @@ MVP-13 估时 **4d** · 拆 4 Phase 串行实施：
   - 总 **5 个新 IPC commands**
 - [ ] permission toml：`crates/app/permissions/branch_ops.toml` 新建 · 含 5 个 `allow-{name}`
 - [ ] capability `default.json` 引用上述 permission
-- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 9 个新 binding 见 §G.5）
+- [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 12 个新 binding · 含 BranchInfo / BranchKind 最小补齐 · 见 §G.6）
 - [ ] fixture：`branch_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录（仿 MVP-09 §C.1）
 - [ ] 复用 MVP-09 `CommitError::IdentityMissing` 模式 → 新 `BranchError` enum（含 `InvalidName / NotFound / Unmerged / ProtectedBranch / DetachedHead / DirtyWorkingTree / Git2Error` 7 个 variant）
 
@@ -304,7 +304,7 @@ criterion_main!(benches);
 - `CLAUDE.md` #13 Git 栈混用决策（写 git2）· #7 Diff 自建（不影响本 task · 但同栈）
 - ADR-007 Git 栈混用决策
 - `implementation-plan.md` §10.1 v0.2 砍到分支 · §6.2 git_branch_* IPC · §11 W13
-- 上游：MVP-07（branch list 读路径 · BranchInfo binding）· MVP-09（git2 写路径基础设施）· SPIKE-04（git2 写 smoke test）
+- 上游：MVP-07（git log 视图）· MVP-09（git2 写路径基础设施 + ts-rs / permission / capability 模式）· SPIKE-04（git2 写 smoke test）· **注**：BranchInfo / BranchKind binding 由 MVP-13 PR #220 首次定义（spec §G.5 stale assumption 已修正 · 详见下）
 - 下游：MVP-21 push/pull/fetch（push deleted branch 联动）· MVP-16 rebase/merge/cherry-pick（v0.3）
 
 ## §G. IPC Contract（ts-rs）
@@ -317,7 +317,7 @@ criterion_main!(benches);
 
 | Rust struct | 用途 | 前端 import 路径 |
 |-------------|------|-----------------|
-| `BranchInfo` | 单条 branch 摘要（list 项）· **复用** MVP-07 已生成 binding | `import type { BranchInfo } from "../bindings/BranchInfo"` |
+| `BranchInfo` | 单条 branch 摘要（list 项）· **MVP-13 PR #220 首次定义**（原 spec 假设复用 MVP-07 已生成 · 实测仓库无此 binding · 已修正 · 详见 §G.5）| `import type { BranchInfo } from "../bindings/BranchInfo"` |
 | `BranchKind` | 枚举：`Local` / `Remote` / `Tag` · **复用** MVP-07 | `import type { BranchKind } from "../bindings/BranchKind"` |
 | `BranchListRequest` | 输入侧 · `{ workspace_id }` | 新增 |
 | `BranchListResponse` | 输出侧 · `{ branches: BranchInfo[], head_name: string \| null, detached: boolean }` | 新增 |
@@ -408,12 +408,14 @@ pub struct SwitcherMatch {
 
 ### G.5 · 与上游已落地 binding 的复用决策
 
-MVP-13 实施前必须明确复用 / 新增边界 · 避免和 MVP-07/09 已生成 binding 冲突：
+> **⚠️ 修正说明（2026-05-03 · PR #220 实施事实）**：原 spec 此表假设 BranchInfo / BranchKind 已由 MVP-07 生成 ts-rs binding · **实测仓库无此 binding**（grep 验证 · `git log` 历史 · MVP-07 PR 仅生成 `GitLogEntry` / `GitLogQueryRequest/Response` 等 git log 相关 binding）。MVP-13 PR #220 已最小补齐定义 BranchInfo + BranchKind · 实际新增 binding 数 12（见 §G.6）· 不是原 spec 写的 9。下表已修正复用决策 · 反映 PR #220 实施事实。未来 MVP-07 spec 评估是否迁移这两个 binding 的 source of truth（low priority · 当前 MVP-13 + MVP-07 共享 binding 定义无冲突）。
+
+MVP-13 实施前必须明确复用 / 新增边界：
 
 | 已有 binding | MVP-13 §G.1 涉及 | 决策 | 理由 |
 |---|---|---|---|
-| `BranchInfo`（MVP-07 已生成 · 含 `name / full_ref / kind / upstream / ahead / behind / head_commit`）| §G.1 `BranchInfo` 字段对齐 | ✅ **复用** · 不重新定义 | MVP-07 Git Log 视图已用 `BranchInfo` 渲染分支标签贴 · 字段语义完全对齐 v0.2 需求 |
-| `BranchKind`（MVP-07 已生成）| `BranchInfo.kind` | ✅ **复用** | 枚举 `Local / Remote / Tag` 已固化 |
+| `BranchInfo`（**MVP-13 PR #220 首次定义** · 含 `name / full_ref / kind / upstream / ahead / behind / head_commit`）| §G.1 `BranchInfo` 字段对齐 | ✅ **MVP-13 自定义** · ts-rs `#[ts(export)]` 生成 `BranchInfo.ts` | 仓库无 MVP-07 BranchInfo · 最小补齐 · 字段定义完全对齐 v0.2 需求 |
+| `BranchKind`（**MVP-13 PR #220 首次定义**）| `BranchInfo.kind` | ✅ **MVP-13 自定义** · 枚举 `Local / Remote / Tag` | 同上 · 与 BranchInfo 配套定义 |
 | `CommitAuthor`（MVP-07 已生成）| 不涉及 | ⛔ 不复用 · MVP-13 不涉及 commit 元数据 | branch_create 不带 author 信息 · 用 git2 自带 default signature |
 | `FileChange`（MVP-07 / MVP-08 已生成）| `BranchError::DirtyWorkingTree` 的 modified / staged / untracked | ⛔ 不复用 · 用 `Vec<String>` 即可 | DirtyWorkingTree 只需要文件路径 · 不需要 additions/deletions/status · 复用 `FileChange` 是过度引入 |
 | `GitStatusResponse`（MVP-08 已生成）| Dirty tree 检测可能消费此 binding | ✅ 前端**复用**（不新建） | MVP-13 前端检测 dirty 时调 MVP-08 已有 `git_status` IPC · 不重复实现状态查询 |
@@ -421,7 +423,9 @@ MVP-13 实施前必须明确复用 / 新增边界 · 避免和 MVP-07/09 已生�
 
 ### G.6 · MVP-13 新增 binding 清单（明确数量）
 
-以下 **9 个 binding** 为 MVP-13 **新增** · 实施时 `web/src/bindings/` 应新增 9 个 `.ts` 文件：
+> **修正（PR #220 实施事实）**：原 spec 写 9 个 · 实际 **12 个**（10 Branch* + Switcher* core binding + 2 BranchInfo / BranchKind 最小补齐）。
+
+以下 **12 个 binding** 为 MVP-13 **新增** · 实施时 `web/src/bindings/` 已新增 12 个 `.ts` 文件（PR #220 落地）：
 
 | Rust struct / enum | 用途 | 前端 import 路径 |
 |---|---|---|
@@ -435,7 +439,7 @@ MVP-13 实施前必须明确复用 / 新增边界 · 避免和 MVP-07/09 已生�
 | `SwitcherQueryRequest` | fuzzy switcher 查询 · `{ workspaceId, query, limit }` | `import type { SwitcherQueryRequest } from "../bindings/SwitcherQueryRequest"` |
 | `SwitcherMatch` + `SwitcherSearchResult` | fuzzy match 单条 + list · 2 binding | `import type { SwitcherMatch, SwitcherSearchResult } from "../bindings/..."` |
 
-> 加上复用上游 3 个（`BranchInfo` / `BranchKind` / `GitStatusResponse`）· 实施时 bindings 目录新增 **9 个** `.ts` 文件 · MVP-13 自身仅生成 9 个不重复上游。
+> **修正（PR #220 实施事实）**：原 spec 假设 BranchInfo / BranchKind 复用 MVP-07 · 实测仓库无此 binding · MVP-13 PR #220 最小补齐定义。实际新增 **12 个** `.ts` 文件（10 Branch+Switcher core + 2 BranchInfo/Kind 最小补齐）· 仅前端 GitStatusResponse 走 MVP-08 IPC 复用（不在 web/src/bindings/ 新增）。
 
 ## §H. Git 栈约束 + 决策锁定（MVP-13 专有 · 防 v0.2 实施期反复讨论）
 
@@ -574,7 +578,7 @@ MVP-13 仅本地 branch 操作 · **不调用任何网络**。
 4. **YAGNI**：
    - 不做：rename / auto-stash / push delete / branch protection rules / cherry-pick / merge / rebase / submodule branch / Windows · 全在 §Don't 明示推后
    - 不引入：fuzzy 第三方 crate（自实现 30 行内）/ 第三方 git 库
-5. **对齐上游 binding**（§G.5）：复用 MVP-07 `BranchInfo / BranchKind` + MVP-08 `GitStatusResponse` · 不造平行类型 · 新增 9 个独立 binding 清单明确
+5. **对齐上游 binding**（§G.5）：BranchInfo / BranchKind **MVP-13 PR #220 首次定义**（修正 stale assumption · 详见 §G.5 修正说明）· MVP-08 `GitStatusResponse` 前端复用 IPC · 不造平行类型 · 新增 12 个独立 binding 清单明确（§G.6）
 6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 不碰列表 / H.3 stash 策略 / H.4 API 调用链 / H.5 detached HEAD / H.6 name 校验 / H.7 跨平台 / H.8 与 MVP-21 边界 · 防 v0.2 实施期反复讨论
 7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-13/`（按 `.claude/rules/runtime-evidence-location.md` R1）
 

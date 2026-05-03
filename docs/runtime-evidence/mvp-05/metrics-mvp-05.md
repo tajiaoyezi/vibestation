@@ -29,20 +29,20 @@
 
 | Run | MAIN_PID + RSS | 4 pane shell PID + RSS（必须正好 4 个 main app spawn child）| PER_PANE_AVG | 推算 40 PTY = MAIN + PER_PANE × 40 |
 |---|---|---|---|---|
-| 1 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
-| 2 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
-| 3 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
-| **P99** | — | — | — | **___ MB** |
+| 1 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
+| 2 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
+| 3 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
+| **P99** | — | — | — | **<TBD> MB** |
 
 **I6 input 验证**（每 run 必填 · 确认 4 PID 都是 vibestation app spawn）：
 
 ```
-Run 1 pgrep -P MAIN_PID 输出（应正好 4 行）：
-___
+Run 1 pgrep -P MAIN_PID 输出（应正好 4 行 · 必须与上表 4 个 shell PID 完全一致 · I11 自证）：
+<TBD>
 Run 2 同：
-___
+<TBD>
 Run 3 同：
-___
+<TBD>
 ```
 
 通过条件：**P99 推算 40 PTY total < 500MB** · spec §F.1 真实 budget。
@@ -164,30 +164,36 @@ session 19 末仪表化完成 · 实际跑 + 填数字留 Arbiter 本地（约 3
 
 ## §A · 分屏行为验证（Codex round 2 finding 3 · I7 · 真证 spec acceptance）
 
+> **I9 · 填表规则**（Codex round 3 finding 1 修复）：
+> - `<TBD>` = 待填文本 · 必须替换为实测内容
+> - `<PASS_or_FAIL>` = 待填判定 · 必须替换为 `PASS` 或 `FAIL`（行尾固定 · 不能保留 `/`）
+> - `<yes_or_no>` = 待填布尔 · 必须替换为 `yes` 或 `no`
+> - 填完后 §7 evidence-completeness validator grep 这些 placeholder · 任一残留即 BLOCK commit
+
 ### A.1 ⌘\ 右分屏 + 继承父 shell + cwd
 
 ```
 PARENT (在 split 前 pane 跑 cd /tmp && echo PARENT pwd=$(pwd) shell=$SHELL):
-___
+<TBD>
 
 CHILD (split 后新 pane 跑 echo CHILD pwd=$(pwd) shell=$SHELL):
-___
+<TBD>
 
 判定：
-- pwd 一致：____ (yes/no)
-- shell 一致：____ (yes/no)
-- A.1 PASS / FAIL
+- pwd 一致：<yes_or_no>
+- shell 一致：<yes_or_no>
+A.1 判定：<PASS_or_FAIL>
 ```
 
 ### A.2 ⌘⇧\ 下分屏 + 继承
 
 ```
-PARENT: ___
-CHILD: ___
+PARENT: <TBD>
+CHILD: <TBD>
 判定：
-- pwd 一致：____
-- shell 一致：____
-- A.2 PASS / FAIL
+- pwd 一致：<yes_or_no>
+- shell 一致：<yes_or_no>
+A.2 判定：<PASS_or_FAIL>
 ```
 
 ### A.3 ⌘⌃W 关 pane
@@ -197,7 +203,8 @@ CHILD: ___
 ```
 触发前：4 panes 2×2 · focus 右下
 ⌘⌃W 后期望：3 panes 剩 · tab 仍存
-实测：____ (PASS / FAIL · 描述)
+实测描述：<TBD>
+A.3.1 判定：<PASS_or_FAIL>
 ```
 
 #### A.3.2 sole-pane close → tab close（spec §A.3 关键 acceptance）
@@ -205,7 +212,8 @@ CHILD: ___
 ```
 触发前：⌘⇧P → Solo · 1 pane + 1 tab
 ⌘⌃W 后期望：tab 关闭（按 spec §A.3 描述行为）
-实测：____ (PASS / FAIL · 描述 tab 是否真关 / 是否自动新 tab / 是否 app 行为符合 spec)
+实测描述（tab 是否真关 / 是否自动新 tab / 是否 app 行为符合 spec）：<TBD>
+A.3.2 判定：<PASS_or_FAIL>
 截图：15-sole-pane-close-tab.png（含 before/after）
 ```
 
@@ -214,11 +222,31 @@ CHILD: ___
 ## §5.5.3 · Solo confirm process check（Codex round 2 finding 4 · I8 · 直接 evidence）
 
 ```
-confirm 后 ps 检查：
-$ ps aux | grep -E "vim /tmp/mvp05|nano /tmp/mvp05" | grep -v grep
-___（应空 · 即 vim/nano process 真被 kill）
+fixture 启动后 vim PID = <TBD> · nano PID = <TBD>（在 §5.5.1 fixture 启动后立即 ps 记录）
 
-判定：vim/nano kill confirmed (yes/no) → ____
+confirm 后 ps 检查：
+$ ps -p <vim_pid> -p <nano_pid> -o pid=,command= 2>/dev/null
+<TBD>（应空 · exit code 1 · 即 vim/nano process 真被 kill）
+
+§5.5.3 vim/nano kill confirmed: <yes_or_no>
+§5.5.3 判定：<PASS_or_FAIL>
+```
+
+---
+
+## §5.5.5 · AI+Runner confirm process check（Codex round 3 finding 2 · I10 同类 path 共享 evidence · 直接 evidence）
+
+> **Codex round 3 finding 2 修复**：原本 §5.5.5 只截 layout 截图 11 · 没 process check · 与 §5.5.3 同类 destructive confirm path 不一致。本段加 PID 记录 + post-confirm ps check（同 §5.5.3 模式）。
+
+```
+fixture 重启动后 vim PID = <TBD> · nano PID = <TBD>（§5.5.5 重建 fixture 后立即 ps 记录 · 与 §5.5.3 不同 PID）
+
+AI+Runner confirm 后 ps 检查：
+$ ps -p <vim_pid> -p <nano_pid> -o pid=,command= 2>/dev/null
+<TBD>（应空 · exit code 1）
+
+§5.5.5 vim/nano kill confirmed: <yes_or_no>
+§5.5.5 判定：<PASS_or_FAIL>
 ```
 
 ---
@@ -226,25 +254,25 @@ ___（应空 · 即 vim/nano process 真被 kill）
 ## §D.4 · 比例持久化重启验证
 
 ```
-重启前比例：水平 splitter ____ % / ____ % · 垂直 splitter ____ % / ____ %
-重启后比例：水平 ____ / ____ · 垂直 ____ / ____
-判定：D.4 PASS / FAIL
+重启前比例：水平 splitter <TBD>% / <TBD>% · 垂直 splitter <TBD>% / <TBD>%
+重启后比例：水平 <TBD>% / <TBD>% · 垂直 <TBD>% / <TBD>%
+D.4 判定：<PASS_or_FAIL>
 ```
 
 ## §E.2 · 仅 focus pane 收 keydown
 
 ```
 4 pane 都 clear 后 · click 左上 focus · 输入 echo from-top-left
-其他 3 pane 屏幕：（应完全干净 · 无字符泄漏）
-___
-判定：E.2 PASS / FAIL
+其他 3 pane 屏幕（应完全干净 · 无字符泄漏）：
+<TBD>
+E.2 判定：<PASS_or_FAIL>
 ```
 
 ## §E.3 · yes 持续输出 · 切 focus 不打断
 
 ```
-步骤 3 行数（focus 切走前）: ____ lines
-步骤 5 行数（focus 切回后）: ____ lines
-增长率: (步骤 5 - 步骤 3) / 5s vs 之前 rate · ___ %
-判定：E.3 PASS / FAIL（≥ 80% rate 才 PASS）
+步骤 3 行数（focus 切走前）: <TBD> lines · 时间 <TBD>s · rate = <TBD> lines/s
+步骤 5 行数（focus 切回后）: <TBD> lines · 时间 <TBD>s · rate = <TBD> lines/s
+增长率（step5 rate / step3 rate × 100%）: <TBD>%
+E.3 判定：<PASS_or_FAIL>（≥ 80% PASS · < 80% FAIL）
 ```

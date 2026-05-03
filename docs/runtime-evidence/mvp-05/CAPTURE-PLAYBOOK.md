@@ -15,9 +15,9 @@
 
 ---
 
-## 🛡 8 Invariant（playbook design intent · Codex round 1+2 review fix · 2026-05-03）
+## 🛡 11 Invariant（playbook design intent · Codex round 1+2+3 review fix · 2026-05-03）
 
-未来改 playbook 任何段前必先对照本 8 条 · 防 Codex 已抓的 7 类 finding 复发。**round 1（I1-I4）+ round 2（I5-I8）8 条均经实战验证**。
+未来改 playbook 任何段前必先对照本 11 条 · 防 Codex 已抓的 10 类 finding 复发。**round 1（I1-I4）+ round 2（I5-I8）+ round 3（I9-I11）11 条均经实战验证**。
 
 ### Round 1 invariants（基础 4 条）
 
@@ -49,10 +49,22 @@
   - 违反案例：§5.5.3 Solo confirm 只截 console（timing 证据）· 不证 layout 1 pane / focus 保留 / vim/nano 真死（round 2 finding 4）
   - 应用：data-loss / kill / persistence 类 acceptance 的 evidence 必须含直接观察 artifact（UI 截图 + process check）· timing/log 只能作为补充
 
-**自检**（写完任何 playbook 段后跑全部 4 个 grep）：
+### Round 3 invariants（深度 3 条 · Codex round 3 finding 抽象）
+
+- **I9 · validator 必须 fail-closed · 不能匹配 template token**
+  - 违反案例：§7 grep `D.4.*PASS\|D.4.*FAIL` 会匹配 template 自身 "D.4 PASS / FAIL"（template 含两个值）· 不证已填（round 3 finding 1）
+  - 应用：placeholder 用独特 token（`<TBD>` / `<yes_or_no>` / `<PASS_or_FAIL>`）让 grep BLOCK · 显式判定字段用 `key 判定：(PASS|FAIL)$` 行尾固定模式 · template 文案不能误匹配 filled 形式
+- **I10 · 同类 path 必须共享 evidence 严格度**
+  - 违反案例：§5.5.3 Solo confirm 加了 process check · §5.5.5 AI+Runner confirm 没加（round 3 finding 2）· 同类 destructive confirm path evidence 不一致
+  - 应用：枚举所有同类 path（如 destructive confirm × N · split × N · close × N）· 对每个 path 应用 invariant · 不只对 codex 指的那个 · grep 同类 keyword 找全
+- **I11 · 测量来源必须自证 · 不能依赖独立后续验证**
+  - 违反案例：F.1 RSS 测量（measure-memory.sh） + 独立 SHELL_COUNT 验证 + 独立 pgrep 列 PID 三步不绑定 · runner 可复制旧 RSS · 后续验证 PID 可能不同（round 3 finding 3）
+  - 应用：测量步骤本身必须输出验证字段（PID + RSS + PPID 一起 · 同一组）· 不能"先测后验" · 流程改"先列源 → 直接量"
+
+**自检**（写完任何 playbook 段后跑全部 grep · 任一异常即违反对应 invariant）：
 
 ```bash
-# I2/I4 自检
+# I2/I4 自检（含糊步骤 / 可选 mandatory）
 grep -nE "测 1 次|状态可选|optional" docs/runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md
 # 命中应只有 §0.5 invariants 说明引用 · 否则违反 I2/I4
 ```
@@ -60,7 +72,19 @@ grep -nE "测 1 次|状态可选|optional" docs/runtime-evidence/mvp-05/CAPTURE-
 ```bash
 # I5 自检（跨段 stale 数量引用）
 grep -n "6 截图\|6 PNG\|6 张" docs/runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md
-# 命中应只有 §2/§2.4 段内 capture flow 6 张引用 + invariants 说明 · 顶部目标 + §7 + §11 必须用 14 PNG
+# 命中应只有 §2/§2.4 段内 capture flow 6 张引用 + invariants 说明 + §7/§550 finding 描述 · 顶部目标 + §11 必须用 14 PNG
+```
+
+```bash
+# I9 自检（metrics template 残留 placeholder · 应只在未填的 metrics-mvp-05.md · §7 validator 自动 catch）
+grep -nE "<TBD>|<yes_or_no>|<PASS_or_FAIL>" docs/runtime-evidence/mvp-05/metrics-mvp-05.md
+# 在未跑实测时应有 N 处（template 状态）· 跑完实测后应 0 处（§7 BLOCK if 任一残留）
+```
+
+```bash
+# I10 自检（同类 path 是否共享 evidence · 跨 §5.5.3/§5.5.5 grep）
+grep -nE "vim/nano kill confirmed" docs/runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md docs/runtime-evidence/mvp-05/metrics-mvp-05.md
+# 应在 §5.5.3 + §5.5.5 + §7 validator + §0.5 invariants + §11 反馈模板共出现 · 缺一即违反 I10
 ```
 
 ---
@@ -242,55 +266,76 @@ screencapture -V 30 -x -l "$WID" docs/runtime-evidence/mvp-05/07-flow-recording.
 
 每个 pane 跑 `echo pane-N`（让 PTY 真有进程 · 不是 idle shell）。
 
-### 3.2 · 测 4 pane RSS 3 次（mandatory · I6 input 验证）
+### 3.2 · 测 4 pane RSS 3 次（mandatory · I6 + I11 自证流程 · Codex round 3 finding 3 fix）
 
-> **Codex round 2 finding 2（high）直接修复**：measure-memory.sh 有 fallback：若 child shell 查找失败 · 会 `pgrep -f "zsh\|bash" | head -10` 抓全局 · 数到不相关 zsh/bash 进程（如本 terminal 自己 / iTerm / 其他 app）· 推算被污染。本段强制验证 raw PID/cmd · 不正好 4 个 pane shell 即 BLOCK。
+> **Codex round 3 finding 3 修复**：原本"先跑 measure-memory.sh × 3 取 RSS · 再独立 SHELL_COUNT 验证 · 再独立 pgrep 列 PID"三步不绑定 · runner 可复制第一步 RSS · 第二步通过 · 第三步显示 4 PID 但和测 RSS 的 PID 不同。本段改"先列 PID + cmd · 再 ps -o 取 RSS · 同一组"自证流程 · 不再用 measure-memory.sh（避免 global fallback 风险）。
+
+**自证流程**（每 run · 同一组 PID 测 RSS · I11）：
 
 ```bash
 # 在另一个终端 tab
 for i in 1 2 3; do
   echo "=== Run $i ==="
-  bash scripts/capture/mvp-05/measure-memory.sh
+
+  # Step 1 · 取 main app PID + RSS
+  MAIN_PID=$(pgrep -f vibestation-app | head -1)
+  if [[ -z "$MAIN_PID" ]]; then
+    echo "❌ BLOCK · 找不到 vibestation-app 进程 · app 可能没启动"
+    exit 1
+  fi
+  MAIN_RSS_KB=$(ps -o rss= -p $MAIN_PID | tr -d ' ')
+  MAIN_RSS_MB=$((MAIN_RSS_KB / 1024))
+  echo "MAIN_PID=$MAIN_PID · RSS=${MAIN_RSS_MB} MB"
+
+  # Step 2 · 列 main app spawn 的 child shell（必须正好 4 个 · 否则 BLOCK · I6）
+  SHELL_PIDS=$(pgrep -P $MAIN_PID -f "zsh|bash|sh" | tr '\n' ' ')
+  SHELL_COUNT=$(echo $SHELL_PIDS | wc -w | tr -d ' ')
+  echo "Pane shell PIDs (main app child): $SHELL_PIDS"
+  echo "Shell count: $SHELL_COUNT（期望 4）"
+  if [[ $SHELL_COUNT -ne 4 ]]; then
+    echo "❌ BLOCK · main app spawn child 不是 4 个 · 可能某 pane PTY 没起 / 某 shell 死 / app 不通过 fork"
+    echo "  MAIN_PID 详情：$(ps -o pid,ppid,command -p $MAIN_PID)"
+    echo "  child 详情："
+    for pid in $SHELL_PIDS; do
+      echo "    PID $pid: $(ps -o pid=,ppid=,command= -p $pid)"
+    done
+    exit 1
+  fi
+
+  # Step 3 · 用同一组 PID 取 RSS（I11 自证 · 不另起 measure-memory.sh）
+  TOTAL_SHELL_RSS_KB=0
+  PID_RSS_PAIRS=""
+  for pid in $SHELL_PIDS; do
+    RSS_KB=$(ps -o rss= -p $pid | tr -d ' ')
+    if [[ -z "$RSS_KB" || "$RSS_KB" -eq 0 ]]; then
+      echo "❌ BLOCK · PID $pid RSS 读不到（进程可能死了）"
+      exit 1
+    fi
+    RSS_MB=$((RSS_KB / 1024))
+    TOTAL_SHELL_RSS_KB=$((TOTAL_SHELL_RSS_KB + RSS_KB))
+    PID_RSS_PAIRS="$PID_RSS_PAIRS $pid:${RSS_MB}MB"
+  done
+  TOTAL_SHELL_RSS_MB=$((TOTAL_SHELL_RSS_KB / 1024))
+  PER_PANE_AVG_MB=$((TOTAL_SHELL_RSS_MB / 4))
+
+  # Step 4 · 推算 40 PTY total（与 spec budget 直接对照 · I3）
+  EXTRAPOLATED_40_PTY=$((MAIN_RSS_MB + PER_PANE_AVG_MB * 40))
+  echo "Per-pane avg: ${PER_PANE_AVG_MB} MB"
+  echo "Extrapolated 40 PTY: MAIN ${MAIN_RSS_MB} + PER_PANE ${PER_PANE_AVG_MB} × 40 = ${EXTRAPOLATED_40_PTY} MB"
+  echo "vs spec budget 500 MB: $([ $EXTRAPOLATED_40_PTY -lt 500 ] && echo "PASS" || echo "FAIL")"
+  echo ""
+  echo "→ 记 metrics §F.1 表 Run $i 行：MAIN_PID=$MAIN_PID · RSS=${MAIN_RSS_MB}MB · 4 shell:$PID_RSS_PAIRS · PER_PANE_AVG=${PER_PANE_AVG_MB}MB · 推算=${EXTRAPOLATED_40_PTY}MB"
   echo ""
   sleep 2
 done
 ```
 
-脚本输出（每 run）：
+**I11 自证特性**：
+- Step 2 和 Step 3 用**同一组 SHELL_PIDS** · 不存在"测 RSS 用 PID-A · 验证用 PID-B"漏洞
+- Step 2 严格验证 main app child（不走全局 fallback · 不依赖 measure-memory.sh 默认行为）
+- Step 4 直接输出 PASS/FAIL · 与 spec budget 等价
 
-- `Main app PID X: Y MB`（main app · 含 webview · 与 PTY 数无关 · 视为 fixed overhead）
-- `Shell PID Z1: A1 MB` × N（**期望 N == 4**）
-- `Total: B MB（C shell 进程）+ Main = D MB`
-
-**I6 input 验证**（mandatory · 每 run 必做）：
-
-```bash
-# 1. 验证脚本输出真的是 4 个 shell（脚本 grep "Shell PID" 行计数）
-SHELL_COUNT=$(bash scripts/capture/mvp-05/measure-memory.sh 2>&1 | grep -c "Shell PID")
-echo "shell count: $SHELL_COUNT （期望 4）"
-[[ $SHELL_COUNT -ne 4 ]] && echo "❌ BLOCK · 脚本数到 $SHELL_COUNT 个 shell · 不是 4 · 可能 fallback 抓了全局 zsh/bash" && exit 1
-
-# 2. 列出脚本数到的 PID + cmd · 人工核对每个都是 vibestation app spawn 的 pane shell
-# （不是本 terminal 自己 / iTerm / 别的 app）
-MAIN_PID=$(pgrep -f vibestation-app | head -1)
-echo "Main app PID: $MAIN_PID"
-echo "Main app spawn 的 child:"
-pgrep -P $MAIN_PID -f "zsh|bash|sh" | while read pid; do
-  echo "  PID $pid: $(ps -o command= -p $pid)"
-done
-# 应正好显示 4 个 child shell · 都是 main app spawn · 否则 BLOCK
-```
-
-**❌ FAIL 信号**：
-- 脚本输出 shell 数 ≠ 4 → 走 fallback 抓全局 · BLOCK
-- pgrep -P MAIN_PID 输出 ≠ 4 个 shell → 可能某 pane PTY 没起 / 某 shell 死了 / app 不通过 fork 起 PTY · BLOCK
-- 看到非 vibestation 触发的 zsh/bash（比如 `vim` / `python` / 你自己 terminal）→ BLOCK
-
-**记录两个数字**（每 run · 通过 input 验证后）：
-
-- `MAIN_RSS_MB` = Main app（fixed overhead）
-- `PER_PANE_AVG` = (4 个 **已验证** shell RSS 之和) / 4
-- 同时记录 4 个 shell PID + cmd snippet（metrics 表 raw PID 列）
+**注意**：原本依赖 `scripts/capture/mvp-05/measure-memory.sh` · round 3 fix 后**不再用**（脚本有 global zsh/bash fallback 风险 · 见 I6 历史案例）· 但 script 留 repo 作 reference。
 
 ### 3.3 · 推算 40 PTY total + 写 metrics
 
@@ -452,6 +497,16 @@ F.6 P99 ≈ ___ ms（< 200ms PASS）
 
 **Sanity check**：左上 pane 显示 vim 状态栏（`-- INSERT --`）· 左下显示 nano 底部命令栏（`^G Get Help` 等）· 右下边框高亮（focus）。
 
+**记录 vim/nano PID（mandatory · §5.5.3 + §5.5.5 process check 用 · I8 + I10）**：
+
+```bash
+# 在另一终端跑（不在 fixture 那 4 个 pane 内）
+VIM_PID=$(pgrep -f "vim /tmp/mvp05-test.txt" | head -1)
+NANO_PID=$(pgrep -f "nano /tmp/mvp05-test-nano.txt" | head -1)
+echo "VIM_PID=$VIM_PID NANO_PID=$NANO_PID"
+# 写到 metrics §5.5.3 + §5.5.5 段（每段都要 · 5.5.5 重建 fixture 时 PID 不同）
+```
+
 ### 5.5.2 · 路径 1：Solo cancel（1 min）
 
 | 步骤 | 操作 | 期望 |
@@ -504,20 +559,27 @@ F.6 P99 ≈ ___ ms（< 200ms PASS）
 
 **截图证据**：`docs/runtime-evidence/mvp-05/10-ai-runner-cancel-preview.png`
 
-### 5.5.5 · 路径 4：AI+Runner confirm（1 min · 重建 fixture）
+### 5.5.5 · 路径 4：AI+Runner confirm（2 min · 重建 fixture · I10 同类 path 共享 evidence · Codex round 3 finding 2 fix）
 
-重新跑 §5.5.1 fixture · 然后：
+> **Codex round 3 finding 2 直接修复**：原本只截 layout 11 · 与 §5.5.3 同类 destructive confirm 不一致 · screenshot 不证 vim/nano kill。本路径加 PID 记录 + post-confirm process check（同 §5.5.3 I8 模式）。
+
+**前置**：重新跑 §5.5.1 fixture（含 vim + nano + idle pane c/d）· **重新记 VIM_PID + NANO_PID**（与 §5.5.3 不同进程 · PID 必不同）· 写 metrics §5.5.5 段。
 
 | 步骤 | 操作 | 期望 |
 |---|---|---|
 | 1 | ⌘⇧P → AI+Runner → Confirm | 先降级（关 2 panes 保留 focus + 1 邻居）· 再强制右分屏 50/50 |
-| 2 | sanity check | 最终是水平 2 panes 50/50 · 左 pane 是原 focus（右下 idle-pane-d）· 右 pane 是新 spawn shell（无 prompt history）· 左下 nano + 左上 vim process 已 kill |
+| 2 | sanity check UI | 最终是水平 2 panes 50/50 · 左 pane 是原 focus（右下 idle-pane-d · 含 prompt history）· 右 pane 是新 spawn shell（无 prompt history）|
+| 3 | terminal 跑 process check | `ps -p $VIM_PID -p $NANO_PID -o pid=,command= 2>/dev/null` → **应空**（exit code 1 · vim/nano process 真被 kill）|
 
 **❌ FAIL 信号**：
 - 不是水平 2 panes / 比例不是 50/50 → §C.3 strict 50/50 acceptance 不达标
 - 保留的左 pane 不是原 focus → focus tracking 错
+- ps 还能看到 vim/nano PID → PTY kill 没传到 child（spec §H.3 不达标 · v0.2 vim/nano 数据丢失风险）
 
-**截图证据**：`docs/runtime-evidence/mvp-05/11-ai-runner-confirm-result.png`
+**Evidence（mandatory · I8 + I10 · 2 样齐）**：
+
+1. **UI 截图 11**（layout 直接观察）：confirm 后窗口截图 · 显示水平 2 panes 50/50 + 左 pane 含 prompt history → 存 `11-ai-runner-confirm-result.png`
+2. **process check 文本**（vim/nano kill 直接观察 · 同 §5.5.3 模式）：步骤 3 ps 输出（应空）→ metrics §5.5.5 段记 "vim/nano kill confirmed"
 
 ### 5.5.6 · 路径自检（mandatory · I5 跨段一致）
 
@@ -570,18 +632,46 @@ if [[ $MISSING -gt 0 ]]; then
 fi
 echo "✓ 14 PNG + 1 MOV 全在"
 
-# 7.3 · metrics-mvp-05.md 字段填写验证（grep 关键字段不应仍为 ___）
-EMPTY_FIELDS=$(grep -c "___ MB\|___ ms" "$OUT/metrics-mvp-05.md" || echo 0)
-if [[ $EMPTY_FIELDS -gt 0 ]]; then
-  echo "❌ BLOCK · metrics-mvp-05.md 仍有 $EMPTY_FIELDS 处空白 (___ MB / ___ ms) · 必须全填"
+# 7.3 · I9 placeholder 残留检查（fail-closed · 不能匹配 template token · Codex round 3 finding 1 修复）
+PLACEHOLDER_HITS=$(grep -cE "<TBD>|<yes_or_no>|<PASS_or_FAIL>" "$OUT/metrics-mvp-05.md" || true)
+if [[ $PLACEHOLDER_HITS -gt 0 ]]; then
+  echo "❌ BLOCK · metrics-mvp-05.md 仍有 $PLACEHOLDER_HITS 处 placeholder（<TBD> / <yes_or_no> / <PASS_or_FAIL>）· 必须全填实测值"
+  grep -nE "<TBD>|<yes_or_no>|<PASS_or_FAIL>" "$OUT/metrics-mvp-05.md" | head -10
+  exit 1
+fi
+EMPTY_NUMERIC=$(grep -cE "___ MB|___ ms|___%" "$OUT/metrics-mvp-05.md" || true)
+if [[ $EMPTY_NUMERIC -gt 0 ]]; then
+  echo "❌ BLOCK · metrics-mvp-05.md 仍有 $EMPTY_NUMERIC 处数字未填（___ MB / ___ ms / ___%）"
   exit 1
 fi
 
-# 7.4 · D.4 / E.2 / E.3 文本结果验证（grep 应有 PASS / FAIL 判定 + E.3 增长率）
-grep -q "D.4.*PASS\|D.4.*FAIL" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · metrics 缺 D.4 PASS/FAIL"; exit 1; }
-grep -q "E.2.*PASS\|E.2.*FAIL" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · metrics 缺 E.2 PASS/FAIL"; exit 1; }
-grep -qE "E.3.*(PASS|FAIL).*[0-9]+%" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · metrics 缺 E.3 PASS/FAIL + 增长率%"; exit 1; }
-echo "✓ metrics 字段全填 + D.4/E.2/E.3 文本结果齐"
+# 7.4 · 显式判定字段强模式 grep（I9 · 行尾固定 · 不能匹配 "<PASS_or_FAIL>" template）
+# 必须严格匹配 "<key> 判定：PASS" 或 "<key> 判定：FAIL" 单一值（不是 "PASS / FAIL" 模板）
+require_judgment() {
+  local key="$1"
+  if ! grep -qE "^${key} 判定：(PASS|FAIL)$" "$OUT/metrics-mvp-05.md"; then
+    echo "❌ BLOCK · metrics 缺 ${key} 判定 · 必须显式 '${key} 判定：PASS' 或 'FAIL' 单值（行尾固定 · 不是模板）"
+    exit 1
+  fi
+}
+require_judgment "A.1"
+require_judgment "A.2"
+require_judgment "A.3.1"
+require_judgment "A.3.2"
+require_judgment "§5.5.3"
+require_judgment "§5.5.5"
+require_judgment "D.4"
+require_judgment "E.2"
+require_judgment "E.3"
+
+# 7.4.1 · §5.5.3 + §5.5.5 process check 显式确认（I8 + I10 · 同类 path 共享）
+grep -qE "^§5\.5\.3 vim/nano kill confirmed: (yes|no)$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · §5.5.3 vim/nano kill 字段缺"; exit 1; }
+grep -qE "^§5\.5\.5 vim/nano kill confirmed: (yes|no)$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · §5.5.5 vim/nano kill 字段缺（I10 同类 path · Codex round 3 finding 2）"; exit 1; }
+
+# 7.4.2 · E.3 增长率显式数字（不是 <TBD>%）
+grep -qE "增长率（[^）]+）: [0-9]+(\.[0-9]+)?%$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · E.3 增长率必须显式数字%"; exit 1; }
+
+echo "✓ metrics 字段全填 + 9 项判定 PASS/FAIL 显式 + §5.5.3/5.5.5 process check + E.3 增长率"
 
 # 7.5 · git status 确认
 git status
@@ -763,11 +853,11 @@ MVP-05 Phase D capture done · branch: docs/mvp-05-phase-d-capture
 §5.2 F.5 ⌘⌃W：P99 = ___ ms · PASS / FAIL（< 100ms）
 §5.3 F.6 Smart Layouts：P99 = ___ ms · PASS / FAIL（< 200ms）
 
-【§5.5 数据丢失确认路径 · mandatory · I2 + I8】
+【§5.5 数据丢失确认路径 · mandatory · I2 + I8 + I10 同类 path 共享 evidence】
 - 5.5.2 Solo cancel · default 是 Cancel · ✅ / ❌ · 截图 08 ✅ / ❌
 - 5.5.3 Solo confirm · 保留 focus pane · ✅ / ❌ · console 截图 09 ✅ / ❌ · UI 截图 14 ✅ / ❌ · process check (vim/nano kill) ✅ / ❌
 - 5.5.4 AI+Runner cancel · 显示降级提示 · ✅ / ❌ · 截图 10 ✅ / ❌
-- 5.5.5 AI+Runner confirm · 50/50 + 保留 focus · ✅ / ❌ · 截图 11 ✅ / ❌
+- 5.5.5 AI+Runner confirm · 50/50 + 保留 focus · ✅ / ❌ · 截图 11 ✅ / ❌ · process check (vim/nano kill · I10 与 5.5.3 一致) · ✅ / ❌
 
 【步骤化 acceptance · §9 · I4 + I7】
 - A.1 ⌘\ 继承父 shell+cwd · PARENT/CHILD pwd 一致 · ✅ / ❌

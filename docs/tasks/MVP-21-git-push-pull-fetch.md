@@ -1016,7 +1016,7 @@ MVP-21 是**网络层** · 严格隔离：
 
 | 12 段必含 | 状态 | 备注 |
 |----------|------|------|
-| 1. frontmatter | ✅ | id / type / title / status:draft / depends_on / phase / estimate / plan_ref / risk_ref / reviewer 占位 + ID 冲突警告 |
+| 1. frontmatter | ✅ | id (rename 自原 MVP-11) / type / title / status:**ready** / depends_on / phase / estimate / plan_ref / risk_ref / reviewer (Claude Code) 全填 · ID 冲突已解决 |
 | 2. 🎯 目标 Goal | ✅ | 一句话核心 + plan_ref link |
 | 3. 📖 背景 Context | ✅ | implementation-plan + CLAUDE.md + 路线图 W14 + 历史尝试 |
 | 4. 🛠 实施进度表 | ✅ | Phase A/B/C/D 拆分 + Phase A 起点 checklist（11 项） |
@@ -1029,8 +1029,9 @@ MVP-21 是**网络层** · 严格隔离：
 | 11. §H 决策锁定 | ✅ | H.1-H.8 8 子段 · 含 Auth 矩阵 + Merge/Rebase 表 + git2 API 表 + 跨平台依赖矩阵 + Auth 安全实现 |
 | 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅ | 6 风险 + 7 Notes + 6 相关 + 8 条自审 |
 
-**完成度**：12/12 = **100%**（建议 Arbiter approve PR 后翻 status: ready）。
+**完成度**：12/12 = **100%** · status 已翻 `ready`（2026-05-03 session 23 PR #210 rename + Arbiter approve）。
 
 **遗留问题**：
-- ⚠️ **ID 冲突待 Arbiter 拍板**（推荐 rename 为 MVP-21）
-- 决策表已锁定 · 没有"v0.2 启动后再讨论"的悬空项
+- ✅ ID 冲突已解决（PR #210 rename · 文件顶部历史 HTML 注释保留作 trace）
+- ✅ 决策表已锁定 · 没有"v0.2 启动后再讨论"的悬空项
+- ⏳ 等 v0.2 sprint 启动派 Phase A 实施 agent（前置 MVP-13 done · 当前 MVP-13 ready · session 23 主 agent 已派 Codex 跑 MVP-13 Phase A）

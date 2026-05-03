@@ -4,6 +4,7 @@
 //! pane 联动（v1.0 vision）等。保持纯 Rust · 可独立 `cargo test` · 不依赖 Tauri。
 
 pub mod app_settings;
+pub mod branch_ops;
 pub mod config_import;
 pub mod db;
 pub mod diff;
@@ -22,6 +23,12 @@ pub mod telemetry;
 pub mod workspace;
 
 pub use app_settings::{AppSettings, AppSettingsStore, SettingsUpdateRequest};
+pub use branch_ops::{
+    branch_checkout, branch_create, branch_delete, branch_list, branch_switcher_query,
+    BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo,
+    BranchKind, BranchListRequest, BranchListResponse, BranchSwitchResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult,
+};
 pub use config_import::ipc::{
     apply as config_import_apply, build_preview as config_import_build_preview,
     detect_conflicts_ipc as config_import_detect_conflicts,

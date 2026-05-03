@@ -1,0 +1,26 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-branch-list"
+description = "List branches in a workspace repository"
+commands.allow = ["branch_list"]
+
+[[permission]]
+identifier = "allow-branch-create"
+description = "Create branches in a workspace repository"
+commands.allow = ["branch_create"]
+
+[[permission]]
+identifier = "allow-branch-checkout"
+description = "Checkout branches in a workspace repository"
+commands.allow = ["branch_checkout"]
+
+[[permission]]
+identifier = "allow-branch-delete"
+description = "Delete branches in a workspace repository"
+commands.allow = ["branch_delete"]
+
+[[permission]]
+identifier = "allow-branch-switcher-query"
+description = "Query branch switcher matches in a workspace repository"
+commands.allow = ["branch_switcher_query"]

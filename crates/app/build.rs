@@ -12,22 +12,25 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    AppSettings, AppVersionInfo, BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest,
-    BranchError, BranchInfo, BranchKind, BranchListRequest, BranchListResponse, BranchSwitchResult,
-    CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse,
-    CrashReportPayload, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange,
-    FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
-    GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
-    GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType, ImportPreview,
-    ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution, LayoutApplyRequest,
-    LayoutNode, LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest,
-    PaneInitRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
+    AppSettings, AppVersionInfo, AuthChallenge, AuthMethod, AuthRequest, BranchCheckoutRequest,
+    BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo, BranchKind,
+    BranchListRequest, BranchListResponse, BranchSwitchResult, CommitAuthor, CommitDetail,
+    CommitError, CommitParent, CommitRequest, CommitResponse, ConflictFile, CrashReportPayload,
+    DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FetchProgressEvent, FetchRequest,
+    FetchResult, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest,
+    GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
+    GitStatusRequest, GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType,
+    ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
+    LayoutApplyRequest, LayoutNode, LayoutState, MergeConflictInfo, NetworkOpError,
+    OperationDoneEvent, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
+    PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
     PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceMetadata,
+    PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest, PushResult, RemoteInfo,
+    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
+    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
+    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -44,6 +47,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/git_status.rs");
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/branch_ops.rs");
+    println!("cargo:rerun-if-changed=../core/src/git_sync.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
@@ -126,6 +130,26 @@ fn main() {
     SwitcherQueryRequest::export_all(&config).expect("export SwitcherQueryRequest");
     SwitcherMatch::export_all(&config).expect("export SwitcherMatch");
     SwitcherSearchResult::export_all(&config).expect("export SwitcherSearchResult");
+
+    RemoteInfo::export_all(&config).expect("export RemoteInfo");
+    RemoteListRequest::export_all(&config).expect("export RemoteListRequest");
+    RemoteListResponse::export_all(&config).expect("export RemoteListResponse");
+    PushRequest::export_all(&config).expect("export PushRequest");
+    PushResult::export_all(&config).expect("export PushResult");
+    PullRequest::export_all(&config).expect("export PullRequest");
+    PullResult::export_all(&config).expect("export PullResult");
+    PullStrategy::export_all(&config).expect("export PullStrategy");
+    FetchRequest::export_all(&config).expect("export FetchRequest");
+    FetchResult::export_all(&config).expect("export FetchResult");
+    AuthMethod::export_all(&config).expect("export AuthMethod");
+    AuthRequest::export_all(&config).expect("export AuthRequest");
+    AuthChallenge::export_all(&config).expect("export AuthChallenge");
+    NetworkOpError::export_all(&config).expect("export NetworkOpError");
+    MergeConflictInfo::export_all(&config).expect("export MergeConflictInfo");
+    ConflictFile::export_all(&config).expect("export ConflictFile");
+    PushProgressEvent::export_all(&config).expect("export PushProgressEvent");
+    FetchProgressEvent::export_all(&config).expect("export FetchProgressEvent");
+    OperationDoneEvent::export_all(&config).expect("export OperationDoneEvent");
 
     AppSettings::export_all(&config).expect("export AppSettings");
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
@@ -222,6 +246,25 @@ fn main() {
             "export type { SwitcherQueryRequest } from \"./SwitcherQueryRequest\";",
             "export type { SwitcherMatch } from \"./SwitcherMatch\";",
             "export type { SwitcherSearchResult } from \"./SwitcherSearchResult\";",
+            "export type { RemoteInfo } from \"./RemoteInfo\";",
+            "export type { RemoteListRequest } from \"./RemoteListRequest\";",
+            "export type { RemoteListResponse } from \"./RemoteListResponse\";",
+            "export type { PushRequest } from \"./PushRequest\";",
+            "export type { PushResult } from \"./PushResult\";",
+            "export type { PullRequest } from \"./PullRequest\";",
+            "export type { PullResult } from \"./PullResult\";",
+            "export type { PullStrategy } from \"./PullStrategy\";",
+            "export type { FetchRequest } from \"./FetchRequest\";",
+            "export type { FetchResult } from \"./FetchResult\";",
+            "export type { AuthMethod } from \"./AuthMethod\";",
+            "export type { AuthRequest } from \"./AuthRequest\";",
+            "export type { AuthChallenge } from \"./AuthChallenge\";",
+            "export type { NetworkOpError } from \"./NetworkOpError\";",
+            "export type { MergeConflictInfo } from \"./MergeConflictInfo\";",
+            "export type { ConflictFile } from \"./ConflictFile\";",
+            "export type { PushProgressEvent } from \"./PushProgressEvent\";",
+            "export type { FetchProgressEvent } from \"./FetchProgressEvent\";",
+            "export type { OperationDoneEvent } from \"./OperationDoneEvent\";",
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
             "export type { ShellInfo } from \"./ShellInfo\";",

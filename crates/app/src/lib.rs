@@ -18,25 +18,33 @@ use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
 use vibestation_core::{
     branch_checkout as core_branch_checkout, branch_create as core_branch_create,
     branch_delete as core_branch_delete, branch_list as core_branch_list,
-    branch_switcher_query as core_branch_switcher_query, pane_pty, pane_service, telemetry,
-    AppSettings, AppSettingsStore, AppVersionInfo, BranchCheckoutRequest, BranchCreateRequest,
+    branch_switcher_query as core_branch_switcher_query, git_auth_provide as core_git_auth_provide,
+    git_fetch_with_events as core_git_fetch, git_merge_abort as core_git_merge_abort,
+    git_pull_with_events as core_git_pull, git_push_with_events as core_git_push,
+    git_remote_list as core_git_remote_list, pane_pty, pane_service, telemetry, AppSettings,
+    AppSettingsStore, AppVersionInfo, AuthRequest, BranchCheckoutRequest, BranchCreateRequest,
     BranchDeleteRequest, BranchError, BranchInfo, BranchListRequest, BranchListResponse,
-    BranchSwitchResult, CommitDetail, DiffRequest, DiffResponse, DiffService, GitConfigIdentity,
-    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
-    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
-    GitStatusWatcher, LayoutApplyRequest, LayoutState, LayoutStore, PaneCloseRequest,
-    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
-    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    BranchSwitchResult, CommitDetail, DiffRequest, DiffResponse, DiffService, FetchProgressEvent,
+    FetchRequest, FetchResult, GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse,
+    GitLogReader, GitOpsService, GitStatusCollapseRequest, GitStatusPanelSettings,
+    GitStatusRequest, GitStatusResponse, GitStatusService, GitStatusWatcher, GitSyncEventHandlers,
+    LayoutApplyRequest, LayoutState, LayoutStore, NetworkOpError, OperationDoneEvent,
+    PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse,
+    PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult, RemoteListRequest,
+    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
+    StageRequest, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 const GIT_STATUS_CHANGED_EVENT: &str = "git_status:changed";
 const BRANCH_CHANGED_EVENT: &str = "git:branch-changed";
+const GIT_PUSH_PROGRESS_EVENT: &str = "git:push-progress";
+const GIT_FETCH_PROGRESS_EVENT: &str = "git:fetch-progress";
+const GIT_OPERATION_DONE_EVENT: &str = "git:operation-done";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1075,6 +1083,103 @@ fn branch_state_error(message: impl Into<String>) -> BranchError {
     }
 }
 
+#[tauri::command]
+fn git_remote_list(
+    state: State<'_, AppState>,
+    req: RemoteListRequest,
+) -> Result<RemoteListResponse, NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &req.workspace_id)?;
+    core_git_remote_list(&repo_path)
+}
+
+#[tauri::command]
+fn git_push(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: PushRequest,
+) -> Result<PushResult, NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &req.workspace_id)?;
+    core_git_push(&repo_path, req, git_sync_event_handlers(app))
+}
+
+#[tauri::command]
+fn git_pull(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: PullRequest,
+) -> Result<PullResult, NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &req.workspace_id)?;
+    core_git_pull(&repo_path, req, git_sync_event_handlers(app))
+}
+
+#[tauri::command]
+fn git_fetch(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: FetchRequest,
+) -> Result<FetchResult, NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &req.workspace_id)?;
+    core_git_fetch(&repo_path, req, git_sync_event_handlers(app))
+}
+
+#[tauri::command]
+fn git_auth_provide(state: State<'_, AppState>, req: AuthRequest) -> Result<(), NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &req.workspace_id)?;
+    core_git_auth_provide(&repo_path, req)
+}
+
+#[tauri::command]
+fn git_merge_abort(state: State<'_, AppState>, workspace_id: String) -> Result<(), NetworkOpError> {
+    let repo_path = git_sync_repo_path(&state, &workspace_id)?;
+    core_git_merge_abort(&repo_path)
+}
+
+fn git_sync_repo_path(
+    state: &State<'_, AppState>,
+    workspace_id: &str,
+) -> Result<PathBuf, NetworkOpError> {
+    let guard = state
+        .pool
+        .lock()
+        .map_err(|error| NetworkOpError::Git2Error {
+            class: "AppState".to_string(),
+            code: -1,
+            message: error.to_string(),
+        })?;
+    let pool = guard.as_ref().ok_or_else(|| NetworkOpError::Git2Error {
+        class: "AppState".to_string(),
+        code: -1,
+        message: "database not initialized".to_string(),
+    })?;
+    let workspace = WorkspaceStore::get_by_id(pool, workspace_id).map_err(|error| {
+        NetworkOpError::Git2Error {
+            class: "AppState".to_string(),
+            code: -1,
+            message: error.to_string(),
+        }
+    })?;
+    Ok(PathBuf::from(workspace.path))
+}
+
+fn git_sync_event_handlers(app: AppHandle) -> GitSyncEventHandlers {
+    let push_app = app.clone();
+    let fetch_app = app.clone();
+    let done_app = app;
+    GitSyncEventHandlers {
+        push_progress: Some(Arc::new(move |event: PushProgressEvent| {
+            push_app.emit(GIT_PUSH_PROGRESS_EVENT, event).is_ok()
+        })),
+        fetch_progress: Some(Arc::new(move |event: FetchProgressEvent| {
+            fetch_app.emit(GIT_FETCH_PROGRESS_EVENT, event).is_ok()
+        })),
+        operation_done: Some(Arc::new(move |event: OperationDoneEvent| {
+            if let Err(error) = done_app.emit(GIT_OPERATION_DONE_EVENT, event) {
+                eprintln!("[mvp-21] emit git operation done failed: {error}");
+            }
+        })),
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     let Some(window) = app.get_webview_window("main") else {
@@ -1229,6 +1334,12 @@ pub fn run() {
             branch_checkout,
             branch_delete,
             branch_switcher_query,
+            git_push,
+            git_pull,
+            git_fetch,
+            git_remote_list,
+            git_auth_provide,
+            git_merge_abort,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,

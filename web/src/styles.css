@@ -682,6 +682,41 @@ textarea {
   color: var(--text-2);
 }
 
+.vs-status-key {
+  color: var(--text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.vs-status-remote {
+  gap: 4px;
+}
+
+.vs-status-remote-count {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 1px 3px;
+  border-radius: 3px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color 0.1s,
+    background-color 0.1s;
+}
+
+.vs-status-remote-count.is-ahead {
+  color: var(--accent);
+}
+
+.vs-status-remote-count.is-behind {
+  color: var(--warning);
+}
+
+.vs-status-remote-count:hover {
+  background: var(--bg-2);
+}
+
 /* 状态栏右下角 ⚙ 入口 · 跟 ThemeSwitch 视觉对齐（同 size · 同 hover treatment）·
    补 macOS App Menu Vibestation → Preferences (⌘,) 之外的可见入口。 */
 .vs-status-icon-btn {

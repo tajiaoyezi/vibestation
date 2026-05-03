@@ -10,7 +10,7 @@
 
 | ID | 指标 | 目标 P99 | 测量方法 | 状态 |
 |----|------|---------|---------|------|
-| F.1 | 4 Pane 内存 RSS | < 500MB（10 tab × 4 pane fixture extrap） | `scripts/capture/mvp-05/measure-memory.sh` | 🟡 工具就位 · 待跑 |
+| F.1 | 推算 40 PTY total RSS（10 tab × 4 pane） | < 500MB（spec budget · 不是 4 pane 单 run） | `measure-memory.sh` × 3 + per-pane × 40 + main overhead 推算 · 见 CAPTURE-PLAYBOOK §3.3 | 🟡 工具就位 · 待跑 |
 | F.2 | 拖拽水平 splitter 60FPS | 帧时长 < 16ms | DevTools Performance 1s 录制 · 帧时长统计 | 🟡 PR #147 已 60FPS rAF · 实测 P99 待 capture |
 | F.3 | 拖拽垂直 splitter 60FPS | 同 F.2 | 同 F.2 · 垂直方向独立 | 🟡 同上 |
 | F.4 | ⌘\ → 新 pane DOM commit | < 150ms | inline performance.now() 在 handlePaneSplit · console.info 输出 | ✅ 仪表化 done · 实测数字待 capture |
@@ -21,30 +21,22 @@
 
 ## 测量手册（Arbiter 本地 30 min · 跑完后填实测数字）
 
-### F.1 4 Pane 内存
+### F.1 推算 40 PTY total RSS（spec §F.1 真实 budget · Codex finding 3 修复）
 
-```bash
-# 1. 启动 app（推荐 release build · pnpm tauri build --debug --no-bundle）
-pnpm tauri:build:smoke
+跑法见 CAPTURE-PLAYBOOK.md §3 · 关键：测 4 pane fixture 的 per-pane shell RSS · 推算 40 PTY = main + per_pane_avg × 40。
 
-# 2. 在 app 里：手动创建 1 tab → ⌘\ 横分 → ⌘⇧\ 在新 pane 下分（共 4 panes 2x2）
+**实测**（待填 · 替换原"Run 1/2/3 总 MB"为下表）：
 
-# 3. 跑测量脚本
-bash scripts/capture/mvp-05/measure-memory.sh
+| Run | MAIN_RSS_MB | 4 pane 总 shell RSS | PER_PANE_AVG | 推算 40 PTY = MAIN + PER_PANE × 40 |
+|---|---|---|---|---|
+| 1 | ___ | ___ | ___ | ___ MB |
+| 2 | ___ | ___ | ___ | ___ MB |
+| 3 | ___ | ___ | ___ | ___ MB |
+| **P99** | — | — | — | **___ MB** |
 
-# 4. 重复 3 次取 P99 · 填入下方 "实测" 段
-```
+通过条件：**P99 推算 40 PTY total < 500MB** · spec §F.1 真实 budget。
 
-**实测**（待填）：
-
-```
-Run 1: ___ MB
-Run 2: ___ MB
-Run 3: ___ MB
-P99 ≈ max ≈ ___ MB
-```
-
-通过条件：< 500MB · 单 pane ≈ 10MB（SPIKE-05 基线）
+**注意**：4 pane 单 run RSS < 500MB **不等于** PASS · 必须用推算公式（Codex finding 3 抓的 bug）。如 PER_PANE_AVG ≈ 12MB → 40 PTY = MAIN + 480MB · 多数情况已超 500MB · 需触发 fallback（spec §⚠️ 已知风险加技术债 / 改 PTY 架构 / 改 budget）。
 
 ### F.2 / F.3 拖拽 splitter 60FPS
 
@@ -135,6 +127,12 @@ session 19 末仪表化完成 · 实际跑 + 填数字留 Arbiter 本地（约 3
 | `05-smart-layout-menu.png` | ⌘⇧P 命令面板（dry-run 预览） | 🟡 |
 | `06-after-smart-apply.png` | Solo apply 后单 pane | 🟡 |
 | `07-flow-recording.mov` | 30s 完整流程录屏 | 🟡 手工 |
+| `08-solo-cancel-preview.png` | Solo dry-run 预览 + vim/nano warning（§5.5.2 · mandatory I2 · Codex finding 2 fix）| 🟡 |
+| `09-solo-confirm-console.png` | Solo confirm 后 DevTools console F.6 log（§5.5.3 · mandatory I2）| 🟡 |
+| `10-ai-runner-cancel-preview.png` | AI+Runner 降级预览 + cancel（§5.5.4 · mandatory I2）| 🟡 |
+| `11-ai-runner-confirm-result.png` | AI+Runner 降级 + 50/50 结果（§5.5.5 · mandatory I2）| 🟡 |
+| `12-single-level-toast.png` | 单层上限 toast · spec 文案 verbatim（A.4 · mandatory I4 步骤化）| 🟡 |
+| `13-focus-bottom-left.png` | click 左下 pane 后 focus 边框高亮（E.1 · mandatory I4 步骤化）| 🟡 |
 
 跑：`bash scripts/capture/mvp-05/capture-phase-d.sh`
 

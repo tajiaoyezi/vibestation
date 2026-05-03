@@ -2,27 +2,27 @@
 id: MVP-13
 type: mvp
 title: 分支 create / checkout / delete + Fuzzy Switcher
-status: draft
+status: ready
 owner:
 phase: v0.2
 depends_on: ["MVP-07", "MVP-09"]
-blocks: ["MVP-16"]
+blocks: ["MVP-16", "MVP-21"]
 blocked_by: []
 blocked_from:
 blocked_note:
 estimate: 4d
 plan_ref: implementation-plan.md §10.1（v0.2 砍到分支 CRUD）· §6.2 git_branch_* IPC · §11 W13 路线图
-risk_ref:
-reviewer:
+risk_ref: 本 spec §已知风险 R1-R5（git2 stash 不稳定 / undo 局限 / Unicode 兼容 / remote tracking 命名冲突 / force checkout 数据丢失）
+reviewer: Claude Code
 ---
 
 # MVP-13: 分支 create / checkout / delete + Fuzzy Switcher
 
-> **状态**：`draft`（v0.2 候选 · 详化完成度 100%）
-> **依赖**：MVP-07（Git Log 只读 · 分支标签贴）+ MVP-09（git2 写路径已通）
+> **状态**：`ready`（v0.2 候选 · 详化完成度 100% · 2026-05-03 Arbiter approve 翻 ready · 等待认领）
+> **依赖**：MVP-07（Git Log 只读 · 分支标签贴 · done）+ MVP-09（git2 写路径已通 · done · 两者均已 done · 无开工阻塞）
+> **下游 blocks**：MVP-16（v0.3 rebase/merge/cherry-pick）+ MVP-21（v0.2 push/pull/fetch · 同 sprint 顺序 W13 → W14）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · v0.2 W13 分支
-> **详化时间**：2026-05-01 sprint vibe · Worker B（Claude Code）
-> **Arbiter approve 后建议状态**：`ready`
+> **详化时间**：2026-05-01 sprint vibe · Worker B（Claude Code）· 2026-05-03 self-review + frontmatter 翻 ready
 
 ---
 

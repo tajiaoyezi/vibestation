@@ -15,9 +15,9 @@
 
 ---
 
-## 🛡 11 Invariant（playbook design intent · Codex round 1+2+3 review fix · 2026-05-03）
+## 🛡 14 Invariant（playbook design intent · Codex round 1+2+3+4 review fix · 2026-05-03）
 
-未来改 playbook 任何段前必先对照本 11 条 · 防 Codex 已抓的 10 类 finding 复发。**round 1（I1-I4）+ round 2（I5-I8）+ round 3（I9-I11）11 条均经实战验证**。
+未来改 playbook 任何段前必先对照本 14 条 · 防 Codex 已抓的 13 类 finding 复发。**round 1（I1-I4）+ round 2（I5-I8）+ round 3（I9-I11）+ round 4（I12-I14）14 条均经实战验证**。
 
 ### Round 1 invariants（基础 4 条）
 
@@ -60,6 +60,18 @@
 - **I11 · 测量来源必须自证 · 不能依赖独立后续验证**
   - 违反案例：F.1 RSS 测量（measure-memory.sh） + 独立 SHELL_COUNT 验证 + 独立 pgrep 列 PID 三步不绑定 · runner 可复制旧 RSS · 后续验证 PID 可能不同（round 3 finding 3）
   - 应用：测量步骤本身必须输出验证字段（PID + RSS + PPID 一起 · 同一组）· 不能"先测后验" · 流程改"先列源 → 直接量"
+
+### Round 4 invariants（深度 3 条 · Codex round 4 finding 抽象）
+
+- **I12 · validator 不只检查字段存在 · 必须强制字段值是成功值**
+  - 违反案例：§7 require_judgment 接受 `key 判定：(PASS|FAIL)` · runner 可填 FAIL 仍通过 gate（round 4 finding 1）
+  - 应用：validator 拒绝 explicit FAIL / no · 任一 explicit 失败值 BLOCK commit · 报告主 agent fix · 不是简单跑一遍就能过
+- **I13 · 全部 acceptance 项都必须有显式 PASS/FAIL 判定字段 · validator 不能漏检**
+  - 违反案例：§7 验证 A/§5.5/D/E 但漏 F.1-F.6 · runner 填 F.4=200ms（超 150ms 上限）也能 commit（round 4 finding 2）
+  - 应用：metrics 每个 acceptance 项（含性能 F.x）都加显式 `key 判定：<PASS_or_FAIL>` 字段 · §7 validator 全检查 · 不能漏
+- **I14 · 推算公式必须建模所有随 N 变化的项 · 不能假设固定 overhead**
+  - 违反案例：F.1 推算 `MAIN + PER_PANE × 40` 假设 main app RSS 不随 pane 增长 · 但 webview / xterm buffer / Tauri PTY 簿记会增长（round 4 finding 3）
+  - 应用：推算式必须建 baseline（min N）+ delta（N 变化引起的增长）· 公式含两项 per-N · 或直接真测 max N fixture（用户工作量大但严格 · spec acceptance 接受推算）
 
 **自检**（写完任何 playbook 段后跑全部 grep · 任一异常即违反对应 invariant）：
 
@@ -270,72 +282,111 @@ screencapture -V 30 -x -l "$WID" docs/runtime-evidence/mvp-05/07-flow-recording.
 
 > **Codex round 3 finding 3 修复**：原本"先跑 measure-memory.sh × 3 取 RSS · 再独立 SHELL_COUNT 验证 · 再独立 pgrep 列 PID"三步不绑定 · runner 可复制第一步 RSS · 第二步通过 · 第三步显示 4 PID 但和测 RSS 的 PID 不同。本段改"先列 PID + cmd · 再 ps -o 取 RSS · 同一组"自证流程 · 不再用 measure-memory.sh（避免 global fallback 风险）。
 
-**自证流程**（每 run · 同一组 PID 测 RSS · I11）：
+**自证流程**（先 baseline · 再 4-pane 3 次 · 推算式含 main delta · I11 + I14）：
+
+> **Codex round 4 finding 3 修复（I14）**：原推算 `MAIN_RSS + PER_PANE_AVG × 40` 假设 main app RSS 不随 pane 增长 · 但实际 webview / xterm buffer / Tauri/PTY bookkeeping 会增长 · 推算 undercount。本流程加 baseline 测量（0 pane Solo）+ 4-pane 测量 · 算 main per-pane delta · 推算式含两项 per-pane：shell + main delta。
+
+#### Step A · baseline 测量（Solo 起点 · 1 次）
+
+**前置**：app 启动后 ⌘⇧P → Solo · 确认只有 1 pane。
 
 ```bash
 # 在另一个终端 tab
+MAIN_PID=$(pgrep -f vibestation-app | head -1)
+[[ -z "$MAIN_PID" ]] && { echo "❌ BLOCK · 找不到 vibestation-app"; exit 1; }
+MAIN_BASELINE_KB=$(ps -o rss= -p $MAIN_PID | tr -d ' ')
+MAIN_BASELINE_MB=$((MAIN_BASELINE_KB / 1024))
+
+# Solo 起点应正好 1 个 child shell（base 验证）
+BASELINE_SHELL_PIDS=$(pgrep -P $MAIN_PID -f "zsh|bash|sh" | tr '\n' ' ')
+BASELINE_SHELL_COUNT=$(echo $BASELINE_SHELL_PIDS | wc -w | tr -d ' ')
+[[ $BASELINE_SHELL_COUNT -ne 1 ]] && { echo "❌ BLOCK · baseline 不是 1 pane（$BASELINE_SHELL_COUNT 个 shell）· 起点不对"; exit 1; }
+
+BASELINE_SHELL_KB=$(ps -o rss= -p $BASELINE_SHELL_PIDS | tr -d ' ')
+BASELINE_SHELL_MB=$((BASELINE_SHELL_KB / 1024))
+echo "Baseline (1 pane Solo): MAIN PID=$MAIN_PID RSS=${MAIN_BASELINE_MB} MB · 1 shell PID=$BASELINE_SHELL_PIDS RSS=${BASELINE_SHELL_MB} MB"
+echo "→ 记 metrics §F.1 baseline 行：MAIN_BASELINE_MB=${MAIN_BASELINE_MB} · 1_PANE_SHELL_MB=${BASELINE_SHELL_MB}"
+```
+
+#### Step B · 4-pane 测量 3 次（重建 fixture · 跑 §3.1）
+
+**前置**：手动重建 4 panes 2×2（步骤 §3.1）· 4 个 pane 都跑 `echo pane-N`。
+
+```bash
+# 在另一个终端 tab · 跑 3 次
 for i in 1 2 3; do
-  echo "=== Run $i ==="
+  echo "=== Run $i (4-pane fixture) ==="
 
-  # Step 1 · 取 main app PID + RSS
+  # 取 main app RSS（4-pane 状态）
   MAIN_PID=$(pgrep -f vibestation-app | head -1)
-  if [[ -z "$MAIN_PID" ]]; then
-    echo "❌ BLOCK · 找不到 vibestation-app 进程 · app 可能没启动"
-    exit 1
-  fi
-  MAIN_RSS_KB=$(ps -o rss= -p $MAIN_PID | tr -d ' ')
-  MAIN_RSS_MB=$((MAIN_RSS_KB / 1024))
-  echo "MAIN_PID=$MAIN_PID · RSS=${MAIN_RSS_MB} MB"
+  MAIN_4PANE_KB=$(ps -o rss= -p $MAIN_PID | tr -d ' ')
+  MAIN_4PANE_MB=$((MAIN_4PANE_KB / 1024))
 
-  # Step 2 · 列 main app spawn 的 child shell（必须正好 4 个 · 否则 BLOCK · I6）
+  # 列 main app spawn 4 个 child shell（必须正好 4 个 · I6）
   SHELL_PIDS=$(pgrep -P $MAIN_PID -f "zsh|bash|sh" | tr '\n' ' ')
   SHELL_COUNT=$(echo $SHELL_PIDS | wc -w | tr -d ' ')
-  echo "Pane shell PIDs (main app child): $SHELL_PIDS"
-  echo "Shell count: $SHELL_COUNT（期望 4）"
   if [[ $SHELL_COUNT -ne 4 ]]; then
-    echo "❌ BLOCK · main app spawn child 不是 4 个 · 可能某 pane PTY 没起 / 某 shell 死 / app 不通过 fork"
-    echo "  MAIN_PID 详情：$(ps -o pid,ppid,command -p $MAIN_PID)"
-    echo "  child 详情："
-    for pid in $SHELL_PIDS; do
-      echo "    PID $pid: $(ps -o pid=,ppid=,command= -p $pid)"
-    done
+    echo "❌ BLOCK · 4-pane fixture 应有 4 个 child · 实际 $SHELL_COUNT · 重建 fixture"
     exit 1
   fi
 
-  # Step 3 · 用同一组 PID 取 RSS（I11 自证 · 不另起 measure-memory.sh）
+  # 同一组 PID 测 RSS（I11 自证）
   TOTAL_SHELL_RSS_KB=0
   PID_RSS_PAIRS=""
   for pid in $SHELL_PIDS; do
     RSS_KB=$(ps -o rss= -p $pid | tr -d ' ')
-    if [[ -z "$RSS_KB" || "$RSS_KB" -eq 0 ]]; then
-      echo "❌ BLOCK · PID $pid RSS 读不到（进程可能死了）"
-      exit 1
-    fi
+    [[ -z "$RSS_KB" || "$RSS_KB" -eq 0 ]] && { echo "❌ BLOCK · PID $pid RSS 读不到"; exit 1; }
     RSS_MB=$((RSS_KB / 1024))
     TOTAL_SHELL_RSS_KB=$((TOTAL_SHELL_RSS_KB + RSS_KB))
     PID_RSS_PAIRS="$PID_RSS_PAIRS $pid:${RSS_MB}MB"
   done
-  TOTAL_SHELL_RSS_MB=$((TOTAL_SHELL_RSS_KB / 1024))
-  PER_PANE_AVG_MB=$((TOTAL_SHELL_RSS_MB / 4))
+  PER_PANE_SHELL_AVG_MB=$((TOTAL_SHELL_RSS_KB / 1024 / 4))
 
-  # Step 4 · 推算 40 PTY total（与 spec budget 直接对照 · I3）
-  EXTRAPOLATED_40_PTY=$((MAIN_RSS_MB + PER_PANE_AVG_MB * 40))
-  echo "Per-pane avg: ${PER_PANE_AVG_MB} MB"
-  echo "Extrapolated 40 PTY: MAIN ${MAIN_RSS_MB} + PER_PANE ${PER_PANE_AVG_MB} × 40 = ${EXTRAPOLATED_40_PTY} MB"
+  # I14 · 算 main per-pane delta（webview / xterm buffer 增长）
+  MAIN_DELTA_MB=$((MAIN_4PANE_MB - MAIN_BASELINE_MB))
+  MAIN_PER_PANE_DELTA_MB=$((MAIN_DELTA_MB / 4))   # delta / (4-1)? 严格说 baseline 已含 1 pane · delta / 3 更准
+  # 简化：取 (MAIN_4PANE - MAIN_BASELINE) / 3 = main per-pane delta（额外 3 pane 引起的 main 增长）
+  if [[ $MAIN_DELTA_MB -gt 0 ]]; then
+    MAIN_PER_PANE_DELTA_MB=$((MAIN_DELTA_MB / 3))
+  else
+    MAIN_PER_PANE_DELTA_MB=0
+  fi
+
+  # I14 推算公式：MAIN_BASELINE + (MAIN_PER_PANE_DELTA + SHELL_PER_PANE) × 40
+  # = MAIN_BASELINE 含已有 1 pane main overhead · 加 40 × (per-pane main delta + per-pane shell)
+  # 注：严格说应 + 40 × main delta · 但 baseline 已含 1 pane · 加 40 等于多算 1 pane main
+  #     妥协公式：MAIN_BASELINE + 39 × MAIN_PER_PANE_DELTA + 40 × SHELL_PER_PANE_AVG
+  EXTRAPOLATED_40_PTY=$((MAIN_BASELINE_MB + 39 * MAIN_PER_PANE_DELTA_MB + 40 * PER_PANE_SHELL_AVG_MB))
+  echo "MAIN_PID=$MAIN_PID RSS_4PANE=${MAIN_4PANE_MB}MB · 4 shell:$PID_RSS_PAIRS"
+  echo "MAIN_DELTA(4pane - baseline)=${MAIN_DELTA_MB}MB · per-pane main delta=${MAIN_PER_PANE_DELTA_MB}MB"
+  echo "PER_PANE_SHELL_AVG=${PER_PANE_SHELL_AVG_MB}MB"
+  echo "Extrapolated 40 PTY = ${MAIN_BASELINE_MB}(MAIN_BASELINE) + 39 × ${MAIN_PER_PANE_DELTA_MB}(main delta) + 40 × ${PER_PANE_SHELL_AVG_MB}(shell) = ${EXTRAPOLATED_40_PTY} MB"
   echo "vs spec budget 500 MB: $([ $EXTRAPOLATED_40_PTY -lt 500 ] && echo "PASS" || echo "FAIL")"
   echo ""
-  echo "→ 记 metrics §F.1 表 Run $i 行：MAIN_PID=$MAIN_PID · RSS=${MAIN_RSS_MB}MB · 4 shell:$PID_RSS_PAIRS · PER_PANE_AVG=${PER_PANE_AVG_MB}MB · 推算=${EXTRAPOLATED_40_PTY}MB"
+  echo "→ 记 metrics §F.1 Run $i: MAIN_4PANE=${MAIN_4PANE_MB}MB · 4 shell:$PID_RSS_PAIRS · MAIN_PER_PANE_DELTA=${MAIN_PER_PANE_DELTA_MB}MB · PER_PANE_SHELL=${PER_PANE_SHELL_AVG_MB}MB · 推算=${EXTRAPOLATED_40_PTY}MB"
   echo ""
   sleep 2
 done
 ```
 
-**I11 自证特性**：
-- Step 2 和 Step 3 用**同一组 SHELL_PIDS** · 不存在"测 RSS 用 PID-A · 验证用 PID-B"漏洞
-- Step 2 严格验证 main app child（不走全局 fallback · 不依赖 measure-memory.sh 默认行为）
-- Step 4 直接输出 PASS/FAIL · 与 spec budget 等价
+**I14 公式说明**：
 
-**注意**：原本依赖 `scripts/capture/mvp-05/measure-memory.sh` · round 3 fix 后**不再用**（脚本有 global zsh/bash fallback 风险 · 见 I6 历史案例）· 但 script 留 repo 作 reference。
+```
+推算 40 PTY total = MAIN_BASELINE + 39 × MAIN_PER_PANE_DELTA + 40 × PER_PANE_SHELL_AVG
+```
+
+- MAIN_BASELINE：app 启动 + 1 pane Solo 时 main app RSS（含 webview baseline + 1 pane bookkeeping）
+- MAIN_PER_PANE_DELTA：(MAIN_4PANE - MAIN_BASELINE) / 3 · 即额外 3 pane 引起的 main app per-pane 平均增长（webview / xterm buffer / Tauri PTY 簿记）
+- PER_PANE_SHELL_AVG：4-pane 状态下 4 个 child shell RSS 平均
+- 公式：起点 1 pane main + 额外 39 pane 各引起 MAIN_PER_PANE_DELTA + 40 个 shell each PER_PANE_SHELL_AVG
+- **更保守 alternative**：直接测 10 tab × 4 pane fixture（用户工作量大 · 但严格）· spec §F.1 接受推算 · 留作 v0.2 fallback
+
+**I11 + I14 自证特性**：
+- Step A baseline + Step B 4-pane 用同一 MAIN_PID（中间不要重启 app）· main delta 可信
+- 同一 run 内 SHELL_PIDS 测 RSS · 不分离
+- 推算公式 explicit · 公式含 main 增长 · 不假设 main 固定
+
+**注意**：原本依赖 `scripts/capture/mvp-05/measure-memory.sh` · round 3 fix 后**不再用**（global zsh/bash fallback 风险）· script 留 repo 作 reference。
 
 ### 3.3 · 推算 40 PTY total + 写 metrics
 
@@ -645,28 +696,61 @@ if [[ $EMPTY_NUMERIC -gt 0 ]]; then
   exit 1
 fi
 
-# 7.4 · 显式判定字段强模式 grep（I9 · 行尾固定 · 不能匹配 "<PASS_or_FAIL>" template）
-# 必须严格匹配 "<key> 判定：PASS" 或 "<key> 判定：FAIL" 单一值（不是 "PASS / FAIL" 模板）
-require_judgment() {
+# 7.4 · 显式判定字段必须 PASS · 不接受 FAIL（I9 + I12 · Codex round 4 finding 1 fix）
+# 必须严格匹配 "<key> 判定：PASS"（行尾固定 · 不是 "PASS|FAIL" · 不是模板）
+# I12：FAIL 也是合法格式 · 但语义是 acceptance 不达标 · BLOCK commit · 报告主 agent fix
+require_judgment_pass() {
   local key="$1"
-  if ! grep -qE "^${key} 判定：(PASS|FAIL)$" "$OUT/metrics-mvp-05.md"; then
-    echo "❌ BLOCK · metrics 缺 ${key} 判定 · 必须显式 '${key} 判定：PASS' 或 'FAIL' 单值（行尾固定 · 不是模板）"
+  local line=$(grep -E "^${key} 判定：" "$OUT/metrics-mvp-05.md" | head -1)
+  if [[ -z "$line" ]]; then
+    echo "❌ BLOCK · metrics 缺 ${key} 判定字段（必须显式 '${key} 判定：PASS' 行尾固定）"
+    exit 1
+  fi
+  if [[ "$line" =~ FAIL ]]; then
+    echo "❌ BLOCK · ${key} 判定为 FAIL · spec acceptance 不达标 · 不能 commit · 报告主 agent fix · 不是简单跑一遍就能过"
+    exit 1
+  fi
+  if [[ ! "$line" =~ "判定：PASS" ]]; then
+    echo "❌ BLOCK · ${key} 判定字段格式错（应为 '${key} 判定：PASS'）· 当前行: $line"
     exit 1
   fi
 }
-require_judgment "A.1"
-require_judgment "A.2"
-require_judgment "A.3.1"
-require_judgment "A.3.2"
-require_judgment "§5.5.3"
-require_judgment "§5.5.5"
-require_judgment "D.4"
-require_judgment "E.2"
-require_judgment "E.3"
+# I13 · F.1-F.6 也必须 require_judgment_pass · 不能漏检（Codex round 4 finding 2 fix）
+require_judgment_pass "F.1"
+require_judgment_pass "F.2"
+require_judgment_pass "F.3"
+require_judgment_pass "F.4"
+require_judgment_pass "F.5"
+require_judgment_pass "F.6"
+require_judgment_pass "A.1"
+require_judgment_pass "A.2"
+require_judgment_pass "A.3.1"
+require_judgment_pass "A.3.2"
+require_judgment_pass "§5.5.3"
+require_judgment_pass "§5.5.5"
+require_judgment_pass "D.4"
+require_judgment_pass "E.2"
+require_judgment_pass "E.3"
 
-# 7.4.1 · §5.5.3 + §5.5.5 process check 显式确认（I8 + I10 · 同类 path 共享）
-grep -qE "^§5\.5\.3 vim/nano kill confirmed: (yes|no)$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · §5.5.3 vim/nano kill 字段缺"; exit 1; }
-grep -qE "^§5\.5\.5 vim/nano kill confirmed: (yes|no)$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · §5.5.5 vim/nano kill 字段缺（I10 同类 path · Codex round 3 finding 2）"; exit 1; }
+# 7.4.1 · §5.5.3 + §5.5.5 process check 必须 yes（I8 + I10 + I12 · vim/nano 真死）
+require_kill_yes() {
+  local key="$1"
+  local line=$(grep -E "^${key} vim/nano kill confirmed: " "$OUT/metrics-mvp-05.md" | head -1)
+  if [[ -z "$line" ]]; then
+    echo "❌ BLOCK · metrics 缺 ${key} vim/nano kill 字段"
+    exit 1
+  fi
+  if [[ "$line" =~ "confirmed: no" ]]; then
+    echo "❌ BLOCK · ${key} vim/nano kill confirmed: no · spec §H.3 PTY kill 未传到 child · 用户数据丢失风险 · 报告主 agent fix"
+    exit 1
+  fi
+  if [[ ! "$line" =~ "confirmed: yes" ]]; then
+    echo "❌ BLOCK · ${key} vim/nano kill 字段格式错（应为 '${key} vim/nano kill confirmed: yes'）· 当前: $line"
+    exit 1
+  fi
+}
+require_kill_yes "§5.5.3"
+require_kill_yes "§5.5.5"
 
 # 7.4.2 · E.3 增长率显式数字（不是 <TBD>%）
 grep -qE "增长率（[^）]+）: [0-9]+(\.[0-9]+)?%$" "$OUT/metrics-mvp-05.md" || { echo "❌ BLOCK · E.3 增长率必须显式数字%"; exit 1; }
@@ -846,12 +930,12 @@ MVP-05 Phase D capture done · branch: docs/mvp-05-phase-d-capture
 - 推算 P99 = MAIN + PER_PANE × 40 = ___ MB
 - vs spec budget 500MB · PASS / FAIL
 
-【F.2-F.6 性能 · §4-§5】
-§4.2 F.2 横拖：P99 = ___ ms · PASS / FAIL（< 16ms）
-§4.3 F.3 竖拖：P99 = ___ ms · PASS / FAIL
-§5.1 F.4 ⌘\：P99 = ___ ms · PASS / FAIL（< 150ms）
-§5.2 F.5 ⌘⌃W：P99 = ___ ms · PASS / FAIL（< 100ms）
-§5.3 F.6 Smart Layouts：P99 = ___ ms · PASS / FAIL（< 200ms）
+【F.2-F.6 性能 · §4-§5 · 必须 PASS · I12 拒绝 FAIL】
+§4.2 F.2 横拖：P99 = ___ ms · PASS（< 16ms · FAIL 不允许 commit）
+§4.3 F.3 竖拖：P99 = ___ ms · PASS
+§5.1 F.4 ⌘\：P99 = ___ ms · PASS（< 150ms）
+§5.2 F.5 ⌘⌃W：P99 = ___ ms · PASS（< 100ms）
+§5.3 F.6 Smart Layouts：P99 = ___ ms · PASS（< 200ms）
 
 【§5.5 数据丢失确认路径 · mandatory · I2 + I8 + I10 同类 path 共享 evidence】
 - 5.5.2 Solo cancel · default 是 Cancel · ✅ / ❌ · 截图 08 ✅ / ❌

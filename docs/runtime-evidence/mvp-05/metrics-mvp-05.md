@@ -25,14 +25,23 @@
 
 跑法见 CAPTURE-PLAYBOOK.md §3 · 关键：测 4 pane fixture 的 per-pane shell RSS · 推算 40 PTY = main + per_pane_avg × 40。
 
-**实测**（待填 · 替换原"Run 1/2/3 总 MB"为下表 · I6 含 raw PID 列）：
+**实测**（I14 推算式含 main delta · Codex round 4 finding 3 fix）：
 
-| Run | MAIN_PID + RSS | 4 pane shell PID + RSS（必须正好 4 个 main app spawn child）| PER_PANE_AVG | 推算 40 PTY = MAIN + PER_PANE × 40 |
-|---|---|---|---|---|
-| 1 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
-| 2 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
-| 3 | PID <TBD> · <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> | <TBD> MB |
-| **P99** | — | — | — | **<TBD> MB** |
+**Baseline（Solo 1 pane · 测 1 次）**：
+
+```
+MAIN_BASELINE_MB = <TBD>（app 启动 + Solo 时 main app RSS · 含 webview + 1 pane bookkeeping）
+1_PANE_SHELL_MB = <TBD>（baseline 1 个 child shell RSS）
+```
+
+**4-pane 测量 3 次**：
+
+| Run | MAIN_4PANE_MB | 4 shell PID + RSS | MAIN_PER_PANE_DELTA = (MAIN_4PANE - MAIN_BASELINE) / 3 | PER_PANE_SHELL_AVG | 推算 40 PTY = MAIN_BASELINE + 39 × MAIN_DELTA + 40 × SHELL_AVG |
+|---|---|---|---|---|---|
+| 1 | <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> MB | <TBD> MB | <TBD> MB |
+| 2 | <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> MB | <TBD> MB | <TBD> MB |
+| 3 | <TBD> MB | PID <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB / <TBD>:<TBD>MB | <TBD> MB | <TBD> MB | <TBD> MB |
+| **P99** | — | — | — | — | **<TBD> MB** |
 
 **I6 input 验证**（每 run 必填 · 确认 4 PID 都是 vibestation app spawn）：
 
@@ -48,6 +57,8 @@ Run 3 同：
 通过条件：**P99 推算 40 PTY total < 500MB** · spec §F.1 真实 budget。
 
 **注意**：4 pane 单 run RSS < 500MB **不等于** PASS · 必须用推算公式（Codex finding 3 抓的 bug）。如 PER_PANE_AVG ≈ 12MB → 40 PTY = MAIN + 480MB · 多数情况已超 500MB · 需触发 fallback（spec §⚠️ 已知风险加技术债 / 改 PTY 架构 / 改 budget）。
+
+F.1 判定：<PASS_or_FAIL>（< 500MB PASS · ≥ 500MB FAIL）
 
 ### F.2 / F.3 拖拽 splitter 60FPS
 
@@ -68,11 +79,13 @@ F.2 Run 1: P99 帧时长 ___ ms
 F.2 Run 2: ___ ms
 F.2 Run 3: ___ ms
 F.2 P99 ≈ ___ ms（< 16ms PASS）
+F.2 判定：<PASS_or_FAIL>
 
 F.3 Run 1: ___ ms
 F.3 Run 2: ___ ms
 F.3 Run 3: ___ ms
 F.3 P99 ≈ ___ ms
+F.3 判定：<PASS_or_FAIL>
 ```
 
 ### F.4 / F.5 / F.6 IPC 操作时延
@@ -99,18 +112,24 @@ F.4 ⌘\ → DOM commit:
   Run 2: ___ ms
   Run 3: ___ ms
   P99 ≈ ___ ms（< 150ms PASS）
+F.4 判定：<PASS_or_FAIL>
 
 F.5 ⌘⌃W → DOM commit:
   Run 1: ___ ms
   Run 2: ___ ms
   Run 3: ___ ms
   P99 ≈ ___ ms（< 100ms PASS）
+F.5 判定：<PASS_or_FAIL>
 
 F.6 Smart Layouts apply → DOM commit:
   Run 1: ___ ms
   Run 2: ___ ms
   Run 3: ___ ms
   P99 ≈ ___ ms（< 200ms PASS）
+F.6 判定：<PASS_or_FAIL>
+```
+
+> **I13 + I12 关键**：F.1-F.6 必须显式 PASS · 不接受 FAIL（§7 validator 会 BLOCK）。FAIL 表示 spec acceptance 不达标 · 报告主 agent 评估 fix path / 改 spec budget · 不能 silent merge。
 ```
 
 ---

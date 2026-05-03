@@ -12,18 +12,20 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    AppSettings, AppVersionInfo, CommitAuthor, CommitDetail, CommitError, CommitParent,
-    CommitRequest, CommitResponse, CrashReportPayload, DiffHunk, DiffLine, DiffLineType,
-    DiffRequest, DiffResponse, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry,
-    GitLogQueryRequest, GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup,
-    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, ImportApplyRequest,
-    ImportApplyResult, ImportFieldType, ImportPreview, ImportScanResult, ImportSource,
-    KeyBindingConflict, KeyBindingResolution, LayoutApplyRequest, LayoutNode, LayoutState,
-    PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse,
-    PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent, PaneScrollbackFetchRequest,
-    PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, SetGitIdentityRequest,
-    SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest,
-    StageFailedItem, StageRequest, StageResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    AppSettings, AppVersionInfo, BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest,
+    BranchError, BranchInfo, BranchKind, BranchListRequest, BranchListResponse, BranchSwitchResult,
+    CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse,
+    CrashReportPayload, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FileChange,
+    FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest, GitLogQueryResponse,
+    GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings, GitStatusRequest,
+    GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType, ImportPreview,
+    ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution, LayoutApplyRequest,
+    LayoutNode, LayoutState, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest,
+    PaneInitRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
+    PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
     TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
     UnstageRequest, WorkspaceMetadata,
 };
@@ -41,6 +43,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/diff.rs");
     println!("cargo:rerun-if-changed=../core/src/git_status.rs");
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
+    println!("cargo:rerun-if-changed=../core/src/branch_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
@@ -110,6 +113,19 @@ fn main() {
     CommitError::export_all(&config).expect("export CommitError");
     GitConfigIdentity::export_all(&config).expect("export GitConfigIdentity");
     SetGitIdentityRequest::export_all(&config).expect("export SetGitIdentityRequest");
+
+    BranchKind::export_all(&config).expect("export BranchKind");
+    BranchInfo::export_all(&config).expect("export BranchInfo");
+    BranchListRequest::export_all(&config).expect("export BranchListRequest");
+    BranchListResponse::export_all(&config).expect("export BranchListResponse");
+    BranchCreateRequest::export_all(&config).expect("export BranchCreateRequest");
+    BranchCheckoutRequest::export_all(&config).expect("export BranchCheckoutRequest");
+    BranchDeleteRequest::export_all(&config).expect("export BranchDeleteRequest");
+    BranchSwitchResult::export_all(&config).expect("export BranchSwitchResult");
+    BranchError::export_all(&config).expect("export BranchError");
+    SwitcherQueryRequest::export_all(&config).expect("export SwitcherQueryRequest");
+    SwitcherMatch::export_all(&config).expect("export SwitcherMatch");
+    SwitcherSearchResult::export_all(&config).expect("export SwitcherSearchResult");
 
     AppSettings::export_all(&config).expect("export AppSettings");
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
@@ -194,6 +210,18 @@ fn main() {
             "export type { CommitError } from \"./CommitError\";",
             "export type { GitConfigIdentity } from \"./GitConfigIdentity\";",
             "export type { SetGitIdentityRequest } from \"./SetGitIdentityRequest\";",
+            "export type { BranchKind } from \"./BranchKind\";",
+            "export type { BranchInfo } from \"./BranchInfo\";",
+            "export type { BranchListRequest } from \"./BranchListRequest\";",
+            "export type { BranchListResponse } from \"./BranchListResponse\";",
+            "export type { BranchCreateRequest } from \"./BranchCreateRequest\";",
+            "export type { BranchCheckoutRequest } from \"./BranchCheckoutRequest\";",
+            "export type { BranchDeleteRequest } from \"./BranchDeleteRequest\";",
+            "export type { BranchSwitchResult } from \"./BranchSwitchResult\";",
+            "export type { BranchError } from \"./BranchError\";",
+            "export type { SwitcherQueryRequest } from \"./SwitcherQueryRequest\";",
+            "export type { SwitcherMatch } from \"./SwitcherMatch\";",
+            "export type { SwitcherSearchResult } from \"./SwitcherSearchResult\";",
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
             "export type { ShellInfo } from \"./ShellInfo\";",

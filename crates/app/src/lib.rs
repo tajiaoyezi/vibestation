@@ -6,8 +6,9 @@
 mod fix_path_env;
 mod menu;
 
+use serde::Serialize;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -15,22 +16,35 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use vibestation_core::panes;
 use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
 use vibestation_core::{
-    pane_pty, pane_service, telemetry, AppSettings, AppSettingsStore, AppVersionInfo, CommitDetail,
-    DiffRequest, DiffResponse, DiffService, GitConfigIdentity, GitLogQueryRequest,
-    GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
+    branch_checkout as core_branch_checkout, branch_create as core_branch_create,
+    branch_delete as core_branch_delete, branch_list as core_branch_list,
+    branch_switcher_query as core_branch_switcher_query, pane_pty, pane_service, telemetry,
+    AppSettings, AppSettingsStore, AppVersionInfo, BranchCheckoutRequest, BranchCreateRequest,
+    BranchDeleteRequest, BranchError, BranchInfo, BranchListRequest, BranchListResponse,
+    BranchSwitchResult, CommitDetail, DiffRequest, DiffResponse, DiffService, GitConfigIdentity,
+    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
     GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
     GitStatusWatcher, LayoutApplyRequest, LayoutState, LayoutStore, PaneCloseRequest,
     PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
     PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
     SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
-    TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
-    WorkspaceStore,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
 
 const GIT_STATUS_CHANGED_EVENT: &str = "git_status:changed";
+const BRANCH_CHANGED_EVENT: &str = "git:branch-changed";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BranchChangedEvent {
+    workspace_id: String,
+    branches: Vec<BranchInfo>,
+    head: Option<String>,
+}
 
 struct AppState {
     pool: Mutex<Option<DbPool>>,
@@ -951,6 +965,116 @@ fn git_ops_set_identity(
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn branch_list(
+    state: State<'_, AppState>,
+    req: BranchListRequest,
+) -> Result<BranchListResponse, BranchError> {
+    let repo_path = branch_repo_path(&state, &req.workspace_id)?;
+    core_branch_list(&repo_path)
+}
+
+#[tauri::command]
+fn branch_create(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: BranchCreateRequest,
+) -> Result<(), BranchError> {
+    let repo_path = branch_repo_path(&state, &req.workspace_id)?;
+    let result = core_branch_create(&repo_path, req.clone());
+    match result {
+        Ok(()) => emit_branch_changed(&app, &req.workspace_id, &repo_path),
+        Err(error) => {
+            if req.checkout && branch_exists(&repo_path, &req.name) {
+                let _ = emit_branch_changed(&app, &req.workspace_id, &repo_path);
+            }
+            Err(error)
+        }
+    }
+}
+
+#[tauri::command]
+fn branch_checkout(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: BranchCheckoutRequest,
+) -> Result<BranchSwitchResult, BranchError> {
+    let repo_path = branch_repo_path(&state, &req.workspace_id)?;
+    let result = core_branch_checkout(&repo_path, req.clone())?;
+    emit_branch_changed(&app, &req.workspace_id, &repo_path)?;
+    Ok(result)
+}
+
+#[tauri::command]
+fn branch_delete(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: BranchDeleteRequest,
+) -> Result<(), BranchError> {
+    let repo_path = branch_repo_path(&state, &req.workspace_id)?;
+    core_branch_delete(&repo_path, req.clone())?;
+    emit_branch_changed(&app, &req.workspace_id, &repo_path)
+}
+
+#[tauri::command]
+fn branch_switcher_query(
+    state: State<'_, AppState>,
+    req: SwitcherQueryRequest,
+) -> Result<SwitcherSearchResult, BranchError> {
+    let repo_path = branch_repo_path(&state, &req.workspace_id)?;
+    core_branch_switcher_query(&repo_path, req)
+}
+
+fn branch_repo_path(
+    state: &State<'_, AppState>,
+    workspace_id: &str,
+) -> Result<PathBuf, BranchError> {
+    let guard = state
+        .pool
+        .lock()
+        .map_err(|e| branch_state_error(e.to_string()))?;
+    let pool = guard
+        .as_ref()
+        .ok_or_else(|| branch_state_error("database not initialized"))?;
+    let workspace = WorkspaceStore::get_by_id(pool, workspace_id)
+        .map_err(|e| branch_state_error(e.to_string()))?;
+    Ok(PathBuf::from(workspace.path))
+}
+
+fn emit_branch_changed(
+    app: &AppHandle,
+    workspace_id: &str,
+    repo_path: &Path,
+) -> Result<(), BranchError> {
+    let response = core_branch_list(repo_path)?;
+    app.emit(
+        BRANCH_CHANGED_EVENT,
+        BranchChangedEvent {
+            workspace_id: workspace_id.to_string(),
+            branches: response.branches,
+            head: response.head_name,
+        },
+    )
+    .map_err(|e| branch_state_error(e.to_string()))
+}
+
+fn branch_exists(repo_path: &Path, name: &str) -> bool {
+    core_branch_list(repo_path).is_ok_and(|response| {
+        response
+            .branches
+            .iter()
+            .any(|branch| branch.name == name && branch.kind == vibestation_core::BranchKind::Local)
+    })
+}
+
+fn branch_state_error(message: impl Into<String>) -> BranchError {
+    BranchError::Git2Error {
+        class: "AppState".to_string(),
+        code: -1,
+        message: message.into(),
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     let Some(window) = app.get_webview_window("main") else {
@@ -1100,6 +1224,11 @@ pub fn run() {
             git_ops_commit,
             git_ops_read_identity,
             git_ops_set_identity,
+            branch_list,
+            branch_create,
+            branch_checkout,
+            branch_delete,
+            branch_switcher_query,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,

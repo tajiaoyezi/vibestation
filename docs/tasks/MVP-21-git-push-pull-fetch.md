@@ -120,7 +120,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 - [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 12 个新 binding 见 §G.6）
 - [ ] fixture：`git_sync.rs` 内嵌单元测试用 `tempfile` crate 在测试 dir 创建 bare repo + working repo · 不依赖外部 GitHub repo（仿 SPIKE-04 §C 模式）
 - [ ] Tauri event：`git:push-progress` / `git:fetch-progress` / `git:operation-done` 三个 event 注册（payload 见 §G.7）
-- [ ] 复用 MVP-09 `CommitError::IdentityMissing` 模式 → 新 `NetworkOpError` enum（含 `AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / Git2Error` 9 个 variant）
+- [ ] 复用 MVP-09 `CommitError::IdentityMissing` 模式 → 新 `NetworkOpError` enum（含 `AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / StaleLease / SslError / Git2Error` **11 个 variant** · 以 §G.2 enum 完整定义为准）
 
 **下次 agent 起点**（spec 详化完后）：等 Arbiter approve PR · 翻 `ready`（同时按文件顶部 ID 冲突警告 rename）· 派 Phase A 实施 agent（首选 Codex / OpenCode 因 Phase A 涉及 git2 网络层细节 · Kimi 需要远程 prompt 附 spec 原文）。
 
@@ -566,7 +566,7 @@ MVP-21 实施前必须明确复用 / 新增边界：
 | `AuthMethod` | auth 枚举 · 含 payload tagged union | `import type { AuthMethod } from "../bindings/AuthMethod"` |
 | `AuthRequest` | auth modal 提交回调 · challenge-bound | `import type { AuthRequest } from "../bindings/AuthRequest"` |
 | `AuthChallenge` | 后端发起 auth 提示前广播（§G.1 · spec round 2 fix 加） | `import type { AuthChallenge } from "../bindings/AuthChallenge"` |
-| `NetworkOpError` | 错误枚举 · 含 payload tagged union（10 variant · 含 StaleLease + DirtyWorkingTree）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
+| `NetworkOpError` | 错误枚举 · 含 payload tagged union（**11 variant** · 含 AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / **StaleLease** / **SslError** / Git2Error · 以 §G.2 完整 enum 为准）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
 | `MergeConflictInfo` / `ConflictFile` | conflict 详情 · 2 binding | `import type { MergeConflictInfo, ConflictFile } from "../bindings/..."` |
 
 > 复用上游：`BranchInfo`（MVP-13）· `GitStatusResponse`（MVP-08 · 用于 PullRequest.frontend_status_snapshot · §H.4.1 race guard）· 实施时 bindings 目录新增约 **15 个** `.ts` 文件（ts-rs 每个 `#[derive(TS)]` 生成独立文件 · 实际数以 `cargo build` 后 `web/src/bindings/` 实际产物为准 · 不假设小 enum 被内联）。

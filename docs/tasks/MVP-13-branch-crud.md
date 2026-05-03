@@ -79,7 +79,7 @@ MVP-13 估时 **4d** · 拆 4 Phase 串行实施：
 | Phase A · git2 写路径后端 + IPC | branch_create / branch_checkout / branch_delete / branch_list 四组 IPC + ts-rs bindings + 单元测试（fixture: tempfile + git2::Repository::init）| ✅ done · PR #220 | #220 |
 | Phase B · Primary Sidebar 分支树 UI + 右键菜单 | 复用 design/directions/1-calm-studio.html 分支树结构 · 接 IPC · 右键菜单（New / Checkout / Delete）· dirty tree 提示对话框 | ✅ done · PR #222 | #222 |
 | Phase C · Fuzzy Switcher modal | `⌘B` keydown listener · BranchSwitcher 组件 · fuzzy 算法（subsequence 匹配 + 排序：current 置顶 / 最近 5 / 字母序）· Enter checkout 链路 | ✅ done · PR #224 | #224 |
-| Phase D · runtime 证据 + 性能量化 | 截图（CRUD 三大操作 · dirty tree 对话框 · Fuzzy Switcher）+ 性能量化（10 / 100 / 1000 branch fixture）放 `docs/runtime-evidence/mvp-13/` | ⏳ todo | — |
+| Phase D · runtime 证据 + 性能量化 | 截图（CRUD 三大操作 · dirty tree 对话框 · Fuzzy Switcher）+ 性能量化（10 / 100 / 1000 branch fixture）放 `docs/runtime-evidence/mvp-13/` | ✅ done · PR #226 | #226 |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动 · 复用 MVP-09 模式）：
 

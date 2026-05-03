@@ -1,0 +1,59 @@
+.vs-remote-selector-dialog {
+  width: min(500px, calc(100vw - 32px));
+}
+
+.vs-remote-selector-target {
+  margin: 0 0 var(--space-3);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.vs-remote-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.vs-remote-selector-row {
+  appearance: none;
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--bg-1);
+  color: var(--text-2);
+  padding: var(--space-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.vs-remote-selector-row:hover,
+.vs-remote-selector-row.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vs-remote-selector-row span {
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.vs-remote-selector-row small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-remote-selector-prune {
+  margin-top: var(--space-3);
+}

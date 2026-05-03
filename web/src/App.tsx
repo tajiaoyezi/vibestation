@@ -180,6 +180,12 @@ const LayoutShell: Component<{
     document.addEventListener("mouseup", onUp);
   };
 
+  const openGitStatusPanel = () => {
+    if (!layout().bottomOpen) {
+      dispatch({ kind: "toggle-bottom" });
+    }
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.defaultPrevented) return;
     if (e.target instanceof Element && e.target.closest(".vs-terminal-shell")) {
@@ -270,6 +276,7 @@ const LayoutShell: Component<{
           onResizeReset={() => dispatch({ kind: "reset-secondary" })}
           activeWorkspace={activeWorkspace}
           onOpenDiff={props.onOpenDiff}
+          onOpenGitStatus={openGitStatusPanel}
         />
 
         <ActivityStrip />

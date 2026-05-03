@@ -1,6 +1,7 @@
-# MVP-20 · PTY 预热池 · Runtime Evidence
+# MVP-22 · PTY 预热池 · Runtime Evidence
 
-> spec: [`docs/tasks/MVP-20-pty-warm-pool.md`](../../tasks/MVP-20-pty-warm-pool.md) · status: done
+> spec: [`docs/tasks/MVP-22-pty-warm-pool.md`](../../tasks/MVP-22-pty-warm-pool.md) · status: done
+> （历史：实施时 id 为 MVP-20 · session 23 rename 解 v1.0 占位 ai-one-click-rollback 同号冲突 · 详见 spec 顶部历史 comment）
 > 测量日期：2026-04-30
 > 测量环境：macOS 15.x · zsh + oh-my-zsh
 

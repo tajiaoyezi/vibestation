@@ -8,6 +8,7 @@ import {
   Switch,
   type Component,
 } from "solid-js";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   FileChange,
   FileStatusEvent,
@@ -173,6 +174,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
 
     let disposed = false;
     let unlisten: (() => void) | undefined;
+    let unlistenBranchChanged: UnlistenFn | undefined;
 
     void loadWorkspace(id);
 
@@ -208,9 +210,23 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
       }
     })();
 
+    void listen<{ workspaceId: string }>("git:branch-changed", (event) => {
+      if (event.payload.workspaceId !== id) {
+        return;
+      }
+      void loadWorkspace(id, "refresh");
+    }).then((stopListening) => {
+      if (disposed) {
+        stopListening();
+        return;
+      }
+      unlistenBranchChanged = stopListening;
+    });
+
     onCleanup(() => {
       disposed = true;
       unlisten?.();
+      unlistenBranchChanged?.();
       void unsubscribeGitStatus(id);
     });
   });

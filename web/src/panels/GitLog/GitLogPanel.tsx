@@ -7,6 +7,7 @@ import {
   For,
   Show,
 } from "solid-js";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   GitLogEntry,
   GitLogQueryRequest,
@@ -184,6 +185,35 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
 
   onCleanup(() => {
     store.clearCache();
+  });
+
+  createEffect(() => {
+    const wid = workspaceId();
+    if (!wid || !hasGit()) {
+      return;
+    }
+
+    let disposed = false;
+    let unlisten: UnlistenFn | undefined;
+
+    void listen<{ workspaceId: string }>("git:branch-changed", (event) => {
+      if (event.payload.workspaceId !== wid) {
+        return;
+      }
+      store.clearCache();
+      void store.load(wid);
+    }).then((stop) => {
+      if (disposed) {
+        stop();
+        return;
+      }
+      unlisten = stop;
+    });
+
+    onCleanup(() => {
+      disposed = true;
+      unlisten?.();
+    });
   });
 
   const handleScroll = () => {

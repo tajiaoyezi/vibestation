@@ -1,5 +1,6 @@
 import { type Component, Show, For } from "solid-js";
 import type { WorkspaceMetadata } from "../App";
+import { BranchTree } from "../panels/BranchTree/BranchTree";
 
 interface PrimarySidebarProps {
   workspaces: () => WorkspaceMetadata[];
@@ -100,6 +101,7 @@ export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
             </button>
           </Show>
         </Show>
+        <BranchTree activeWorkspace={props.activeWorkspace} />
       </div>
       <div
         class="vs-resize-handle vs-resize-handle-e"

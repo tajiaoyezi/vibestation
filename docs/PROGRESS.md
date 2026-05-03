@@ -15,7 +15,7 @@
 | **Latest commit**         | 见 `git log --oneline -1`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —             |
 | **Worktree status**       | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | —             |
 | **Unpushed branches**     | 见 `git branch -vv`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —             |
-| **Next concrete action**  | **session 21 收口 · v0.1.0-alpha 双平台已发 + v0.1.1 双批 fix 已收**（4 merged PR + 7 admin direct push · session 21 详见上方展开段 + [session-21.md](./session-history/session-21.md)）· **当前所有 v0.1 主线代码 100% 收官** · **剩余 GUI 截图任务**（Arbiter 本地 1 小时一次性 · 完成后所有 spec frontmatter status 翻 done）：(1) MVP-04 §I 22 张截图 + 2 段 30s 录屏（cargo test 7 PASS / 15 ignore-runtime 已就位）· (2) MVP-05 Phase D `metrics-mvp-05.md` 实测 + 4-7 张 pane split + memory.sh 量化（capture-phase-d.sh 已就位）· (3) MVP-09 Phase D runtime（stage/commit 流程截图 · 性能数据已 done by PR #156）· (4) MVP-10 §F.04 0 outbound DevTools network panel（CLI 完全不能 · 必须 Arbiter）· **主 worktree 本地 cleanup**（5 分钟 · `git checkout main && git branch -D fix/v0.1.1-modal-close-white-border` · session 21 PR #187 close 后留给用户）· **session 22 audit 项**：admin override 模式 7 direct push 是否需要 retroactive trailer 或显式声明 v2-D.1 admin 豁免条款 · **off-mainline**：MVP-10 Phase C macOS notarize **推 v0.2**（Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式替代）· SPIKE-06 §B Apple Dev **推 v0.2** · GitHub Actions billing 恢复（v0.1 GA 后评估升级 GitHub Pro 或公开仓 · branch protection 一并启用） | session end   |
+| **Next concrete action**  | **session 23 收口 · MVP-05 lifecycle + 2 ID rename + Phase D playbook 全 done**（6 merged PR · 详见上方展开段）· **当前所有 v0.1 主线代码 100% 收官**（PR #208 lifecycle 收尾 + PR #211 capture playbook ready）· **剩余 Arbiter GUI 收口任务**（本地 1 小时一次性 · 完成后所有 spec frontmatter status 翻 done）：(1) **MVP-05 Phase D capture**（30-45 min · 跑 [`docs/runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md`](./runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md) · 14 PNG + 1 MOV + metrics 填值 · 主 agent 之后开 done PR）· (2) MVP-04 §I 22 张截图 + 2 段 30s 录屏（cargo test 7 PASS / 15 ignore-runtime 已就位）· (3) MVP-09 Phase D runtime（stage/commit 流程截图 · 性能数据已 done by PR #156）· (4) MVP-10 §F.04 0 outbound DevTools network panel（CLI 完全不能 · 必须 Arbiter）· **session 22 audit 项 deferred**：admin override 模式 7 direct push 是否需要 retroactive trailer 或显式声明 v2-D.1 admin 豁免条款（session 22+23 未触发 · 暂搁置 · GitHub Actions billing 恢复后再评估）· **off-mainline**：MVP-10 Phase C macOS notarize **推 v0.2**（Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式替代）· SPIKE-06 §B Apple Dev **推 v0.2** · v0.2 任务启动（MVP-21 Git Push/Pull/Fetch · spec ready 候选 · 详化后下发） | session end   |
 | **Blocked by**            | **无 v0.1 GA blocker**（session 20 · 2026-04-26 决策 · v0.1 alpha 改 unsigned 模式 · SPIKE-06 §B Apple Dev Program 推 v0.2 · README + Release notes 写明 macOS Gatekeeper bypass 指引）· SPIKE-01/02 Phase B Ubuntu validated（PR #137-#139 · ADR-006 解除 caveat）                                                                                                                                                                                                                                                                                                                                                                                                                | 阻塞变化      |
 | **Missing infra**         | 无（v0.1 GA 双平台已就位 · macOS unsigned + Linux deb/AppImage）· Apple Developer Program 推 v0.2（不阻塞 v0.1 alpha · v0.2 升级触发条件见 MVP-10 §I.D）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Phase 完成时  |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ✅ Ubuntu 24 LTS（已就位 · session 19 PR #137-#139）· ⏳ Apple Dev（推 v0.2 · v0.1 alpha unsigned 模式不依赖）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 新账号/工具时 |
@@ -25,10 +25,39 @@
 
 ## 📍 当前位置
 
-**阶段**：session 21 收口 · **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26）· **v0.1.1 实测双批 fix 已收**（admin direct push `2c1044a` 23 文件 + PR #186 17 commits squash · 2026-04-28~29 · GitHub Actions billing 暂停触发首次大规模 admin override 模式）· PR #187 主 worktree dangling history 验证 close（26 commits net effect 已通过 admin push + PR #186 双路径全部进入 main · no-op merge）· **session 20 已归档至 session-20.md** · `MVP-04` Phase D shell 兼容 done（含 v0.1.1 自动检测 fix）· `MVP-05` Phase A/B/C 全 done · Phase D runtime capture 待 Arbiter · `MVP-08` Phase A/B/C/D 全 done · Phase E v0.2 deferred · `MVP-09` Phase A/B/C/D 性能 done · runtime 截图待 GUI capture · `MVP-10` Phase A/B 全 done（Sentry SDK + opt-in modal + endpoint UI + theme realtime + clipboard plugin + Settings 状态栏入口 + shell dropdown）· **Phase D Linux AppImage 实测 done（PR #174 · §E.1-§E.3 全过）· Phase E §F.5 SECURITY.md + §F.6 privacy-policy.md done（PR #171 session 20）+ unsigned 模式 README Gatekeeper bypass 指引 done（PR #175）· §F evidence 3/4 done · 仅 §F.04 DevTools 待 Arbiter** · `MVP-11` Native Feel Quality 全 done · 5/5 phase · 15 ADR（含 ADR-015 accepted）· v2-D.1 规则稳态运行 · session 21 admin override 模式触发 v2-D.1 trailer 合规率回落（4/12 update 有 trailer · 7 direct push 无 · session 22 audit 项）
-**日期**：2026-04-29（session 21 收口 · 跨 4-26~04-29 共 4 天 · session 20 已归档至 session-20.md · 团队 = 主 agent + Arbiter admin override + dependabot auto · 无远程 agent / 多 agent 并发）
+**阶段**：session 23 收口 · **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26 session 21）· **session 22 MVP-22 (PTY warm pool · ex-MVP-20) 全 5 phase done** · 解 user 痛点"新 tab 启动卡 1-2 秒"（cold spawn 800-1200ms → warm hit 0.09ms backend / 估 ~30-50ms · 提速 ~15-25 倍）· **session 23 MVP-05 lifecycle PR #208 多轮 codex review 收敛 4 不变量**（caller-side terminate / serialize / paste guard / focus restore）· 升级全局 rule 18 systemic-fix-after-review · sink memory 沉淀 5 类认知盲点 · **2 ID 冲突清理**（MVP-11 → MVP-21 / MVP-20 → MVP-22 · v0.2/v1.0 启动前清空命名空间）· **MVP-05 Phase D capture playbook ready**（4 轮 codex 抽象 14 invariant + §7 BLOCK gate · Arbiter 30-45 min 一次性收口能力解锁）· **session 21 已归档至 session-21.md** · **MVP 状态汇总**：MVP-04 Phase D shell 兼容 done（含 v0.1.1 自动检测 fix）· MVP-05 Phase A/B/C 全 done · Phase D capture 待 Arbiter（playbook ready）· MVP-08 Phase A/B/C/D 全 done · Phase E v0.2 deferred · MVP-09 Phase A/B/C/D 性能 done · runtime 截图待 GUI capture · MVP-10 Phase A/B 全 done · §F.04 DevTools 待 Arbiter · MVP-11 Native Feel Quality 全 done · MVP-22 PTY warm pool 全 done（session 22）· 15 ADR（含 ADR-015 accepted）· v2-D.1 规则稳态 · session 22+23 trailer 合规率 100%
+**日期**：2026-05-03（session 23 收口 · 跨 5-02~05-03 共 2 天 · 团队 = 主 agent + 多轮 codex adversarial review · 无远程 agent / 多 agent 并发）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
+
+### Session 23（2026-05-02 ~ 05-03 · MVP-05 lifecycle 收口 + 2 ID 冲突清理 + Phase D playbook · 主 agent 主导 + 多轮 codex review）
+
+**最大成果**：(1) PR #208 多轮 codex review 收敛 4 条 pane lifecycle 不变量（caller-side terminate before delete / serialize 期间 pty 不漏 unmount / paste guard mount-time 装 / focus restore 在 dispose 之后）· session 22 末 PTY 预热池上线后暴露的 reload race 缓解 + paste guard 闭合 · (2) v0.2 / v1.0 启动前清理两个 spec ID 冲突（MVP-11 → MVP-21 / MVP-20 → MVP-22 · 双历史 footnote）· (3) MVP-05 Phase D capture playbook 4 轮 codex adversarial review 抽象 14 invariant + §7 BLOCK gate 自验证脚本 · 解锁 Arbiter 30-45 min 一次性收口能力。
+
+#### 6 PR merged（lifecycle fix → ActivityStrip dedupe → 2 ID rename → playbook → housekeeping）
+
+- **PR #207** · MVP-11 ActivityStrip 按钮悬停提示对齐（fix/MVP-11-tooltip-mismatch · 微调 · 主 agent）· session 22 末 admin override fix 残余收口
+- **PR #208** · MVP-05 pane lifecycle + serialize 缓解 reload + paste guard 闭合（fix/MVP-05-pane-lifecycle · 多轮 codex adversarial review 收敛）· **关键**：抽象 4 条不变量 · 见全局 rule 18 升级（systemic-fix-after-review · grep same-pattern callers · 不只补 patch）· 全局 memory `feedback_pr208-multiround-review-postmortem.md` 沉淀 5 类认知盲点
+- **PR #209** · refactor(ui): 删除 ActivityStrip 重复 Workspaces 入口 · 释放 ⌘1（refactor/activity-strip-dedupe · 主 agent）· UX 整理 · ⌘1 资源未来留给真实"主面板/欢迎页"
+- **PR #210** · MVP-11 (Git Push/Pull/Fetch) → MVP-21 rename · 解 v0.1 同号冲突（chore/rename-mvp11-to-mvp21）· v0.1 已发版的 MVP-11 是 Native Feel Quality · 占用同号 · v0.2 Git Push/Pull/Fetch 必须重编 · 18 个 self-reference 全替换 + 历史 comment + footnote
+- **PR #211** · MVP-05 Phase D capture playbook · Arbiter 30-45 min 收口指南（docs/MVP-05-phase-D-capture-playbook · +920 行 4 轮 fix 后稳态）· **过程**：4 轮 codex adversarial review 抽象 14 invariant（I1-I14）· 重要发现：playbook 抽象层不像代码 lifecycle bug 有有限 caller 集 · 每轮 codex 推更深一层 · 第 4 轮决定按 "perfect is enemy of good" 接受当前 14 invariant 为 good-enough · 见 §7 BLOCK gate 验证脚本 + F.1 公式（MAIN_BASELINE + 39 × MAIN_PER_PANE_DELTA + 40 × PER_PANE_SHELL_AVG）
+- **PR #212** · session 23 housekeeping · MVP-05 状态对齐 + MVP-20 → MVP-22 rename（chore/session-23-housekeeping）· 2c README MVP-05 行 in-progress → ready · 2b MVP-20 PTY warm pool 占用 v1.0 ai-one-click-rollback 同号 · 解冲突 rename 至 MVP-22 · spec frontmatter id + L89 runtime evidence 路径 + 5 个 mvp-20 → mvp-22 git mv
+
+#### 关键决策与方法论
+
+- **Codex 多轮 adversarial review 收敛差异**：抽象层不变量收敛 vs 代码 caller 集收敛差异显著
+  - 代码层（PR #208 lifecycle）4 轮收敛 finite caller set · 完美闭合
+  - 抽象层（PR #211 playbook）每轮 codex 推更深一层 · 无穷退而求其次需主动判断 good-enough 边界
+  - option B "merge + last-mile validation" 替代无限迭代 · 接受 14 invariant 作为可发布版本
+- **ID 冲突清理批次**：MVP-21 + MVP-22 两次 rename 在同 session 完成 · 清理 v0.1 → v0.2 / v1.0 转期 spec 命名空间冲突 · 后续新 spec 命名前需 grep 历史避免重复
+- **MVP-05 spec done 翻转 unblock**：Phase D capture playbook ready 后 · 唯一未完成项变成 Arbiter 30-45 min 本地 GUI capture · 主 agent 之后开 done PR
+
+#### 协作模式：主 agent + Codex 多轮 adversarial review
+
+- 主 agent（Claude Code）：所有实施 + spec / playbook 起草 + 多轮 codex finding 修复
+- Codex CLI（adversarial-review）：PR #208 + #211 共 7 轮深度审查 · 每轮 1-3 finding · 强制抽象层和代码层都要有不变量
+- Kimi / OpenCode / 其他远程：本 session 未启用
+- v2-D.1 trailer 合规率 100%（6/6 PR）· admin override 模式不再触发
 
 ### Session 22（2026-04-30 · MVP-20 PTY 预热池 全 5 phase · 1 day · Codex CLI fast 主导 + 主 agent 协调）
 
@@ -56,48 +85,13 @@
 - Kimi（Moonshot 远程 API）：spec review only · 5 维度 · 20 min 出 review
 - v2-D.1 trailer 合规率回升 100%（5/5 PR + Phase D PR · admin override 模式停用）
 
-
-
-#### 1 · v0.1.0 GA 发布配套（3 PR · 2026-04-26）
-
-- **PR #173**：CHANGELOG v0.1.0 release + PROGRESS M-2 滚动归档（chore/changelog-progress-m2 · +79/-393）· Claude Code 主 agent
-- **PR #174**：MVP-10 Phase D Linux AppImage 实测 · §E.1-§E.3 全过（feat/MVP-10-phase-D-linux-appimage · +41/-2）· deb 5.5 MB / AppImage 78 MB · 双格式产物可装 · v0.1 GA Linux 路径解锁
-- **PR #175**：unsigned 模式决策 · macOS notarize 推 v0.2 + README Gatekeeper bypass 指引（docs/v0.1-unsigned-deferred-notarize · +86/-19）· v0.1 alpha 不依赖 Apple Developer Program $99/year + 2-2 周审批 · 用户首次启动右键 → 打开走 Gatekeeper override
-
-#### 2 · GitHub Actions billing 暂停 → admin override 模式启用（7 direct pushes · 2026-04-28）
-
-**首次大规模 admin direct push** · 触发原因：GitHub Actions billing 暂停 · PR-level CI 完全无法运行 · 走 PR 流程没意义 · Arbiter 切 admin override 模式直推 main。
-
-- **`2c1044a`** · `fix(v0.1.1): MVP-04/05/10/11 UX 修复批（本地 CI 全过）` · Arbiter（Leafile Lune）admin direct push · 23 文件 / +1054 / -123 · 含 clipboard plugin 集成 · 全局 cmd+C/V/A/X · Settings 状态栏入口 · shell dropdown /etc/shells 动态读取 + 白名单 · Settings IPC permission 声明 · Icons.tsx GearIcon SVG 组件 · TabBar/Terminal/PaneTerminal/TerminalPane 视觉补强 · commit body 标注"GitHub Actions billing 暂停，CI 无法跑"作为 implicit Arbiter approval（不规范但实务可接受）
-- **6 dependabot bumps** auto direct push（`7697b8b` actions/upload-artifact 4→7 · `a9336ff` libc 0.2.186 · `347140a` plist 1.9 · `492c283` minor-updates group 4 个 · `93a1317` sha2 0.11 · `739da3d` vite 8.0.10 dev）
-
-#### 3 · v0.1.1 Linux 实测 bug 修复批（PR #186 · 2026-04-29 squash merge）
-
-- **PR #186 · `2c01a53`** · v0.1.1 Linux 实测 bug 修复批（fix/v0.1.1-linux-transparent-theme-align · +326/-141 · 17 commits squash · `mergeStateStatus: CLEAN`）· 默认 shell 自动检测 / migration v2/v3 ALTER TABLE 兼容 / 透明窗口修复 / Unicode → SVG 跨平台对齐 / 终端字体栈（DejaVu Sans Mono / Ubuntu Mono / Liberation Mono fallback）/ telemetry modal 等 dbReady 后再显示 / WebGL addon dispose 顺序 / sha2 0.11 API migration（LowerHex → manual hex fold · 配合 dependabot bump）/ Cargo.lock regenerate · Claude Code 主 agent
-
-#### 4 · PR #187 主 worktree dangling history 验证 close（2026-04-29 本 session 操作）
-
-主 worktree branch `fix/v0.1.1-modal-close-white-border`（HEAD `803fde2` · 26 commits ahead of main）的处置。
-
-- **PR #187 · CLOSED no-op**（fix/v0.1.1-modal-close-white-border · +1054/-123 · 26 commits）· **关键发现**：在临时 branch 上 `git merge --squash` + 解 3 conflict（App.tsx GearIcon vs `⚙` Unicode · styles.css 11px vs 12px · Cargo.lock dependabot bumps vs clipboard plugin · 全部取 main 版本）后 · `git diff origin/main` = **0 行** · 26 commits 的 net effect 已通过两条路径全部进入 main：(a) `2c1044a` admin direct push 含 clipboard / Settings 入口 / shell dropdown / Icons.tsx · (b) PR #186 含 Linux 透明 / Unicode → SVG / shell 自动检测 / 字体栈 / sha2 migration · **主 worktree 26 commits 是用户本地迭代历史 · dangling**
-- 处置：`gh pr close 187 --delete-branch` + 主 agent 手动 `git push origin --delete fix/v0.1.1-modal-close-white-border`（gh 因主 worktree checkout 限制未自动删 · 主 agent 补）· 主 worktree 本地 cleanup 留给用户（不能跨 worktree force-checkout 别人在用的 branch）
-
-#### 5 · 协作模式变化：v2-D.1 trailer 合规率回落（admin override 模式副作用）
-
-| Update 形式 | 数量 | trailer 合规 |
-|---|---|---|
-| Merged PR | 4（#173/#174/#175/#186）| 100% |
-| Closed PR | 1（#187）| 100% |
-| Admin direct push | 1（`2c1044a`）| ⚠️ 无 trailer · commit body 写 "GitHub Actions billing 暂停 CI 无法跑" |
-| Dependabot direct push | 6 | ⚠️ 无 trailer · auto-merge 标准行为 |
-
-session 22 audit 项：是否补 7 direct push 的 retroactive PR trailer / 或显式声明 admin override 模式下 trailer 豁免（更新 v2-D.1 ADR）。
+> **Session 21**（PR #173-#187 · v0.1.0 GA 发布配套 + GitHub Actions billing admin override 触发首次大规模 7 direct push + v0.1.1 双批 fix + PR #187 主 worktree dangling history close）已归档至 [`docs/session-history/session-21.md`](./session-history/session-21.md)。
 
 > **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/session-history/session-20.md`](./session-history/session-20.md)。
 
 > **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/session-history/session-19.md`](./session-history/session-19.md)。
 
-> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 21 · session 18/19/20 已归档至 `docs/session-history/`）。
+> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 22 + 23 · session 18/19/20/21 已归档至 `docs/session-history/`）。
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -339,6 +333,8 @@ session 22 audit 项：是否补 7 direct push 的 retroactive PR trailer / 或�
 | **19** | 2026-04-25 | **#117-#152** | MVP-11 全 done + MVP-05 Pane 落地 + ADR-006 Ubuntu validated + branch protect 机械化 · 史上最高产 36 PR | [`session-19.md`](./session-history/session-19.md) |
 | **20** | 2026-04-26 | **#152-#172** | MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix + dispatch §2.13/§2.14 教训规则化 | [`session-20.md`](./session-history/session-20.md) |
 | **21** | 2026-04-26 ~ 04-29 | **#173-#187** | v0.1.0 GA 发布配套 + Phase D Linux AppImage 实测 + GitHub Actions billing 暂停触发首次 admin override 模式 + v0.1.1 双批 fix（admin push + PR #186）+ PR #187 主 worktree dangling history 验证 close | [`session-21.md`](./session-history/session-21.md) |
+| **22** | 2026-04-30 | **#189-#193** | MVP-22（ex-MVP-20）PTY 预热池全 5 phase · 1 day · Codex CLI fast 主导 + 主 agent 协调 · 解 user "新 tab 卡 1-2s" 痛点（提速 ~15-25 倍）· Kimi 远程 review · v2-D.1 trailer 100% | git log（session 23 末归档时合并） |
+| **23** | 2026-05-02 ~ 05-03 | **#207-#212** | MVP-05 lifecycle + 2 ID 冲突清理（MVP-21 / MVP-22）+ Phase D capture playbook · 4 轮 codex review 抽象 14 invariant · 全局 rule 18 升级（systemic-fix-after-review）+ memory `feedback_pr208-multiround-review-postmortem.md` | 本 PROGRESS 展开 · 待归档 |
 
 ### 跨 session 关键里程碑
 
@@ -352,6 +348,10 @@ session 22 audit 项：是否补 7 direct push 的 retroactive PR trailer / 或�
 - **CRITICAL bug rescue · v0.1 GA blocker**：session 20 · PR #161 · modal mount-time webview 虚假 click guard
 - **v0.1.0-alpha 双平台发布**：session 21 · 2026-04-26 · macOS .dmg unsigned + Linux .deb / .AppImage（PR #173/#174/#175）· README Gatekeeper bypass 指引 · macOS notarize 推 v0.2
 - **首次 admin override 模式**：session 21 · 2026-04-28 · GitHub Actions billing 暂停 · 7 direct push to main（1 v0.1.1 fix + 6 dependabot bumps）· v2-D.1 trailer 合规率因此回落 · session 22 audit 项
+- **MVP-22 PTY 预热池全 done**：session 22 · 2026-04-30 · 1 day 5 PR · 解 user "新 tab 卡 1-2s" 痛点 · cold spawn 800-1200ms → warm hit 0.09ms backend / 估 ~30-50ms 用户感知 · 提速 ~15-25 倍 · Codex CLI fast 5x 提速（spec 估 8-10h · 实际 2.5h）
+- **PR #208 多轮 codex review 收敛**：session 23 · 2026-05-02 · MVP-05 pane lifecycle 4 不变量沉淀 · 全局 rule 18 升级 systemic-fix-after-review · 全局 memory `feedback_pr208-multiround-review-postmortem.md` 沉淀 5 类认知盲点
+- **MVP-05 Phase D capture playbook ready**：session 23 · 2026-05-03 · 4 轮 codex adversarial review 抽象 14 invariant + §7 BLOCK gate · Arbiter 30-45 min 一次性收口 · v0.1 GA 路径上唯一剩的 GUI capture 任务解锁
+- **2 ID 冲突清理批次**：session 23 · MVP-11 → MVP-21（v0.2 Git Push/Pull/Fetch）· MVP-20 → MVP-22（PTY warm pool）· 双 footnote 历史 trace · v0.2/v1.0 启动前清空命名空间冲突
 
 ---
 

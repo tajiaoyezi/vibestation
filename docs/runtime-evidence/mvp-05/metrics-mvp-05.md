@@ -25,14 +25,25 @@
 
 跑法见 CAPTURE-PLAYBOOK.md §3 · 关键：测 4 pane fixture 的 per-pane shell RSS · 推算 40 PTY = main + per_pane_avg × 40。
 
-**实测**（待填 · 替换原"Run 1/2/3 总 MB"为下表）：
+**实测**（待填 · 替换原"Run 1/2/3 总 MB"为下表 · I6 含 raw PID 列）：
 
-| Run | MAIN_RSS_MB | 4 pane 总 shell RSS | PER_PANE_AVG | 推算 40 PTY = MAIN + PER_PANE × 40 |
+| Run | MAIN_PID + RSS | 4 pane shell PID + RSS（必须正好 4 个 main app spawn child）| PER_PANE_AVG | 推算 40 PTY = MAIN + PER_PANE × 40 |
 |---|---|---|---|---|
-| 1 | ___ | ___ | ___ | ___ MB |
-| 2 | ___ | ___ | ___ | ___ MB |
-| 3 | ___ | ___ | ___ | ___ MB |
+| 1 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
+| 2 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
+| 3 | PID ___ · ___ MB | PID ___:___MB / ___:___MB / ___:___MB / ___:___MB | ___ | ___ MB |
 | **P99** | — | — | — | **___ MB** |
+
+**I6 input 验证**（每 run 必填 · 确认 4 PID 都是 vibestation app spawn）：
+
+```
+Run 1 pgrep -P MAIN_PID 输出（应正好 4 行）：
+___
+Run 2 同：
+___
+Run 3 同：
+___
+```
 
 通过条件：**P99 推算 40 PTY total < 500MB** · spec §F.1 真实 budget。
 
@@ -133,6 +144,8 @@ session 19 末仪表化完成 · 实际跑 + 填数字留 Arbiter 本地（约 3
 | `11-ai-runner-confirm-result.png` | AI+Runner 降级 + 50/50 结果（§5.5.5 · mandatory I2）| 🟡 |
 | `12-single-level-toast.png` | 单层上限 toast · spec 文案 verbatim（A.4 · mandatory I4 步骤化）| 🟡 |
 | `13-focus-bottom-left.png` | click 左下 pane 后 focus 边框高亮（E.1 · mandatory I4 步骤化）| 🟡 |
+| `14-solo-confirm-ui-result.png` | Solo confirm 后 UI 截图 · 1 pane + 保留 history（§5.5.3 · mandatory I8 · Codex round 2 finding 4 fix）| 🟡 |
+| `15-sole-pane-close-tab.png` | sole-pane close 触发前后（A.3.2 · mandatory I7 · Codex round 2 finding 3 fix · 含 before/after 标注）| 🟡 |
 
 跑：`bash scripts/capture/mvp-05/capture-phase-d.sh`
 
@@ -146,3 +159,92 @@ session 19 末仪表化完成 · 实际跑 + 填数字留 Arbiter 本地（约 3
 - 仪表化代码：`web/src/panels/Terminal/Terminal.tsx` handlers F.4 / F.5 / F.6
 - 测量脚本：`scripts/capture/mvp-05/measure-memory.sh` · `scripts/capture/mvp-05/capture-phase-d.sh`
 - ADR-011 runtime evidence location · `docs/runtime-evidence/mvp-05/` 进 git
+
+---
+
+## §A · 分屏行为验证（Codex round 2 finding 3 · I7 · 真证 spec acceptance）
+
+### A.1 ⌘\ 右分屏 + 继承父 shell + cwd
+
+```
+PARENT (在 split 前 pane 跑 cd /tmp && echo PARENT pwd=$(pwd) shell=$SHELL):
+___
+
+CHILD (split 后新 pane 跑 echo CHILD pwd=$(pwd) shell=$SHELL):
+___
+
+判定：
+- pwd 一致：____ (yes/no)
+- shell 一致：____ (yes/no)
+- A.1 PASS / FAIL
+```
+
+### A.2 ⌘⇧\ 下分屏 + 继承
+
+```
+PARENT: ___
+CHILD: ___
+判定：
+- pwd 一致：____
+- shell 一致：____
+- A.2 PASS / FAIL
+```
+
+### A.3 ⌘⌃W 关 pane
+
+#### A.3.1 多 pane 关单 pane（4 → 3）
+
+```
+触发前：4 panes 2×2 · focus 右下
+⌘⌃W 后期望：3 panes 剩 · tab 仍存
+实测：____ (PASS / FAIL · 描述)
+```
+
+#### A.3.2 sole-pane close → tab close（spec §A.3 关键 acceptance）
+
+```
+触发前：⌘⇧P → Solo · 1 pane + 1 tab
+⌘⌃W 后期望：tab 关闭（按 spec §A.3 描述行为）
+实测：____ (PASS / FAIL · 描述 tab 是否真关 / 是否自动新 tab / 是否 app 行为符合 spec)
+截图：15-sole-pane-close-tab.png（含 before/after）
+```
+
+---
+
+## §5.5.3 · Solo confirm process check（Codex round 2 finding 4 · I8 · 直接 evidence）
+
+```
+confirm 后 ps 检查：
+$ ps aux | grep -E "vim /tmp/mvp05|nano /tmp/mvp05" | grep -v grep
+___（应空 · 即 vim/nano process 真被 kill）
+
+判定：vim/nano kill confirmed (yes/no) → ____
+```
+
+---
+
+## §D.4 · 比例持久化重启验证
+
+```
+重启前比例：水平 splitter ____ % / ____ % · 垂直 splitter ____ % / ____ %
+重启后比例：水平 ____ / ____ · 垂直 ____ / ____
+判定：D.4 PASS / FAIL
+```
+
+## §E.2 · 仅 focus pane 收 keydown
+
+```
+4 pane 都 clear 后 · click 左上 focus · 输入 echo from-top-left
+其他 3 pane 屏幕：（应完全干净 · 无字符泄漏）
+___
+判定：E.2 PASS / FAIL
+```
+
+## §E.3 · yes 持续输出 · 切 focus 不打断
+
+```
+步骤 3 行数（focus 切走前）: ____ lines
+步骤 5 行数（focus 切回后）: ____ lines
+增长率: (步骤 5 - 步骤 3) / 5s vs 之前 rate · ___ %
+判定：E.3 PASS / FAIL（≥ 80% rate 才 PASS）
+```

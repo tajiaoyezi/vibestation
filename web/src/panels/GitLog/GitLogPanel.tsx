@@ -52,6 +52,10 @@ import {
 } from "../../dialogs/ForcePushDialog/ForcePushDialog";
 import { PullConflictDialog } from "../../dialogs/PullConflictDialog/PullConflictDialog";
 import { RemoteSelector } from "../../dialogs/RemoteSelector/RemoteSelector";
+import {
+  useRemoteSyncStatus,
+  type RemoteSyncHighlightRequest,
+} from "../../stores/remote-sync-status";
 
 export interface GitLogPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
@@ -122,6 +126,10 @@ interface PendingConflict {
   remote: string;
   branch: string;
   files: ConflictFile[];
+}
+
+interface ActiveLogHighlight extends RemoteSyncHighlightRequest {
+  targetSha: string | null;
 }
 
 const GIT_PUSH_PROGRESS_EVENT = "git:push-progress";
@@ -257,10 +265,15 @@ export type GitLogStore = ReturnType<typeof createGitLogStore>;
 
 export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const store = createGitLogStore();
+  const remoteSync = useRemoteSyncStatus();
   let scrollContainer: HTMLDivElement | undefined;
   let panelRoot: HTMLDivElement | undefined;
+  const entryRefs = new Map<string, HTMLButtonElement>();
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let closeProgressTimer: ReturnType<typeof setTimeout> | undefined;
+  let highlightTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastHighlightRequestId = 0;
+  let lastScrolledHighlightId = 0;
 
   // detail 区高度 · 可拖动 · 记忆到组件实例上 · 关掉 detail 再打开仍保留
   const [detailHeight, setDetailHeight] = createSignal(280);
@@ -278,6 +291,8 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const [pullConflict, setPullConflict] = createSignal<PendingConflict | null>(
     null,
   );
+  const [logHighlight, setLogHighlight] =
+    createSignal<ActiveLogHighlight | null>(null);
 
   const startResize = (e: PointerEvent) => {
     e.preventDefault();
@@ -954,6 +969,9 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     if (closeProgressTimer) {
       clearTimeout(closeProgressTimer);
     }
+    if (highlightTimer) {
+      clearTimeout(highlightTimer);
+    }
   });
 
   createEffect(() => {
@@ -983,6 +1001,59 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
       disposed = true;
       unlisten?.();
     });
+  });
+
+  createEffect(() => {
+    const request = remoteSync.highlightRequest();
+    const wid = workspaceId();
+    if (
+      !request ||
+      request.id === lastHighlightRequestId ||
+      request.workspaceId !== wid ||
+      !hasGit()
+    ) {
+      return;
+    }
+
+    lastHighlightRequestId = request.id;
+    setLogHighlight({ ...request, targetSha: null });
+    store.clearCache();
+    void store.load(wid, true);
+  });
+
+  createEffect(() => {
+    const highlight = logHighlight();
+    const entries = store.entries();
+    if (
+      !highlight ||
+      entries.length === 0 ||
+      lastScrolledHighlightId === highlight.id
+    ) {
+      return;
+    }
+
+    const targetSha = resolveHighlightTarget(highlight, entries);
+    if (!targetSha) {
+      return;
+    }
+
+    lastScrolledHighlightId = highlight.id;
+    setLogHighlight({ ...highlight, targetSha });
+    requestAnimationFrame(() => {
+      entryRefs.get(targetSha)?.scrollIntoView({
+        block: "center",
+        behavior: "smooth",
+      });
+    });
+
+    if (highlightTimer) {
+      clearTimeout(highlightTimer);
+    }
+    highlightTimer = setTimeout(() => {
+      setLogHighlight((current) =>
+        current?.id === highlight.id ? null : current,
+      );
+    }, 4500);
   });
 
   const handleScroll = () => {
@@ -1094,6 +1165,16 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
           <div class="vs-git-log-error">{store.error()}</div>
         </Show>
 
+        <Show when={logHighlight()}>
+          {(highlight) => (
+            <div
+              class={`vs-git-log-highlight-note is-${highlight().direction}`}
+            >
+              {logHighlightMessage(highlight())}
+            </div>
+          )}
+        </Show>
+
         <div
           class="vs-git-log-list"
           ref={scrollContainer}
@@ -1104,9 +1185,26 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
             fallback={<div class="vs-git-log-loading">Loading...</div>}
           >
             <For each={store.entries()}>
-              {(entry) => (
+              {(entry, index) => (
                 <button
-                  class={`vs-git-log-entry ${store.selectedSha() === entry.shortSha ? "vs-git-log-entry-selected" : ""}`}
+                  ref={(el) => entryRefs.set(entry.shortSha, el)}
+                  class="vs-git-log-entry"
+                  classList={{
+                    "vs-git-log-entry-selected":
+                      store.selectedSha() === entry.shortSha,
+                    "vs-git-log-entry-highlight-ahead": isEntryHighlighted(
+                      logHighlight(),
+                      entry,
+                      index(),
+                      "ahead",
+                    ),
+                    "vs-git-log-entry-highlight-behind": isEntryHighlighted(
+                      logHighlight(),
+                      entry,
+                      index(),
+                      "behind",
+                    ),
+                  }}
                   onClick={() =>
                     store.loadDetail(workspaceId(), entry.shortSha)
                   }
@@ -1378,6 +1476,57 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     </Show>
   );
 };
+
+function resolveHighlightTarget(
+  highlight: ActiveLogHighlight,
+  entries: GitLogEntry[],
+): string | null {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  if (highlight.direction === "ahead") {
+    return entries[0]?.shortSha ?? null;
+  }
+
+  if (highlight.upstream) {
+    const upstreamBoundary = entries.find((entry) =>
+      entry.branchLabels.includes(highlight.upstream!),
+    );
+    if (upstreamBoundary) {
+      return upstreamBoundary.shortSha;
+    }
+  }
+
+  return entries[0]?.shortSha ?? null;
+}
+
+function isEntryHighlighted(
+  highlight: ActiveLogHighlight | null,
+  entry: GitLogEntry,
+  index: number,
+  direction: "ahead" | "behind",
+): boolean {
+  if (!highlight || highlight.direction !== direction) {
+    return false;
+  }
+
+  if (direction === "ahead") {
+    return index < highlight.count;
+  }
+
+  return highlight.targetSha === entry.shortSha;
+}
+
+function logHighlightMessage(highlight: ActiveLogHighlight): string {
+  if (highlight.direction === "ahead") {
+    return `${highlight.branchName ?? "HEAD"} 领先 remote ${highlight.count} commits · 已高亮本地提交`;
+  }
+  if (highlight.upstream) {
+    return `${highlight.upstream} 领先本地 ${highlight.count} commits · 已定位 upstream 边界`;
+  }
+  return `remote 领先本地 ${highlight.count} commits · 当前分支未配置 upstream`;
+}
 
 function isDirty(status: GitStatusResponse): boolean {
   return (

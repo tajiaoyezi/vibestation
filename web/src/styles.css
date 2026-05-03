@@ -1635,6 +1635,35 @@ textarea {
   border-left-color: var(--accent);
 }
 
+.vs-git-log-entry-highlight-ahead,
+.vs-git-log-entry-highlight-ahead:hover {
+  background: color-mix(in oklch, var(--accent) 10%, transparent);
+  border-left-color: var(--accent);
+}
+
+.vs-git-log-entry-highlight-behind,
+.vs-git-log-entry-highlight-behind:hover {
+  background: color-mix(in oklch, var(--warning) 10%, transparent);
+  border-left-color: var(--warning);
+}
+
+.vs-git-log-highlight-note {
+  padding: 6px var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  color: var(--text-2);
+  background: var(--bg-1);
+}
+
+.vs-git-log-highlight-note.is-ahead {
+  color: var(--accent);
+}
+
+.vs-git-log-highlight-note.is-behind {
+  color: var(--warning);
+}
+
 .vs-git-log-entry-header {
   display: flex;
   align-items: center;

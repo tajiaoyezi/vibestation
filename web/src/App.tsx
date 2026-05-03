@@ -18,6 +18,11 @@ import {
 import "./styles.css";
 
 import { LayoutProvider, useLayout } from "./stores/layout-context";
+import {
+  RemoteSyncStatusProvider,
+  useRemoteSyncStatus,
+  type RemoteSyncDirection,
+} from "./stores/remote-sync-status";
 import { ThemeProvider } from "./stores/theme";
 import { useSettings, reloadSettings } from "./stores/settings";
 import { PrimarySidebar } from "./components/PrimarySidebar";
@@ -62,6 +67,44 @@ const IpcIndicator: Component<{ state: IpcState }> = (props) => {
   return <span class={className()}>{label()}</span>;
 };
 
+const RemoteSyncStatusItem: Component<{
+  onOpenGitLog: (direction: RemoteSyncDirection) => void;
+}> = (props) => {
+  const remoteSync = useRemoteSyncStatus();
+  const snapshot = () => remoteSync.current();
+  const hasRemoteDelta = () => snapshot().ahead > 0 || snapshot().behind > 0;
+
+  return (
+    <Show when={hasRemoteDelta()}>
+      <span class="vs-status-item vs-status-remote">
+        <span class="vs-status-key">remote</span>
+        <Show when={snapshot().ahead > 0}>
+          <button
+            type="button"
+            class="vs-status-remote-count is-ahead"
+            title={`在 Git Log 查看本地领先的 ${snapshot().ahead} 个 commit`}
+            aria-label={`在 Git Log 查看本地领先 remote 的 ${snapshot().ahead} 个 commit`}
+            onClick={() => props.onOpenGitLog("ahead")}
+          >
+            ↑{snapshot().ahead}
+          </button>
+        </Show>
+        <Show when={snapshot().behind > 0}>
+          <button
+            type="button"
+            class="vs-status-remote-count is-behind"
+            title={`在 Git Log 查看 remote 领先的 ${snapshot().behind} 个 commit`}
+            aria-label={`在 Git Log 查看 remote 领先本地的 ${snapshot().behind} 个 commit`}
+            onClick={() => props.onOpenGitLog("behind")}
+          >
+            ↓{snapshot().behind}
+          </button>
+        </Show>
+      </span>
+    </Show>
+  );
+};
+
 const LayoutShell: Component<{
   workspaces: () => WorkspaceMetadata[];
   currentView: () => View;
@@ -87,6 +130,7 @@ const LayoutShell: Component<{
   // MVP-06 · 配置导入对话框（首次启动 / Settings 头部触发）
   const [importVisible, setImportVisible] = createSignal(false);
   const [branchSwitcherOpen, setBranchSwitcherOpen] = createSignal(false);
+  const remoteSync = useRemoteSyncStatus();
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
@@ -184,6 +228,13 @@ const LayoutShell: Component<{
     if (!layout().bottomOpen) {
       dispatch({ kind: "toggle-bottom" });
     }
+  };
+
+  const openGitLogHighlight = (direction: RemoteSyncDirection) => {
+    if (!layout().secondaryOpen) {
+      dispatch({ kind: "toggle-secondary" });
+    }
+    remoteSync.requestGitLogHighlight(direction);
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -296,6 +347,7 @@ const LayoutShell: Component<{
       <footer class="vs-status-bar" aria-label="Status bar">
         <div class="vs-status-group">
           <IpcIndicator state={props.ipc()} />
+          <RemoteSyncStatusItem onOpenGitLog={openGitLogHighlight} />
         </div>
         <div class="vs-status-group">
           <button
@@ -613,29 +665,36 @@ const App: Component = () => {
   return (
     <ThemeProvider>
       <LayoutProvider activeWorkspaceId={activeWorkspaceId} dbReady={dbReady}>
-        <LayoutShell
-          workspaces={workspaces}
-          currentView={currentView}
-          activeDiff={activeDiff}
-          ipc={ipc}
-          version={version}
-          dbReady={dbReady}
-          loading={loading}
-          deleteConfirm={deleteConfirm}
-          error={error}
-          onOpen={handleOpenWorkspace}
-          onCreate={handleCreateWorkspace}
-          onDeleteConfirm={(id) => setDeleteConfirm(id)}
-          onDeleteExecute={handleDeleteWorkspace}
-          onDeleteCancel={() => setDeleteConfirm(null)}
-          onDismissError={() => setError(null)}
-          onOpenDiff={handleOpenDiff}
-          onCloseDiff={() => setActiveDiff(null)}
-          onCloseWorkspaceView={handleCloseWorkspaceView}
-        />
-        <Show when={dbReady() && !telemetryDecided()}>
-          <TelemetryOptInModal />
-        </Show>
+        <RemoteSyncStatusProvider
+          activeWorkspace={() => {
+            const view = currentView();
+            return view.kind === "workspace" ? view.ws : null;
+          }}
+        >
+          <LayoutShell
+            workspaces={workspaces}
+            currentView={currentView}
+            activeDiff={activeDiff}
+            ipc={ipc}
+            version={version}
+            dbReady={dbReady}
+            loading={loading}
+            deleteConfirm={deleteConfirm}
+            error={error}
+            onOpen={handleOpenWorkspace}
+            onCreate={handleCreateWorkspace}
+            onDeleteConfirm={(id) => setDeleteConfirm(id)}
+            onDeleteExecute={handleDeleteWorkspace}
+            onDeleteCancel={() => setDeleteConfirm(null)}
+            onDismissError={() => setError(null)}
+            onOpenDiff={handleOpenDiff}
+            onCloseDiff={() => setActiveDiff(null)}
+            onCloseWorkspaceView={handleCloseWorkspaceView}
+          />
+          <Show when={dbReady() && !telemetryDecided()}>
+            <TelemetryOptInModal />
+          </Show>
+        </RemoteSyncStatusProvider>
       </LayoutProvider>
     </ThemeProvider>
   );

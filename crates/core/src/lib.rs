@@ -12,6 +12,7 @@ pub mod fs_watch;
 pub mod git_log;
 pub mod git_ops;
 pub mod git_status;
+pub mod git_sync;
 pub mod layout;
 pub mod pane_pty;
 pub mod pane_service;
@@ -51,6 +52,14 @@ pub use git_ops::{
 pub use git_status::{
     FileStatusEvent, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
     GitStatusRequest, GitStatusResponse, GitStatusService,
+};
+pub use git_sync::{
+    git_auth_provide, git_fetch, git_fetch_with_events, git_merge_abort, git_pull,
+    git_pull_with_events, git_push, git_push_with_events, git_remote_list, AuthChallenge,
+    AuthMethod, AuthRequest, ConflictFile, FetchProgressEvent, FetchRequest, FetchResult,
+    GitSyncEventHandlers, MergeConflictInfo, NetworkOpError, OperationDoneEvent, PullRequest,
+    PullResult, PullStrategy, PushProgressEvent, PushRequest, PushResult, RemoteInfo,
+    RemoteListRequest, RemoteListResponse,
 };
 pub use layout::{LayoutState, LayoutStore};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};

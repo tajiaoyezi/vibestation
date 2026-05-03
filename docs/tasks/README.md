@@ -150,7 +150,7 @@ draft ────────► ready ─────────────�
 
 | ID | 标题 | 状态 | 目标版本 | 估时 | 依赖 |
 |----|------|------|---------|------|------|
-| [MVP-11](./MVP-11-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| draft · **详化 100%**（vibe sprint 2026-05-01 Worker B · 等 Arbiter approve 后翻 ready · ⚠ id 与 v0.1 MVP-11 Native Feel Quality 冲突 · 推荐 rename MVP-21）| v0.2 | 5d | MVP-09 / MVP-13 |
+| [MVP-21](./MVP-21-git-push-pull-fetch.md) | Git Push / Pull / Fetch（远端同步）| **ready**（vibe sprint 2026-05-01 Worker B 详化 100% · 2026-05-03 rename 自原 MVP-11 + Arbiter approve 翻 ready · 等待认领）| v0.2 | 5d | MVP-09 / MVP-13 |
 | [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft（占位 · 待下个 sprint 详化）| v0.2 | 8d | MVP-07 |
 | [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete + Fuzzy Switcher | draft · **详化 100%**（vibe sprint 2026-05-01 Worker B · 等 Arbiter approve 后翻 ready）| v0.2 | 4d | MVP-07 / MVP-09 |
 | [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |
@@ -162,6 +162,8 @@ draft ────────► ready ─────────────�
 | [MVP-20](./MVP-20-ai-one-click-rollback.md) | **AI 一键回滚（session 级 revert）**（v1.0 vision）| draft | v1.0 | 6d | MVP-19 |
 
 > 占位 spec 用途：在 `<TYPE>-NN-<slug>` 编号连续性 + 依赖可视化上提前占位，v0.2 / v0.3 / v1.0 启动时按 kickoff 详化到实施 spec（补具体 UI 截图 / Acceptance 可量化门槛 / 数据模型细节）。
+>
+> ⚠ **ID 历史**（2026-05-03）：上表"MVP-21" 历史 id 为 MVP-11 · 详化时与 v0.1 已 done 的 MVP-11 "Native Feel Quality" frontmatter id 冲突 · 已 rename 为 MVP-21（详化阶段建议方案 [A]）· 表中保留在原占位行（v0.2 段聚集）以减少视觉重排 · 详见 [`MVP-21-git-push-pull-fetch.md`](./MVP-21-git-push-pull-fetch.md) 顶部历史说明 + git mv history。MVP-11 编号已永久指向 [Native Feel Quality](./MVP-11-native-feel-quality.md)（v0.1 done）· 不再可用。
 
 ### BUG / FEAT
 

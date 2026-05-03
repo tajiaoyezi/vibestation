@@ -1,0 +1,114 @@
+.vs-dirty-tree-dialog {
+  width: min(560px, 92vw);
+}
+
+.vs-dirty-tree-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.vs-dirty-tree-body p {
+  margin: 0;
+}
+
+.vs-dirty-tree-body code {
+  font-family: var(--font-mono);
+  color: var(--text-1);
+}
+
+.vs-branch-file-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  overflow: hidden;
+}
+
+.vs-branch-file-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 6px var(--space-3);
+  background: var(--bg-2);
+}
+
+.vs-branch-file-list li + li {
+  border-top: 1px solid var(--line-soft);
+}
+
+.vs-branch-file-tag {
+  flex: 0 0 auto;
+  min-width: 64px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+.vs-branch-file-tag.is-staged {
+  color: var(--success);
+}
+
+.vs-branch-file-tag.is-modified {
+  color: var(--warning);
+}
+
+.vs-branch-file-tag.is-untracked {
+  color: var(--accent);
+}
+
+.vs-branch-file-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-2);
+}
+
+.vs-branch-more-files {
+  color: var(--text-3);
+  font-size: 0.75rem;
+}
+
+.vs-branch-danger-copy {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.vs-dirty-tree-actions {
+  align-items: center;
+}
+
+.vs-dialog-btn-danger {
+  appearance: none;
+  border: none;
+  background: oklch(0.72 0.19 25 / 0.88);
+  color: var(--text-1);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  cursor: pointer;
+  transition:
+    filter var(--dur-fast) var(--ease),
+    opacity var(--dur-fast) var(--ease);
+}
+
+.vs-dialog-btn-danger:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.vs-dialog-btn-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.vs-dialog-btn-danger.is-armed {
+  background: var(--danger);
+}

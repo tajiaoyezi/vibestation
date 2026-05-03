@@ -1,0 +1,56 @@
+   Compiling vibestation-core v0.1.0 (/private/tmp/MVP-13-phase-D-work/crates/core)
+    Finished `bench` profile [optimized] target(s) in 27.02s
+     Running benches/branch_bench.rs (target/release/deps/branch_bench-d0d45123d3a11c3d)
+Gnuplot not found, using plotters backend
+Benchmarking branch_list_10/list
+Benchmarking branch_list_10/list: Warming up for 3.0000 s
+Benchmarking branch_list_10/list: Collecting 30 samples in estimated 3.2052 s (3255 iterations)
+Benchmarking branch_list_10/list: Analyzing
+branch_list_10/list     time:   [1.0366 ms 1.0651 ms 1.0926 ms]
+Found 2 outliers among 30 measurements (6.67%)
+  1 (3.33%) high mild
+  1 (3.33%) high severe
+
+Benchmarking branch_list_1000/list
+Benchmarking branch_list_1000/list: Warming up for 3.0000 s
+Benchmarking branch_list_1000/list: Collecting 20 samples in estimated 4.8729 s (80 iterations)
+Benchmarking branch_list_1000/list: Analyzing
+branch_list_1000/list   time:   [58.144 ms 59.137 ms 60.158 ms]
+
+Benchmarking branch_create/create
+Benchmarking branch_create/create: Warming up for 3.0000 s
+Benchmarking branch_create/create: Collecting 20 samples in estimated 5.6129 s (420 iterations)
+Benchmarking branch_create/create: Analyzing
+branch_create/create    time:   [3.0146 ms 3.0578 ms 3.1041 ms]
+Found 2 outliers among 20 measurements (10.00%)
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+
+Benchmarking branch_checkout_clean/checkout
+Benchmarking branch_checkout_clean/checkout: Warming up for 3.0000 s
+Benchmarking branch_checkout_clean/checkout: Collecting 20 samples in estimated 6.3336 s (420 iterations)
+Benchmarking branch_checkout_clean/checkout: Analyzing
+branch_checkout_clean/checkout
+                        time:   [4.0722 ms 4.1940 ms 4.4019 ms]
+Found 1 outliers among 20 measurements (5.00%)
+  1 (5.00%) high severe
+
+Benchmarking branch_delete/delete
+Benchmarking branch_delete/delete: Warming up for 3.0000 s
+Benchmarking branch_delete/delete: Collecting 20 samples in estimated 5.6939 s (420 iterations)
+Benchmarking branch_delete/delete: Analyzing
+branch_delete/delete    time:   [2.5660 ms 2.5925 ms 2.6226 ms]
+Found 3 outliers among 20 measurements (15.00%)
+  1 (5.00%) low mild
+  1 (5.00%) high mild
+  1 (5.00%) high severe
+
+Benchmarking fuzzy_filter_100/query
+Benchmarking fuzzy_filter_100/query: Warming up for 3.0000 s
+Benchmarking fuzzy_filter_100/query: Collecting 30 samples in estimated 5.9262 s (930 iterations)
+Benchmarking fuzzy_filter_100/query: Analyzing
+fuzzy_filter_100/query  time:   [6.0040 ms 6.0689 ms 6.1480 ms]
+Found 4 outliers among 30 measurements (13.33%)
+  1 (3.33%) high mild
+  3 (10.00%) high severe
+

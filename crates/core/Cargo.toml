@@ -65,3 +65,7 @@ harness = false
 [[bench]]
 name = "pane_layout_bench"
 harness = false
+
+[[bench]]
+name = "branch_bench"
+harness = false

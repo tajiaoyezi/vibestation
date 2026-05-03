@@ -1,0 +1,31 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-git-push"
+description = "Push a workspace branch to a remote repository"
+commands.allow = ["git_push"]
+
+[[permission]]
+identifier = "allow-git-pull"
+description = "Pull a remote branch into the current workspace branch"
+commands.allow = ["git_pull"]
+
+[[permission]]
+identifier = "allow-git-fetch"
+description = "Fetch remote refs for a workspace repository"
+commands.allow = ["git_fetch"]
+
+[[permission]]
+identifier = "allow-git-remote-list"
+description = "List remotes for a workspace repository"
+commands.allow = ["git_remote_list"]
+
+[[permission]]
+identifier = "allow-git-auth-provide"
+description = "Provide in-memory credentials for a git network operation"
+commands.allow = ["git_auth_provide"]
+
+[[permission]]
+identifier = "allow-git-merge-abort"
+description = "Abort an in-progress git merge or rebase operation"
+commands.allow = ["git_merge_abort"]

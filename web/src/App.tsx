@@ -32,6 +32,7 @@ import { TopBar } from "./components/TopBar";
 import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 import { ConfigImportDialog } from "./dialogs/ConfigImport";
+import { BranchSwitcher } from "./dialogs/BranchSwitcher/BranchSwitcher";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -85,6 +86,7 @@ const LayoutShell: Component<{
   const [settingsVisible, setSettingsVisible] = createSignal(false);
   // MVP-06 · 配置导入对话框（首次启动 / Settings 头部触发）
   const [importVisible, setImportVisible] = createSignal(false);
+  const [branchSwitcherOpen, setBranchSwitcherOpen] = createSignal(false);
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
@@ -189,10 +191,10 @@ const LayoutShell: Component<{
     switch (e.key) {
       case "b":
       case "B":
-        // VSCode / Cursor 标准 · ⌘B / Ctrl+B toggle primary sidebar
-        // ⌘1 历史上也 toggle primary · 已删除 · 释放给未来 MVP-04 ⌘1..9 跳 Tab
         e.preventDefault();
-        dispatch({ kind: "toggle-primary" });
+        if (activeWorkspace()?.hasGit) {
+          setBranchSwitcherOpen(true);
+        }
         break;
       case "2":
         e.preventDefault();
@@ -359,6 +361,12 @@ const LayoutShell: Component<{
           }}
         />
       </Show>
+
+      <BranchSwitcher
+        activeWorkspace={activeWorkspace}
+        open={branchSwitcherOpen}
+        onClose={() => setBranchSwitcherOpen(false)}
+      />
     </div>
   );
 };

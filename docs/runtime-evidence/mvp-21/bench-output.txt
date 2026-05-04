@@ -1,0 +1,152 @@
+    Finished `bench` profile [optimized] target(s) in 0.54s
+     Running benches/git_sync_bench.rs (target/release/deps/git_sync_bench-d89f976cf3dfb4e4)
+Gnuplot not found, using plotters backend
+Benchmarking git_sync_push_1mb_100commits/push
+Benchmarking git_sync_push_1mb_100commits/push: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 5.7s.
+Benchmarking git_sync_push_1mb_100commits/push: Collecting 10 samples in estimated 5.6569 s (10 iterations)
+Benchmarking git_sync_push_1mb_100commits/push: Analyzing
+git_sync_push_1mb_100commits/push
+                        time:   [84.014 ms 85.868 ms 88.538 ms]
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 6.2s.
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Collecting 10 samples in estimated 6.2187 s (10 iterations)
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Analyzing
+git_sync_pull_ff_1mb_100commits/pull_ff
+                        time:   [80.437 ms 81.627 ms 82.856 ms]
+
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 3.7s or enable flat sampling.
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Collecting 10 samples in estimated 3.6794 s (55 iterations)
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Analyzing
+git_sync_pull_conflict_abort/pull_conflict_abort
+                        time:   [17.078 ms 17.512 ms 18.231 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high mild
+
+Benchmarking git_sync_fetch_10refs_100commits/fetch
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 5.8s.
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Collecting 10 samples in estimated 5.7889 s (10 iterations)
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Analyzing
+git_sync_fetch_10refs_100commits/fetch
+                        time:   [65.878 ms 68.701 ms 72.474 ms]
+Found 2 outliers among 10 measurements (20.00%)
+  2 (20.00%) high severe
+
+
+=== RUN 2 ===
+    Finished `bench` profile [optimized] target(s) in 0.25s
+     Running benches/git_sync_bench.rs (target/release/deps/git_sync_bench-d89f976cf3dfb4e4)
+Gnuplot not found, using plotters backend
+Benchmarking git_sync_push_1mb_100commits/push
+Benchmarking git_sync_push_1mb_100commits/push: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 5.6s.
+Benchmarking git_sync_push_1mb_100commits/push: Collecting 10 samples in estimated 5.6367 s (10 iterations)
+Benchmarking git_sync_push_1mb_100commits/push: Analyzing
+git_sync_push_1mb_100commits/push
+                        time:   [83.514 ms 84.710 ms 86.172 ms]
+                        change: [-4.7360% -1.3482% +1.3917%] (p = 0.49 > 0.05)
+                        No change in performance detected.
+Found 2 outliers among 10 measurements (20.00%)
+  1 (10.00%) low mild
+  1 (10.00%) high severe
+
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 6.2s.
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Collecting 10 samples in estimated 6.2368 s (10 iterations)
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Analyzing
+git_sync_pull_ff_1mb_100commits/pull_ff
+                        time:   [79.785 ms 80.924 ms 82.109 ms]
+                        change: [-2.9686% -0.8618% +1.0351%] (p = 0.45 > 0.05)
+                        No change in performance detected.
+
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 3.5s or enable flat sampling.
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Collecting 10 samples in estimated 3.4726 s (55 iterations)
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Analyzing
+git_sync_pull_conflict_abort/pull_conflict_abort
+                        time:   [17.213 ms 17.428 ms 17.758 ms]
+                        change: [-3.3621% +0.0516% +3.7254%] (p = 0.98 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+
+Benchmarking git_sync_fetch_10refs_100commits/fetch
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 6.0s.
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Collecting 10 samples in estimated 6.0127 s (10 iterations)
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Analyzing
+git_sync_fetch_10refs_100commits/fetch
+                        time:   [66.623 ms 67.299 ms 68.058 ms]
+                        change: [-7.0086% -2.0412% +2.3200%] (p = 0.49 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high mild
+
+
+=== RUN 3 ===
+    Finished `bench` profile [optimized] target(s) in 0.25s
+     Running benches/git_sync_bench.rs (target/release/deps/git_sync_bench-d89f976cf3dfb4e4)
+Gnuplot not found, using plotters backend
+Benchmarking git_sync_push_1mb_100commits/push
+Benchmarking git_sync_push_1mb_100commits/push: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 5.7s.
+Benchmarking git_sync_push_1mb_100commits/push: Collecting 10 samples in estimated 5.6588 s (10 iterations)
+Benchmarking git_sync_push_1mb_100commits/push: Analyzing
+git_sync_push_1mb_100commits/push
+                        time:   [83.792 ms 89.937 ms 100.78 ms]
+                        change: [-1.4998% +6.1702% +18.655%] (p = 0.41 > 0.05)
+                        No change in performance detected.
+Found 1 outliers among 10 measurements (10.00%)
+  1 (10.00%) high severe
+
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 4.0s. You may wish to increase target time to 6.2s.
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Collecting 10 samples in estimated 6.1520 s (10 iterations)
+Benchmarking git_sync_pull_ff_1mb_100commits/pull_ff: Analyzing
+git_sync_pull_ff_1mb_100commits/pull_ff
+                        time:   [79.730 ms 81.341 ms 83.105 ms]
+                        change: [-1.8603% +0.5151% +3.1112%] (p = 0.71 > 0.05)
+                        No change in performance detected.
+
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 3.5s or enable flat sampling.
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Collecting 10 samples in estimated 3.5479 s (55 iterations)
+Benchmarking git_sync_pull_conflict_abort/pull_conflict_abort: Analyzing
+git_sync_pull_conflict_abort/pull_conflict_abort
+                        time:   [17.373 ms 17.603 ms 17.906 ms]
+                        change: [-2.3178% +0.3380% +2.5914%] (p = 0.82 > 0.05)
+                        No change in performance detected.
+
+Benchmarking git_sync_fetch_10refs_100commits/fetch
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Warming up for 3.0000 s
+
+Warning: Unable to complete 10 samples in 3.0s. You may wish to increase target time to 5.8s.
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Collecting 10 samples in estimated 5.8095 s (10 iterations)
+Benchmarking git_sync_fetch_10refs_100commits/fetch: Analyzing
+git_sync_fetch_10refs_100commits/fetch
+                        time:   [65.601 ms 66.936 ms 68.442 ms]
+                        change: [-2.8202% -0.5388% +1.8921%] (p = 0.68 > 0.05)
+                        No change in performance detected.
+

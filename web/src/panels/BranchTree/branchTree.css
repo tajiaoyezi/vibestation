@@ -1,50 +1,156 @@
 .vs-branch-tree-panel {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border-top: 1px solid var(--line-soft);
   margin-top: var(--space-2);
   padding-bottom: var(--space-2);
+  /* 折叠/展开 height 过渡 · 220ms cubic-bezier 触感 IntelliJ / VSCode sidebar 一致 ·
+     拖拽时由 .is-resizing 覆盖为 transition: none · 避免 height 跟手延迟。 */
+  transition: height 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.vs-branch-sub-head {
+.vs-branch-tree-panel.is-resizing {
+  transition: none;
+}
+
+/* Content wrapper · 永久 render · collapse 时由 .is-collapsed 触发 opacity + pointer-events
+   过渡 · 配合 panel height 过渡同步 · 避免 <Show> unmount 内容瞬变（2026-05-04 user feedback）。 */
+.vs-branch-tree-collapsible {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+
+.vs-branch-tree-panel.is-collapsed .vs-branch-tree-collapsible {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 6px 透明 hit area · 拖拽友好 · hover 时 ::before 仅显示中央 1px 细线 · 不抢视觉。 */
+.vs-branch-tree-vresize {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  cursor: row-resize;
+  z-index: 10;
+}
+
+.vs-branch-tree-vresize::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-50%);
+  background: transparent;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.vs-branch-tree-vresize:hover::before {
+  background: var(--accent);
+}
+
+/* 按 design/directions/1-calm-studio.html line 247-264 原型 .sub-head 复刻 ·
+   故意比 .panel-head 弱化（text-4 + 10px + 不规则 padding 10/14/4）·
+   保持 hierarchy（root section > sub section）· 加 chevron 折叠是 user enhancement。 */
+.vs-sub-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 30px;
-  padding: 0 var(--space-3) 0 14px;
-  color: var(--text-3);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding: 10px 14px 4px;
+  flex-shrink: 0;
 }
 
-.vs-branch-add {
-  appearance: none;
+/* 改 inline-flex · 不 stretch · hover 反馈仅 text color 变化（不加 background）·
+   避免在窄 sub-head 上出现大块亮条（user feedback 2026-05-04）。 */
+.vs-sub-head-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-4);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.vs-sub-head-toggle:hover {
+  color: var(--text-2);
+}
+
+.vs-sub-head-toggle:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.vs-sub-head-toggle svg {
+  flex-shrink: 0;
+  color: var(--text-4);
+  transition: transform 150ms var(--ease);
+}
+
+.vs-branch-tree-panel.is-collapsed .vs-sub-head-toggle svg {
+  transform: rotate(-90deg);
+}
+
+.vs-sub-head-add {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-4);
-  background: var(--bg-1);
-  color: var(--text-2);
+  padding: 2px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  border-radius: 3px;
   cursor: pointer;
-  line-height: 1;
   transition:
-    background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease);
+    color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
 }
 
-.vs-branch-add:hover {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: var(--accent);
+.vs-sub-head-add:hover:not(:disabled) {
+  color: var(--text-1);
+  background: var(--bg-1);
+}
+
+.vs-sub-head-add:focus-visible {
+  color: var(--text-1);
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* Unborn HEAD：repo 已 init 但 0 commit · 创建 branch 是非法操作 · button disabled
+   视觉极弱 + cursor not-allowed · 帮助 user 一眼识别"此操作当前不可用"。 */
+.vs-sub-head-add:disabled {
+  color: var(--text-4);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .vs-branch-tree {
   display: flex;
   flex-direction: column;
   padding: 0 var(--space-2) var(--space-1);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .vs-branch-row {
@@ -58,6 +164,8 @@
   border-radius: var(--r-4);
   color: var(--text-2);
   cursor: pointer;
+  /* 防止右键时浏览器 default 触发文字选中 high light（bug 2026-05-04） */
+  user-select: none;
   transition:
     background var(--dur-fast) var(--ease),
     color var(--dur-fast) var(--ease),
@@ -148,6 +256,27 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-2);
+}
+
+/* Unborn HEAD empty state（"还没有任何 commit"）· title 给主信息 · hint 给行动引导 ·
+   弱化字号和颜色 · 不抢眼又能看清。隔离 class 不影响 error fallback 的 retry 间距。 */
+.vs-branch-empty-unborn {
+  gap: 4px;
+  padding: var(--space-3);
+}
+
+.vs-branch-empty-title {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.vs-branch-empty-hint {
+  margin: 0;
+  color: var(--text-4);
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
 
 .vs-branch-retry {

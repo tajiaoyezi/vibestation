@@ -159,6 +159,33 @@ impl WorkspaceStore {
         })
     }
 
+    /// Re-evaluate `has_git` / `repo_root` for an existing workspace and persist.
+    ///
+    /// MVP-02 设计 gap fix（2026-05-04）：原 `add()` 一次性 detect git · 之后 user 在
+    /// non-git workspace 内跑 `git init` 时 sidebar 不识别。本方法在 `workspace_open`
+    /// 时调用 · 重新跑 `detect_git` 并 UPDATE · 切 tab 即识别。fs-watch 实时方案见 v0.2 backlog。
+    pub fn refresh_git(pool: &DbPool, id: &str) -> Result<(), WorkspaceError> {
+        let conn = pool.get().map_err(DbError::from)?;
+        let path: String = conn
+            .query_row(
+                "SELECT path FROM workspaces WHERE workspace_id = ?1",
+                [id],
+                |row| row.get(0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => WorkspaceError::NotFound(id.to_string()),
+                other => WorkspaceError::Db(DbError::Query(other.to_string())),
+            })?;
+
+        let (has_git, repo_root) = Self::detect_git(&path);
+        conn.execute(
+            "UPDATE workspaces SET has_git = ?1, repo_root = ?2 WHERE workspace_id = ?3",
+            rusqlite::params![has_git as i32, repo_root, id],
+        )
+        .map_err(DbError::from)?;
+        Ok(())
+    }
+
     /// Update last_opened timestamp (workspace "open" action).
     pub fn touch(pool: &DbPool, id: &str) -> Result<(), WorkspaceError> {
         let conn = pool.get().map_err(DbError::from)?;
@@ -387,6 +414,60 @@ mod tests {
 
         let ws = WorkspaceStore::create(&pool, ws_dir.to_str().unwrap(), None).unwrap();
         assert!(ws.path.contains("中文"));
+    }
+
+    #[test]
+    fn refresh_git_promotes_non_git_to_git() {
+        // 设计 gap fix（2026-05-04）：non-git workspace 内 `git init` 后切 tab → 立即识别。
+        let (dir, pool) = setup();
+        let ws_dir = dir.path().join("freshly-inited");
+        std::fs::create_dir_all(&ws_dir).unwrap();
+
+        let ws = WorkspaceStore::create(&pool, ws_dir.to_str().unwrap(), None).unwrap();
+        assert!(
+            !ws.has_git,
+            "新建 workspace 在 .git 缺失时应判定 has_git=false"
+        );
+
+        // 模拟 user 在 workspace 内跑 `git init` · 创建 .git/ 目录。
+        std::fs::create_dir_all(ws_dir.join(".git")).unwrap();
+
+        WorkspaceStore::refresh_git(&pool, &ws.workspace_id).unwrap();
+
+        let refreshed = WorkspaceStore::get_by_id(&pool, &ws.workspace_id).unwrap();
+        assert!(
+            refreshed.has_git,
+            "refresh_git 后 has_git 必须 promote 为 true"
+        );
+        assert!(
+            refreshed.repo_root.is_some(),
+            "refresh_git 后 repo_root 必须 set",
+        );
+    }
+
+    #[test]
+    fn refresh_git_demotes_when_dot_git_removed() {
+        // 反向：.git/ 删除后（user 手动 `rm -rf .git`）· refresh 必须 demote。
+        let (dir, pool) = setup();
+        let ws_dir = dir.path().join("rm-rf-dot-git");
+        std::fs::create_dir_all(ws_dir.join(".git")).unwrap();
+
+        let ws = WorkspaceStore::create(&pool, ws_dir.to_str().unwrap(), None).unwrap();
+        assert!(ws.has_git);
+
+        std::fs::remove_dir_all(ws_dir.join(".git")).unwrap();
+        WorkspaceStore::refresh_git(&pool, &ws.workspace_id).unwrap();
+
+        let refreshed = WorkspaceStore::get_by_id(&pool, &ws.workspace_id).unwrap();
+        assert!(!refreshed.has_git);
+        assert!(refreshed.repo_root.is_none());
+    }
+
+    #[test]
+    fn refresh_git_unknown_workspace_is_not_found() {
+        let (_dir, pool) = setup();
+        let result = WorkspaceStore::refresh_git(&pool, "no-such-id");
+        assert!(matches!(result, Err(WorkspaceError::NotFound(_))));
     }
 
     #[test]

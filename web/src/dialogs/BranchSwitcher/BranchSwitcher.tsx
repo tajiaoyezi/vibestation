@@ -447,6 +447,8 @@ function branchErrorMessage(
       return `受保护分支 ${error.name} 不允许执行此操作`;
     case "detachedHead":
       return "当前处于 detached HEAD";
+    case "unbornBranch":
+      return "还没有任何 commit · 请先在 Git Status 面板创建首次提交";
     case "dirtyWorkingTree":
       return "工作区存在未提交修改 · 请先提交、清理或从分支树使用 Discard & Switch";
     case "indexLocked":

@@ -95,6 +95,37 @@ export const BranchTree: Component<BranchTreeProps> = (props) => {
   const [forceDeleting, setForceDeleting] = createSignal(false);
   const [toast, setToast] = createSignal<ToastState | null>(null);
 
+  // MVP-13 polish (2026-05-04 · session 23 testing)：BRANCHES section 折叠 + 上方拉伸 ·
+  // 仿 IntelliJ / VSCode sidebar section pattern · 默认展开 · 高度 220px · 拖动 [80, 600] clamp · 双击 reset 220。
+  const [collapsed, setCollapsed] = createSignal(false);
+  const [height, setHeight] = createSignal(220);
+  // 拖拽期间 panel CSS height transition 必须临时 disable · 否则 220ms transition 让
+  // height 跟手延迟（mouse 已到 250 · CSS 还在动到 230）· 视觉错位。class is-resizing
+  // 在 transition: none · 释放后恢复（user 折叠/展开时仍走 transition）。
+  const [isResizing, setIsResizing] = createSignal(false);
+  // Collapsed 时 panel 视觉高度 · 含 border-top 1 + sub-head padding 14 + content 14 + panel padding-bottom var(--space-2) ≈ 38。
+  const COLLAPSED_PANEL_HEIGHT = 38;
+
+  const startResize = (event: MouseEvent) => {
+    event.preventDefault();
+    setIsResizing(true);
+    const startY = event.clientY;
+    const startHeight = height();
+    const onMove = (ev: MouseEvent) => {
+      // 上拉 ev.clientY < startY → delta > 0 → height 增大 · row-resize 直觉一致。
+      const delta = startY - ev.clientY;
+      const next = Math.max(80, Math.min(600, startHeight + delta));
+      setHeight(next);
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      setIsResizing(false);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
   let unlistenBranchChanged: UnlistenFn | undefined;
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -108,6 +139,21 @@ export const BranchTree: Component<BranchTreeProps> = (props) => {
       (branch) => branch.kind !== "remote" || !branch.name.endsWith("/HEAD"),
     ),
   );
+
+  // Unborn HEAD：repo 已 `git init` 但还没有任何 commit · `refs/heads/main` ref 不存在 ·
+  // 此时不能 create branch（git 约束 · 因 branch 是指向 commit 的 ref）。判定条件四合一：
+  // (1) loaded · 非 loading 状态 · (2) 无 error · (3) 非 detached · (4) headName 缺失 + 无 local branch。
+  // 触发 UX：BRANCHES list 显示 "还没有 commit · 请先在 Git Status 面板创建首次提交" + "+" disabled。
+  const isUnborn = createMemo(() => {
+    const state = currentState();
+    return (
+      state.loaded &&
+      state.error === null &&
+      !state.detached &&
+      state.headName === null &&
+      branchRows().length === 0
+    );
+  });
 
   onMount(() => {
     void listen<BranchChangedPayload>(BRANCH_CHANGED_EVENT, (event) => {
@@ -460,67 +506,149 @@ export const BranchTree: Component<BranchTreeProps> = (props) => {
 
   return (
     <Show when={hasGit()}>
-      <section class="vs-branch-tree-panel" aria-label="Branches">
-        <div class="vs-branch-sub-head">
-          <span>Branches</span>
+      <section
+        class="vs-branch-tree-panel"
+        classList={{
+          "is-collapsed": collapsed(),
+          "is-resizing": isResizing(),
+        }}
+        style={{
+          height: `${collapsed() ? COLLAPSED_PANEL_HEIGHT : height()}px`,
+        }}
+        aria-label="Branches"
+      >
+        <Show when={!collapsed()}>
+          <div
+            class="vs-branch-tree-vresize"
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Resize branches section"
+            title="拖动调整高度 · 双击复位 220px"
+            onMouseDown={startResize}
+            onDblClick={() => setHeight(220)}
+          />
+        </Show>
+        <header class="vs-sub-head">
           <button
             type="button"
-            class="vs-branch-add"
-            title="New branch"
-            aria-label="New branch"
-            onClick={() => openCreateDialog()}
+            class="vs-sub-head-toggle"
+            aria-expanded={!collapsed()}
+            title={collapsed() ? "Expand" : "Collapse"}
+            onClick={() => setCollapsed(!collapsed())}
           >
-            +
-          </button>
-        </div>
-
-        <Show
-          when={!currentState().error}
-          fallback={
-            <div class="vs-branch-empty">
-              <p>Git repo unavailable · 请检查 .git 目录</p>
-              <button
-                type="button"
-                class="vs-branch-retry"
-                onClick={() => void loadBranches(workspaceId())}
-              >
-                Retry
-              </button>
-            </div>
-          }
-        >
-          <div class="vs-branch-tree">
-            <Show when={currentState().detached}>
-              <div class="vs-branch-row is-head">
-                <span class="vs-branch-guide">┬ </span>
-                <span class="vs-branch-name">HEAD</span>
-                <span class="vs-branch-badge">detached</span>
-              </div>
-            </Show>
-            <Show
-              when={!currentState().loading || currentState().loaded}
-              fallback={<p class="vs-branch-loading">Loading branches…</p>}
+            <svg
+              width="8"
+              height="8"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
             >
-              <For each={branchRows()}>
-                {(branch, index) => (
-                  <BranchTreeRow
-                    branch={branch}
-                    guide={index() === branchRows().length - 1 ? "└─ " : "├─ "}
-                    active={
-                      branch.kind === "local" &&
-                      branch.name === currentState().headName
-                    }
-                    deleteDisabledReason={deleteDisabledReason(branch)}
-                    checkoutDisabledReason={checkoutDisabledReason(branch)}
-                    onCheckout={() => void checkoutBranch(branch)}
-                    onDelete={() => void deleteBranch(branch)}
-                    onCreateFrom={() => openCreateDialog(branch.name)}
-                  />
-                )}
-              </For>
-            </Show>
-          </div>
-        </Show>
+              <path
+                d="M3 4.5L6 7.5L9 4.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span>Branches</span>
+          </button>
+          <button
+            type="button"
+            class="vs-sub-head-add"
+            title={
+              isUnborn()
+                ? "还没有 commit · 请先在 Git Status 面板创建首次提交"
+                : "New branch"
+            }
+            aria-label="New branch"
+            disabled={isUnborn()}
+            onClick={() => {
+              if (collapsed()) {
+                setCollapsed(false);
+              }
+              openCreateDialog();
+            }}
+          >
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M6 2.5V9.5M2.5 6H9.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        </header>
+
+        {/* Always render · collapse/expand 用 CSS opacity + max-height 实现真过渡（不 unmount）。
+            collapsed=true 时 .is-collapsed parent 触发 opacity 0 + pointer-events none + overflow hidden 视觉收起 ·
+            section.height transition 同时 220ms 收缩 · 避免 <Show> mount/unmount 瞬变。 */}
+        <div class="vs-branch-tree-collapsible">
+          <Show
+            when={!currentState().error}
+            fallback={
+              <div class="vs-branch-empty">
+                <p>Git repo unavailable · 请检查 .git 目录</p>
+                <button
+                  type="button"
+                  class="vs-branch-retry"
+                  onClick={() => void loadBranches(workspaceId())}
+                >
+                  Retry
+                </button>
+              </div>
+            }
+          >
+            <div class="vs-branch-tree">
+              <Show when={isUnborn()}>
+                <div class="vs-branch-empty vs-branch-empty-unborn">
+                  <p class="vs-branch-empty-title">还没有任何 commit</p>
+                  <p class="vs-branch-empty-hint">
+                    请打开 Git Status 面板创建首次提交 · 之后才能创建分支
+                  </p>
+                </div>
+              </Show>
+              <Show when={currentState().detached}>
+                <div class="vs-branch-row is-head">
+                  <span class="vs-branch-guide">┬ </span>
+                  <span class="vs-branch-name">HEAD</span>
+                  <span class="vs-branch-badge">detached</span>
+                </div>
+              </Show>
+              <Show
+                when={!currentState().loading || currentState().loaded}
+                fallback={<p class="vs-branch-loading">Loading branches…</p>}
+              >
+                <For each={branchRows()}>
+                  {(branch, index) => (
+                    <BranchTreeRow
+                      branch={branch}
+                      guide={
+                        index() === branchRows().length - 1 ? "└─ " : "├─ "
+                      }
+                      active={
+                        branch.kind === "local" &&
+                        branch.name === currentState().headName
+                      }
+                      deleteDisabledReason={deleteDisabledReason(branch)}
+                      checkoutDisabledReason={checkoutDisabledReason(branch)}
+                      onCheckout={() => void checkoutBranch(branch)}
+                      onDelete={() => void deleteBranch(branch)}
+                      onCreateFrom={() => openCreateDialog(branch.name)}
+                    />
+                  )}
+                </For>
+              </Show>
+            </div>
+          </Show>
+        </div>
       </section>
 
       <Show when={createOpen()}>
@@ -629,6 +757,8 @@ function branchErrorMessage(
       return `受保护分支 ${error.name} 不允许执行此操作`;
     case "detachedHead":
       return "当前处于 detached HEAD";
+    case "unbornBranch":
+      return "还没有任何 commit · 请先在 Git Status 面板创建首次提交";
     case "dirtyWorkingTree":
       return "工作区存在未提交修改";
     case "indexLocked":

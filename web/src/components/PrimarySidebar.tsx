@@ -47,60 +47,62 @@ export const PrimarySidebar: Component<PrimarySidebarProps> = (props) => {
           </button>
         </div>
       </div>
-      <div class="vs-panel-body">
-        <ul class="vs-ws-list" role="listbox" aria-label="Workspace list">
-          <For each={props.workspaces()}>
-            {(ws) => (
-              <li
-                role="option"
-                aria-selected={
-                  props.activeWorkspace()?.workspaceId === ws.workspaceId
-                }
-                classList={{
-                  "vs-ws-item": true,
-                  "vs-ws-item-active":
-                    props.activeWorkspace()?.workspaceId === ws.workspaceId,
-                }}
-                onClick={() => props.onOpen(ws.workspaceId)}
+      <div class="vs-panel-body vs-primary-panel-body">
+        <div class="vs-ws-section">
+          <ul class="vs-ws-list" role="listbox" aria-label="Workspace list">
+            <For each={props.workspaces()}>
+              {(ws) => (
+                <li
+                  role="option"
+                  aria-selected={
+                    props.activeWorkspace()?.workspaceId === ws.workspaceId
+                  }
+                  classList={{
+                    "vs-ws-item": true,
+                    "vs-ws-item-active":
+                      props.activeWorkspace()?.workspaceId === ws.workspaceId,
+                  }}
+                  onClick={() => props.onOpen(ws.workspaceId)}
+                >
+                  <div class="vs-ws-row-main">
+                    <span class="vs-ws-name">{ws.name}</span>
+                    <Show when={ws.hasGit}>
+                      <span class="vs-git-badge" aria-label="Git repository">
+                        Git
+                      </span>
+                    </Show>
+                    <button
+                      type="button"
+                      class="vs-ws-delete"
+                      aria-label={`Delete ${ws.name}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        props.onDelete(ws.workspaceId);
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <span class="vs-ws-path" title={ws.path}>
+                    {prettyPath(ws.path)}
+                  </span>
+                </li>
+              )}
+            </For>
+          </ul>
+          <Show when={props.workspaces().length === 0}>
+            <p class="vs-empty-hint">No workspaces yet.</p>
+            <Show when={props.onOpenImport}>
+              <button
+                type="button"
+                class="vs-import-link"
+                onClick={() => props.onOpenImport?.()}
               >
-                <div class="vs-ws-row-main">
-                  <span class="vs-ws-name">{ws.name}</span>
-                  <Show when={ws.hasGit}>
-                    <span class="vs-git-badge" aria-label="Git repository">
-                      Git
-                    </span>
-                  </Show>
-                  <button
-                    type="button"
-                    class="vs-ws-delete"
-                    aria-label={`Delete ${ws.name}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      props.onDelete(ws.workspaceId);
-                    }}
-                  >
-                    ×
-                  </button>
-                </div>
-                <span class="vs-ws-path" title={ws.path}>
-                  {prettyPath(ws.path)}
-                </span>
-              </li>
-            )}
-          </For>
-        </ul>
-        <Show when={props.workspaces().length === 0}>
-          <p class="vs-empty-hint">No workspaces yet.</p>
-          <Show when={props.onOpenImport}>
-            <button
-              type="button"
-              class="vs-import-link"
-              onClick={() => props.onOpenImport?.()}
-            >
-              Import settings from another terminal
-            </button>
+                Import settings from another terminal
+              </button>
+            </Show>
           </Show>
-        </Show>
+        </div>
         <BranchTree activeWorkspace={props.activeWorkspace} />
       </div>
       <div

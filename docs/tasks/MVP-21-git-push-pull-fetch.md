@@ -356,6 +356,17 @@ criterion_main!(benches);
 - **R5 · Conflict 处理工作区恢复 byte-level 一致性** · git2 `merge --abort` 在某些 corner case 可能不完全恢复（如 unmerged paths 留下 .orig 文件）· 缓解：abort 后用 `Repository::cleanup_state` + `git reset --hard ORIG_HEAD` 双保险 · 单元测试用 fixture 验证 abort 前后 working tree byte-level diff 为零
 - **R6 · Force push 误操作** · 用户在脏 branch 上 force push 主 branch 是灾难性操作 · 缓解：保护名单 hardcode + 二次确认要求输入 branch 名 + 列出被覆盖 commit · 同时记录到 status bar 历史（v0.3 补 audit log）
 
+- **R7 · §H.5.1 SSH host key verification 应用层 TOFU 实施 gap**（2026-05-04 · session 23 audit · v2-D.2 Arbiter approval 路径 B · v0.2 alpha 不阻塞 GA · 推 v0.3 升级）·
+  - **现状**：Phase A PR #228 实施 `crates/core/src/git_sync.rs:722` 用 `callbacks.certificate_check(|_cert, _host| Ok(CertificateCheckStatus::CertificatePassthrough))` · 委托给 libgit2 默认 cert/known_hosts 检查 · 未实施 spec §H.5.1 要求的应用层 TOFU + UI confirm + emit `git:host-key-changed` event + 3 测试（unknown / changed / known good host）
+  - **影响**：第一次 connect 不弹 trust dialog · MITM 检测仅依赖 OS 层 known_hosts（用户需手动 ssh-keyscan 添加 host）· 没有应用层 host key change 警告 UI
+  - **实际安全分级**（按 auth path）：
+    - **SSH Agent path**：低风险 · ssh-agent 拒绝向 unknown host 发凭证（OS 层 backup）
+    - **HTTPS path**：低风险 · OS CA bundle 验证 SSL cert（OS 层 backup）
+    - **SSH Key File path**：中风险 · `CertificatePassthrough` 委托 libgit2 默认 known_hosts · 用户需手动管理 ~/.ssh/known_hosts
+  - **缓解 v0.2 alpha**：(1) v0.2 README + Release notes 加 "首次 push 前用 `ssh-keyscan -H <host> >> ~/.ssh/known_hosts` 添加 host" 提示（独立 PR 补 · 不阻塞本 audit · 与 macOS Gatekeeper bypass 提示同样模式）· (2) AuthChallenge `host_fingerprint` 字段保留预留 · v0.3 实施时直接接通
+  - **v0.3 升级路径**：实施完整应用层 TOFU + emit `git:host-key-changed` event + UI modal（first-seen trust + changed-key MITM 警告）+ 3 测试 · spec §H.5.1 acceptance 全勾 · 解锁 v0.3 GA · v0.3 spec 起草时复用 §H.5.1 现有设计模板（保留 v0.2 spec 原文 · 不删除）
+  - **审计触发**：本 R7 由主 agent 在 MVP-21 Phase D dispatch 期间 spec audit 时识别（PR #235 · v2-D.2 模式 · 2026-05-04 session 23）· 防御策略：未来 spec 凡含"**强制**"标记的 acceptance · 必须在主 acceptance 段（line 161-246）也 explicit list · 避免 spec 设计漏洞（强制要求埋在 §H 决策段子条 · acceptance 跟踪缺失 · 实施 agent 漏跑）
+
 ## 📝 Notes
 
 - MVP-21 是 v0.2 第二个 git 写路径扩展 · 模式（git2 backend + ts-rs binding + Tauri permission + cmd 注册）和 MVP-09 / MVP-13 完全一致 · 实施 agent 直接复用
@@ -551,7 +562,7 @@ MVP-21 实施前必须明确复用 / 新增边界：
 
 ### G.6 · MVP-21 新增 binding 清单（明确数量）
 
-以下 **12 个 binding** 为 MVP-21 **新增** · 实施时 `web/src/bindings/` 应新增 12 个 `.ts` 文件：
+以下 **12 个 binding** 为 MVP-21 **计划新增**（实际 Phase A PR #228 实施 **19 个** · ts-rs auto export AuthChallenge / MergeConflictInfo / ConflictFile / event payload 等 nested types · 详见本节末 footnote audit · 2026-05-04 session 23 audit · v2-D.2 模式）· 实施时 `web/src/bindings/` 应新增 12 个 `.ts` 文件：
 
 | Rust struct / enum | 用途 | 前端 import 路径 |
 |---|---|---|
@@ -569,7 +580,7 @@ MVP-21 实施前必须明确复用 / 新增边界：
 | `NetworkOpError` | 错误枚举 · 含 payload tagged union（**11 variant** · 含 AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / **StaleLease** / **SslError** / Git2Error · 以 §G.2 完整 enum 为准）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
 | `MergeConflictInfo` / `ConflictFile` | conflict 详情 · 2 binding | `import type { MergeConflictInfo, ConflictFile } from "../bindings/..."` |
 
-> 复用上游：`BranchInfo`（MVP-13）· `GitStatusResponse`（MVP-08 · 用于 PullRequest.frontend_status_snapshot · §H.4.1 race guard）· 实施时 bindings 目录新增约 **15 个** `.ts` 文件（ts-rs 每个 `#[derive(TS)]` 生成独立文件 · 实际数以 `cargo build` 后 `web/src/bindings/` 实际产物为准 · 不假设小 enum 被内联）。
+> 复用上游：`BranchInfo`（MVP-13）· `GitStatusResponse`（MVP-08 · 用于 PullRequest.frontend_status_snapshot · §H.4.1 race guard）· 实施时 bindings 目录新增 **19 个** `.ts` 文件（Phase A PR #228 实测 · ts-rs 每个 `#[derive(TS)]` 生成独立文件 · 含 nested AuthChallenge / MergeConflictInfo / ConflictFile / PushProgressEvent / FetchProgressEvent / OperationDoneEvent 等 · spec 表头 12 是规划数 · 实际 19 是 ts-rs 自动 export 行为 · 不是 drift bug · 是 spec 描述精度待提升 · 2026-05-04 session 23 audit + Arbiter approval 修订）。
 
 ### G.7 · Tauri Event Payload（progress streaming）
 
@@ -772,7 +783,13 @@ impl std::fmt::Debug for AuthMethod {
 //    - panic backtrace 不含 password
 ```
 
-### H.5.1 SSH host key verification（**强制**）
+### H.5.1 SSH host key verification（**强制** · ⚠ Phase A 实施 gap · 见 §已知风险 R7）
+
+> **⚠ AUDIT NOTE**（2026-05-04 · session 23 audit · Arbiter approval 路径 B 接受）：本节标 "**强制**" · 但 Phase A PR #228 实际**未实施**应用层 TOFU + known_hosts + UI confirm。`crates/core/src/git_sync.rs:722` 仅一行 `callbacks.certificate_check(|_cert, _host| Ok(CertificateCheckStatus::CertificatePassthrough))` · 委托给 libgit2 默认机制（OS 层 cert store / known_hosts）· 应用层 UX 缺失（无 first-seen trust dialog · 无 emit `git:host-key-changed` event · 无 acceptance 三测试）。AuthChallenge struct 已预留 `host_fingerprint: Option<String>` 字段（line 182）· 暗示 partial 设计 · 实施未跟上。
+>
+> **决策**（v2-D.2 · 2026-05-04）：v0.2 alpha **不阻塞 GA** · OS 层 known_hosts 提供 backup 防线（SSH Agent path 由 ssh-agent 拒绝向 unknown host 发凭证 · HTTPS path 由 OS CA bundle 验证 SSL · SSH Key File path 风险最高但用户手动管理）· 应用层 TOFU + UI 推 v0.3 升级 · 详细 mitigation + v0.3 升级路径见 §已知风险 R7。
+>
+> **本节文本保留 v0.2 spec 原始设计意图**（强制要求 + 实施模板 + acceptance）· 作为 v0.3 升级时的 reference design · 不删除。
 
 **问题**：libgit2 默认 `RemoteCallbacks::credentials` 走 ssh-agent / SSH key file · 但**不验证远端 host key**。如果不显式配 `certificate_check` callback · 等于 disable host verification · 用户连第一次见的远端 host 就 push 凭证 · MITM 攻击窗口 / DNS 劫持下凭证可被截获。
 

@@ -567,6 +567,8 @@ textarea {
   flex-shrink: 0;
 }
 
+/* (撤销 2026-05-04 第一版 vs-panel-head-collapsible · 改用 BranchTree 自有 Linear/Claude 风格 minimal head · 见 branchTree.css。) */
+
 .vs-panel-title {
   font-size: 10.5px;
   font-weight: 600;
@@ -594,6 +596,20 @@ textarea {
 .vs-panel-body {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+}
+
+/* PrimarySidebar 专用 split layout · workspaces 自适应 + BranchTree 固定高度 + 中间 vresize handle ·
+   不影响 SecondarySidebar 的 vs-panel-body 默认 overflow scroll 行为（modifier class · 2026-05-04 polish）。 */
+.vs-primary-panel-body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.vs-ws-section {
+  flex: 1;
+  min-height: 80px;
   overflow-y: auto;
 }
 

@@ -18,6 +18,11 @@ interface BranchTreeRowProps {
   onCreateFrom: () => void;
 }
 
+// Module-level event name for mutual exclusion across BranchTreeRow instances.
+// 触发场景：任一 row 右键 → 所有其他 row 的 menu 关闭（含自己 · 然后自己立即重 set）。
+// Bug 修复 (2026-05-04)：旧实现仅 listen "click" · 右键不触发 click · 切 row 右键时旧 menu 残留。
+const BRANCH_CONTEXT_MENU_OPEN_EVENT = "vs:branch-context-menu-open";
+
 export const BranchTreeRow: Component<BranchTreeRowProps> = (props) => {
   const [menu, setMenu] = createSignal<{ x: number; y: number } | null>(null);
   const [acknowledged, setAcknowledged] = createSignal(false);
@@ -28,11 +33,13 @@ export const BranchTreeRow: Component<BranchTreeRowProps> = (props) => {
   onMount(() => {
     document.addEventListener("click", closeMenu);
     document.addEventListener("keydown", handleDocumentKeyDown);
+    document.addEventListener(BRANCH_CONTEXT_MENU_OPEN_EVENT, closeMenu);
   });
 
   onCleanup(() => {
     document.removeEventListener("click", closeMenu);
     document.removeEventListener("keydown", handleDocumentKeyDown);
+    document.removeEventListener(BRANCH_CONTEXT_MENU_OPEN_EVENT, closeMenu);
     if (ackTimer) {
       clearTimeout(ackTimer);
     }
@@ -66,9 +73,21 @@ export const BranchTreeRow: Component<BranchTreeRowProps> = (props) => {
     props.onCheckout();
   };
 
+  // 阻止右键 mousedown 触发 webview default text selection（user-select: none 不够 ·
+  // mousedown 阶段 webview 已 select word · contextmenu 后续 fire 时 selection 已发生）。
+  const handleMouseDown = (event: MouseEvent) => {
+    if (event.button === 2) {
+      event.preventDefault();
+    }
+  };
+
   const handleContextMenu = (event: MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
+    // 双保险：清掉任何残留 selection（防御性 · 若 mouseDown preventDefault 因焦点/平台差异未拦住）。
+    window.getSelection()?.removeAllRanges();
+    // 通知所有 row（含自己）关闭已有 menu · 然后立即 set 自己新 menu · 实现 mutual exclusion。
+    document.dispatchEvent(new CustomEvent(BRANCH_CONTEXT_MENU_OPEN_EVENT));
     setMenu({ x: event.clientX, y: event.clientY });
   };
 
@@ -103,6 +122,7 @@ export const BranchTreeRow: Component<BranchTreeRowProps> = (props) => {
           props.onCheckout();
         }
       }}
+      onMouseDown={handleMouseDown}
       onContextMenu={handleContextMenu}
     >
       <span class="vs-branch-guide">{props.guide}</span>

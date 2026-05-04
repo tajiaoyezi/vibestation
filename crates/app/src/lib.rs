@@ -212,6 +212,10 @@ fn workspace_open(state: State<'_, AppState>, id: String) -> Result<WorkspaceMet
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
     WorkspaceStore::touch(pool, &id).map_err(|e| e.to_string())?;
+    // 切 / 点击 workspace 时重 detect git 状态 · cover 用户在 non-git workspace 内
+    // 跑 `git init` 后 sidebar 不识别的设计 gap（2026-05-04 · v0.1 GA quick win · A 方案）。
+    // detect_git 是一次 path walk · ~1-3 ms · 性能可忽略。
+    WorkspaceStore::refresh_git(pool, &id).map_err(|e| e.to_string())?;
     WorkspaceStore::get_by_id(pool, &id).map_err(|e| e.to_string())
 }
 

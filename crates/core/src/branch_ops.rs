@@ -106,6 +106,10 @@ pub enum BranchError {
         name: String,
     },
     DetachedHead,
+    /// Repo 已 `git init` 但还没有任何 commit · `refs/heads/<HEAD>` 不存在。
+    /// 用户在 BRANCHES section 点 "+" 时映射的真实根因（2026-05-04 fix · v0.1 GA quick win）·
+    /// 替代之前的 `Git2Error{code: -9, message: "reference 'refs/heads/main' not found"}` 误导提示。
+    UnbornBranch,
     DirtyWorkingTree {
         modified: Vec<String>,
         staged: Vec<String>,
@@ -525,11 +529,16 @@ fn resolve_create_target(
     from_ref: Option<&str>,
 ) -> Result<(Oid, Option<String>), BranchError> {
     let Some(from_ref) = from_ref else {
+        // `git init` 后第一次 commit 前：HEAD 是 unborn · libgit2 报 NotFound (-9)
+        // 或 UnbornBranch 视版本而定 · 都翻译为 BranchError::UnbornBranch。
         return repo
             .head()
             .and_then(|head| head.peel_to_commit())
             .map(|commit| (commit.id(), None))
-            .map_err(map_git_error);
+            .map_err(|error| match error.code() {
+                ErrorCode::UnbornBranch | ErrorCode::NotFound => BranchError::UnbornBranch,
+                _ => map_git_error(error),
+            });
     };
 
     if let Ok(local) = repo.find_branch(from_ref, BranchType::Local) {
@@ -1042,6 +1051,31 @@ mod tests {
             branch_create(&repo.path, req),
             Err(BranchError::AlreadyExists { name }) if name == "duplicate"
         ));
+    }
+
+    #[test]
+    fn branch_create_on_unborn_head_returns_unborn_branch() {
+        // `git init` 后还没 commit · `refs/heads/main` 不存在 · libgit2 报 NotFound (-9)。
+        // 必须翻译为 BranchError::UnbornBranch · 让前端显示 "请先创建首次提交" 而非
+        // 误导性的 "请检查仓库权限或 .git 目录"（v0.1 GA UX fix · 2026-05-04）。
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().to_path_buf();
+        Repository::init(&path).unwrap();
+
+        let result = branch_create(
+            &path,
+            BranchCreateRequest {
+                workspace_id: "ws-test".to_string(),
+                name: "feature/x".to_string(),
+                from_ref: None,
+                checkout: false,
+            },
+        );
+
+        assert!(
+            matches!(result, Err(BranchError::UnbornBranch)),
+            "unborn HEAD branch_create 必须返回 UnbornBranch · 实际：{result:?}",
+        );
     }
 
     #[test]

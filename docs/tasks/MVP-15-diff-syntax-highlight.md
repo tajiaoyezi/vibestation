@@ -2,8 +2,8 @@
 id: MVP-15
 type: mvp
 title: Diff 语法高亮（shiki lazy load · 对齐 W21）
-status: draft
-owner: OpenCode
+status: ready
+owner:
 phase: v0.3
 depends_on: ["MVP-08"]
 blocks: []

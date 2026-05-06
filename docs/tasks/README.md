@@ -154,9 +154,9 @@ draft ────────► ready ─────────────�
 | [MVP-22](./MVP-22-pty-warm-pool.md) | PTY 预热池 · 新 tab 瞬时出 prompt | **done**（session 22 实施 · PR #189-#193 + Phase D 收尾 · 实施时 id 为 MVP-20 · session 23 rename 解 v1.0 占位 ai-one-click-rollback 同号冲突 · cold spawn 800-1200ms → warm hit 0.09ms backend）| v0.2 | 1.5d | MVP-04 |
 | [MVP-12](./MVP-12-commit-rail-graph.md) | 自绘 commit rail graph | draft（占位 · 待下个 sprint 详化）| v0.2 | 8d | MVP-07 |
 | [MVP-13](./MVP-13-branch-crud.md) | 分支 create / checkout / delete + Fuzzy Switcher | **ready**（vibe sprint 2026-05-01 Worker B 详化 100% · 2026-05-03 self-review + Arbiter approve 翻 ready · 等待认领 · 阻塞 MVP-21 W14）| v0.2 | 4d | MVP-07 / MVP-09 |
-| [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + 3 预设 + 导航 + 最大化）| draft | v0.2 | 7d | MVP-05 |
-| [MVP-15](./MVP-15-diff-syntax-highlight.md) | Diff 复杂语法高亮（tree-sitter）| draft | v0.3 | 6d | MVP-08 |
-| [MVP-16](./MVP-16-rebase-merge-cherrypick.md) | Rebase / Merge / Cherry-pick | draft | v0.3 | 7d | MVP-13 |
+| [MVP-14](./MVP-14-pane-advanced-layout.md) | Pane 高级布局（任意嵌套 + Dual AI / Triple / Quad + 导航 + 最大化）| **ready**（session 24 · Codex CLI 详化 100% · 614 行 · 主 agent cross-review + Arbiter approve · phase v0.2 → v0.3 一致化 · 等待认领）| v0.3 | 7d | MVP-05 |
+| [MVP-15](./MVP-15-diff-syntax-highlight.md) | Diff 语法高亮（shiki lazy load · 对齐 §W21）| **ready**（session 24 · OpenCode 详化 100% · 717 行 · 严格对齐 §W21 shiki · 0 新增 IPC binding · 主 agent cross-review + Arbiter approve · 等待认领）| v0.3 | 4d | MVP-08 |
+| [MVP-16](./MVP-16-rebase-merge-cherrypick.md) | Rebase / Merge / Cherry-pick（含交互式 + 冲突解决）| **ready**（session 24 · Claude Code 主 agent 详化 100% · 707 行 · 含 3-way conflict + crash recovery · self-review + Arbiter approve · 等待认领）| v0.3 | 7d | MVP-08 / MVP-09 / MVP-13 |
 | [MVP-17](./MVP-17-external-terminal-pane-detach.md) | Pop to External + Pane Detach | draft | v0.3 | 4d | MVP-14 |
 | [MVP-18](./MVP-18-ai-aware-pane-linking.md) | **AI-Aware Pane 联动**（v1.0 vision · 对外禁提）| draft | v1.0 | 15d | MVP-14 · SPIKE-07 |
 | [MVP-19](./MVP-19-session-commit-binding.md) | **AI session ↔ commit 自动绑定**（v1.0 vision）| draft | v1.0 | 8d | MVP-18 |

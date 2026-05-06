@@ -14,23 +14,27 @@ use ts_rs::{Config, TS};
 use vibestation_core::{
     AppSettings, AppVersionInfo, AuthChallenge, AuthMethod, AuthRequest, BranchCheckoutRequest,
     BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo, BranchKind,
-    BranchListRequest, BranchListResponse, BranchSwitchResult, CommitAuthor, CommitDetail,
-    CommitError, CommitParent, CommitRequest, CommitResponse, ConflictFile, CrashReportPayload,
-    DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, FetchProgressEvent, FetchRequest,
+    BranchListRequest, BranchListResponse, BranchSwitchResult, CherryPickRequest, CherryPickStatus,
+    CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse,
+    ConflictFile, ConflictHunk, ConflictHunkResolution, ConflictResolution,
+    ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, CrashReportPayload, DiffHunk,
+    DiffLine, DiffLineType, DiffRequest, DiffResponse, FetchProgressEvent, FetchRequest,
     FetchResult, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest,
     GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
     GitStatusRequest, GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType,
     ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
-    LayoutApplyRequest, LayoutNode, LayoutState, MergeConflictInfo, NetworkOpError,
-    OperationDoneEvent, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
-    PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
-    PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent,
-    PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest, PushResult, RemoteInfo,
-    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
-    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
-    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    LayoutApplyRequest, LayoutNode, LayoutState, MergeConflictInfo, MergeRequest, MergeStatus,
+    MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest, PaneCreateRequest,
+    PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
+    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest,
+    PtyStdoutEvent, PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest,
+    PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp,
+    RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo, RemoteListRequest,
+    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult,
+    SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -48,6 +52,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/git_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/branch_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/git_sync.rs");
+    println!("cargo:rerun-if-changed=../core/src/rebase_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
@@ -150,6 +155,25 @@ fn main() {
     PushProgressEvent::export_all(&config).expect("export PushProgressEvent");
     FetchProgressEvent::export_all(&config).expect("export FetchProgressEvent");
     OperationDoneEvent::export_all(&config).expect("export OperationDoneEvent");
+
+    RebaseStartRequest::export_all(&config).expect("export RebaseStartRequest");
+    RebaseInteractivePlan::export_all(&config).expect("export RebaseInteractivePlan");
+    RebaseInteractiveStep::export_all(&config).expect("export RebaseInteractiveStep");
+    RebaseOp::export_all(&config).expect("export RebaseOp");
+    RebaseStatus::export_all(&config).expect("export RebaseStatus");
+    RebaseControlRequest::export_all(&config).expect("export RebaseControlRequest");
+    RebaseOpError::export_all(&config).expect("export RebaseOpError");
+    MergeRequest::export_all(&config).expect("export MergeRequest");
+    MergeStrategy::export_all(&config).expect("export MergeStrategy");
+    MergeStatus::export_all(&config).expect("export MergeStatus");
+    CherryPickRequest::export_all(&config).expect("export CherryPickRequest");
+    CherryPickStatus::export_all(&config).expect("export CherryPickStatus");
+    ConflictedFile::export_all(&config).expect("export ConflictedFile");
+    ConflictHunk::export_all(&config).expect("export ConflictHunk");
+    ConflictResolution::export_all(&config).expect("export ConflictResolution");
+    ConflictResolveFileRequest::export_all(&config).expect("export ConflictResolveFileRequest");
+    ConflictHunkResolution::export_all(&config).expect("export ConflictHunkResolution");
+    CrashRecoveryState::export_all(&config).expect("export CrashRecoveryState");
 
     AppSettings::export_all(&config).expect("export AppSettings");
     SettingsUpdateRequest::export_all(&config).expect("export SettingsUpdateRequest");
@@ -265,6 +289,24 @@ fn main() {
             "export type { PushProgressEvent } from \"./PushProgressEvent\";",
             "export type { FetchProgressEvent } from \"./FetchProgressEvent\";",
             "export type { OperationDoneEvent } from \"./OperationDoneEvent\";",
+            "export type { RebaseStartRequest } from \"./RebaseStartRequest\";",
+            "export type { RebaseInteractivePlan } from \"./RebaseInteractivePlan\";",
+            "export type { RebaseInteractiveStep } from \"./RebaseInteractiveStep\";",
+            "export type { RebaseOp } from \"./RebaseOp\";",
+            "export type { RebaseStatus } from \"./RebaseStatus\";",
+            "export type { RebaseControlRequest } from \"./RebaseControlRequest\";",
+            "export type { RebaseOpError } from \"./RebaseOpError\";",
+            "export type { MergeRequest } from \"./MergeRequest\";",
+            "export type { MergeStrategy } from \"./MergeStrategy\";",
+            "export type { MergeStatus } from \"./MergeStatus\";",
+            "export type { CherryPickRequest } from \"./CherryPickRequest\";",
+            "export type { CherryPickStatus } from \"./CherryPickStatus\";",
+            "export type { ConflictedFile } from \"./ConflictedFile\";",
+            "export type { ConflictHunk } from \"./ConflictHunk\";",
+            "export type { ConflictResolution } from \"./ConflictResolution\";",
+            "export type { ConflictResolveFileRequest } from \"./ConflictResolveFileRequest\";",
+            "export type { ConflictHunkResolution } from \"./ConflictHunkResolution\";",
+            "export type { CrashRecoveryState } from \"./CrashRecoveryState\";",
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
             "export type { ShellInfo } from \"./ShellInfo\";",

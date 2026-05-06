@@ -96,7 +96,7 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 
 | Phase | 范围 | 估时 | 状态 |
 |-------|------|------|------|
-| Phase A · git2 后端 + IPC | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof | 3d | ⏳ 等 spec ready |
+| Phase A · git2 后端 + IPC | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof | 3d | ✅ done |
 | Phase B · UI 主体（rebase editor + 冲突解决） | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ⏳ 等 Phase A done |
 | Phase C · 中断恢复 + crash recovery | rebase_state 表持久化 · app 启动检测 .git/rebase-merge · 全局 banner UI · continue / abort / skip 路径 | 1d | ⏳ 等 Phase B done |
 | Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑 | 0.5d | ⏳ 等 Phase C done |

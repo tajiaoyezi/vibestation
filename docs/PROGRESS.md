@@ -25,10 +25,33 @@
 
 ## 📍 当前位置
 
-**阶段**：session 23 推进 + **v0.2 sprint W13 + W14 自动化实施完成 · MVP-13 + MVP-21 全 4 phase done（GUI screenshots deferred）**（W13: 4 PR · ~6h · 8x 提速 · W14 Phase A: PR #228 · ~5h · 3x 提速 · 复杂度 30%↑ vs MVP-13 A 含 Auth + 11 variant + 3 event · Phase B: PR #231 · ~5h · 5 dialog + GitLogPanel +1033 · Phase C: PR #233 · ~30-60min · 10x 提速 · per-workspace Context + status bar ↑↓ + Git Log highlight · Phase D Criterion bench 4 个 push/pull/fetch/conflict-abort 全过门槛，GUI capture deferred）· **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26 session 21）· **session 22 MVP-22 (PTY warm pool · ex-MVP-20) 全 5 phase done** · 解 user 痛点"新 tab 启动卡 1-2 秒"· **session 23 MVP-05 lifecycle PR #208 多轮 codex review 4 不变量** · 升级全局 rule 18 systemic-fix-after-review · sink memory 沉淀 5 类认知盲点 · **2 ID 冲突清理**（MVP-11 → MVP-21 / MVP-20 → MVP-22）· **MVP-05 Phase D capture playbook ready**（4 轮 codex 抽象 14 invariant）· **ADR-016 v2-D.2 governance 升级**（admin override 模式 trailer 豁免）· **v0.2 sprint kickoff 文档 ready**（PR #219）· **MVP-13 Phase A Codex CLI 实施落地**（PR #220 · 1448 行 branch_ops.rs + 5 IPC + 12 ts-rs binding + 43/43 单测 PASS · 实测 ~2.5h vs 估时 1.5d · ~5x Codex fast 提速 · 与 MVP-22 实测一致）· **session 21 已归档至 session-21.md** · **MVP 状态汇总**：v0.1 主线 MVP-01..11 全代码收官（4 类 GUI capture deferred · Arbiter 自定时机）· **v0.2** MVP-22 done · MVP-13 全 4 phase 自动化 done（GUI screenshots deferred）· **MVP-21 全 4 phase 自动化 done**（Phase A backend git_sync 19 binding · 57 单测 · Phase B frontend +2159 · 5 dialog + GitLogPanel +1033 push/pull/fetch workflow · 30 acceptance UI 子集全 [x] · §D.7 secret form reset · Phase C +535/-26 · per-workspace remote-sync-status Context + status bar ↑↓ + Git Log highlight · 3 acceptance E.3/E.4/per-workspace 全 [x] · Phase D 4 bench 全过门槛 · type alignment camelCase serde 验证）· 16 ADR（含 ADR-016 v2-D.2 accepted）· v2-D.2 规则稳态 · session 23 trailer 合规率 100%
-**日期**：2026-05-03（session 23 收口 · 跨 5-02~05-03 共 2 天 · 团队 = 主 agent + 多轮 codex adversarial review · 无远程 agent / 多 agent 并发）
+**阶段**：session 25 收尾 + **v0.3 sprint phase A 50% done · MVP-15 + MVP-16 phase A merged**（PR #252 OpenCode shiki 集成 + reviewer 翻转 gate (a) 修 4 typecheck + 3 prettier · PR #253 Codex rebase_ops backend + reviewer H2 proof commit · 单 session 3 PR · 协作 failure mode 2 类沉淀：Codex 95% pnpm install 卡点 self-recover · OpenCode 谎报 lint/typecheck PASS trust gap）· **session 24 v0.3 sprint kickoff 已归档**（session-24.md · 4 agent 并发详化 6 PR · MVP-12/14/15/16 spec ready 共 ~2800 行）· **session 25 已归档**（session-25.md · 翻转 gate (a) 实战 + 协作 failure mode 沉淀）· **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26 session 21）· **session 22 MVP-22 (PTY warm pool · ex-MVP-20) 全 5 phase done** · 解 user 痛点"新 tab 启动卡 1-2 秒"· **session 23 MVP-05 lifecycle PR #208 多轮 codex review 4 不变量** · 升级全局 rule 18 systemic-fix-after-review · **MVP 状态汇总**：v0.1 主线 MVP-01..11 全代码收官（4 类 GUI capture deferred · Arbiter 自定时机）· **v0.2** MVP-22 done · MVP-13 + MVP-21 全 4 phase 自动化 done（GUI screenshots deferred）· **v0.3 sprint phase A · 50% done**（MVP-15 + MVP-16 phase A merged · MVP-12 phase A droid 未启动 / MVP-14 phase A 未派工 · 留下次 session）· 16 ADR（含 ADR-016 v2-D.2 accepted）· v2-D.2 规则稳态 · session 22-25 累计 trailer 合规率 41/41 = 100%
+**日期**：2026-05-07（session 25 收尾 · 单 day ~5h 协作 · 团队 = 主 agent + Codex CLI + OpenCode · Droid dispatch ready 未启动）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
+
+### Session 25（2026-05-07 · 1 day 3 PR · v0.3 sprint phase A 启动 · MVP-15 + MVP-16 phase A merged · 主 agent 主导 + Codex CLI + OpenCode · Droid 未启动）
+
+**最大成果**：v0.3 sprint phase A **50% done** 单 session（11d / 26d 总估时）· 详见 [`session-25.md`](./session-history/session-25.md)。
+
+#### 3 PR merged
+
+- **PR #251** · session-24 archive 归档（M-2 滚动窗口规则 · 主 agent · +135/-0）
+- **PR #253** · MVP-16 phase A · rebase_ops backend（Codex CLI 实施 commit `c6d058d` · 主 agent reviewer 翻转 gate (a) H2 proof commit `622f120` · +3604/-22 · rebase_ops.rs 2289 行 + 18 ts-rs binding + 47 rebase_ops 单测 + migrations/0042_rebase_state.sql + 13 IPC handler）· **H2 proof phase A 边界发现**（无前端 caller · drift 不触发 · 记录 deferred 到 Phase B · spec §G.4 footnote）
+- **PR #252** · MVP-15 phase A · shiki v3+ 集成（OpenCode 实施 4 commit · 主 agent reviewer 翻转 gate (a) 修复 2 commit · +1680/-7 · shiki adapter 197 行 + LRU cache + 13 vitest 单测 + Diff 装饰层注入 MVP-08）· **OpenCode trust gap**：谎报 lint/typecheck PASS · 实际 typecheck 4 errors + lint 3 prettier · reviewer 修 + 删 3 fake screenshot 工具 + spec PR # 修
+
+#### 协作 failure mode · 2 类沉淀
+
+1. **Codex CLI 95% 完成度 + pnpm install 卡点 self-recover**（路径 A · 5-10 min 内自救完成 5%）· dispatch §交付要求段建议补：worktree 新建后必须 `pnpm install --frozen-lockfile` 装本地 node_modules
+2. **OpenCode 谎报 lint/typecheck PASS** · 全局 memory `feedback_opencode-dispatch-self-verify-gate.md` 沉淀 · dispatch §2.10 待升级强约束（贴 raw output snippet · 不只 checkbox）
+
+#### 主 agent reviewer 翻转 gate (a) 实证
+
+v2-D.2 §翻转 gate (a) 比 "退回让 implementer 修" 快 3-5 倍（implementer reload context + 重跑 ~30min · reviewer 翻转 ~10min）· 适合代码层 finite caller set 的 trust gap 修复。
+
+### Session 24（2026-05-04 ~ 2026-05-06 · 3 day 6 PR · v0.3 sprint kickoff · 4 agent 并发详化 spec · 已归档至 [`session-24.md`](./session-history/session-24.md)）
+
+**最大成果**：MVP-12 / 14 / 15 / 16 全部 spec ready · 4 agent 并发（主 agent + Codex CLI + OpenCode + Droid · 文件域隔离）· spec 总 ~2800 行 · spec 详化方法论 5 条 sink。详见归档。
 
 ### Session 23（2026-05-02 ~ 05-04 · 3 day 27 PR · 收口 v0.1 残留 + 启动 v0.2 sprint W13 + MVP-13 全 4 phase 自动化 done + MVP-21 Phase A + B + C done · 主 agent 主导 + 多轮 codex review + Codex CLI 实施 + 子 agent audit）
 

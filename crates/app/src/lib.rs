@@ -24,14 +24,17 @@ use vibestation_core::{
     git_remote_list as core_git_remote_list, pane_pty, pane_service, telemetry, AppSettings,
     AppSettingsStore, AppVersionInfo, AuthRequest, BranchCheckoutRequest, BranchCreateRequest,
     BranchDeleteRequest, BranchError, BranchInfo, BranchListRequest, BranchListResponse,
-    BranchSwitchResult, CommitDetail, DiffRequest, DiffResponse, DiffService, FetchProgressEvent,
-    FetchRequest, FetchResult, GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse,
-    GitLogReader, GitOpsService, GitStatusCollapseRequest, GitStatusPanelSettings,
-    GitStatusRequest, GitStatusResponse, GitStatusService, GitStatusWatcher, GitSyncEventHandlers,
-    LayoutApplyRequest, LayoutState, LayoutStore, NetworkOpError, OperationDoneEvent,
-    PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse,
-    PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult, RemoteListRequest,
+    BranchSwitchResult, CherryPickRequest, CherryPickStatus, CommitDetail,
+    ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, DiffRequest, DiffResponse,
+    DiffService, FetchProgressEvent, FetchRequest, FetchResult, GitConfigIdentity,
+    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
+    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
+    GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState, LayoutStore,
+    MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
+    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
+    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest,
+    PullResult, PushProgressEvent, PushRequest, PushResult, RebaseControlRequest,
+    RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteListRequest,
     RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
     StageRequest, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
     TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest,
@@ -45,6 +48,8 @@ const BRANCH_CHANGED_EVENT: &str = "git:branch-changed";
 const GIT_PUSH_PROGRESS_EVENT: &str = "git:push-progress";
 const GIT_FETCH_PROGRESS_EVENT: &str = "git:fetch-progress";
 const GIT_OPERATION_DONE_EVENT: &str = "git:operation-done";
+const GIT_REBASE_PROGRESS_EVENT: &str = "git:rebase-progress";
+const GIT_CONFLICT_DETECTED_EVENT: &str = "git:conflict-detected";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -52,6 +57,32 @@ struct BranchChangedEvent {
     workspace_id: String,
     branches: Vec<BranchInfo>,
     head: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RebaseProgressEvent {
+    workspace_id: String,
+    current_step: u32,
+    total_steps: u32,
+    current_commit: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConflictDetectedEvent {
+    workspace_id: String,
+    operation: String,
+    conflicting_files: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RebaseOperationDoneEvent {
+    workspace_id: String,
+    operation: String,
+    success: bool,
+    message: String,
 }
 
 struct AppState {
@@ -145,6 +176,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
         .map_err(|e| format!("cannot resolve app_local_data_dir: {e}"))?;
     let db_path = dir.join("vibestation.db");
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
+    apply_rebase_state_migration(&pool)?;
     state.pty.set_pool(pool.clone());
 
     // MVP-10 Phase B · 同步 telemetry runtime opt-in atomic（panic hook 用）+
@@ -181,10 +213,12 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
             .refill_async(default_shell_path, home_path);
     }
 
+    let crash_pool = pool.clone();
     let mut guard = state.pool.lock().map_err(|e| e.to_string())?;
     *guard = Some(pool);
     drop(guard);
 
+    emit_rebase_crash_recovery(&app, &crash_pool);
     let _ = app.emit("settings_changed", &settings);
     Ok("ok".to_string())
 }
@@ -445,6 +479,12 @@ fn home_dir_or_root() -> PathBuf {
     std::env::var("HOME")
         .map(PathBuf::from)
         .unwrap_or_else(|_| PathBuf::from("/"))
+}
+
+fn apply_rebase_state_migration(pool: &DbPool) -> Result<(), String> {
+    let conn = pool.get().map_err(|e| e.to_string())?;
+    conn.execute_batch(include_str!("../migrations/0042_rebase_state.sql"))
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1184,6 +1224,296 @@ fn git_sync_event_handlers(app: AppHandle) -> GitSyncEventHandlers {
     }
 }
 
+#[tauri::command]
+fn rebase_start(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: RebaseStartRequest,
+) -> Result<RebaseStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    let workspace_id = req.workspace_id.clone();
+    let result = vibestation_core::rebase_start(&repo_path, req)?;
+    emit_rebase_status(&app, &workspace_id, &result);
+    if !result.in_progress {
+        emit_rebase_done(&app, &workspace_id, "rebase", true, "rebase completed");
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn rebase_continue(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: RebaseControlRequest,
+) -> Result<RebaseStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    let workspace_id = req.workspace_id.clone();
+    let result = vibestation_core::rebase_continue(&repo_path, req)?;
+    emit_rebase_status(&app, &workspace_id, &result);
+    if !result.in_progress {
+        emit_rebase_done(&app, &workspace_id, "rebase", true, "rebase completed");
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn rebase_abort(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: RebaseControlRequest,
+) -> Result<(), RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    vibestation_core::rebase_abort(&repo_path, req.clone())?;
+    emit_rebase_done(&app, &req.workspace_id, "rebase", false, "rebase aborted");
+    Ok(())
+}
+
+#[tauri::command]
+fn rebase_skip(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: RebaseControlRequest,
+) -> Result<RebaseStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    let workspace_id = req.workspace_id.clone();
+    let result = vibestation_core::rebase_skip(&repo_path, req)?;
+    emit_rebase_status(&app, &workspace_id, &result);
+    Ok(result)
+}
+
+#[tauri::command]
+fn rebase_interactive_plan(
+    state: State<'_, AppState>,
+    workspace_id: String,
+    branch: String,
+    onto: String,
+) -> Result<RebaseInteractivePlan, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    vibestation_core::rebase_interactive_plan(&repo_path, &branch, &onto)
+}
+
+#[tauri::command]
+fn rebase_interactive_apply(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    workspace_id: String,
+    plan: RebaseInteractivePlan,
+) -> Result<RebaseStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    let result = vibestation_core::rebase_interactive_apply(&repo_path, plan)?;
+    emit_rebase_status(&app, &workspace_id, &result);
+    Ok(result)
+}
+
+#[tauri::command]
+fn merge_start(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: MergeRequest,
+) -> Result<MergeStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    let workspace_id = req.workspace_id.clone();
+    let result = vibestation_core::merge_start(&repo_path, req)?;
+    if result.outcome == "conflict" {
+        emit_rebase_conflict(&app, &workspace_id, "merge", &result.conflicting_files);
+    } else {
+        emit_rebase_done(&app, &workspace_id, "merge", true, &result.outcome);
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn merge_abort(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    workspace_id: String,
+) -> Result<(), RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    vibestation_core::rebase_merge_abort(&repo_path)?;
+    emit_rebase_done(&app, &workspace_id, "merge", false, "merge aborted");
+    Ok(())
+}
+
+#[tauri::command]
+fn cherrypick_start(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: CherryPickRequest,
+) -> Result<CherryPickStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    let workspace_id = req.workspace_id.clone();
+    let result = vibestation_core::cherrypick_start(&repo_path, req)?;
+    if result.in_progress && !result.conflicting_files.is_empty() {
+        emit_rebase_conflict(&app, &workspace_id, "cherrypick", &result.conflicting_files);
+    }
+    if !result.in_progress {
+        emit_rebase_done(
+            &app,
+            &workspace_id,
+            "cherrypick",
+            true,
+            "cherrypick completed",
+        );
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn cherrypick_continue(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    workspace_id: String,
+) -> Result<CherryPickStatus, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    let result = vibestation_core::cherrypick_continue(&repo_path)?;
+    if !result.in_progress {
+        emit_rebase_done(
+            &app,
+            &workspace_id,
+            "cherrypick",
+            true,
+            "cherrypick completed",
+        );
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn cherrypick_abort(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    workspace_id: String,
+) -> Result<(), RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    vibestation_core::cherrypick_abort(&repo_path)?;
+    emit_rebase_done(
+        &app,
+        &workspace_id,
+        "cherrypick",
+        false,
+        "cherrypick aborted",
+    );
+    Ok(())
+}
+
+#[tauri::command]
+fn conflict_resolve_file(
+    state: State<'_, AppState>,
+    req: ConflictResolveFileRequest,
+) -> Result<(), RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &req.workspace_id)?;
+    vibestation_core::conflict_resolve_file(&repo_path, req)
+}
+
+#[tauri::command]
+fn conflict_status(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<Vec<ConflictedFile>, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    vibestation_core::conflict_status(&repo_path)
+}
+
+fn rebase_repo_path(
+    state: &State<'_, AppState>,
+    workspace_id: &str,
+) -> Result<PathBuf, RebaseOpError> {
+    let guard = state
+        .pool
+        .lock()
+        .map_err(|error| RebaseOpError::Git2Error {
+            class: "AppState".to_string(),
+            code: -1,
+            message: error.to_string(),
+        })?;
+    let pool = guard.as_ref().ok_or_else(|| RebaseOpError::Git2Error {
+        class: "AppState".to_string(),
+        code: -1,
+        message: "database not initialized".to_string(),
+    })?;
+    let workspace = WorkspaceStore::get_by_id(pool, workspace_id).map_err(|error| {
+        RebaseOpError::Git2Error {
+            class: "AppState".to_string(),
+            code: -1,
+            message: error.to_string(),
+        }
+    })?;
+    Ok(PathBuf::from(workspace.path))
+}
+
+fn emit_rebase_status(app: &AppHandle, workspace_id: &str, status: &RebaseStatus) {
+    let _ = app.emit(
+        GIT_REBASE_PROGRESS_EVENT,
+        RebaseProgressEvent {
+            workspace_id: workspace_id.to_string(),
+            current_step: status.current_step,
+            total_steps: status.total_steps,
+            current_commit: None,
+        },
+    );
+    if status.in_progress && !status.conflicting_files.is_empty() {
+        emit_rebase_conflict(
+            app,
+            workspace_id,
+            status.operation.as_deref().unwrap_or("rebase"),
+            &status.conflicting_files,
+        );
+    }
+}
+
+fn emit_rebase_conflict(app: &AppHandle, workspace_id: &str, operation: &str, files: &[String]) {
+    let _ = app.emit(
+        GIT_CONFLICT_DETECTED_EVENT,
+        ConflictDetectedEvent {
+            workspace_id: workspace_id.to_string(),
+            operation: operation.to_string(),
+            conflicting_files: files.to_vec(),
+        },
+    );
+}
+
+fn emit_rebase_done(
+    app: &AppHandle,
+    workspace_id: &str,
+    operation: &str,
+    success: bool,
+    message: &str,
+) {
+    let _ = app.emit(
+        GIT_OPERATION_DONE_EVENT,
+        RebaseOperationDoneEvent {
+            workspace_id: workspace_id.to_string(),
+            operation: operation.to_string(),
+            success,
+            message: message.to_string(),
+        },
+    );
+}
+
+fn emit_rebase_crash_recovery(app: &AppHandle, pool: &DbPool) {
+    let Ok(workspaces) = WorkspaceStore::list(pool) else {
+        return;
+    };
+    for workspace in workspaces {
+        let repo_path = PathBuf::from(&workspace.path);
+        let Ok(CrashRecoveryState {
+            in_progress: true,
+            operation,
+            ..
+        }) = vibestation_core::detect_in_progress(&repo_path)
+        else {
+            continue;
+        };
+        emit_rebase_done(
+            app,
+            &workspace.workspace_id,
+            operation.as_deref().unwrap_or("rebase"),
+            false,
+            "operation recovery required",
+        );
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     let Some(window) = app.get_webview_window("main") else {
@@ -1344,6 +1674,19 @@ pub fn run() {
             git_remote_list,
             git_auth_provide,
             git_merge_abort,
+            rebase_start,
+            rebase_continue,
+            rebase_abort,
+            rebase_skip,
+            rebase_interactive_plan,
+            rebase_interactive_apply,
+            merge_start,
+            merge_abort,
+            cherrypick_start,
+            cherrypick_continue,
+            cherrypick_abort,
+            conflict_resolve_file,
+            conflict_status,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,

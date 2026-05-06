@@ -2,7 +2,7 @@
 id: MVP-16
 type: mvp
 title: Rebase / Merge / Cherry-pick（含交互式 + 冲突解决）
-status: draft
+status: ready
 owner:
 phase: v0.3
 depends_on: ["MVP-08", "MVP-09", "MVP-13"]

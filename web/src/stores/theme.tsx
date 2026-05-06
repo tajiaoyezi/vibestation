@@ -1,8 +1,9 @@
 import { createContext, useContext, type ParentComponent } from "solid-js";
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppSettings } from "../bindings";
+import { setShikiTheme } from "../utils/shiki/theme-store";
 
 type Theme = "light" | "dark" | "auto";
 
@@ -64,6 +65,11 @@ export const ThemeProvider: ParentComponent = (props) => {
         }
       },
     );
+  });
+
+  // MVP-15 Phase B · 桥接 app theme → shiki theme store · 让 Diff 视图 syntax highlight 跟随主题切换
+  createEffect(() => {
+    setShikiTheme(resolved());
   });
 
   onCleanup(() => {

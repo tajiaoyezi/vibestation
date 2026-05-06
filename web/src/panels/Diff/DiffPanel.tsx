@@ -8,6 +8,7 @@ import {
 import type { DiffHunk, DiffResponse } from "../../bindings";
 import { computeDiff, getDiffViewMode, setDiffViewMode } from "./diffApi";
 import { DiffLineContent } from "./DiffLine";
+import { PlainTextChip } from "./PlainTextChip";
 
 interface DiffPanelProps {
   workspaceId: string;
@@ -105,6 +106,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
           {props.filePath}
         </span>
         <div class="vs-diff-toolbar-right">
+          <PlainTextChip filePath={props.filePath} />
           <button
             type="button"
             class={`vs-diff-mode-btn ${viewMode() === "split" ? "vs-diff-mode-btn-on" : ""}`}

@@ -1,8 +1,4 @@
-import {
-  createEffect,
-  createSignal,
-  type Component,
-} from "solid-js";
+import { createEffect, createSignal, type Component } from "solid-js";
 import { shikiAdapter, guessLanguageFromPath } from "../../utils/shiki";
 
 interface DiffLineProps {

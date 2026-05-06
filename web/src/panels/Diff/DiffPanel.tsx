@@ -228,10 +228,18 @@ const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
       <Show
         when={props.viewMode === "unified"}
         fallback={
-          <SplitHunkLines hunk={props.hunk} lineClass={props.lineClass} filePath={props.filePath} />
+          <SplitHunkLines
+            hunk={props.hunk}
+            lineClass={props.lineClass}
+            filePath={props.filePath}
+          />
         }
       >
-        <UnifiedHunkLines hunk={props.hunk} lineClass={props.lineClass} filePath={props.filePath} />
+        <UnifiedHunkLines
+          hunk={props.hunk}
+          lineClass={props.lineClass}
+          filePath={props.filePath}
+        />
       </Show>
     </div>
   );

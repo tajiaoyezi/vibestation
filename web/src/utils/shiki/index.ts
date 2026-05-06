@@ -1,17 +1,18 @@
 // ShikiAdapter · shiki v3+ 语法高亮适配层
 // MVP-15 Phase A · 仅 TypeScript + light/dark 主题
 
-import {
-  createHighlighterCore,
-  type HighlighterCore,
-} from "shiki/core";
+import { createHighlighterCore, type HighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
-import githubLight from "shiki/themes/github-light";
-import githubDark from "shiki/themes/github-dark";
-import ts from "shiki/langs/typescript";
+import githubLight from "shiki/themes/github-light.mjs";
+import githubDark from "shiki/themes/github-dark.mjs";
+import ts from "shiki/langs/typescript.mjs";
 
 export interface ShikiAdapter {
-  highlight(code: string, lang: string, theme: "light" | "dark"): Promise<string>;
+  highlight(
+    code: string,
+    lang: string,
+    theme: "light" | "dark",
+  ): Promise<string>;
   setTheme(theme: "light" | "dark"): void;
   clearCache(): void;
   getCacheStats(): { fileCount: number; sizeBytes: number };
@@ -96,11 +97,7 @@ function getHighlighter(): Promise<HighlighterCore> {
   return highlighterPromise;
 }
 
-function buildCacheKey(
-  code: string,
-  lang: string,
-  theme: string,
-): string {
+function buildCacheKey(code: string, lang: string, theme: string): string {
   // 简单 hash：前 100 字符 + 长度 + lang + theme
   const prefix = code.slice(0, 100);
   return `${lang}:${theme}:${code.length}:${prefix}`;
@@ -150,7 +147,6 @@ export function guessLanguageFromPath(path: string): string | null {
 
 export function createShikiAdapter(): ShikiAdapter {
   const cache = new LRUCache();
-  let currentTheme: "light" | "dark" = "light";
 
   return {
     async highlight(code, lang, theme) {
@@ -178,7 +174,6 @@ export function createShikiAdapter(): ShikiAdapter {
     },
 
     setTheme(theme) {
-      currentTheme = theme;
       // CSS variable + data-attribute 驱动 · 不重 parse
       document.documentElement.setAttribute("data-shiki-theme", theme);
     },

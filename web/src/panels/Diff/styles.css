@@ -297,3 +297,36 @@
 .vs-diff-split-empty {
   background: var(--bg-1);
 }
+
+/* ══════ SHIKI SYNTAX HIGHLIGHT ══════ */
+
+/* Shiki 渲染内容继承等宽字体 */
+.vs-diff-line-content code,
+.vs-diff-line-content pre {
+  font-family: var(--font-mono);
+  font-size: inherit;
+  line-height: inherit;
+  background: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* 确保 shiki token 可选可复制 */
+.vs-diff-line-content span {
+  user-select: text;
+}
+
+/* shiki 主题色由 CSS variable 驱动 */
+[data-shiki-theme="light"] .shiki {
+  color: var(--text-1);
+}
+
+[data-shiki-theme="dark"] .shiki {
+  color: var(--text-1);
+}
+
+/* 确保 inline 高亮不换行 */
+.vs-diff-line-content .shiki {
+  display: inline;
+  white-space: pre;
+}

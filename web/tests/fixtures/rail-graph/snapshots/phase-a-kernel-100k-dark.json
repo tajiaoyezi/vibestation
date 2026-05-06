@@ -1,0 +1,507 @@
+{
+  "assignmentCount": 100000,
+  "maxLaneIndex": 21016,
+  "sampleSize": 100,
+  "assignments": [
+    {
+      "rowIndex": 0,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 1,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 2,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 3,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 4,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 5,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 6,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 7,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 8,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 9,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 10,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 11,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 12,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 13,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 14,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 15,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 16,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 17,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 18,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 19,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 20,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 21,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 22,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 23,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 24,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 25,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 26,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 27,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 28,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 29,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 30,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 31,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 32,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 33,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 34,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 35,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 36,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 37,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 38,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 39,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 40,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 41,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 42,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 43,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 44,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 45,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 46,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 47,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 48,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 49,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 50,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 51,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 52,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 53,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 54,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 55,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 56,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 57,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 58,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 59,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 60,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 61,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 62,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 63,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 64,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 65,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 66,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 67,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 68,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 69,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 70,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 71,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 72,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 73,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 74,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 75,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 76,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 77,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 78,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 79,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 80,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 81,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 82,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 83,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 84,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 85,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 86,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 87,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 88,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 89,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 90,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 91,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 92,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 93,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 94,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 95,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 96,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 97,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 98,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 99,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    }
+  ]
+}

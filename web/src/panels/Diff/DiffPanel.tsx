@@ -7,6 +7,7 @@ import {
 } from "solid-js";
 import type { DiffHunk, DiffResponse } from "../../bindings";
 import { computeDiff, getDiffViewMode, setDiffViewMode } from "./diffApi";
+import { DiffLineContent } from "./DiffLine";
 
 interface DiffPanelProps {
   workspaceId: string;
@@ -191,6 +192,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
                         hunk={hunk}
                         viewMode={viewMode()}
                         lineClass={lineClass}
+                        filePath={props.filePath}
                       />
                     )}
                   </For>
@@ -208,6 +210,7 @@ interface DiffHunkViewProps {
   hunk: DiffHunk;
   viewMode: ViewMode;
   lineClass: (lineType: string) => string;
+  filePath: string;
 }
 
 const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
@@ -225,10 +228,10 @@ const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
       <Show
         when={props.viewMode === "unified"}
         fallback={
-          <SplitHunkLines hunk={props.hunk} lineClass={props.lineClass} />
+          <SplitHunkLines hunk={props.hunk} lineClass={props.lineClass} filePath={props.filePath} />
         }
       >
-        <UnifiedHunkLines hunk={props.hunk} lineClass={props.lineClass} />
+        <UnifiedHunkLines hunk={props.hunk} lineClass={props.lineClass} filePath={props.filePath} />
       </Show>
     </div>
   );
@@ -237,6 +240,7 @@ const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
 const UnifiedHunkLines: Component<{
   hunk: DiffHunk;
   lineClass: (lineType: string) => string;
+  filePath: string;
 }> = (props) => {
   return (
     <div class="vs-diff-unified">
@@ -256,7 +260,11 @@ const UnifiedHunkLines: Component<{
                   ? "-"
                   : " "}
             </span>
-            <span class="vs-diff-line-content">{line.content}</span>
+            <DiffLineContent
+              content={line.content}
+              filePath={props.filePath}
+              lineType={line.lineType}
+            />
           </div>
         )}
       </For>
@@ -267,6 +275,7 @@ const UnifiedHunkLines: Component<{
 const SplitHunkLines: Component<{
   hunk: DiffHunk;
   lineClass: (lineType: string) => string;
+  filePath: string;
 }> = (props) => {
   return (
     <div class="vs-diff-split">
@@ -281,7 +290,11 @@ const SplitHunkLines: Component<{
                 <span class="vs-diff-line-marker">
                   {line.lineType === "removed" ? "-" : " "}
                 </span>
-                <span class="vs-diff-line-content">{line.content}</span>
+                <DiffLineContent
+                  content={line.content}
+                  filePath={props.filePath}
+                  lineType={line.lineType}
+                />
               </Show>
             </div>
             <div
@@ -292,7 +305,11 @@ const SplitHunkLines: Component<{
                 <span class="vs-diff-line-marker">
                   {line.lineType === "added" ? "+" : " "}
                 </span>
-                <span class="vs-diff-line-content">{line.content}</span>
+                <DiffLineContent
+                  content={line.content}
+                  filePath={props.filePath}
+                  lineType={line.lineType}
+                />
               </Show>
             </div>
           </div>

@@ -2,9 +2,9 @@
 id: MVP-12
 type: mvp
 title: 自绘 commit rail graph（Git Log 图形化）
-status: draft
+status: ready
 owner:
-phase: v0.2
+phase: v0.3
 depends_on: ["MVP-07"]
 blocks: ["MVP-16"]
 blocked_by: []

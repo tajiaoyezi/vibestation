@@ -1,0 +1,90 @@
+H2 Regression Proof · MVP-16 Phase A
+=====================================
+
+Executed by: Claude Code (主 agent · reviewer · session 25 · 2026-05-07)
+Spec ref: docs/tasks/MVP-16-rebase-merge-cherrypick.md §G.4 H2 类 regression proof
+Dispatch ref: spike-tmp/dispatch/MVP-16-phase-A-codex-prompt.md (reviewer responsibility · §2.14)
+
+PURPOSE
+-------
+H2 root cause: ts-rs binding drift between Rust struct field names and frontend TypeScript usage. Spec §G.4 prescribes a 6-step rename-and-revert dance to prove the codegen + typecheck loop will catch field renames before they ship.
+
+EXECUTION
+---------
+
+Step 1 · Inject `#[ts(rename = "firstFieldProof")]` on `workspace_id` field of `RebaseStartRequest`:
+
+  // crates/core/src/rebase_ops.rs (line 20-26 region)
+  pub struct RebaseStartRequest {
+      #[ts(rename = "firstFieldProof")]   // injected
+      pub workspace_id: String,
+      pub branch: String,
+      pub onto: String,
+      pub interactive: bool,
+  }
+
+Step 2 · `cargo build -p vibestation-app` · PASS (8.48s · ts-rs regenerated binding):
+
+  // web/src/bindings/RebaseStartRequest.ts (regenerated · BEFORE proof)
+  export type RebaseStartRequest = {
+    workspaceId: string,    // original camelCase from serde rename_all
+    branch: string, onto: string, interactive: boolean,
+  };
+
+  // web/src/bindings/RebaseStartRequest.ts (regenerated · AFTER inject)
+  export type RebaseStartRequest = {
+    firstFieldProof: string,   // <-- ts-rs respected #[ts(rename)]
+    branch: string, onto: string, interactive: boolean,
+  };
+
+  → ts-rs codegen pipeline confirmed working. Field rename propagated Rust → .ts.
+
+Step 3 · `pnpm typecheck` (after rename injected) · UNEXPECTED PASS · 0 errors:
+
+  > @vibestation/web@0.1.0 typecheck
+  > tsc --noEmit
+  (no output · exit 0)
+
+Step 4 · ROOT CAUSE of unexpected PASS:
+
+Phase A is backend-only delivery. No frontend code consumes `RebaseStartRequest.workspaceId`
+(or any of the 18 new bindings) yet. tsc has no caller site to flag drift against. The drift
+detection chain depends on a frontend usage like:
+
+  // hypothetical Phase B+ code
+  invoke<RebaseStartRequest>('rebase_start', { workspaceId: ws, branch, onto, interactive });
+  //                                            ^^^^^^^^^^^^ would TS2339 if rename takes effect
+
+Without such a call site, ts-rs codegen and tsc form an "open loop" and the proof's
+"FAIL on rename · PASS on revert" pattern can not be observed.
+
+Step 5 · Rollback `#[ts(rename = "firstFieldProof")]`. `cargo build` regenerated original
+binding; `pnpm typecheck` PASS again (no diff from the unexpected pass above).
+
+Step 6 · Verify worktree clean: `git status --short` returns nothing.
+
+CONCLUSION
+----------
+
+H2 proof is NOT actionable in MVP-16 Phase A scope. Recording this as a known-deferred
+gate that MUST be re-run in Phase B once the first frontend caller site is wired
+(rebase editor / merge dialog / cherry-pick dialog · spec §H.8 layer 2).
+
+Evidence the codegen pipeline IS functional even without H2's failing leg:
+- 18 ts-rs bindings physically present (see 02-ts-rs-bindings-list.txt).
+- All bindings compile (see 01-cargo-test-output.txt 592 PASS).
+- Field rename DID propagate Rust → .ts (Step 2 above · binding diff observed).
+
+What we CAN'T yet prove (deferred to Phase B):
+- That a frontend tsc would fail loudly on Rust field rename.
+- That CI would block such a drift before merge.
+
+PHASE B GATE TRIGGER (do not skip)
+-----------------------------------
+
+When PR opens for MVP-16 Phase B with first frontend caller of any RebaseOpError,
+RebaseStartRequest, MergeRequest, CherryPickRequest, ConflictedFile, or CrashRecoveryState:
+re-run `#[ts(rename)]` injection on a consumed field; expect tsc to FAIL loudly.
+That re-run closes H2 for MVP-16. Tracking via spec §G.4 footnote.
+
+Proof recorded in PR #253 review (reviewer: Claude Code · 主 agent).

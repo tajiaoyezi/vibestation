@@ -1,0 +1,29 @@
+H2 Regression Proof · MVP-12 Phase A · spec §G.4
+=================================================
+
+Test: Rename `refs_hash` → `refs_hash_proof` in rail_graph_events.rs
+
+Step 1: Modified crates/core/src/rail_graph_events.rs
+  pub refs_hash_proof: String,  # was: refs_hash
+
+Step 2: cargo build -p vibestation-app
+  → Regenerated web/src/bindings/RailGraphBranchChangedPayload.ts
+  → Type: { ..., refsHashProof: string, ... }  # was: refsHash
+
+Step 3: pnpm typecheck FAILED with:
+  src/panels/GitLog/RailGraph/_contract-typecheck.ts(27,43):
+  error TS2339: Property 'refsHash' does not exist on type 'RailGraphBranchChangedPayload'.
+  Exit code: 2
+
+Step 4: Rolled back rail_graph_events.rs to original
+  pub refs_hash: String,
+
+Step 5: cargo build -p vibestation-app  → Regenerated correct binding
+  → Type: { ..., refsHash: string, ... }
+
+Step 6: pnpm typecheck PASSED
+  → 0 errors · Exit code: 0
+
+Conclusion: H2 contract drift detection is active. Any rename of a Rust field
+without updating the corresponding TypeScript consumer will immediately surface
+as a typecheck failure, preventing silent API drift.

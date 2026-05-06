@@ -1,0 +1,7 @@
+[1m[92m   Compiling[0m vibestation-core v0.1.0 (/private/tmp/MVP-12-phase-A-work/crates/core)
+[1m[92m   Compiling[0m vibestation-app v0.1.0 (/private/tmp/MVP-12-phase-A-work/crates/app)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 14.05s
+-rw-r--r--@ 1 leaf  wheel  337 May  7 07:43 web/src/bindings/RailGraphBranchChangedPayload.ts
+-rw-r--r--@ 1 leaf  wheel  367 May  7 07:43 web/src/bindings/RailGraphPerfSample.ts
+-rw-r--r--@ 1 leaf  wheel  314 May  7 07:43 web/src/bindings/RailGraphRebaseStatePayload.ts
+-rw-r--r--@ 1 leaf  wheel  345 May  7 07:43 web/src/bindings/RailGraphViewportSyncPayload.ts

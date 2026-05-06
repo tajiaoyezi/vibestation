@@ -40,6 +40,23 @@
   align-items: center;
 }
 
+/* MVP-15 Phase B · 不识别语言时显示 "Plain text" chip · 灰色细字 · 不打扰 */
+.vs-diff-plain-text-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--space-2);
+  margin-right: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+  background: var(--bg-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  letter-spacing: 0.02em;
+  user-select: none;
+  cursor: default;
+}
+
 .vs-diff-mode-btn {
   appearance: none;
   border: 1px solid var(--line);

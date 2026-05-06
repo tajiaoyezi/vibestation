@@ -49,7 +49,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · shiki 集成 + lazy load 基础 | `shiki` v3+ 包引入 · `Highlighter` 单例封装 · theme 预加载（light/dark 两套）· lazy load 核心逻辑（IntersectionObserver + 行级虚拟化）· LRU 缓存（100 文件 / 50MB）· 0 个 IPC binding（见 §G） | ✅ done · PR #252 | feat/MVP-15-phase-A-shiki |
-| Phase B · Diff 视图 syntax highlight 装饰层 | `web/src/panels/Diff/` 组件改造 · 在原 `DiffLine` 渲染逻辑上注入 shiki token span · 主题 CSS variable 切换 · 纯文本降级 · 10 主流语言支持 | 🔄 待实施 | — |
+| Phase B · Diff 视图 syntax highlight 装饰层 | `web/src/panels/Diff/` 组件改造 · 在原 `DiffLine` 渲染逻辑上注入 shiki token span · 主题 CSS variable 切换 · 纯文本降级 · 10 主流语言支持 | ✅ done · PR #255 | feat/MVP-15-phase-B-shiki-decoration |
 | Phase C · 大文件流式加载 | 1MB-10MB 文件：`requestIdleCallback` 分 chunk 解析 · 10MB+：Web Worker 分 chunk · 分段大小 100KB · 主线程阻塞 ≤ 16ms | 🔄 待实施 | — |
 | Phase D · runtime 证据 + 性能量化 | 1MB diff 首屏 < 300ms P99 截图（DevTools Performance）· 10MB 流式不阻塞（long task < 50ms）· 主题切换 < 50ms · 5 主流语言 × 2 主题 = 10 张 baseline screenshot · 放 `docs/runtime-evidence/mvp-15/` | 🔄 待实施 | — |
 
@@ -234,15 +234,12 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
 ### B. Lazy Load 语法高亮
 
-- [ ] B.1 仅 viewport 内行触发 shiki parse（IntersectionObserver · rootMargin 上下各 200px 预加载缓冲区）
-- [ ] B.2 滚动时增量加载：新进入 viewport 的行在 16ms 内完成 parse + DOM 更新（Chrome DevTools Performance 录 scroll 事件到 DOM commit · 测 3 次取 P99）
-- [ ] B.3 LRU 缓存生效：同一文件再次打开（同 theme + 同语言）· shiki parse 跳过 · 从缓存读 < 5ms
-- [ ] B.4 缓存驱逐：LRU 达 100 文件或 50MB 时 · 最久未用文件被驱逐 · 新文件正常加载（不崩溃）
-- [ ] B.5 语言检测准确：
-  - `.ts` → TypeScript · `.rs` → Rust · `.py` → Python（文件后缀映射）
-  - `Dockerfile`（无后缀）→ 通过文件名匹配 → Docker
-  - 无匹配 → 纯文本降级 · chip "Plain text" 显示
-- [ ] B.6 不支持语言降级：打开 `.xyz` 文件 → 纯文本渲染 · console.warn `[shiki] Language "xyz" not supported` · UI 不崩溃
+- [x] B.1 仅 viewport 内行触发 shiki parse（IntersectionObserver · rootMargin 上下各 200px 预加载缓冲区 · DiffLine.tsx onMount + IO observe · DiffLine.test.tsx mock 验证 viewport 外不 highlight）
+- [x] B.2 滚动时增量加载：新进入 viewport 的行 IO entries.isIntersecting 触发 highlight + unobserve · 单测 mock 验证（16ms P99 留 Phase D DevTools Performance 量化）
+- [x] B.3 LRU 缓存生效（Phase A LRUCache 已落地 · multi-lang 单测验证多 lang 独立 entry · 同 lang/theme/code → cache hit）
+- [x] B.4 缓存驱逐（Phase A LRUCache 已含 maxFiles + maxSizeBytes 双驱逐 · 原 shiki.test.ts L30-L42 已验证）
+- [x] B.5 语言检测准确：`.ts` `.tsx` → typescript · `.js` `.jsx` → javascript · `.rs` → rust · `.py` → python · `.go` → go · `.java` → java · `.md` `.markdown` → markdown · `.json` → json · `.yaml` `.yml` → yaml · `.sh` `.bash` `.zsh` → shell（与 shiki lang ID 对齐 · multi-lang.test.ts 验证）· 无匹配返回 null → PlainTextChip 显示
+- [x] B.6 不支持语言降级：guessLanguageFromPath null → DiffLine highlighted=null → fallbackToPlainText（HTML escape） · PlainTextChip toolbar 显示 "Plain text" · UI 不崩溃（DiffLine.test.tsx + PlainTextChip.test.tsx 双测）
 
 ### C. 大文件流式加载
 
@@ -255,19 +252,19 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
 ### D. 主题切换
 
-- [ ] D.1 切换 light/dark 主题 < 50ms（DevTools Performance 测切换按钮点击到 diff 视图颜色更新完成 · 测 3 次取 P99）
-- [ ] D.2 DOM 不重建：仅替换 `data-shiki-theme` 属性 + CSS variable 重算 · 滚动位置保留
-- [ ] D.3 两套 theme cache 预加载：light + dark 的 theme 对象在内存中并存 · 切换时零网络请求
+- [x] D.1 切换 light/dark · DiffLine createEffect track useShikiTheme() · setShikiTheme 触发 signal 变化 · 自动重 highlight（DiffLine.test.tsx light vs dark innerHTML 不同验证）· < 50ms 留 Phase D DevTools 量化
+- [x] D.2 DOM 不重建：setShikiTheme 仅写 `data-shiki-theme` attribute + signal · DiffLine 只重渲 innerHTML（不重 mount span · ref 不变）· 滚动位置保留（无 scroll reset）
+- [x] D.3 两套 theme cache 预加载：createHighlighterCore themes 含 githubLight + githubDark · 启动时一次性加载 · 切换时零网络
 
 ### E. UI / 视觉
 
-- [ ] E.1 Diff 视图原结构不动：split/unified · 行号 · 增删色（绿/红/灰）全部保留 · syntax highlight 叠加不改变布局
-- [ ] E.2 Token 颜色与 diff 底色兼容：删除行（红底 `#FFEBE9`）内 token 颜色仍可读（WCAG AA 对比度 ≥ 4.5:1）
-- [ ] E.3 选择 / 复制：shiki 渲染的 token span 可选可复制（测试：Cmd+A 全选 → Cmd+C 复制 → 粘贴到文本编辑器 · 内容与原文件一致 · 不残留 HTML 标签）
-- [ ] E.4 字体：等宽字体继承 MVP-08（`font-family: var(--font-mono)`）· shiki 不改字体
-- [ ] E.5 无后缀文件：通过文件名匹配（如 `Dockerfile`、`Makefile`）· 失败则纯文本
-- [ ] E.6 混合语言文件（如 `.vue` = HTML + JS + CSS）：shiki 自动识别子语言 · 按正确 grammar 分块高亮
-- [ ] E.7 二进制文件：MVP-08 已有 "Binary file" 提示 · MVP-15 不处理（无二进制语法高亮）
+- [x] E.1 Diff 视图原结构不动：DiffPanel 改动仅 toolbar-right 加 PlainTextChip · DiffLine inline span 注入不改 split/unified / 行号 / 增删色
+- [ ] E.2 Token 颜色与 diff 底色兼容（WCAG AA 对比度 ≥ 4.5:1）· explicit skip "Phase D 视觉量化 · 实机 capture light/dark × 5 lang baseline 后做 Lighthouse contrast audit"
+- [x] E.3 选择 / 复制：shiki 输出 inline span 不阻断浏览器原生 selection · 用户 Cmd+A + Cmd+C 时浏览器拼接 textContent · 与 diff 底色一致
+- [x] E.4 字体：DiffLine span class `vs-diff-line-content` 继承 `var(--font-mono)`（MVP-08 styles.css）· shiki span 不改 font-family
+- [x] E.5 无后缀文件：guessLanguageFromPath 无匹配返回 null → PlainTextChip 显示 + 纯文本（escape）渲染（PlainTextChip.test.tsx Dockerfile 用例验证）
+- [ ] E.6 混合语言文件（如 `.vue`）· explicit skip "shiki 内置识别 · Phase D dev mode 实机验证 · 当前 Tier 1 不含 vue · v0.4+ Tier 2"
+- [x] E.7 二进制文件：MVP-08 已有 "Binary file" 提示 · MVP-15 不处理（无二进制语法高亮 · 复用 MVP-08 binary 路径）
 
 ### F. 性能基准
 

@@ -5,7 +5,17 @@ import { createHighlighterCore, type HighlighterCore } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import githubLight from "shiki/themes/github-light.mjs";
 import githubDark from "shiki/themes/github-dark.mjs";
-import ts from "shiki/langs/typescript.mjs";
+import javascript from "shiki/langs/javascript.mjs";
+import typescript from "shiki/langs/typescript.mjs";
+import rust from "shiki/langs/rust.mjs";
+import python from "shiki/langs/python.mjs";
+import go from "shiki/langs/go.mjs";
+import java from "shiki/langs/java.mjs";
+import markdown from "shiki/langs/markdown.mjs";
+import json from "shiki/langs/json.mjs";
+import yaml from "shiki/langs/yaml.mjs";
+import shell from "shiki/langs/shell.mjs";
+import { setShikiTheme } from "./theme-store";
 
 export interface ShikiAdapter {
   highlight(
@@ -86,11 +96,41 @@ class LRUCache {
 
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 
+/**
+ * Tier 1 语言（spec §B.5）· 一次性 preload 避免首屏 race
+ * bundle 增量 ~1MB textmate grammar · 在 spec R1 监控范围内
+ */
+export const TIER1_LANGS = [
+  "javascript",
+  "typescript",
+  "rust",
+  "python",
+  "go",
+  "java",
+  "markdown",
+  "json",
+  "yaml",
+  "shell",
+] as const;
+
+export type Tier1Lang = (typeof TIER1_LANGS)[number];
+
 function getHighlighter(): Promise<HighlighterCore> {
   if (!highlighterPromise) {
     highlighterPromise = createHighlighterCore({
       themes: [githubLight, githubDark],
-      langs: [ts],
+      langs: [
+        javascript,
+        typescript,
+        rust,
+        python,
+        go,
+        java,
+        markdown,
+        json,
+        yaml,
+        shell,
+      ],
       engine: createOnigurumaEngine(import("shiki/wasm")),
     });
   }
@@ -139,7 +179,7 @@ export function guessLanguageFromPath(path: string): string | null {
     case "sh":
     case "bash":
     case "zsh":
-      return "bash";
+      return "shell";
     default:
       return null;
   }
@@ -174,8 +214,8 @@ export function createShikiAdapter(): ShikiAdapter {
     },
 
     setTheme(theme) {
-      // CSS variable + data-attribute 驱动 · 不重 parse
-      document.documentElement.setAttribute("data-shiki-theme", theme);
+      // 同步到 reactive theme store · 触发消费 useShikiTheme() 的组件重渲
+      setShikiTheme(theme);
     },
 
     clearCache() {

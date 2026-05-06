@@ -1,0 +1,66 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-rebase-start"
+description = "Start a git rebase operation"
+commands.allow = ["rebase_start"]
+
+[[permission]]
+identifier = "allow-rebase-continue"
+description = "Continue an in-progress git rebase operation"
+commands.allow = ["rebase_continue"]
+
+[[permission]]
+identifier = "allow-rebase-abort"
+description = "Abort an in-progress git rebase operation"
+commands.allow = ["rebase_abort"]
+
+[[permission]]
+identifier = "allow-rebase-skip"
+description = "Skip the current git rebase or cherry-pick step"
+commands.allow = ["rebase_skip"]
+
+[[permission]]
+identifier = "allow-rebase-interactive-plan"
+description = "Build an interactive rebase plan"
+commands.allow = ["rebase_interactive_plan"]
+
+[[permission]]
+identifier = "allow-rebase-interactive-apply"
+description = "Apply an interactive rebase plan"
+commands.allow = ["rebase_interactive_apply"]
+
+[[permission]]
+identifier = "allow-merge-start"
+description = "Start a git merge operation"
+commands.allow = ["merge_start"]
+
+[[permission]]
+identifier = "allow-merge-abort"
+description = "Abort an in-progress git merge operation"
+commands.allow = ["merge_abort"]
+
+[[permission]]
+identifier = "allow-cherrypick-start"
+description = "Start a git cherry-pick operation"
+commands.allow = ["cherrypick_start"]
+
+[[permission]]
+identifier = "allow-cherrypick-continue"
+description = "Continue an in-progress git cherry-pick operation"
+commands.allow = ["cherrypick_continue"]
+
+[[permission]]
+identifier = "allow-cherrypick-abort"
+description = "Abort an in-progress git cherry-pick operation"
+commands.allow = ["cherrypick_abort"]
+
+[[permission]]
+identifier = "allow-conflict-resolve-file"
+description = "Resolve a conflicting file in the git index"
+commands.allow = ["conflict_resolve_file"]
+
+[[permission]]
+identifier = "allow-conflict-status"
+description = "Read current git conflict status"
+commands.allow = ["conflict_status"]

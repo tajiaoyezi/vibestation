@@ -1,0 +1,678 @@
+   Compiling vibestation-core v0.1.0 (/private/tmp/MVP-16-phase-A-work/crates/core)
+   Compiling vibestation-app v0.1.0 (/private/tmp/MVP-16-phase-A-work/crates/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 13.40s
+     Running unittests src/lib.rs (target/debug/deps/vibestation_app_lib-c60f4874ff8ec30c)
+
+running 4 tests
+test fix_path_env::tests::fish_uses_login_shell_for_path_fix ... ok
+test fix_path_env::tests::resolved_shell_prefers_non_empty_env_value ... ok
+test fix_path_env::tests::resolved_shell_falls_back_for_empty_env_value ... ok
+test fix_path_env::tests::sh_uses_non_login_shell_for_path_fix ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/vibestation_app-f53be748eb61d057)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/git_status_watch_integration.rs (target/debug/deps/git_status_watch_integration-fbe55e38c6f98fdd)
+
+running 2 tests
+test git_status_watch_triggers_once_for_file_write ... ok
+test git_status_watch_ignores_git_index_lock ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.86s
+
+     Running tests/shell_compat.rs (target/debug/deps/shell_compat-5c71a4f339884ef3)
+
+running 22 tests
+test bash_07_tab_completion_runtime_only ... ignored, 需 Tauri runtime · bash Tab 补全是 readline 交互式行为 · cargo test 无法稳定模拟
+test bash_08_history_arrows_runtime_only ... ignored, 需 Tauri runtime · bash history 上下箭头是 readline 交互式 · cargo test 无法稳定模拟
+test claude_cli_13_startup_login_runtime_only ... ignored, 需 Tauri runtime + Claude CLI login · cargo test 不可重复 · spec §I.4 手动 + 截图证据
+test claude_cli_14_streaming_chinese_runtime_only ... ignored, 需 Tauri runtime + 真实 LLM endpoint · cargo test 不可重复 · spec §I.4 手动 + 截图证据
+test claude_cli_15_ctrl_c_no_residual_runtime_only ... ignored, 需 Tauri runtime · Ctrl+C 残帧污染是 xterm 渲染问题 · spec §I.4 手动 + 截图证据
+test claude_cli_16_exit_returns_to_shell_runtime_only ... ignored, 需 Tauri runtime + Claude CLI 真实退出流 · cargo test 不可重复 · spec §I.4 手动 + 截图证据
+test claude_cli_17_long_output_scroll_runtime_only ... ignored, 需 Tauri runtime · 滚动流畅是 xterm 渲染指标 · cargo test 无法采帧率 · spec §I.4 手动 + 录屏证据
+test codex_cli_18_startup_login_runtime_only ... ignored, 需 Tauri runtime + Codex CLI login · cargo test 不可重复 · spec §I.4 手动 + 截图证据
+test codex_cli_19_single_turn_runtime_only ... ignored, 需 Tauri runtime + 真实 OpenAI endpoint · cargo test 不可重复 · spec §I.4 手动 + 截图证据
+test codex_cli_20_ctrl_c_no_residual_runtime_only ... ignored, 需 Tauri runtime · 同 Claude case 15 · spec §I.4 手动 + 截图证据
+test codex_cli_21_exit_returns_to_shell_runtime_only ... ignored, 需 Tauri runtime · 同 Claude case 16 · spec §I.4 手动 + 截图证据
+test codex_cli_22_long_output_scroll_runtime_only ... ignored, 需 Tauri runtime · 同 Claude case 17 · spec §I.4 手动 + 录屏证据
+test fish_10_autosuggestion_runtime_only ... ignored, 需 Tauri runtime · fish autosuggestion 是 xterm 灰字渲染 · cargo test 无法识别
+test fish_11_tab_completion_runtime_only ... ignored, 需 Tauri runtime · fish Tab 补全是 paged-list 交互式 · cargo test 无法模拟
+test zsh_03_tab_completion_runtime_only ... ignored, 需 Tauri runtime · zsh Tab 补全是 zle 交互式行为 · cargo test 无法稳定模拟
+test fish_12_chinese_ime_utf8_roundtrip ... ok
+test fish_09_startup_shows_prompt ... ok
+test bash_06_term_env_is_xterm_256color ... ok
+test bash_05_startup_shows_prompt ... ok
+test zsh_01_startup_shows_prompt ... ok
+test zsh_02_term_env_is_xterm_256color ... ok
+test zsh_04_chinese_ime_utf8_roundtrip ... ok
+
+test result: ok. 7 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 1.56s
+
+     Running unittests src/lib.rs (target/debug/deps/vibestation_core-c46c37cd73cb185f)
+
+running 558 tests
+test branch_ops::export_bindings_branchcheckoutrequest ... ok
+test branch_ops::export_bindings_branchcreaterequest ... ok
+test app_settings::export_bindings_appsettings ... ok
+test app_settings::export_bindings_settingsupdaterequest ... ok
+test branch_ops::export_bindings_branchdeleterequest ... ok
+test branch_ops::export_bindings_brancherror ... ok
+test branch_ops::export_bindings_branchkind ... ok
+test branch_ops::export_bindings_branchlistrequest ... ok
+test branch_ops::export_bindings_branchinfo ... ok
+test branch_ops::export_bindings_branchswitchresult ... ok
+test branch_ops::export_bindings_switcherqueryrequest ... ok
+test branch_ops::export_bindings_switchermatch ... ok
+test branch_ops::export_bindings_branchlistresponse ... ok
+test branch_ops::export_bindings_switchersearchresult ... ok
+test app_settings::tests::set_and_get_roundtrip ... ok
+test app_settings::tests::get_all_returns_defaults_when_empty ... ok
+test app_settings::tests::get_nonexistent_key_errors ... ok
+test app_settings::tests::pty_pool_settings_roundtrip ... ok
+test app_settings::tests::multiple_keys_independent ... ok
+test app_settings::tests::set_overwrites_previous ... ok
+test app_settings::tests::update_writes_only_provided_fields ... ok
+test app_settings::tests::settings_persist_across_pool_reopen ... ok
+test branch_ops::tests::branch_create_on_unborn_head_returns_unborn_branch ... ok
+test branch_ops::tests::branch_checkout_dirty_tree_returns_error ... ok
+test branch_ops::tests::branch_checkout_clean_tree ... ok
+test branch_ops::tests::branch_create_index_lock_returns_error ... ok
+test branch_ops::tests::branch_create_from_head ... ok
+test branch_ops::tests::branch_create_already_exists ... ok
+test branch_ops::tests::branch_create_and_checkout ... ok
+test branch_ops::tests::branch_create_protected_main_rejected ... ok
+test branch_ops::tests::branch_checkout_remote_creates_local_tracking ... ok
+test branch_ops::tests::branch_list_non_repo_returns_git2_error ... ok
+test branch_ops::tests::branch_checkout_force_drops_dirty ... ok
+test branch_ops::tests::name_validate_accepts_chinese ... ok
+test branch_ops::tests::name_validate_accepts_normal ... ok
+test branch_ops::tests::name_validate_rejects_at_brace ... ok
+test branch_ops::tests::name_validate_rejects_dot_start ... ok
+test branch_ops::tests::name_validate_rejects_dotgit ... ok
+test branch_ops::tests::name_validate_rejects_lock_suffix ... ok
+test branch_ops::tests::name_validate_rejects_space ... ok
+test branch_ops::tests::branch_create_from_other_branch ... ok
+test branch_ops::tests::branch_delete_index_lock_returns_error ... ok
+test branch_ops::tests::branch_create_checkout_failure_keeps_created_branch ... ok
+test config_import::alacritty::tests::scan_bindings_mixed_mods ... ok
+test branch_ops::tests::branch_delete_protected_main_rejected ... ok
+test config_import::alacritty::tests::scan_bindings_no_mods ... ok
+test branch_ops::tests::branch_delete_merged_succeeds ... ok
+test branch_ops::tests::branch_delete_protected_trunk_rejected ... ok
+test config_import::alacritty::tests::scan_broken_toml_graceful ... ok
+test branch_ops::tests::branch_delete_protected_master_rejected ... ok
+test config_import::alacritty::tests::scan_toml_preferred_over_yaml ... ok
+test config_import::alacritty::tests::scan_missing_fields_partial_result ... ok
+test config_import::alacritty::tests::scan_toml_keyboard_bindings ... ok
+test config_import::export_bindings_importsource ... ok
+test config_import::alacritty::tests::scan_yaml_fallback_when_toml_absent ... ok
+test config_import::alacritty::tests::scan_yaml_key_bindings_fallback ... ok
+test branch_ops::tests::branch_delete_force_succeeds ... ok
+test config_import::ghostty::tests::scan_broken_toml_graceful_error ... ok
+test config_import::ghostty::tests::scan_no_file_not_exists ... ok
+test config_import::ghostty::tests::scan_keybinds_comment_skip ... ok
+test config_import::ghostty::tests::scan_keybinds_with_font ... ok
+test config_import::ghostty::tests::scan_primary_path_exists ... ok
+test config_import::ghostty::tests::scan_keybinds_multiple_lines ... ok
+test config_import::ghostty::tests::scan_both_paths_prefers_primary ... ok
+test config_import::ghostty::tests::scan_fallback_path_when_primary_absent ... ok
+test config_import::ghostty::tests::scan_unknown_fields_skipped ... ok
+test config_import::ipc::export_bindings_importfieldtype ... ok
+test branch_ops::tests::branch_list_detects_detached_head ... ok
+test config_import::ipc::export_bindings_keybindingresolution ... ok
+test config_import::ipc::export_bindings_importscanresult ... ok
+test config_import::ipc::export_bindings_keybindingconflict ... ok
+test config_import::ipc::export_bindings_importapplyresult ... ok
+test config_import::ipc::export_bindings_importapplyrequest ... ok
+test config_import::ipc::export_bindings_importpreview ... ok
+test branch_ops::tests::branch_list_returns_local_remote_tag ... ok
+test branch_ops::tests::switcher_query_empty_returns_all ... ok
+test branch_ops::tests::switcher_query_score_orders_continuous_higher ... ok
+test branch_ops::tests::branch_delete_unmerged_returns_error_with_missing_count ... ok
+test branch_ops::tests::switcher_query_subsequence_match ... ok
+test config_import::ipc::tests::apply_accepts_supported_theme_value_normalized ... ok
+test config_import::ipc::tests::apply_ansi_color_skipped_silently ... ok
+test config_import::ipc::tests::build_preview_no_conflicts_empty_home ... ok
+test config_import::ipc::tests::detect_conflicts_ipc_finds_cmd_t ... ok
+test config_import::ipc::tests::imported_field_to_ipc_roundtrip ... ok
+test config_import::ipc::tests::apply_keybinding_conflict_kept_vibe_default ... ok
+test config_import::ipc::tests::scan_ipc_all_three_sources_empty_home ... ok
+test config_import::ipc::tests::apply_clamps_font_size_lower_bound ... ok
+test config_import::ipc::tests::apply_allows_explicit_override_of_vibe_builtin ... ok
+test config_import::iterm2::tests::scan_ansi_colors_partial ... ok
+test config_import::iterm2::tests::scan_ansi_colors_16 ... ok
+test config_import::iterm2::tests::scan_default_guid_missing_falls_back ... ok
+test config_import::iterm2::tests::scan_broken_plist_graceful ... ok
+test config_import::iterm2::tests::scan_rgb_to_hex_conversion ... ok
+test config_import::iterm2::tests::scan_empty_profiles_array ... ok
+test config_import::ipc::tests::apply_graceful_reject_theme_writes_other_fields ... ok
+test config_import::iterm2::tests::scan_no_file_not_exists ... ok
+test config_import::iterm2::tests::scan_falls_back_to_first_profile_when_no_guid ... ok
+test config_import::keybinding::tests::canonical_empty_input ... ok
+test config_import::keybinding::tests::canonical_alt_alias ... ok
+test config_import::ipc::tests::apply_clamps_font_size_upper_bound ... ok
+test config_import::keybinding::tests::canonical_ctrl_alias ... ok
+test config_import::keybinding::tests::canonical_function_key_preserved_uppercase ... ok
+test config_import::keybinding::tests::canonical_modifier_order_normalized ... ok
+test config_import::keybinding::tests::canonical_named_key_titlecase ... ok
+test config_import::ipc::tests::apply_keybinding_override_writes_imported_keybindings ... ok
+test config_import::keybinding::tests::canonical_meta_alias_for_cmd ... ok
+test config_import::keybinding::tests::canonical_only_modifier_no_key ... ok
+test config_import::keybinding::tests::canonical_punctuation_key ... ok
+test config_import::keybinding::tests::canonical_pipe_separator_alacritty ... ok
+test config_import::keybinding::tests::canonical_simple_lowercase ... ok
+test config_import::iterm2::tests::scan_selects_profile_by_default_bookmark_guid ... ok
+test config_import::keybinding::tests::canonical_unicode_modifier ... ok
+test config_import::keybinding::tests::detect_conflict_empty_keys_skipped ... ok
+test config_import::keybinding::tests::detect_conflict_cmd_shift_d ... ok
+test config_import::keybinding::tests::detect_conflict_cmd_t_match ... ok
+test config_import::keybinding::tests::detect_conflict_multiple_imports_one_hit ... ok
+test config_import::keybinding::tests::detect_conflict_no_match ... ok
+test config_import::keybinding::tests::vibe_builtins_canonicalized ... ok
+test config_import::iterm2::tests::scan_single_profile_extracts_font_shell ... ok
+test config_import::tests::scan_empty_home_all_not_found ... ok
+test config_import::tests::scan_returns_3_sources ... ok
+test db::tests::v1_migration_creates_base_table ... ok
+test config_import::ipc::tests::apply_non_conflicting_keybinding_persists ... ok
+test config_import::ipc::tests::apply_protects_vibe_builtins_when_client_omits_conflict_resolutions ... ok
+test db::tests::v2_migration_adds_git_columns ... ok
+test config_import::ipc::tests::apply_rejects_unsupported_theme_value ... ok
+test db::tests::v3_migration_adds_layout_and_settings ... ok
+test config_import::ipc::tests::apply_writes_font_family_and_theme ... ok
+test db::tests::v4_migration_creates_index ... ok
+test db::tests::v4_index_creation_is_idempotent ... ok
+test config_import::ipc::tests::apply_writes_multiple_fields_atomically ... ok
+test db::tests::v5_migration_creates_tabs_table ... ok
+test diff::export_bindings_diffhunk ... ok
+test diff::export_bindings_diffline ... ok
+test diff::export_bindings_difflinetype ... ok
+test diff::export_bindings_diffrequest ... ok
+test db::tests::v5_tabs_table_has_fk_and_columns ... ok
+test diff::tests::binary_detection_beats_large_file_truncation ... ok
+test diff::tests::binary_files_short_circuit ... ok
+test diff::export_bindings_diffresponse ... ok
+test diff::tests::large_files_are_marked_truncated ... ok
+test db::tests::fresh_db_creates_schema ... ok
+test db::tests::idempotent_migration ... ok
+test db::tests::v5_fk_violation_rejected ... ok
+test db::tests::v6_migration_creates_panes_table_and_tab_columns ... ok
+test diff::tests::text_diff_preserves_added_removed_and_context_lines ... ok
+test db::tests::v6_migration_is_idempotent ... ok
+test fs_watch::tests::watcher_debounces_rapid_changes ... ok
+test db::tests::v5_to_v6_preserves_existing_tabs ... ok
+test fs_watch::tests::watcher_excludes_git_internals ... ok
+test git_log::export_bindings_commitauthor ... ok
+test db::tests::v7_migration_adds_position_column ... ok
+test git_log::export_bindings_commitdetail ... ok
+test git_log::export_bindings_commitparent ... ok
+test db::tests::v7_migration_is_idempotent ... ok
+test diff::tests::too_many_lines_are_marked_truncated ... ok
+test git_log::export_bindings_gitlogqueryrequest ... ok
+test git_log::export_bindings_filechange ... ok
+test git_log::tests::commit_detail_nonexistent_sha_returns_error ... ok
+test git_log::export_bindings_gitlogentry ... ok
+test git_log::tests::commit_detail_serializes_camel_case ... ok
+test git_log::tests::file_change_serializes_camel_case ... ok
+test git_log::tests::format_relative_time_output ... ok
+test git_log::tests::git_log_entry_serializes_camel_case ... ok
+test git_log::tests::git_log_error_display ... ok
+test git_log::tests::git_log_query_request_serializes_camel_case ... ok
+test git_log::tests::git_log_query_response_serializes_camel_case ... ok
+test git_log::tests::parse_after_date_formats ... ok
+test git_log::export_bindings_gitlogqueryresponse ... ok
+test db::tests::v5_migration_idempotent ... ok
+test db::tests::v7_migration_backfills_position_by_created_at ... ok
+test diff::tests::get_view_mode_defaults_to_split ... ok
+test git_log::tests::query_non_git_path_returns_not_a_git_repo ... ok
+test git_log::tests::query_nonexistent_path_returns_error ... ok
+test diff::tests::large_files_can_be_loaded_when_explicitly_allowed ... ok
+test git_log::tests::branch_labels_found_on_main ... ok
+test git_log::tests::commit_detail_real_repo ... ok
+test git_log::tests::query_has_more_correct ... ok
+test git_ops::export_bindings_commiterror ... ok
+test git_log::tests::query_real_repo_returns_entries ... ok
+test git_ops::export_bindings_commitrequest ... ok
+test git_log::tests::query_pagination_no_overlap ... ok
+test diff::tests::set_view_mode_rejects_invalid_value ... ok
+test diff::tests::set_view_mode_roundtrip_unified ... ok
+test git_ops::export_bindings_gitconfigidentity ... ok
+test diff::tests::set_view_mode_overwrites_previous ... ok
+test git_ops::export_bindings_setgitidentityrequest ... ok
+test git_ops::export_bindings_stagefaileditem ... ok
+test git_log::tests::query_filter_by_author ... ok
+test git_log::tests::query_filter_by_after_date ... ok
+test git_ops::export_bindings_stagerequest ... ok
+test git_ops::export_bindings_commitresponse ... ok
+test git_ops::export_bindings_unstagerequest ... ok
+test git_ops::export_bindings_stageresult ... ok
+test git_ops::tests::read_git_identity_succeeds ... ok
+test git_ops::tests::set_git_identity_local ... ok
+test git_ops::tests::identity_missing_fails ... ok
+test git_status::export_bindings_filestatusevent ... ok
+test git_log::tests::query_filter_by_message ... ok
+test git_status::export_bindings_gitstatuscollapserequest ... ok
+test git_status::export_bindings_gitstatusgroup ... ok
+test git_status::export_bindings_gitstatuspanelsettings ... ok
+test git_status::export_bindings_gitstatusrequest ... ok
+test git_status::export_bindings_gitstatusresponse ... ok
+test git_ops::tests::commit_fails_no_staged_files ... ok
+test git_status::tests::response_equivalent_requires_matching_file_contents ... ok
+test git_status::tests::response_to_event_keeps_workspace_and_groups ... ok
+test git_ops::tests::stage_file_succeeds ... ok
+test git_ops::tests::stage_all_unstaged_succeeds ... ok
+test git_sync::export_bindings_authchallenge ... ok
+test git_sync::export_bindings_authmethod ... ok
+test git_sync::export_bindings_authrequest ... ok
+test git_sync::export_bindings_conflictfile ... ok
+test git_sync::export_bindings_fetchprogressevent ... ok
+test git_sync::export_bindings_fetchrequest ... ok
+test git_sync::export_bindings_fetchresult ... ok
+test git_ops::tests::commit_creates_new_sha ... ok
+test git_sync::export_bindings_mergeconflictinfo ... ok
+test git_sync::export_bindings_networkoperror ... ok
+test git_ops::tests::amend_modifies_last ... ok
+test git_sync::export_bindings_pullresult ... ok
+test git_ops::tests::commit_with_chinese_message ... ok
+test git_ops::tests::commit_with_chinese_filename ... ok
+test git_sync::export_bindings_operationdoneevent ... ok
+test git_sync::export_bindings_pullstrategy ... ok
+test git_sync::export_bindings_pushprogressevent ... ok
+test git_sync::export_bindings_pushresult ... ok
+test git_sync::export_bindings_remoteinfo ... ok
+test git_sync::tests::auth_method_debug_redacts_password ... ok
+test git_sync::tests::auth_method_debug_redacts_ssh_passphrase ... ok
+test git_sync::export_bindings_remotelistrequest ... ok
+test git_sync::export_bindings_pushrequest ... ok
+test git_status::tests::panel_settings_default_to_expanded ... ok
+test git_sync::export_bindings_pullrequest ... ok
+test git_sync::export_bindings_remotelistresponse ... ok
+test git_sync::tests::credential_https_manual_path_succeeds ... ok
+test git_sync::tests::credential_ssh_agent_path_is_attempted ... ok
+test git_sync::tests::credential_ssh_key_file_path_is_attempted ... ok
+test git_sync::tests::error_mapping_auth ... ok
+test git_sync::tests::error_mapping_aborted ... ok
+test git_sync::tests::error_mapping_network_unreachable ... ok
+test git_sync::tests::error_mapping_generic_git2 ... ok
+test git_sync::tests::error_mapping_ssl ... ok
+test git_ops::tests::unstage_all_returns_to_head ... ok
+test git_ops::tests::unstage_file_succeeds ... ok
+test git_status::tests::set_group_collapsed_round_trips ... ok
+test git_status::tests::query_separates_staged_unstaged_and_untracked ... ok
+test git_status::tests::same_file_can_appear_in_staged_and_unstaged ... ok
+test git_sync::tests::network_error_variants_are_serializable ... ok
+test git_sync::tests::credential_https_helper_path_is_attempted ... ok
+test git_sync::tests::auth_provide_stores_challenge_bound_method ... ok
+test git_sync::tests::fetch_missing_remote_returns_remote_not_found ... ok
+test git_sync::tests::auth_provide_rejects_empty_challenge ... ok
+test git_sync::tests::fetch_progress_callback_can_abort ... ok
+test git_sync::tests::branch_info_returned_after_fetch_contains_ahead_behind ... ok
+test git_sync::tests::fixture_supports_branch_creation_for_tests ... ok
+test git_sync::tests::pull_dirty_working_tree_returns_error ... ok
+test git_sync::tests::operation_done_event_emitted_on_success ... ok
+test git_sync::tests::merge_abort_resets_to_orig_head_when_present ... ok
+test git_sync::tests::fetch_prune_removes_deleted_remote_tracking_ref ... ok
+test git_sync::tests::fetch_basic_updates_remote_tracking_ref ... ok
+test fs_watch::tests::watcher_handles_workspace_change ... ok
+test git_sync::tests::pull_snapshot_drift_returns_dirty_tree ... ok
+test git_sync::tests::push_force_requires_expected_remote_oid ... ok
+test git_sync::tests::remote_list_missing_repo_maps_git2_error ... ok
+test git_sync::tests::push_missing_remote_returns_remote_not_found ... ok
+test layout::export_bindings_layoutstate ... ok
+test git_sync::tests::pull_fast_forward_succeeds ... ok
+test git_sync::tests::push_protected_force_rejected ... ok
+test git_sync::tests::push_force_with_stale_lease_returns_stale_lease ... ok
+test layout::tests::load_nonexistent_workspace_errors ... ok
+test layout::tests::load_default_when_no_state ... ok
+test pane_pty::tests::map_exited_event_preserves_exit_code ... ok
+test pane_pty::tests::map_stdout_event_translates_tab_id_to_pane_id ... ok
+test git_sync::tests::pull_merge_conflict_aborts_and_restores_worktree ... ok
+test pane_service::export_bindings_paneinitrequest ... ok
+test layout::tests::overwrite_previous_state ... ok
+test layout::tests::save_and_load_roundtrip ... ok
+test layout::tests::save_nonexistent_workspace_errors ... ok
+test git_sync::tests::pull_merge_succeeds ... ok
+test git_sync::tests::push_non_fast_forward_maps_error ... ok
+test pane_pty::tests::spawn_wrapper_forwards_request_fields ... ok
+test git_sync::tests::pull_rebase_conflict_aborts_and_restores_worktree ... ok
+test git_sync::tests::pull_rebase_succeeds ... ok
+test pane_service::tests::close_last_pane_errors ... ok
+test pane_service::tests::close_unknown_pane_errors ... ok
+test pane_service::tests::focus_rejects_unknown_pane ... ok
+test pane_service::tests::focus_updates_focused_pane ... ok
+test pane_service::tests::layout_preset_ai_runner_errors_on_single_pane ... ok
+test pane_service::tests::close_removes_pane_and_updates_focus ... ok
+test pane_service::tests::layout_preset_solo_collapses_to_focused ... ok
+test panes::export_bindings_layoutapplyrequest ... ok
+test pane_service::tests::layout_preset_unknown_kind_errors ... ok
+test panes::export_bindings_layoutnode ... ok
+test panes::export_bindings_panecloserequest ... ok
+test panes::export_bindings_panefocusrequest ... ok
+test panes::export_bindings_panecreaterequest ... ok
+test panes::export_bindings_paneptyexitedevent ... ok
+test panes::export_bindings_paneptyspawnrequest ... ok
+test panes::export_bindings_paneptystdoutevent ... ok
+test panes::export_bindings_panelistresponse ... ok
+test panes::export_bindings_panestate ... ok
+test panes::export_bindings_splitdir ... ok
+test panes::export_bindings_panescrollbackfetchrequest ... ok
+test panes::tests::atomic_close_last_pane_errors ... ok
+test panes::tests::atomic_close_success_returns_new_layout ... ok
+test panes::tests::atomic_invalid_pane_id_errors ... ok
+test panes::tests::atomic_split_depth_exceeded_returns_unchanged ... ok
+test panes::tests::atomic_split_success_returns_new_layout ... ok
+test panes::tests::atomic_split_then_close_roundtrip ... ok
+test panes::export_bindings_splitratioupdaterequest ... ok
+test pane_service::tests::pane_init_is_idempotent ... ok
+test pane_service::tests::pane_init_creates_first_pane_for_empty_tab ... ok
+test panes::tests::close_atomicity_fails_during_layout_update ... ok
+test panes::tests::close_atomicity_fails_during_panes_delete ... ok
+test git_sync::tests::remote_list_returns_origin ... ok
+test git_sync::tests::push_success_updates_bare_remote ... ok
+test pane_service::tests::split_ratio_rejects_invalid_value ... ok
+test pane_service::tests::split_creates_pane_layout_and_focuses_new ... ok
+test pane_service::tests::split_rejects_unknown_parent ... ok
+test pane_service::tests::split_ratio_update_persists ... ok
+test pane_service::tests::split_rolls_back_when_layout_invalid ... ok
+test panes::tests::h2_2x2_layout_is_valid ... ok
+test panes::tests::h2_horizontal_2pane_layout_is_valid ... ok
+test panes::tests::h2_invalid_3horizontal_layout_is_rejected_and_original_layout_unchanged ... ok
+test git_sync::tests::remote_branch_ahead_behind_computed_after_fetch ... ok
+test panes::tests::h2_invalid_3vertical_layout_is_rejected_and_original_layout_unchanged ... ok
+test panes::tests::h2_vertical_2pane_layout_is_valid ... ok
+test panes::tests::layout_node_serde_roundtrip_tagged_union ... ok
+test panes::tests::h2_solo_layout_is_valid ... ok
+test panes::tests::delete_missing_pane_errors ... ok
+test panes::tests::delete_pane_removes_row ... ok
+test panes::tests::smart_layout_ai_runner_creates_horizontal_split_50_50 ... ok
+test panes::tests::smart_layout_solo_keeps_focused_pane ... ok
+test panes::tests::smart_layout_solo_returns_closed_pane_ids ... ok
+test panes::tests::get_returns_none_for_missing_pane ... ok
+test panes::tests::layout_apply_atomicity_fails_during_focused_pane_update ... ok
+test panes::tests::split_layout_2x2_legal ... ok
+test panes::tests::split_layout_3_horizontal_illegal ... ok
+test panes::tests::split_layout_3_vertical_illegal ... ok
+test panes::tests::split_layout_horizontal_2_pane_legal ... ok
+test panes::tests::get_handles_utf8_and_long_paths ... ok
+test panes::tests::split_layout_solo_legal ... ok
+test panes::tests::split_layout_vertical_2_pane_legal ... ok
+test panes::tests::layout_apply_atomicity_fails_during_panes_batch_delete ... ok
+test panes::tests::delete_tab_cascades_panes ... ok
+test panes::tests::update_split_ratio_changes_target_split_only ... ok
+test panes::tests::update_split_ratio_rejects_invalid_ratio_and_unknown_pane ... ok
+test pty::export_bindings_ptyexitedevent ... ok
+test panes::tests::split_atomicity_fails_during_layout_update ... ok
+test panes::tests::split_atomicity_fails_during_panes_insert ... ok
+test pty::export_bindings_ptyspawnrequest ... ok
+test pty::tests::check_shell_exists_accepts_valid_shell ... ok
+test pty::tests::check_shell_exists_rejects_invalid_path ... ok
+test pty::tests::drop_oldest_sender_drops_oldest_item ... ok
+test pty::export_bindings_ptystdoutevent ... ok
+test pty::tests::effective_shell_falls_back_when_request_is_empty ... ok
+test pty::tests::effective_shell_keeps_explicit_non_default_request ... ok
+test pty::tests::effective_shell_prefers_env_shell_for_default_request ... ok
+test pty::tests::error_display_is_human_readable ... ok
+test pty::tests::exit_code_maps_none_for_signals ... ok
+test pty::tests::exited_event_ts_decl_uses_camel_case ... ok
+test pty::tests::find_ansi_clear_matches_2j ... ok
+test pty::tests::find_ansi_clear_matches_3j ... ok
+test pty::tests::find_ansi_clear_matches_combined_home_clear ... ok
+test pty::tests::find_ansi_clear_returns_none_for_non_clear ... ok
+test pty::export_bindings_shellinfo ... ok
+test panes::tests::insert_pane_basic ... ok
+test pty::tests::parse_chunk_to_lines_preserves_partial_tail ... ok
+test pty::tests::parse_chunk_to_lines_splits_complete_lines ... ok
+test pty::tests::parse_signal_maps_supported_values ... ok
+test pty::tests::parse_signal_rejects_unknown_values ... ok
+test panes::tests::insert_rejects_duplicate_pane_id ... ok
+test panes::tests::insert_rejects_missing_tab_fk ... ok
+test pty::tests::resize_unknown_tab_returns_not_found ... ok
+test pty::tests::kill_unknown_tab_returns_not_found ... ok
+test panes::tests::list_by_tab_returns_empty_for_unknown_tab ... ok
+test panes::tests::list_by_tab_orders_created_at_desc ... ok
+test pty::tests::resolve_default_shell_returns_platform_default_when_no_db ... ok
+test panes::tests::list_by_tab_filters_other_tabs ... ok
+test pty::tests::scrollback_flushes_when_due ... ok
+test pty::tests::scrollback_force_flushes_partial_tail ... ok
+test pty::tests::resize_keeps_session_alive ... ok
+test pty::tests::resolve_shell_in_path_skips_non_executable_candidates ... ok
+test panes::tests::update_missing_pane_errors ... ok
+test pty::tests::signal_unknown_tab_returns_not_found ... ok
+test pty::tests::spawn_request_ts_decl_uses_camel_case ... ok
+test pty::tests::spawn_missing_shell_errors ... ok
+test pty::tests::stdin_unknown_tab_returns_not_found ... ok
+test pty::tests::stdout_event_ts_decl_uses_camel_case ... ok
+test pty_pool::export_bindings_spawnresult ... ok
+test panes::tests::update_rejects_missing_tab_fk ... ok
+test panes::tests::update_pane_fields ... ok
+test pty::tests::duplicate_spawn_rejected_while_session_alive ... ok
+test pty_pool::tests::inject_cd_clear_normal_path ... ok
+test pty_pool::tests::inject_cd_clear_path_with_both_quotes_returns_err ... ok
+test pty_pool::tests::inject_cd_clear_path_with_double_quote ... ok
+test pty_pool::tests::inject_cd_clear_path_with_single_quote ... ok
+test pty::tests::resolve_default_shell_falls_back_when_key_missing ... ok
+test pty::tests::resolve_default_shell_falls_back_when_stored_shell_missing ... ok
+test pty::tests::resolve_default_shell_ignores_empty_value ... ok
+test pty::tests::resolve_default_shell_reads_from_app_settings ... ok
+test pty::tests::spawn_stdin_and_exit_emit_stdout_and_exit_event ... ok
+test pty::tests::shared_reader_routes_stdout_to_multiple_tabs ... ok
+test pty_pool::tests::pty_session_rename_changes_emitted_tab_id ... ok
+test pty_pool::tests::take_cold_when_pool_empty ... ok
+test pty_pool::tests::handle_default_shell_change_kills_old_idle ... ok
+test pty_pool::tests::kill_all_drains_idle ... ok
+test pty_pool::tests::set_size_shrink_kills_excess ... ok
+test pty_pool::tests::take_cold_when_shell_mismatch ... ok
+test pty::tests::kill_force_terminates_session ... ok
+test rebase_ops::export_bindings_cherrypickrequest ... ok
+test rebase_ops::export_bindings_cherrypickstatus ... ok
+test pty_pool::tests::shutdown_drains_idle_and_blocks_refill ... ok
+test pty_pool::tests::take_warm_with_cwd_injects_cd ... ok
+test rebase_ops::export_bindings_conflicthunk ... ok
+test rebase_ops::export_bindings_conflictresolution ... ok
+test rebase_ops::export_bindings_conflicthunkresolution ... ok
+test rebase_ops::export_bindings_conflictedfile ... ok
+test rebase_ops::export_bindings_crashrecoverystate ... ok
+test rebase_ops::export_bindings_mergestatus ... ok
+test rebase_ops::export_bindings_mergestrategy ... ok
+test pty_pool::tests::idle_expire_after_max_age ... ok
+test rebase_ops::export_bindings_rebasecontrolrequest ... ok
+test rebase_ops::export_bindings_mergerequest ... ok
+test rebase_ops::export_bindings_conflictresolvefilerequest ... ok
+test rebase_ops::export_bindings_rebaseop ... ok
+test rebase_ops::export_bindings_rebaseoperror ... ok
+test rebase_ops::export_bindings_rebasestartrequest ... ok
+test rebase_ops::export_bindings_rebasestatus ... ok
+test rebase_ops::export_bindings_rebaseinteractivestep ... ok
+test rebase_ops::export_bindings_rebaseinteractiveplan ... ok
+test rebase_ops::tests::cherrypick::cherrypick_detached_head_errors ... ok
+test rebase_ops::tests::cherrypick::cherrypick_continue_after_no_commit_finishes ... ok
+test rebase_ops::tests::cherrypick::cherrypick_no_commit_leaves_in_progress ... ok
+test rebase_ops::tests::cherrypick::cherrypick_single_conflict ... ok
+test rebase_ops::tests::cherrypick::cherrypick_abort_resets_head ... ok
+test rebase_ops::tests::cherrypick::cherrypick_range_ok ... ok
+test pty::tests::signal_sigterm_exits_exec_session ... ok
+test rebase_ops::tests::cherrypick::cherrypick_single_ok ... ok
+test rebase_ops::tests::conflict_detect::conflict_resolve_file_accept_ours_marks_index ... ok
+test rebase_ops::tests::conflict_detect::conflict_resolve_both_concatenates ... ok
+test rebase_ops::tests::conflict_detect::conflict_status_contains_three_sides ... ok
+test rebase_ops::tests::conflict_detect::conflict_resolve_file_manual_writes_content ... ok
+test rebase_ops::tests::conflict_detect::conflict_status_has_conflicts ... ok
+test rebase_ops::tests::error_mapping::damaged_repo_maps_git2_error ... ok
+test rebase_ops::tests::error_mapping::display_uses_debug_shape ... ok
+test rebase_ops::tests::error_mapping::git_error_contains_class_code_message ... ok
+test rebase_ops::tests::crash_recovery::detect_cherrypick_marker ... ok
+test rebase_ops::tests::crash_recovery::detect_merge_marker ... ok
+test rebase_ops::tests::crash_recovery::detect_no_in_progress ... ok
+test rebase_ops::tests::crash_recovery::detect_rebase_merge_marker ... ok
+test rebase_ops::tests::crash_recovery::detect_rebase_state_file ... ok
+test rebase_ops::tests::crash_recovery::state_wins_over_git_marker ... ok
+test rebase_ops::tests::error_mapping::not_in_rebase_on_continue ... ok
+test rebase_ops::tests::error_mapping::operation_in_progress_blocks_start ... ok
+test rebase_ops::tests::merge::merge_abort_without_merge_errors ... ok
+test rebase_ops::tests::merge::merge_detached_head_errors ... ok
+test rebase_ops::tests::plan_validate::empty_plan_rejected ... ok
+test rebase_ops::tests::merge::merge_fast_forward_succeeds ... ok
+test rebase_ops::tests::merge::merge_dirty_tree_errors ... ok
+test rebase_ops::tests::merge::merge_conflict_returns_status ... ok
+test rebase_ops::tests::plan_validate::all_drop_rejected ... ok
+test rebase_ops::tests::plan_validate::reword_requires_message ... ok
+test rebase_ops::tests::plan_validate::fixup_first_rejected ... ok
+test rebase_ops::tests::plan_validate::invalid_sha_rejected ... ok
+test rebase_ops::tests::merge::merge_no_ff_succeeds ... ok
+test rebase_ops::tests::plan_validate::squash_first_rejected ... ok
+test rebase_ops::tests::merge::merge_squash_succeeds ... ok
+test rebase_ops::tests::plan_validate::valid_plan_accepts_mixed_ops ... ok
+test rebase_ops::tests::plan_validate::valid_plan_accepts_pick ... ok
+test rebase_ops::tests::rebase_basic::rebase_detached_head_errors ... ok
+test rebase_ops::tests::rebase_basic::rebase_dirty_tree_errors ... ok
+test rebase_ops::tests::rebase_basic::rebase_onto_ancestor_errors ... ok
+test rebase_ops::tests::rebase_basic::rebase_continue_with_conflicts_errors ... ok
+test rebase_ops::tests::rebase_basic::rebase_abort_resets_head ... ok
+test rebase_ops::tests::rebase_basic::rebase_onto_self_errors ... ok
+test rebase_ops::tests::rebase_basic::rebase_start_conflict_returns_status ... ok
+test rebase_ops::tests::rebase_basic::rebase_skip_finishes_after_conflict ... ok
+test rebase_ops::tests::rebase_basic::rebase_start_clean_finishes ... ok
+test rebase_ops::tests::rebase_interactive::interactive_apply_edit_pauses ... ok
+test tabs::export_bindings_tabcloserequest ... ok
+test tabs::export_bindings_tabcreaterequest ... ok
+test tabs::export_bindings_tablistresponse ... ok
+test tabs::export_bindings_tabrenamerequest ... ok
+test tabs::export_bindings_tabreorderrequest ... ok
+test tabs::export_bindings_tabstate ... ok
+test rebase_ops::tests::rebase_interactive::interactive_apply_pick_commits ... ok
+test tabs::tests::cascade_delete_on_workspace_removal ... ok
+test rebase_ops::tests::rebase_interactive::interactive_apply_fixup_finishes ... ok
+test tabs::tests::concurrent_create_10_tabs ... ok
+test tabs::tests::create_tab_basic ... ok
+test rebase_ops::tests::rebase_interactive::interactive_plan_lists_commits ... ok
+test tabs::tests::create_tab_custom_fields ... ok
+test tabs::tests::create_tab_nonexistent_workspace_errors ... ok
+test tabs::tests::delete_nonexistent_tab_errors ... ok
+test rebase_ops::tests::rebase_interactive::interactive_apply_reword_changes_message ... ok
+test tabs::tests::delete_tab ... ok
+test tabs::tests::get_nonexistent_tab_errors ... ok
+test tabs::tests::empty_workspace_list_returns_empty_vec ... ok
+test tabs::tests::get_tab_by_id ... ok
+test tabs::tests::list_by_workspace_empty ... ok
+test tabs::tests::list_by_workspace_returns_tabs ... ok
+test rebase_ops::tests::rebase_interactive::interactive_apply_squash_finishes ... ok
+test tabs::tests::rename_nonexistent_tab_errors ... ok
+test tabs::tests::list_ordered_by_created_at_asc ... ok
+test tabs::tests::rename_tab ... ok
+test tabs::tests::reorder_clamps_new_index_to_max ... ok
+test tabs::tests::reorder_nonexistent_tab_errors ... ok
+test tabs::tests::reorder_moves_tab_to_new_index ... ok
+test tabs::tests::scrollback_append_and_fetch ... ok
+test tabs::tests::scrollback_append_empty_lines_noop ... ok
+test tabs::tests::scrollback_fetch_nonexistent_tab_errors ... ok
+test tabs::tests::scrollback_capped_at_10k ... ok
+test telemetry::export_bindings_appversioninfo ... ok
+test tabs::tests::scrollback_fetch_with_offset_and_limit ... ok
+test telemetry::export_bindings_crashreportpayload ... ok
+test telemetry::export_bindings_telemetryoptinrequest ... ok
+test telemetry::tests::build_status_endpoint_host_defaults_to_not_configured ... ok
+test telemetry::tests::build_status_includes_summary ... ok
+test telemetry::tests::build_status_reports_initialized_false_by_default ... ok
+test telemetry::tests::capture_crash_report_no_op_when_not_initialized ... ok
+test telemetry::tests::capture_panic_hash_differs_per_input ... ok
+test telemetry::tests::capture_panic_hash_is_deterministic ... ok
+test telemetry::tests::capture_panic_hash_is_sha256_hex ... ok
+test telemetry::tests::capture_panic_returns_three_fields_only ... ok
+test telemetry::tests::os_type_returns_known_platforms ... ok
+test telemetry::tests::version_matches_cargo_pkg_version ... ok
+test tests::greet_returns_fixed_message ... ok
+test tests::version_is_non_empty ... ok
+test telemetry::export_bindings_telemetrystatus ... ok
+test workspace::export_bindings_workspacemetadata ... ok
+test tabs::tests::tab_id_is_valid_uuid_format ... ok
+test tabs::tests::update_cwd ... ok
+test tabs::tests::update_cwd_nonexistent_errors ... ok
+test tabs::tests::scrollback_trims_oldest_on_overflow ... ok
+test workspace::tests::create_workspace_basic ... ok
+test workspace::tests::create_workspace_custom_name ... ok
+test workspace::tests::delete_nonexistent_is_error ... ok
+test workspace::tests::create_workspace_detects_git ... ok
+test workspace::tests::delete_workspace ... ok
+test workspace::tests::detect_git_parent_directory ... ok
+test workspace::tests::duplicate_path_rejected ... ok
+test workspace::tests::exists_at_path ... ok
+test workspace::tests::non_existent_path_rejected ... ok
+test workspace::tests::list_workspaces ... ok
+test workspace::tests::path_with_spaces_supported ... ok
+test workspace::tests::refresh_git_unknown_workspace_is_not_found ... ok
+test workspace::tests::refresh_git_demotes_when_dot_git_removed ... ok
+test workspace::tests::refresh_git_promotes_non_git_to_git ... ok
+test workspace::tests::utf8_path_supported ... ok
+test workspace::tests::touch_updates_last_opened ... ok
+test rebase_ops::tests::rebase_basic::rebase_large_linear_fixture_finishes ... ok
+test pty_pool::tests::take_cold_when_idle_too_young ... ok
+test pty_pool::tests::refill_async_eventually_fills_pool ... ok
+test pty_pool::tests::apply_config_disable_kills_all ... ok
+test pty_pool::tests::set_size_grow_triggers_refill ... ok
+test pty_pool::tests::take_warm_hit_with_matching_shell ... ok
+
+test result: ok. 558 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.89s
+
+     Running tests/git_ops_integration.rs (target/debug/deps/git_ops_integration-eedc8c3cb3941f71)
+
+running 14 tests
+test test_stage_result_failed_item_fields ... ok
+test test_commit_rejected_when_no_staged ... ok
+test test_stage_nonexistent_file_failed_list ... ok
+test test_modified_after_stage_double_status ... ok
+test test_chinese_message_body_multiline ... ok
+test test_chinese_message_and_filename ... ok
+test test_hook_script_present_commit_creates_sha ... ok
+test test_commit_single_file ... ok
+test test_commit_succeeds_when_hook_script_present ... ok
+test test_commit_multiple_files ... ok
+test test_amend_changes_sha_and_message ... ok
+test test_untracked_file_can_stage ... ok
+test test_unstage_untracked_after_stage ... ok
+test test_multiple_commits_in_sequence ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+     Running tests/pty_pool_bench.rs (target/debug/deps/pty_pool_bench-85bd2fa1eeaf2a1a)
+
+running 3 tests
+test cold_path_with_pool_disabled ... ignored, MVP-20 backend benchmark · cargo test --test pty_pool_bench -- --ignored --nocapture
+test cold_spawn_baseline ... ignored, MVP-20 backend benchmark · cargo test --test pty_pool_bench -- --ignored --nocapture
+test warm_hit_with_pool ... ignored, MVP-20 backend benchmark · cargo test --test pty_pool_bench -- --ignored --nocapture
+
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/pty_scrollback_integration.rs (target/debug/deps/pty_scrollback_integration-4480597a6adf8a06)
+
+running 1 test
+test stdout_is_persisted_and_forced_flush_keeps_partial_tail ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/telemetry_pii_test.rs (target/debug/deps/telemetry_pii_test-a6e252ced64eb9a5)
+
+running 6 tests
+test capture_panic_handles_utf8_multibyte ... ok
+test capture_panic_handles_empty_input ... ok
+test capture_panic_strips_terminal_command_content ... ok
+test capture_panic_strips_repo_path_and_project_name ... ok
+test capture_panic_handles_long_input ... ok
+test capture_panic_strips_user_path_commit_hash_ip ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests vibestation_app_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests vibestation_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

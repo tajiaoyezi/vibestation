@@ -19,6 +19,7 @@ pub mod pane_service;
 pub mod panes;
 pub mod pty;
 pub mod pty_pool;
+pub mod rebase_ops;
 pub mod tabs;
 pub mod telemetry;
 pub mod workspace;
@@ -79,6 +80,15 @@ pub use pty::{
     PTY_EVENT_QUEUE_CAPACITY,
 };
 pub use pty_pool::SpawnResult;
+pub use rebase_ops::{
+    cherrypick_abort, cherrypick_continue, cherrypick_start, conflict_resolve_file,
+    conflict_status, detect_in_progress, merge_abort as rebase_merge_abort, merge_start,
+    rebase_abort, rebase_continue, rebase_interactive_apply, rebase_interactive_plan, rebase_skip,
+    rebase_start, CherryPickRequest, CherryPickStatus, ConflictHunk, ConflictHunkResolution,
+    ConflictResolution, ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState,
+    MergeRequest, MergeStatus, MergeStrategy, RebaseControlRequest, RebaseInteractivePlan,
+    RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus,
+};
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
     TabState, TabsDao,

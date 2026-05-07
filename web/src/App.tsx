@@ -38,10 +38,22 @@ import { SettingsPanel } from "./panels/Settings";
 import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModal";
 import { ConfigImportDialog } from "./dialogs/ConfigImport";
 import { BranchSwitcher } from "./dialogs/BranchSwitcher/BranchSwitcher";
+import { MergeDialog } from "./dialogs/MergeDialog";
+import {
+  ConflictBanner,
+  type ConflictOperation,
+} from "./components/ConflictBanner";
+import { ThreeWayDiffView } from "./panels/Diff/3way";
+import "./styles/mvp16.css";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
-import type { WorkspaceMetadata } from "./bindings";
+import type {
+  BranchListResponse,
+  MergeStatus,
+  RebaseControlRequest,
+  WorkspaceMetadata,
+} from "./bindings";
 export type { WorkspaceMetadata };
 
 type IpcState =
@@ -50,6 +62,36 @@ type IpcState =
   | { kind: "error"; message: string };
 
 type View = { kind: "welcome" } | { kind: "workspace"; ws: WorkspaceMetadata };
+
+type RebaseProgressPayload = {
+  workspaceId: string;
+  currentStep: number;
+  totalSteps: number;
+  currentCommit: string | null;
+};
+
+type ConflictDetectedPayload = {
+  workspaceId: string;
+  operation: string;
+  conflictingFiles: string[];
+};
+
+type RebaseOperationDonePayload = {
+  workspaceId: string;
+  operation: string;
+  success: boolean;
+  message: string;
+};
+
+type ConflictUiState = {
+  workspaceId: string;
+  operation: ConflictOperation;
+  files: string[];
+  resolvedFiles: string[];
+  currentStep: number;
+  totalSteps: number;
+  currentCommit: string | null;
+};
 
 const IpcIndicator: Component<{ state: IpcState }> = (props) => {
   const label = () => {
@@ -130,6 +172,11 @@ const LayoutShell: Component<{
   // MVP-06 · 配置导入对话框（首次启动 / Settings 头部触发）
   const [importVisible, setImportVisible] = createSignal(false);
   const [branchSwitcherOpen, setBranchSwitcherOpen] = createSignal(false);
+  const [globalMergeOpen, setGlobalMergeOpen] = createSignal(false);
+  const [globalMergeBranch, setGlobalMergeBranch] = createSignal("current");
+  const [conflict, setConflict] = createSignal<ConflictUiState | null>(null);
+  const [conflictBusy, setConflictBusy] = createSignal(false);
+  const [conflictError, setConflictError] = createSignal<string | null>(null);
   const remoteSync = useRemoteSyncStatus();
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
@@ -266,7 +313,165 @@ const LayoutShell: Component<{
     }
   };
 
+  const normalizeConflictOperation = (operation: string): ConflictOperation => {
+    switch (operation) {
+      case "merge":
+        return "merge";
+      case "cherrypick":
+        return "cherrypick";
+      default:
+        return "rebase";
+    }
+  };
+
+  const allConflictFilesResolved = () => {
+    const current = conflict();
+    if (!current || current.files.length === 0) {
+      return false;
+    }
+    return current.files.every((file) => current.resolvedFiles.includes(file));
+  };
+
+  const currentConflictFile = () => {
+    const current = conflict();
+    if (!current) {
+      return null;
+    }
+    return (
+      current.files.find((file) => !current.resolvedFiles.includes(file)) ??
+      current.files[0] ??
+      null
+    );
+  };
+
+  const markConflictFileResolved = (filePath: string) => {
+    setConflict((current) => {
+      if (!current || current.resolvedFiles.includes(filePath)) {
+        return current;
+      }
+      return {
+        ...current,
+        resolvedFiles: [...current.resolvedFiles, filePath],
+      };
+    });
+  };
+
+  const openGlobalMergeDialog = async () => {
+    const ws = activeWorkspace();
+    if (!ws?.hasGit) {
+      return;
+    }
+    setGlobalMergeBranch("current");
+    try {
+      const req = { workspaceId: ws.workspaceId };
+      const response = await invoke<BranchListResponse>("branch_list", { req });
+      setGlobalMergeBranch(response.headName ?? "current");
+    } catch {
+      setGlobalMergeBranch("current");
+    }
+    setGlobalMergeOpen(true);
+  };
+
+  const handleConflictContinue = async () => {
+    const current = conflict();
+    if (!current || !allConflictFilesResolved()) {
+      return;
+    }
+    setConflictBusy(true);
+    setConflictError(null);
+    try {
+      if (current.operation === "rebase") {
+        const req: RebaseControlRequest = {
+          workspaceId: current.workspaceId,
+          action: "continue",
+        };
+        await invoke("rebase_continue", { req });
+      } else if (current.operation === "cherrypick") {
+        await invoke("cherrypick_continue", {
+          workspaceId: current.workspaceId,
+        });
+      } else {
+        throw new Error("merge conflict continue 尚未由 Phase A 暴露 IPC");
+      }
+    } catch (err) {
+      setConflictError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConflictBusy(false);
+    }
+  };
+
+  const handleConflictAbort = async () => {
+    const current = conflict();
+    if (!current) {
+      return;
+    }
+    setConflictBusy(true);
+    setConflictError(null);
+    try {
+      if (current.operation === "rebase") {
+        const req: RebaseControlRequest = {
+          workspaceId: current.workspaceId,
+          action: "abort",
+        };
+        await invoke("rebase_abort", { req });
+      } else if (current.operation === "cherrypick") {
+        await invoke("cherrypick_abort", {
+          workspaceId: current.workspaceId,
+        });
+      } else {
+        await invoke("merge_abort", { workspaceId: current.workspaceId });
+      }
+      setConflict(null);
+    } catch (err) {
+      setConflictError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConflictBusy(false);
+    }
+  };
+
+  const handleConflictSkip = async () => {
+    const current = conflict();
+    if (!current || current.operation === "merge") {
+      return;
+    }
+    setConflictBusy(true);
+    setConflictError(null);
+    const req: RebaseControlRequest = {
+      workspaceId: current.workspaceId,
+      action: "skip",
+    };
+    try {
+      await invoke("rebase_skip", { req });
+    } catch (err) {
+      setConflictError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConflictBusy(false);
+    }
+  };
+
+  const handleGlobalMergeResult = (status: MergeStatus) => {
+    setGlobalMergeOpen(false);
+    if (status.outcome === "conflict" && status.conflictingFiles.length > 0) {
+      const ws = activeWorkspace();
+      if (!ws) {
+        return;
+      }
+      setConflict({
+        workspaceId: ws.workspaceId,
+        operation: "merge",
+        files: status.conflictingFiles,
+        resolvedFiles: [],
+        currentStep: 1,
+        totalSteps: status.conflictingFiles.length,
+        currentCommit: null,
+      });
+    }
+  };
+
   let unlistenMenu: UnlistenFn | undefined;
+  let unlistenRebaseProgress: UnlistenFn | undefined;
+  let unlistenConflictDetected: UnlistenFn | undefined;
+  let unlistenRebaseDone: UnlistenFn | undefined;
 
   onMount(async () => {
     document.addEventListener("keydown", handleKeyDown);
@@ -275,13 +480,71 @@ const LayoutShell: Component<{
         case "preferences":
           setSettingsVisible((v) => !v);
           break;
+        case "merge":
+          void openGlobalMergeDialog();
+          break;
       }
     });
+    unlistenRebaseProgress = await listen<RebaseProgressPayload>(
+      "git:rebase-progress",
+      (event) => {
+        const ws = activeWorkspace();
+        if (!ws || event.payload.workspaceId !== ws.workspaceId) {
+          return;
+        }
+        setConflict((current) =>
+          current
+            ? {
+                ...current,
+                currentStep: event.payload.currentStep,
+                totalSteps: event.payload.totalSteps,
+                currentCommit: event.payload.currentCommit,
+              }
+            : current,
+        );
+      },
+    );
+    unlistenConflictDetected = await listen<ConflictDetectedPayload>(
+      "git:conflict-detected",
+      (event) => {
+        const ws = activeWorkspace();
+        if (!ws || event.payload.workspaceId !== ws.workspaceId) {
+          return;
+        }
+        setConflictError(null);
+        setConflict({
+          workspaceId: event.payload.workspaceId,
+          operation: normalizeConflictOperation(event.payload.operation),
+          files: event.payload.conflictingFiles,
+          resolvedFiles: [],
+          currentStep: conflict()?.currentStep ?? 1,
+          totalSteps:
+            conflict()?.totalSteps ?? event.payload.conflictingFiles.length,
+          currentCommit: null,
+        });
+      },
+    );
+    unlistenRebaseDone = await listen<RebaseOperationDonePayload>(
+      "git:operation-done",
+      (event) => {
+        const ws = activeWorkspace();
+        if (!ws || event.payload.workspaceId !== ws.workspaceId) {
+          return;
+        }
+        if (event.payload.success) {
+          setConflict(null);
+          setConflictError(null);
+        }
+      },
+    );
   });
 
   onCleanup(() => {
     document.removeEventListener("keydown", handleKeyDown);
     unlistenMenu?.();
+    unlistenRebaseProgress?.();
+    unlistenConflictDetected?.();
+    unlistenRebaseDone?.();
   });
 
   return (
@@ -292,6 +555,34 @@ const LayoutShell: Component<{
         onTogglePrimary={() => dispatch({ kind: "toggle-primary" })}
         onMouseDown={handleTitleBarMouseDown}
       />
+
+      <Show when={conflict()}>
+        {(current) => (
+          <ConflictBanner
+            variant="active"
+            operation={current().operation}
+            source={current().currentCommit}
+            target={activeWorkspace()?.repoRoot ?? activeWorkspace()?.name}
+            currentStep={current().currentStep}
+            totalSteps={current().totalSteps}
+            filePath={currentConflictFile()}
+            allResolved={allConflictFilesResolved()}
+            allowSkip={current().operation !== "merge"}
+            busy={conflictBusy()}
+            onContinue={handleConflictContinue}
+            onAbort={handleConflictAbort}
+            onSkip={handleConflictSkip}
+          />
+        )}
+      </Show>
+
+      <Show when={conflictError()}>
+        {(message) => (
+          <div class="vs-conflict-error" role="alert">
+            {message()}
+          </div>
+        )}
+      </Show>
 
       <div class="vs-main-grid">
         <PrimarySidebar
@@ -333,6 +624,19 @@ const LayoutShell: Component<{
         <ActivityStrip />
       </div>
 
+      <Show when={conflict()}>
+        {(current) => (
+          <div class="vs-conflict-diff-overlay">
+            <ThreeWayDiffView
+              workspaceId={current().workspaceId}
+              initialFilePath={currentConflictFile()}
+              onResolvedFile={markConflictFileResolved}
+              onError={setConflictError}
+            />
+          </div>
+        )}
+      </Show>
+
       <BottomPanel
         layout={() => ({
           bottomOpen: layout().bottomOpen,
@@ -350,6 +654,14 @@ const LayoutShell: Component<{
           <RemoteSyncStatusItem onOpenGitLog={openGitLogHighlight} />
         </div>
         <div class="vs-status-group">
+          <button
+            type="button"
+            class="vs-status-merge-btn"
+            disabled={!activeWorkspace()?.hasGit}
+            onClick={() => void openGlobalMergeDialog()}
+          >
+            Merge
+          </button>
           <button
             type="button"
             class="vs-status-icon-btn"
@@ -426,6 +738,19 @@ const LayoutShell: Component<{
         open={branchSwitcherOpen}
         onClose={() => setBranchSwitcherOpen(false)}
       />
+
+      <Show when={globalMergeOpen() && activeWorkspace()}>
+        {(workspace) => (
+          <MergeDialog
+            workspaceId={workspace().workspaceId}
+            currentBranch={globalMergeBranch()}
+            onCancel={() => setGlobalMergeOpen(false)}
+            onMerged={handleGlobalMergeResult}
+            onOpenGitStatus={openGitStatusPanel}
+            onError={setConflictError}
+          />
+        )}
+      </Show>
     </div>
   );
 };

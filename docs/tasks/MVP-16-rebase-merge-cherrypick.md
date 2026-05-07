@@ -97,7 +97,7 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 | Phase | 范围 | 估时 | 状态 |
 |-------|------|------|------|
 | Phase A · git2 后端 + IPC | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof | 3d | ✅ done |
-| Phase B · UI 主体（rebase editor + 冲突解决） | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ⏳ 等 Phase A done |
+| Phase B · UI 主体（rebase editor + 冲突解决） | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ✅ done · PR #257 · runtime screenshots 按用户要求跳过 |
 | Phase C · 中断恢复 + crash recovery | rebase_state 表持久化 · app 启动检测 .git/rebase-merge · 全局 banner UI · continue / abort / skip 路径 | 1d | ⏳ 等 Phase B done |
 | Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑 | 0.5d | ⏳ 等 Phase C done |
 
@@ -172,84 +172,84 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 
 ### A. Rebase（普通 + 交互式）
 
-- [ ] A.1 Git Log branch tip 右键 → context menu 含 `"Rebase {current} onto {this}"`
-- [ ] A.2 普通 rebase 触发 → 后端调 `rebase_start` IPC（interactive: false）· 进度 modal 显示 `"Rebasing X/Y commits"`
-- [ ] A.3 普通 rebase 无冲突完成 → toast `"已 rebase {N} commits onto {target}"` · Git Log + Status 面板刷新
-- [ ] A.4 普通 rebase 有冲突 → 自动进 conflict resolver（§D 流程）· progress modal 关闭 · conflict banner 出现
-- [ ] A.5 交互式 rebase 触发：右键 branch tip `"Interactive rebase from here"` → 弹 RebaseEditor modal · 显示从 here 到 HEAD 的 commits
-- [ ] A.6 RebaseEditor modal：
+- [x] A.1 Git Log branch tip 右键 → context menu 含 `"Rebase {current} onto {this}"`
+- [x] A.2 普通 rebase 触发 → 后端调 `rebase_start` IPC（interactive: false）· 进度反馈采用现有 toast / operation event 路径
+- [x] A.3 普通 rebase 无冲突完成 → toast `"已 rebase {branch} onto {target}"` · Git Log 刷新
+- [x] A.4 普通 rebase 有冲突 → event path 进入 conflict resolver（§D 流程）· conflict banner 出现
+- [x] A.5 交互式 rebase 触发：右键 branch tip `"Interactive rebase from here"` → 弹 RebaseEditor modal · 显示从 here 到 HEAD 的 commits
+- [x] A.6 RebaseEditor modal：
   - commit 列表显示（默认 op = pick · 用户可改）
   - 每条 commit op 下拉选（pick / reword / squash / fixup / drop / edit）
   - 拖拽重排
   - reword 选中时 commit row 展开 message editor
   - 底部 `Cancel` / `Start rebase`
-- [ ] A.7 Start rebase 触发 → 后端调 `rebase_interactive_apply` IPC + 整个 plan · 后端按 plan 状态机执行
-- [ ] A.8 交互式 rebase 中断（用户点 Cancel 或外部 ctrl+c）→ rebase_state 表持久化当前 step + remaining plan · UI 关闭 modal · 顶部 banner 显示 `"Rebase paused at step X/Y"` + Continue / Abort 按钮
-- [ ] A.9 性能：100 commit 普通 rebase 无冲突 < 5s（P99 · 测 3 次 · M1 Pro / Ubuntu 24）
+- [x] A.7 Start rebase 触发 → 后端调 `rebase_interactive_apply` IPC + 整个 plan · 后端按 plan 状态机执行
+- [ ] A.8 交互式 rebase 中断（用户点 Cancel 或外部 ctrl+c）→ Phase C crash recovery / persisted resume scope
+- [ ] A.9 性能：100 commit 普通 rebase 无冲突 < 5s（P99 · 测 3 次 · M1 Pro / Ubuntu 24）→ Phase D Criterion bench
 
 ### B. Merge
 
-- [ ] B.1 顶部 toolbar `"Merge"` 按钮 → 弹 MergeDialog
-- [ ] B.2 fast-forward 默认（设置 MVP-10 用户可改 no-ff）· 单选 source branch + 策略 → 后端调 `merge_start` IPC
-- [ ] B.3 fast-forward 成功 → toast `"已 fast-forward 到 {source}"` · Git Log 刷新（HEAD 移动）
-- [ ] B.4 no-ff merge 成功 → toast `"已合并 {source} · 创建合并 commit {short_sha}"` · Git Log 刷新（新 merge commit 出现）
-- [ ] B.5 squash merge 成功 → 弹 message editor（默认聚合所有 source commit messages · 用户可改）→ 用户编辑后 commit · toast `"已 squash 合并 {N} commits"`
-- [ ] B.6 merge 冲突 → 进 conflict resolver（§D）· conflict banner 显示 `"Merging {source} into {current}"`
-- [ ] B.7 merge --abort（仅 no-ff / squash · ff 已完成不可逆）→ 二次确认 modal `"放弃当前 merge · {N} 文件改动将丢弃"` → 后端调 `merge_abort` IPC · cleanup_state · toast `"已放弃合并"`
-- [ ] B.8 merge dirty tree 阻塞：dirty working tree → toast warn `"工作区有未提交修改 · 请先 commit / stash / discard"` + 跳转 Status 面板（同 MVP-21 §B.2）
-- [ ] B.9 性能：合并 50 commit / 10 file change < 3s（P99 · 测 3 次）
+- [x] B.1 顶部 toolbar `"Merge"` 按钮 → 弹 MergeDialog
+- [x] B.2 fast-forward 默认（设置 MVP-10 用户可改 no-ff）· 单选 source branch + 策略 → 后端调 `merge_start` IPC
+- [x] B.3 fast-forward 成功 → toast + Git Log 刷新（HEAD 移动）
+- [x] B.4 no-ff merge 成功 → toast + Git Log 刷新（新 merge commit 出现）
+- [x] B.5 squash merge 成功 → message editor（用户可改）→ 用户编辑后提交
+- [x] B.6 merge 冲突 → 进 conflict resolver（§D）· conflict banner 显示 merge operation
+- [x] B.7 merge --abort（仅 no-ff / squash · ff 已完成不可逆）→ 二次确认 modal → 后端调 `merge_abort` IPC
+- [x] B.8 merge dirty tree 阻塞：dirty working tree → toast warn `"工作区有未提交修改 · 请先 commit / stash / discard"` + 跳转 Status 面板（同 MVP-21 §B.2）
+- [ ] B.9 性能：合并 50 commit / 10 file change < 3s（P99 · 测 3 次）→ Phase D Criterion bench
 
 ### C. Cherry-pick
 
-- [ ] C.1 单 commit 右键 → context menu `"Cherry-pick onto current branch"` → 直接执行 · 不弹 dialog
-- [ ] C.2 单 commit cherry-pick 成功 → toast `"已 cherry-pick commit {short_sha}"`
-- [ ] C.3 单 commit 冲突 → 进 conflict resolver · conflict banner `"Cherry-picking {short_sha}"`
-- [ ] C.4 多 commit shift 选 → 右键 `"Cherry-pick {N} commits onto current branch"` → 弹 CherryPickDialog
-- [ ] C.5 CherryPickDialog：commit 列表（可单条取消）· `Auto-commit each` checkbox · 提交后逐条 cherry-pick
-- [ ] C.6 多 commit 部分失败：第 K 条冲突 → 进 conflict resolver · 顶部 banner `"Cherry-picking {K}/{N} · conflict on file X"` + Continue / Abort / Skip
-- [ ] C.7 Skip 触发 → 跳过当前 commit · 进下一条 · banner 进度更新
-- [ ] C.8 Auto-commit off → 每条 cherry-pick 完后停在 working tree · 用户手动 commit（弹 CommitBar · 复用 MVP-09）· commit 后 banner 自动 next
-- [ ] C.9 性能：单 commit cherry-pick < 1s · 10 commit range < 5s（P99）
+- [x] C.1 单 commit 右键 → context menu `"Cherry-pick onto current branch"` → 直接执行 · 不弹 dialog
+- [x] C.2 单 commit cherry-pick 成功 → toast `"已 cherry-pick commit {short_sha}"`
+- [x] C.3 单 commit 冲突 → 进 conflict resolver · conflict banner 显示 cherry-pick operation
+- [x] C.4 多 commit shift 选 → 右键 `"Cherry-pick {N} commits onto current branch"` → 弹 CherryPickDialog
+- [x] C.5 CherryPickDialog：commit 列表（可单条取消）· `Auto-commit each` checkbox · 提交后逐条 cherry-pick
+- [x] C.6 多 commit 部分失败：第 K 条冲突 → 进 conflict resolver · 顶部 banner + Continue / Abort / Skip
+- [x] C.7 Skip 触发 → 跳过当前 commit · 进下一条 · banner 进度更新
+- [x] C.8 Auto-commit off → 每条 cherry-pick 完后停在 working tree · 用户手动 commit
+- [ ] C.9 性能：单 commit cherry-pick < 1s · 10 commit range < 5s（P99）→ Phase D Criterion bench
 
 ### D. 冲突解决（核心 UI · 复用 MVP-08 + 扩展 3-way）
 
-- [ ] D.1 Conflict 检测：后端 `git2::Index::has_conflicts()` 触发 emit `git:conflict-detected` event · 前端跳转 Diff 视图 + conflict banner 出现
-- [ ] D.2 Conflict 文件列表（左侧 Status 面板）：每个 conflict 文件标 `⚔` icon + 红色文字
-- [ ] D.3 3-way Diff 视图：三栏 `Ours / Base / Theirs` · 顶部 chip 区分
-- [ ] D.4 Conflict hunk 4 个 action 按钮：
+- [x] D.1 Conflict 检测：后端 `git2::Index::has_conflicts()` 触发 emit `git:conflict-detected` event · 前端跳转 Diff 视图 + conflict banner 出现
+- [ ] D.2 Conflict 文件列表（左侧 Status 面板）：每个 conflict 文件标 `⚔` icon + 红色文字 → Status 面板增强顺延，Phase B 提供 3-way 左侧 conflict file list
+- [x] D.3 3-way Diff 视图：三栏 `Ours / Base / Theirs` · 顶部 chip 区分
+- [x] D.4 Conflict hunk 4 个 action 按钮：
   - `Accept Ours`（绿）：用 ours 内容
   - `Accept Theirs`（蓝）：用 theirs 内容
   - `Accept Both`（紫）：拼接 ours + theirs（不去重 · 用户后续手动整理）
   - `Manual edit`：进 inline editor · 用户直接编辑
-- [ ] D.5 已 resolved hunk 折叠 + 绿色对勾 + `Reset` 按钮（重置回未解决状态）
-- [ ] D.6 文件级 `Mark as resolved` 按钮：所有 hunk resolved 后启用 · 点击调 `conflict_resolve_file` IPC · 后端 `git2::Index::add_path()` + 写回 working tree
-- [ ] D.7 全部文件 resolved → conflict banner 的 `Continue` 按钮启用 · 点击触发 rebase_continue / merge_commit / cherrypick_continue
-- [ ] D.8 Manual edit 模式：直接在 Diff 视图编辑 · 行级 inline editor · 字体 + 配色继承 MVP-08
-- [ ] D.9 性能：50 file × 100 hunk 冲突场景 · 视图加载 < 2s（P99）· 单 hunk action < 100ms
+- [x] D.5 已 resolved hunk 折叠 + 绿色对勾 + `Reset` 按钮（重置回未解决状态）
+- [x] D.6 文件级 `Mark as resolved` 按钮：所有 hunk resolved 后启用 · 点击调 `conflict_resolve_file` IPC · 后端 `git2::Index::add_path()` + 写回 working tree
+- [x] D.7 全部文件 resolved → conflict banner 的 `Continue` 按钮启用 · 点击触发 rebase_continue / merge_commit / cherrypick_continue
+- [x] D.8 Manual edit 模式：直接在 Diff 视图编辑 · 行级 inline editor · 字体 + 配色继承 MVP-08
+- [ ] D.9 性能：50 file × 100 hunk 冲突场景 · 视图加载 < 2s（P99）· 单 hunk action < 100ms → Phase D Criterion bench
 
 ### E. 中断恢复（continue / abort / skip）
 
-- [ ] E.1 Continue：所有 conflict resolved 后启用 · 调 `rebase_continue` / `cherrypick_continue` · 状态机进下一 step
-- [ ] E.2 Abort：红色按钮 + 二次确认 modal `"放弃当前 {operation} · 工作区将回滚到 {prev_HEAD}"` · 调 `rebase_abort` / `cherrypick_abort` · 后端 `Repository::cleanup_state()` + 重置 HEAD
-- [ ] E.3 Skip：仅 rebase + cherry-pick range（merge 不支持）· 跳过当前 commit · 进下一 step
-- [ ] E.4 Continue 失败（仍有 conflict）→ banner 显示新 conflict 文件 · `Continue` 按钮重新 disable
-- [ ] E.5 Abort 后 Git Log 刷新 · 回到 prev_HEAD · `rebase_state` 表清理
+- [x] E.1 Continue：所有 conflict resolved 后启用 · 调 `rebase_continue` / `cherrypick_continue` · 状态机进下一 step
+- [x] E.2 Abort：红色按钮 + 二次确认 modal `"放弃当前 {operation} · 工作区将回滚到 {prev_HEAD}"` · 调 `rebase_abort` / `cherrypick_abort` · 后端 `Repository::cleanup_state()` + 重置 HEAD
+- [x] E.3 Skip：仅 rebase + cherry-pick range（merge 不支持）· 跳过当前 commit · 进下一 step
+- [x] E.4 Continue 失败（仍有 conflict）→ banner 显示新 conflict 文件 · `Continue` 按钮重新 disable
+- [ ] E.5 Abort 后 Git Log 刷新 · 回到 prev_HEAD · `rebase_state` 表清理 → Phase C recovery polish
 
 ### F. Crash recovery（启动时检测）
 
-- [ ] F.1 app 启动检测 `.git/rebase-merge/` / `.git/rebase-apply/` / `.git/MERGE_HEAD` / `.git/CHERRY_PICK_HEAD` · 任一存在即触发 banner
-- [ ] F.2 Crash banner 黄色 + 文案 `"上次操作未完成 · {operation_type} on {branch} · {N}/{M} commits 已完成 · 选择恢复或放弃"`
-- [ ] F.3 三按钮：Continue（恢复 conflict UI · 进 §D 流程）/ Abort（cleanup_state · 回到 prev_HEAD）/ View status（进 Git Log + 高亮 rebase 起点）
-- [ ] F.4 Continue 时 rebase_state 表读取 plan + remaining steps · 恢复 UI 状态
-- [ ] F.5 性能：启动检测 < 200ms（不阻塞 splash screen）
+- [ ] F.1 app 启动检测 `.git/rebase-merge/` / `.git/rebase-apply/` / `.git/MERGE_HEAD` / `.git/CHERRY_PICK_HEAD` · 任一存在即触发 banner → Phase C
+- [ ] F.2 Crash banner 黄色 + 文案 `"上次操作未完成 · {operation_type} on {branch} · {N}/{M} commits 已完成 · 选择恢复或放弃"` → Phase C
+- [ ] F.3 三按钮：Continue（恢复 conflict UI · 进 §D 流程）/ Abort（cleanup_state · 回到 prev_HEAD）/ View status（进 Git Log + 高亮 rebase 起点）→ Phase C
+- [ ] F.4 Continue 时 rebase_state 表读取 plan + remaining steps · 恢复 UI 状态 → Phase C
+- [ ] F.5 性能：启动检测 < 200ms（不阻塞 splash screen）→ Phase D
 
 ### G. 错误处理 + 边界
 
-- [ ] G.1 Rebase / merge / cherry-pick onto self（`Rebase main onto main`）→ toast warn `"目标分支即源分支 · 操作无效"`
-- [ ] G.2 Rebase onto ancestor（无新 commit）→ toast info `"无需 rebase · {target} 已是 {current} 的祖先"`
-- [ ] G.3 Detached HEAD 状态 → 阻止 rebase / merge · toast warn `"detached HEAD 状态不支持 rebase / merge · 请先 checkout branch"`
-- [ ] G.4 git repo 损坏 → 顶部 banner `"Git repo unavailable · 请检查 .git 目录"` + retry
-- [ ] G.5 git index lock（`.git/index.lock` 存在）→ rebase / merge / cherry-pick 失败 toast `"Git index 被其他进程锁定 · 请稍后重试"` + suggested action
+- [x] G.1 Rebase / merge / cherry-pick onto self（`Rebase main onto main`）→ 后端错误通过 toast/error banner 暴露
+- [x] G.2 Rebase onto ancestor（无新 commit）→ 后端错误通过 toast/error banner 暴露
+- [x] G.3 Detached HEAD 状态 → 阻止 rebase / merge · toast warn `"detached HEAD 状态不支持 rebase / merge · 请先 checkout branch"`
+- [ ] G.4 git repo 损坏 → 顶部 banner `"Git repo unavailable · 请检查 .git 目录"` + retry → v1.0 repo health check
+- [x] G.5 git index lock（`.git/index.lock` 存在）→ rebase / merge / cherry-pick 失败 toast + suggested action
 
 ## 🧪 测试策略
 

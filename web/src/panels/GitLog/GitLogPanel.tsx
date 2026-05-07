@@ -35,7 +35,13 @@ import type {
   RemoteListRequest,
   RemoteListResponse,
   CommitDetail,
+  CherryPickRequest,
+  CherryPickStatus,
   WorkspaceMetadata,
+  MergeStatus,
+  RebaseInteractivePlan,
+  RebaseStartRequest,
+  RebaseStatus,
 } from "../../bindings";
 import { queryLog, fetchDetail, clearCache } from "./gitLogApi";
 import type { DiffTarget } from "../../components/MainContent";
@@ -46,12 +52,16 @@ import {
   type GitSyncStage,
 } from "../../dialogs/GitSyncProgress/GitSyncProgressDialog";
 import { AuthDialog } from "../../dialogs/AuthDialog/AuthDialog";
+import { CherryPickDialog } from "../../dialogs/CherryPickDialog";
 import {
   ForcePushDialog,
   type ForcePushCommit,
 } from "../../dialogs/ForcePushDialog/ForcePushDialog";
+import { MergeDialog } from "../../dialogs/MergeDialog";
 import { PullConflictDialog } from "../../dialogs/PullConflictDialog/PullConflictDialog";
 import { RemoteSelector } from "../../dialogs/RemoteSelector/RemoteSelector";
+import { RebaseEditor } from "../RebaseEditor";
+import { GitLogContextMenu, type GitLogContextMenuState } from "./contextMenu";
 import {
   useRemoteSyncStatus,
   type RemoteSyncHighlightRequest,
@@ -130,6 +140,21 @@ interface PendingConflict {
 
 interface ActiveLogHighlight extends RemoteSyncHighlightRequest {
   targetSha: string | null;
+}
+
+interface PendingRebaseEditor {
+  branch: string;
+  onto: string;
+  plan: RebaseInteractivePlan;
+  commits: GitLogEntry[];
+}
+
+interface PendingMergeDialog {
+  source: string | null;
+}
+
+interface PendingCherryPickDialog {
+  commits: GitLogEntry[];
 }
 
 const GIT_PUSH_PROGRESS_EVENT = "git:push-progress";
@@ -293,6 +318,17 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   );
   const [logHighlight, setLogHighlight] =
     createSignal<ActiveLogHighlight | null>(null);
+  const [currentBranch, setCurrentBranch] = createSignal<string | null>(null);
+  const [contextMenu, setContextMenu] =
+    createSignal<GitLogContextMenuState | null>(null);
+  const [rangeAnchor, setRangeAnchor] = createSignal<number | null>(null);
+  const [rangeSelection, setRangeSelection] = createSignal<GitLogEntry[]>([]);
+  const [pendingRebaseEditor, setPendingRebaseEditor] =
+    createSignal<PendingRebaseEditor | null>(null);
+  const [pendingMergeDialog, setPendingMergeDialog] =
+    createSignal<PendingMergeDialog | null>(null);
+  const [pendingCherryPickDialog, setPendingCherryPickDialog] =
+    createSignal<PendingCherryPickDialog | null>(null);
 
   const startResize = (e: PointerEvent) => {
     e.preventDefault();
@@ -456,7 +492,9 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     if (!id) return null;
     const req: BranchListRequest = { workspaceId: id };
     try {
-      return await invoke<BranchListResponse>("branch_list", { req });
+      const response = await invoke<BranchListResponse>("branch_list", { req });
+      setCurrentBranch(response.headName);
+      return response;
     } catch (error) {
       showToast({
         kind: "error",
@@ -911,6 +949,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   onMount(() => {
     if (hasGit() && workspaceId()) {
       store.load(workspaceId());
+      void loadBranchList();
     }
 
     const unlisteners: UnlistenFn[] = [];
@@ -958,6 +997,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     const wid = workspaceId();
     if (wid && hasGit()) {
       store.load(wid);
+      void loadBranchList();
     }
   });
 
@@ -1057,6 +1097,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   });
 
   const handleScroll = () => {
+    setContextMenu(null);
     if (!scrollContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
     if (scrollHeight - scrollTop - clientHeight < 50 && store.hasMore()) {
@@ -1067,6 +1108,193 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const handleFilterKeydown = (e: KeyboardEvent) => {
     if (e.key === "Enter" && hasGit() && workspaceId()) {
       store.load(workspaceId());
+    }
+  };
+
+  const branchRefForEntry = (entry: GitLogEntry): string | null => {
+    const head = currentBranch();
+    return (
+      entry.branchLabels.find((label) => label !== head) ??
+      entry.branchLabels[0] ??
+      null
+    );
+  };
+
+  const selectEntry = (
+    entry: GitLogEntry,
+    index: number,
+    event: MouseEvent,
+  ) => {
+    if (event.shiftKey && rangeAnchor() !== null) {
+      const start = Math.min(rangeAnchor()!, index);
+      const end = Math.max(rangeAnchor()!, index);
+      setRangeSelection(store.entries().slice(start, end + 1));
+    } else {
+      setRangeAnchor(index);
+      setRangeSelection([entry]);
+    }
+    void store.loadDetail(workspaceId(), entry.shortSha);
+  };
+
+  const contextEntriesFor = (entry: GitLogEntry): GitLogEntry[] => {
+    const selected = rangeSelection();
+    if (selected.some((item) => item.shortSha === entry.shortSha)) {
+      return selected;
+    }
+    return [entry];
+  };
+
+  const openContextMenu = (
+    entry: GitLogEntry,
+    index: number,
+    event: MouseEvent,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!rangeSelection().some((item) => item.shortSha === entry.shortSha)) {
+      setRangeAnchor(index);
+      setRangeSelection([entry]);
+    }
+    setContextMenu({
+      x: event.clientX,
+      y: event.clientY,
+      entry,
+      selectedEntries: contextEntriesFor(entry),
+      branchRef: branchRefForEntry(entry),
+    });
+  };
+
+  const runSingleCherryPick = async (entry: GitLogEntry) => {
+    const id = workspaceId();
+    if (!id) return;
+    setContextMenu(null);
+    const req: CherryPickRequest = {
+      workspaceId: id,
+      commitShas: [entry.shortSha],
+      autoCommit: true,
+    };
+    try {
+      const result = await invoke<CherryPickStatus>("cherrypick_start", {
+        req,
+      });
+      showToast({
+        kind: result.inProgress ? "warning" : "success",
+        message: result.inProgress
+          ? `Cherry-pick 冲突 · ${result.conflictingFiles[0] ?? entry.shortSha}`
+          : `已 cherry-pick commit ${entry.shortSha}`,
+      });
+      store.clearCache();
+      await store.load(id);
+    } catch (error) {
+      showToast({ kind: "error", message: stringifyUnknown(error) });
+    }
+  };
+
+  const openCherryPickRange = (entries: GitLogEntry[]) => {
+    setContextMenu(null);
+    setPendingCherryPickDialog({ commits: entries });
+  };
+
+  const handleCherryPickStatus = async (status: CherryPickStatus) => {
+    setPendingCherryPickDialog(null);
+    showToast({
+      kind: status.inProgress ? "warning" : "success",
+      message: status.inProgress
+        ? `Cherry-pick 冲突 · ${status.currentIndex}/${status.totalCommits}`
+        : `已 cherry-pick ${status.totalCommits} commits`,
+    });
+    if (workspaceId()) {
+      store.clearCache();
+      await store.load(workspaceId());
+    }
+  };
+
+  const runRebaseOnto = async (onto: string) => {
+    setContextMenu(null);
+    const branch = await currentBranchName();
+    const id = workspaceId();
+    if (!id || !branch) return;
+    const req: RebaseStartRequest = {
+      workspaceId: id,
+      branch,
+      onto,
+      interactive: false,
+    };
+    try {
+      const status = await invoke<RebaseStatus>("rebase_start", { req });
+      showToast({
+        kind:
+          status.inProgress && status.conflictingFiles.length > 0
+            ? "warning"
+            : "success",
+        message:
+          status.inProgress && status.conflictingFiles.length > 0
+            ? `Rebase 冲突 · ${status.conflictingFiles[0]}`
+            : `已 rebase ${branch} onto ${onto}`,
+      });
+      store.clearCache();
+      await store.load(id);
+    } catch (error) {
+      showToast({ kind: "error", message: stringifyUnknown(error) });
+    }
+  };
+
+  const openInteractiveRebase = async (onto: string) => {
+    setContextMenu(null);
+    const branch = await currentBranchName();
+    const id = workspaceId();
+    if (!id || !branch) return;
+    try {
+      const plan = await invoke<RebaseInteractivePlan>(
+        "rebase_interactive_plan",
+        { workspaceId: id, branch, onto },
+      );
+      setPendingRebaseEditor({
+        branch,
+        onto,
+        plan,
+        commits: store.entries(),
+      });
+    } catch (error) {
+      showToast({ kind: "error", message: stringifyUnknown(error) });
+    }
+  };
+
+  const handleRebaseApplied = async (status: RebaseStatus) => {
+    setPendingRebaseEditor(null);
+    showToast({
+      kind:
+        status.inProgress && status.conflictingFiles.length > 0
+          ? "warning"
+          : "success",
+      message:
+        status.inProgress && status.conflictingFiles.length > 0
+          ? `Rebase 冲突 · ${status.conflictingFiles[0]}`
+          : "已启动 interactive rebase",
+    });
+    if (workspaceId()) {
+      store.clearCache();
+      await store.load(workspaceId());
+    }
+  };
+
+  const openMergeFromContext = (source: string) => {
+    setContextMenu(null);
+    setPendingMergeDialog({ source });
+  };
+
+  const handleMergeStatus = async (status: MergeStatus) => {
+    setPendingMergeDialog(null);
+    showToast({
+      kind: status.outcome === "conflict" ? "warning" : "success",
+      message:
+        status.outcome === "conflict"
+          ? `Merge 冲突 · ${status.conflictingFiles[0] ?? "conflict"}`
+          : `已完成 merge · ${status.outcome}`,
+    });
+    if (workspaceId()) {
+      store.clearCache();
+      await store.load(workspaceId());
     }
   };
 
@@ -1204,9 +1432,13 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
                       index(),
                       "behind",
                     ),
+                    "vs-git-log-entry-range": rangeSelection().some(
+                      (item) => item.shortSha === entry.shortSha,
+                    ),
                   }}
-                  onClick={() =>
-                    store.loadDetail(workspaceId(), entry.shortSha)
+                  onClick={(event) => selectEntry(entry, index(), event)}
+                  onContextMenu={(event) =>
+                    openContextMenu(entry, index(), event)
                   }
                 >
                   <div class="vs-git-log-entry-header">
@@ -1370,6 +1602,70 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
             }
             onCancel={() => void cancelOperation()}
           />
+        </Show>
+
+        <Show when={contextMenu()}>
+          {(menu) => (
+            <GitLogContextMenu
+              state={menu()}
+              currentBranch={currentBranch()}
+              onClose={() => setContextMenu(null)}
+              onCherryPickCommit={(entry) => void runSingleCherryPick(entry)}
+              onCherryPickRange={openCherryPickRange}
+              onRebaseOnto={(branchRef) => void runRebaseOnto(branchRef)}
+              onInteractiveRebase={(branchRef) =>
+                void openInteractiveRebase(branchRef)
+              }
+              onMerge={openMergeFromContext}
+            />
+          )}
+        </Show>
+
+        <Show when={pendingRebaseEditor()}>
+          {(pending) => (
+            <RebaseEditor
+              workspaceId={workspaceId()}
+              branch={pending().branch}
+              onto={pending().onto}
+              plan={pending().plan}
+              commits={pending().commits}
+              onCancel={() => setPendingRebaseEditor(null)}
+              onApplied={(status) => void handleRebaseApplied(status)}
+              onError={(message) =>
+                showToast({ kind: "error", message, timeoutMs: 8000 })
+              }
+            />
+          )}
+        </Show>
+
+        <Show when={pendingMergeDialog()}>
+          {(pending) => (
+            <MergeDialog
+              workspaceId={workspaceId()}
+              currentBranch={currentBranch() ?? "current"}
+              initialSource={pending().source}
+              onCancel={() => setPendingMergeDialog(null)}
+              onMerged={(status) => void handleMergeStatus(status)}
+              onOpenGitStatus={props.onOpenGitStatus}
+              onError={(message) =>
+                showToast({ kind: "error", message, timeoutMs: 8000 })
+              }
+            />
+          )}
+        </Show>
+
+        <Show when={pendingCherryPickDialog()}>
+          {(pending) => (
+            <CherryPickDialog
+              workspaceId={workspaceId()}
+              commits={pending().commits}
+              onCancel={() => setPendingCherryPickDialog(null)}
+              onPicked={(status) => void handleCherryPickStatus(status)}
+              onError={(message) =>
+                showToast({ kind: "error", message, timeoutMs: 8000 })
+              }
+            />
+          )}
         </Show>
 
         <Show when={remoteSelection()}>

@@ -1,0 +1,107 @@
+{
+  "assignmentCount": 20,
+  "maxLaneIndex": 0,
+  "sampleSize": 20,
+  "assignments": [
+    {
+      "rowIndex": 0,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 1,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 2,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 3,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 4,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 5,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 6,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 7,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 8,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 9,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 10,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 11,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 12,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 13,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 14,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 15,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 16,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 17,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 18,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    },
+    {
+      "rowIndex": 19,
+      "laneIndex": 0,
+      "colorKey": "color-24"
+    }
+  ]
+}

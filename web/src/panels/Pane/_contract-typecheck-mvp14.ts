@@ -15,17 +15,41 @@ import type { LayoutHistoryEntry } from "../../bindings/LayoutHistoryEntry";
 import type { WorkspaceLayoutState } from "../../bindings/WorkspaceLayoutState";
 import type { PaneNavDirection } from "../../bindings/PaneNavDirection";
 
-const _envelope: Pick<LayoutEnvelope, "version" | "root" | "focusedPaneId" | "updatedAt"> = {} as never;
+const _envelope: Pick<
+  LayoutEnvelope,
+  "version" | "root" | "focusedPaneId" | "updatedAt"
+> = {} as never;
 const _preset: LayoutPresetKind = "solo" as LayoutPresetKind;
-const _apply: Pick<LayoutApplyAdvancedRequest, "tabId" | "preset" | "preserveInstances" | "confirmed"> = {} as never;
-const _applyResult: Pick<LayoutApplyResult, "response" | "reusedPaneIds" | "createdPaneIds" | "closedPaneIds"> = {} as never;
-const _nav: Pick<PaneNavigateRequest, "tabId" | "fromPaneId" | "direction"> = {} as never;
+const _apply: Pick<
+  LayoutApplyAdvancedRequest,
+  "tabId" | "preset" | "preserveInstances" | "confirmed"
+> = {} as never;
+const _applyResult: Pick<
+  LayoutApplyResult,
+  "response" | "reusedPaneIds" | "createdPaneIds" | "closedPaneIds"
+> = {} as never;
+const _nav: Pick<PaneNavigateRequest, "tabId" | "fromPaneId" | "direction"> =
+  {} as never;
 const _navResult: PaneNavigateResult = {} as never;
-const _max: Pick<PaneMaximizeRequest, "tabId" | "paneId" | "toggle"> = {} as never;
+const _max: Pick<PaneMaximizeRequest, "tabId" | "paneId" | "toggle"> =
+  {} as never;
 const _maxResult: PaneMaximizeResult = {} as never;
 const _resize: PaneResizeStepRequest = {} as never;
 const _hist: LayoutHistoryEntry = {} as never;
 const _wsState: WorkspaceLayoutState = {} as never;
 const _navDir: PaneNavDirection = "left" as PaneNavDirection;
 
-export type _Mvp14ContractAnchor = typeof _envelope;
+// 引用全部 const · 防 TS6133 unused local · 任一 binding 字段 rename / removal
+// 都让 typecheck 立即 FAIL（仿 PR #256 droid 模式）
+export type _Mvp14ContractAnchor = typeof _envelope &
+  typeof _preset &
+  typeof _apply &
+  typeof _applyResult &
+  typeof _nav &
+  typeof _navResult &
+  typeof _max &
+  typeof _maxResult &
+  typeof _resize &
+  typeof _hist &
+  typeof _wsState &
+  typeof _navDir;

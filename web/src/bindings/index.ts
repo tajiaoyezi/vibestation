@@ -118,3 +118,7 @@ export type { ImportApplyRequest } from "./ImportApplyRequest";
 export type { ImportApplyResult } from "./ImportApplyResult";
 export type { KeyBindingConflict } from "./KeyBindingConflict";
 export type { KeyBindingResolution } from "./KeyBindingResolution";
+export type { RailGraphViewportSyncPayload } from "./RailGraphViewportSyncPayload";
+export type { RailGraphBranchChangedPayload } from "./RailGraphBranchChangedPayload";
+export type { RailGraphRebaseStatePayload } from "./RailGraphRebaseStatePayload";
+export type { RailGraphPerfSample } from "./RailGraphPerfSample";

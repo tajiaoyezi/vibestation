@@ -28,13 +28,14 @@ use vibestation_core::{
     PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
     PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest,
     PtyStdoutEvent, PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest,
-    PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp,
-    RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo, RemoteListRequest,
-    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult,
-    SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceMetadata,
+    PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample, RailGraphRebaseStatePayload,
+    RailGraphViewportSyncPayload, RebaseControlRequest, RebaseInteractivePlan,
+    RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo,
+    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
+    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
+    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
 };
 
 fn main() {
@@ -59,6 +60,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/config_import/mod.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/ipc.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/keybinding.rs");
+    println!("cargo:rerun-if-changed=../core/src/rail_graph_events.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -198,6 +200,13 @@ fn main() {
     KeyBindingConflict::export_all(&config).expect("export KeyBindingConflict");
     KeyBindingResolution::export_all(&config).expect("export KeyBindingResolution");
 
+    // MVP-12 Phase A · Rail graph IPC contract（4 payload struct · ts-rs binding）
+    RailGraphViewportSyncPayload::export_all(&config).expect("export RailGraphViewportSyncPayload");
+    RailGraphBranchChangedPayload::export_all(&config)
+        .expect("export RailGraphBranchChangedPayload");
+    RailGraphRebaseStatePayload::export_all(&config).expect("export RailGraphRebaseStatePayload");
+    RailGraphPerfSample::export_all(&config).expect("export RailGraphPerfSample");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -323,6 +332,11 @@ fn main() {
             "export type { ImportApplyResult } from \"./ImportApplyResult\";",
             "export type { KeyBindingConflict } from \"./KeyBindingConflict\";",
             "export type { KeyBindingResolution } from \"./KeyBindingResolution\";",
+            // MVP-12 Phase A · Rail graph IPC contract
+            "export type { RailGraphViewportSyncPayload } from \"./RailGraphViewportSyncPayload\";",
+            "export type { RailGraphBranchChangedPayload } from \"./RailGraphBranchChangedPayload\";",
+            "export type { RailGraphRebaseStatePayload } from \"./RailGraphRebaseStatePayload\";",
+            "export type { RailGraphPerfSample } from \"./RailGraphPerfSample\";",
             "",
         ]
         .join("\n"),

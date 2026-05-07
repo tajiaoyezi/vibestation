@@ -19,6 +19,7 @@ pub mod pane_service;
 pub mod panes;
 pub mod pty;
 pub mod pty_pool;
+pub mod rail_graph_events;
 pub mod rebase_ops;
 pub mod tabs;
 pub mod telemetry;
@@ -80,6 +81,10 @@ pub use pty::{
     PTY_EVENT_QUEUE_CAPACITY,
 };
 pub use pty_pool::SpawnResult;
+pub use rail_graph_events::{
+    RailGraphBranchChangedPayload, RailGraphPerfSample, RailGraphRebaseStatePayload,
+    RailGraphViewportSyncPayload,
+};
 pub use rebase_ops::{
     cherrypick_abort, cherrypick_continue, cherrypick_start, conflict_resolve_file,
     conflict_status, detect_in_progress, merge_abort as rebase_merge_abort, merge_start,

@@ -1,0 +1,28 @@
+=== H2 step 1 · 临时给 LayoutApplyAdvancedRequest.preset 加 #[ts(rename = "presetProof")] ===
+
+=== H2 step 2 · cargo build -p vibestation-app ===
+[1m[94m40[0m [1m[94m|[0m     PaneNavigateResult, PanePtyEvent, PanePtySpawnRequest, PaneResizeStepRequest, PtyEvent,
+   [1m[94m|[0m     [1m[33m^^^^^^^^^^^^^^^^^^[0m                                     [1m[33m^^^^^^^^^^^^^^^^^^^^^[0m
+
+[1m[33mwarning[0m: `vibestation-app` (lib) generated 2 warnings (run `cargo fix --lib -p vibestation-app` to apply 2 suggestions)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 16.37s
+
+=== H2 step 3 · pnpm typecheck（预期 FAIL · TS2339 preset 不存在）===
+
+> @vibestation/web@0.1.0 typecheck /private/tmp/MVP-14-phase-A-work/web
+> tsc --noEmit
+
+src/panels/Pane/_contract-typecheck-mvp14.ts(21,49): error TS2344: Type '"tabId" | "preset" | "preserveInstances" | "confirmed"' does not satisfy the constraint 'keyof LayoutApplyAdvancedRequest'.
+  Type '"preset"' is not assignable to type 'keyof LayoutApplyAdvancedRequest'.
+[41m[30m ELIFECYCLE [39m[49m [31mCommand failed with exit code 2.[39m
+
+=== H2 step 4 · 撤销 #[ts(rename = "presetProof")] ===
+
+=== H2 step 5 · 回滚后 cargo build + pnpm typecheck（预期 PASS）===
+
+[1m[33mwarning[0m: `vibestation-app` (lib) generated 2 warnings (run `cargo fix --lib -p vibestation-app` to apply 2 suggestions)
+[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 24.43s
+
+> @vibestation/web@0.1.0 typecheck /private/tmp/MVP-14-phase-A-work/web
+> tsc --noEmit
+

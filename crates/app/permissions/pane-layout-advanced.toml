@@ -1,0 +1,24 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-14 Phase A · Pane advanced layout IPC permissions
+# 4 commands · 扩展 preset / 导航 / 最大化 / 键盘 resize
+
+[[permission]]
+identifier = "allow-pane-layout-apply-advanced"
+description = "允许前端应用高级 Smart Layout 预设（DualAi / TripleReview / Quad）· 含 preserveInstances / confirmed 参数"
+commands.allow = ["pane_layout_apply_advanced"]
+
+[[permission]]
+identifier = "allow-pane-navigate"
+description = "允许前端方向键跳相邻 Pane（Left / Right / Up / Down）"
+commands.allow = ["pane_navigate"]
+
+[[permission]]
+identifier = "allow-pane-maximize"
+description = "允许前端临时最大化 / 恢复当前 Pane（session-only · 不写 DB）"
+commands.allow = ["pane_maximize"]
+
+[[permission]]
+identifier = "allow-pane-resize-step"
+description = "允许前端键盘步进调整 split ratio（±5% step）"
+commands.allow = ["pane_resize_step"]

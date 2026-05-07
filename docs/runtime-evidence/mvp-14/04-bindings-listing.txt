@@ -1,0 +1,29 @@
+$ ls -la web/src/bindings/Layout*.ts web/src/bindings/Pane*.ts web/src/bindings/WorkspaceLayoutState.ts
+-rw-r--r--@ 1 leaf  wheel  305 May  7 12:49 web/src/bindings/LayoutApplyAdvancedRequest.ts
+-rw-r--r--@ 1 leaf  wheel  199 May  7 12:49 web/src/bindings/LayoutApplyRequest.ts
+-rw-r--r--@ 1 leaf  wheel  326 May  7 12:49 web/src/bindings/LayoutApplyResult.ts
+-rw-r--r--@ 1 leaf  wheel  508 May  7 12:49 web/src/bindings/LayoutEnvelope.ts
+-rw-r--r--@ 1 leaf  wheel  272 May  7 12:49 web/src/bindings/LayoutHistoryEntry.ts
+-rw-r--r--@ 1 leaf  wheel  316 May  7 12:49 web/src/bindings/LayoutNode.ts
+-rw-r--r--@ 1 leaf  wheel  356 May  7 12:49 web/src/bindings/LayoutPresetKind.ts
+-rw-r--r--@ 1 leaf  wheel  382 May  7 12:49 web/src/bindings/LayoutState.ts
+-rw-r--r--@ 1 leaf  wheel  162 May  7 12:49 web/src/bindings/PaneCloseRequest.ts
+-rw-r--r--@ 1 leaf  wheel  264 May  7 12:49 web/src/bindings/PaneCreateRequest.ts
+-rw-r--r--@ 1 leaf  wheel  184 May  7 12:49 web/src/bindings/PaneFocusRequest.ts
+-rw-r--r--@ 1 leaf  wheel  697 May  7 12:49 web/src/bindings/PaneInitRequest.ts
+-rw-r--r--@ 1 leaf  wheel  315 May  7 12:49 web/src/bindings/PaneListResponse.ts
+-rw-r--r--@ 1 leaf  wheel  197 May  7 12:49 web/src/bindings/PaneMaximizeRequest.ts
+-rw-r--r--@ 1 leaf  wheel  289 May  7 12:49 web/src/bindings/PaneMaximizeResult.ts
+-rw-r--r--@ 1 leaf  wheel  175 May  7 12:49 web/src/bindings/PaneNavDirection.ts
+-rw-r--r--@ 1 leaf  wheel  273 May  7 12:49 web/src/bindings/PaneNavigateRequest.ts
+-rw-r--r--@ 1 leaf  wheel  173 May  7 12:49 web/src/bindings/PaneNavigateResult.ts
+-rw-r--r--@ 1 leaf  wheel  189 May  7 12:49 web/src/bindings/PanePtyExitedEvent.ts
+-rw-r--r--@ 1 leaf  wheel  221 May  7 12:49 web/src/bindings/PanePtySpawnRequest.ts
+-rw-r--r--@ 1 leaf  wheel  178 May  7 12:49 web/src/bindings/PanePtyStdoutEvent.ts
+-rw-r--r--@ 1 leaf  wheel  266 May  7 12:49 web/src/bindings/PaneResizeStepRequest.ts
+-rw-r--r--@ 1 leaf  wheel  203 May  7 12:49 web/src/bindings/PaneScrollbackFetchRequest.ts
+-rw-r--r--@ 1 leaf  wheel  217 May  7 12:49 web/src/bindings/PaneState.ts
+-rw-r--r--@ 1 leaf  wheel  260 May  7 12:49 web/src/bindings/WorkspaceLayoutState.ts
+
+$ ls web/src/bindings/Layout*.ts web/src/bindings/Pane*.ts | wc -l
+      24

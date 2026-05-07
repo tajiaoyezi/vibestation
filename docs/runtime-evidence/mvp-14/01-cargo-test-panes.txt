@@ -1,0 +1,115 @@
+$ cargo test --package vibestation-core panes::
+
+running 89 tests
+test panes::export_bindings_layoutpresetkind ... ok
+test panes::export_bindings_layoutapplyrequest ... ok
+test panes::export_bindings_panecloserequest ... ok
+test panes::export_bindings_panefocusrequest ... ok
+test panes::export_bindings_panemaximizerequest ... ok
+test panes::export_bindings_layoutapplyadvancedrequest ... ok
+test panes::export_bindings_panenavdirection ... ok
+test panes::export_bindings_panecreaterequest ... ok
+test panes::export_bindings_layouthistoryentry ... ok
+test panes::export_bindings_layoutnode ... ok
+test panes::export_bindings_panelayouterror ... ok
+test panes::export_bindings_panenavigateresult ... ok
+test panes::export_bindings_layoutenvelope ... ok
+test panes::export_bindings_panelistresponse ... ok
+test panes::export_bindings_paneptyexitedevent ... ok
+test panes::export_bindings_panenavigaterequest ... ok
+test panes::tests::atomic_close_last_pane_errors ... ok
+test panes::tests::atomic_close_success_returns_new_layout ... ok
+test panes::tests::atomic_invalid_pane_id_errors ... ok
+test panes::tests::atomic_split_depth_exceeded_returns_unchanged ... ok
+test panes::tests::atomic_split_success_returns_new_layout ... ok
+test panes::tests::atomic_split_then_close_roundtrip ... ok
+test panes::export_bindings_paneptystdoutevent ... ok
+test panes::tests::close_nested_collapse_h_v ... ok
+test panes::tests::close_atomicity_fails_during_panes_delete ... ok
+test panes::tests::close_atomicity_fails_during_layout_update ... ok
+test panes::export_bindings_panescrollbackfetchrequest ... ok
+test panes::tests::depth_5_passes_validation ... ok
+test panes::tests::depth_6_fails_validation ... ok
+test panes::tests::duplicate_pane_id_rejected ... ok
+test panes::tests::empty_pane_id_rejected ... ok
+test panes::export_bindings_panestate ... ok
+test panes::export_bindings_paneptyspawnrequest ... ok
+test panes::export_bindings_panemaximizeresult ... ok
+test panes::export_bindings_splitdir ... ok
+test panes::export_bindings_splitratioupdaterequest ... ok
+test panes::tests::h2_2x2_layout_is_valid ... ok
+test panes::tests::h2_invalid_depth_6_layout_is_rejected_and_original_layout_unchanged ... ok
+test panes::tests::h2_horizontal_2pane_layout_is_valid ... ok
+test panes::tests::h2_invalid_ratio_layout_is_rejected_and_original_layout_unchanged ... ok
+test panes::tests::h2_solo_layout_is_valid ... ok
+test panes::export_bindings_paneresizesteprequest ... ok
+test panes::export_bindings_layoutapplyresult ... ok
+test panes::export_bindings_workspacelayoutstate ... ok
+test panes::tests::layout_envelope_future_version_fails ... ok
+test panes::tests::layout_envelope_legacy_roundtrip ... ok
+test panes::tests::layout_envelope_new_solo ... ok
+test panes::tests::layout_envelope_v1_roundtrip ... ok
+test panes::tests::layout_node_serde_roundtrip_tagged_union ... ok
+test panes::tests::h2_vertical_2pane_layout_is_valid ... ok
+test panes::tests::layout_apply_atomicity_fails_during_panes_batch_delete ... ok
+test panes::tests::layout_apply_atomicity_fails_during_focused_pane_update ... ok
+test panes::tests::pane_layout_error_into_pane_error ... ok
+test panes::tests::preset_dual_ai_builds_horizontal ... ok
+test panes::tests::preset_insufficient_panes_fails ... ok
+test panes::tests::preset_quad_builds_quad ... ok
+test panes::tests::preset_solo_builds_single ... ok
+test panes::tests::preset_triple_review_builds_nested ... ok
+test panes::tests::ratio_005_passes_004_fails ... ok
+test panes::tests::ratio_095_passes_096_fails ... ok
+test panes::tests::same_direction_consecutive_split_allowed ... ok
+test panes::tests::smart_layout_ai_runner_creates_horizontal_split_50_50 ... ok
+test panes::tests::smart_layout_kind_into_layout_preset_kind ... ok
+test panes::tests::smart_layout_solo_keeps_focused_pane ... ok
+test panes::tests::smart_layout_solo_returns_closed_pane_ids ... ok
+test panes::tests::delete_missing_pane_errors ... ok
+test panes::tests::delete_pane_removes_row ... ok
+test panes::tests::split_layout_2x2_legal ... ok
+test panes::tests::split_atomicity_fails_during_layout_update ... ok
+test panes::tests::split_layout_3_horizontal_illegal ... ok
+test panes::tests::split_layout_3_vertical_illegal ... ok
+test panes::tests::split_layout_horizontal_2_pane_legal ... ok
+test panes::tests::split_layout_solo_legal ... ok
+test panes::tests::split_layout_vertical_2_pane_legal ... ok
+test panes::tests::get_handles_utf8_and_long_paths ... ok
+test panes::tests::get_returns_none_for_missing_pane ... ok
+test panes::tests::update_split_ratio_changes_target_split_only ... ok
+test panes::tests::update_split_ratio_rejects_invalid_ratio_and_unknown_pane ... ok
+test panes::tests::delete_tab_cascades_panes ... ok
+test panes::tests::insert_pane_basic ... ok
+test panes::tests::insert_rejects_missing_tab_fk ... ok
+test panes::tests::split_atomicity_fails_during_panes_insert ... ok
+test panes::tests::insert_rejects_duplicate_pane_id ... ok
+test panes::tests::list_by_tab_filters_other_tabs ... ok
+test panes::tests::list_by_tab_returns_empty_for_unknown_tab ... ok
+test panes::tests::list_by_tab_orders_created_at_desc ... ok
+test panes::tests::update_missing_pane_errors ... ok
+test panes::tests::update_pane_fields ... ok
+test panes::tests::update_rejects_missing_tab_fk ... ok
+
+test result: ok. 89 passed; 0 failed; 0 ignored; 0 measured; 509 filtered out; finished in 0.24s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+

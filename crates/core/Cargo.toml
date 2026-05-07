@@ -42,7 +42,7 @@ sha2 = "0.11"
 
 [dev-dependencies]
 tempfile.workspace = true
-criterion = "0.5"
+criterion = "0.8"
 # MVP-10 §C.3.1 PII unit test · IP 正则匹配
 regex = "1"
 

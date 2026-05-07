@@ -47,7 +47,7 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
-| Phase A · LayoutNode v1 schema + core service | 放开 `MAX_LAYOUT_SPLIT_DEPTH` 到 5 · `LayoutEnvelope { version: 1, root }` · 迁移旧 `layout_state` / `tabs.layout` · 新增 advanced preset core pure functions · ts-rs bindings | ⏳ todo | — |
+| Phase A · LayoutNode v1 schema + core service | 放开 `MAX_LAYOUT_SPLIT_DEPTH` 到 5 · `LayoutEnvelope { version: 1, root }` · 迁移旧 `layout_state` / `tabs.layout` · 新增 advanced preset core pure functions · ts-rs bindings | ✅ done · PR #258 | — |
 | Phase B · 递归 Pane UI + Smart Layouts 扩展 | `PaneSplitView` 递归渲染优化 · `SmartLayoutMenu` 增 Dual AI / Triple Review / Quad · 预设切换保留 Pane instance · nested splitter ratio 持久化 | ⏳ todo | — |
 | Phase C · 键盘导航 + 临时最大化 + a11y | `⌘⌥ ←/→/↑/↓` / `Ctrl+Alt+Arrow` 几何相邻算法 · `⌘Enter` 临时最大化 · split divider keyboard resize · focus ring / ARIA | ⏳ todo | — |
 | Phase D · runtime evidence + bench | 5 层嵌套性能 · 100 次 ratio drag · preset apply · keyboard nav · maximize restore · 4-7 张截图/录屏归档到 `docs/runtime-evidence/mvp-14/` | ⏳ todo | — |
@@ -119,12 +119,12 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 
 ### A. LayoutNode v1 + 任意嵌套
 
-- [ ] A.1 `LayoutNode` 继续使用 tagged union（`Single` / `Split`），新增 `LayoutEnvelope { version: 1, root: LayoutNode }` 后，旧 `LayoutNode` JSON 可无损包装为 v1 envelope；单元测试覆盖旧 JSON → 新 envelope round-trip。
-- [ ] A.2 backend validator 接受 1 / 2 / 3 / 4 / 5 层合法嵌套；fixture `layout_depth_5_alternating()` validate PASS，`layout_depth_6_alternating()` 返回 `PaneLayoutError::MaxDepthExceeded { max_depth: 5 }`。
-- [ ] A.3 ratio 统一 clamp 到 `[0.05, 0.95]`；`0.049` 与 `0.951` 在 backend 返回 `InvalidRatio`，frontend 拖拽时先 clamp 且 toast 不出现。
-- [ ] A.4 关闭 Pane 时父 Split 只剩 1 child → 自动折叠为 sibling subtree；测试 `H(A, V(B, C))` 删除 `B` 后得到 `H(A, C)`，ratio 保留父节点比例。
-- [ ] A.5 同向连续 split 不再因 MVP-05 单层限制被拒绝；测试 `H(A, H(B, C))` 在 v0.2 validator PASS，但深度仍计入 5 层上限。
-- [ ] A.6 空 layout / 缺失 pane id / duplicated pane id 均被 backend 拒绝，错误含具体 pane id，transaction 回滚后 `tabs.layout` 与 `panes` 行数不变。
+- [x] A.1 `LayoutNode` 继续使用 tagged union（`Single` / `Split`），新增 `LayoutEnvelope { version: 1, root: LayoutNode }` 后，旧 `LayoutNode` JSON 可无损包装为 v1 envelope；单元测试覆盖旧 JSON → 新 envelope round-trip。
+- [x] A.2 backend validator 接受 1 / 2 / 3 / 4 / 5 层合法嵌套；fixture `layout_depth_5_alternating()` validate PASS，`layout_depth_6_alternating()` 返回 `PaneLayoutError::MaxDepthExceeded { max_depth: 5 }`。
+- [x] A.3 ratio 统一 clamp 到 `[0.05, 0.95]`；`0.049` 与 `0.951` 在 backend 返回 `InvalidRatio`，frontend 拖拽时先 clamp 且 toast 不出现。
+- [x] A.4 关闭 Pane 时父 Split 只剩 1 child → 自动折叠为 sibling subtree；测试 `H(A, V(B, C))` 删除 `B` 后得到 `H(A, C)`，ratio 保留父节点比例。
+- [x] A.5 同向连续 split 不再因 MVP-05 单层限制被拒绝；测试 `H(A, H(B, C))` 在 v0.2 validator PASS，但深度仍计入 5 层上限。
+- [x] A.6 空 layout / 缺失 pane id / duplicated pane id 均被 backend 拒绝，错误含具体 pane id，transaction 回滚后 `tabs.layout` 与 `panes` 行数不变。
 
 ### B. Smart Layouts 预设
 
@@ -163,9 +163,9 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 
 ### F. 持久化 / 迁移 / 多 workspace
 
-- [ ] F.1 `workspaces.layout_state` 中旧值 `solo` / `aiAndRunner` / `null` 自动迁移到 `LayoutEnvelope { version: 1 }`；迁移测试逐项断言输出 JSON。
-- [ ] F.2 `tabs.layout` 中 MVP-05 旧 tagged union（`kind: "single"` / `kind: "split"`）继续被读取；写回时统一输出 v1 envelope 或当前锁定格式，PR body 写明选择。
-- [ ] F.3 layout 写入 debounce 500ms；连续拖拽 20 次 ratio 只产生 ≤ 2 次 DB write，测试用 fake timer 或 mock DAO 计数。
+- [x] F.1 `workspaces.layout_state` 中旧值 `solo` / `aiAndRunner` / `null` 自动迁移到 `LayoutEnvelope { version: 1 }`；迁移测试逐项断言输出 JSON。
+- [x] F.2 `tabs.layout` 中 MVP-05 旧 tagged union（`kind: "single"` / `kind: "split"`）继续被读取；写回时统一输出 v1 envelope 或当前锁定格式，PR body 写明选择。
+- [ ] F.3 layout 写入 debounce 500ms；连续拖拽 20 次 ratio 只产生 ≤ 2 次 DB write，测试用 fake timer 或 mock DAO 计数。（Phase C 范围）
 - [ ] F.4 workspace A 和 workspace B 的 layout / focus / history 独立；切换 A→B→A 后 A 恢复原 nested layout。
 - [ ] F.5 Layout history LRU 5 条：每次 preset / split / close / ratio pointerup 后记录摘要；超过 5 条丢最旧；不提供 UI 恢复入口，仅为 v0.3 debug / support 使用。
 - [ ] F.6 JSON version 不认识（如 `version: 99`）时 fallback 到 Solo + toast `布局版本过新，已恢复默认布局`，原 JSON 备份到 log，不覆盖直到用户产生新 layout。
@@ -426,21 +426,21 @@ pub enum PaneLayoutError {
 
 ### G.3 强制规范
 
-- [ ] 新增 struct / enum 必须 `#[derive(Debug, Clone, Serialize, Deserialize, TS)]` + `#[ts(export)]`。
-- [ ] struct 字段统一 `#[serde(rename_all = "camelCase")]`；递归 / payload enum 用 `#[serde(tag = "kind", rename_all = "camelCase")]`。
-- [ ] `f32` / `f64` / integer timestamp 字段必须用 `#[ts(type = "number")]`，防止生成不可用类型。
-- [ ] `LayoutNode` 继续保持现有 tagged union，不允许 Phase A 改成 ad-hoc JSON value。
-- [ ] 前端所有类型从 `web/src/bindings/*` import；禁止在 `web/src/panels/Terminal/` 手写 `type LayoutNode = ...`。
-- [ ] bindings 由 `cargo build -p vibestation-app` 触发生成；`web/src/bindings/` 不手写。
+- [x] 新增 struct / enum 必须 `#[derive(Debug, Clone, Serialize, Deserialize, TS)]` + `#[ts(export)]`。
+- [x] struct 字段统一 `#[serde(rename_all = "camelCase")]`；递归 / payload enum 用 `#[serde(tag = "kind", rename_all = "camelCase")]`。
+- [x] `f32` / `f64` / integer timestamp 字段必须用 `#[ts(type = "number")]`，防止生成不可用类型。
+- [x] `LayoutNode` 继续保持现有 tagged union，不允许 Phase A 改成 ad-hoc JSON value。
+- [x] 前端所有类型从 `web/src/bindings/*` import；禁止在 `web/src/panels/Terminal/` 手写 `type LayoutNode = ...`。
+- [x] bindings 由 `cargo build -p vibestation-app` 触发生成；`web/src/bindings/` 不手写。
 
 ### G.4 H2 regression proof
 
-1. 临时在 `LayoutApplyAdvancedRequest.preset` 加 `#[ts(rename = "xxxProof")]`。
-2. 运行 `cargo build -p vibestation-app`。
-3. 运行 `pnpm typecheck`。
-4. 预期 TypeScript 报 `preset` 字段不存在，证明前端依赖生成 binding。
-5. 回滚临时 rename。
-6. 重新 `cargo build -p vibestation-app && pnpm typecheck`，必须 PASS。
+- [x] 1. 临时在 `LayoutApplyAdvancedRequest.preset` 加 `#[ts(rename = "xxxProof")]`。
+- [x] 2. 运行 `cargo build -p vibestation-app`。
+- [x] 3. 运行 `pnpm typecheck`。
+- [x] 4. TypeScript 报 `preset` 字段不存在（`Type '"preset"' is not assignable to type 'keyof LayoutApplyAdvancedRequest'`），证明前端依赖生成 binding。
+- [x] 5. 回滚临时 rename。
+- [x] 6. 重新 `cargo build -p vibestation-app && pnpm typecheck`，PASS。
 
 ### G.5 复用决策
 

@@ -23,10 +23,15 @@ use vibestation_core::{
     GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
     GitStatusRequest, GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType,
     ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
-    LayoutApplyRequest, LayoutNode, LayoutState, MergeConflictInfo, MergeRequest, MergeStatus,
+    LayoutApplyAdvancedRequest, LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope,
+    LayoutHistoryEntry, LayoutNode, LayoutPresetKind, LayoutState, MergeConflictInfo, MergeRequest,
+    WorkspaceLayoutState,
+    MergeStatus,
     MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest, PaneCreateRequest,
-    PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
-    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PtyExitedEvent, PtySpawnRequest,
+    PaneFocusRequest, PaneInitRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
+    PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PanePtyExitedEvent,
+    PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest, PaneScrollbackFetchRequest,
+    PaneState, PtyExitedEvent, PtySpawnRequest,
     PtyStdoutEvent, PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest,
     PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp,
     RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo, RemoteListRequest,
@@ -93,6 +98,19 @@ fn main() {
     PanePtySpawnRequest::export_all(&config).expect("export PanePtySpawnRequest");
     PanePtyStdoutEvent::export_all(&config).expect("export PanePtyStdoutEvent");
     PanePtyExitedEvent::export_all(&config).expect("export PanePtyExitedEvent");
+    // MVP-14 Phase A · Advanced layout bindings
+    LayoutEnvelope::export_all(&config).expect("export LayoutEnvelope");
+    LayoutPresetKind::export_all(&config).expect("export LayoutPresetKind");
+    LayoutApplyAdvancedRequest::export_all(&config).expect("export LayoutApplyAdvancedRequest");
+    LayoutApplyResult::export_all(&config).expect("export LayoutApplyResult");
+    PaneNavDirection::export_all(&config).expect("export PaneNavDirection");
+    PaneNavigateRequest::export_all(&config).expect("export PaneNavigateRequest");
+    PaneNavigateResult::export_all(&config).expect("export PaneNavigateResult");
+    PaneMaximizeRequest::export_all(&config).expect("export PaneMaximizeRequest");
+    PaneMaximizeResult::export_all(&config).expect("export PaneMaximizeResult");
+    PaneResizeStepRequest::export_all(&config).expect("export PaneResizeStepRequest");
+    LayoutHistoryEntry::export_all(&config).expect("export LayoutHistoryEntry");
+    WorkspaceLayoutState::export_all(&config).expect("export WorkspaceLayoutState");
 
     GitLogEntry::export_all(&config).expect("export GitLogEntry");
     CommitAuthor::export_all(&config).expect("export CommitAuthor");
@@ -231,6 +249,19 @@ fn main() {
             "export type { PanePtySpawnRequest } from \"./PanePtySpawnRequest\";",
             "export type { PanePtyStdoutEvent } from \"./PanePtyStdoutEvent\";",
             "export type { PanePtyExitedEvent } from \"./PanePtyExitedEvent\";",
+            // MVP-14 Phase A · Advanced layout bindings
+            "export type { LayoutEnvelope } from \"./LayoutEnvelope\";",
+            "export type { LayoutPresetKind } from \"./LayoutPresetKind\";",
+            "export type { LayoutApplyAdvancedRequest } from \"./LayoutApplyAdvancedRequest\";",
+            "export type { LayoutApplyResult } from \"./LayoutApplyResult\";",
+            "export type { PaneNavDirection } from \"./PaneNavDirection\";",
+            "export type { PaneNavigateRequest } from \"./PaneNavigateRequest\";",
+            "export type { PaneNavigateResult } from \"./PaneNavigateResult\";",
+            "export type { PaneMaximizeRequest } from \"./PaneMaximizeRequest\";",
+            "export type { PaneMaximizeResult } from \"./PaneMaximizeResult\";",
+            "export type { PaneResizeStepRequest } from \"./PaneResizeStepRequest\";",
+            "export type { LayoutHistoryEntry } from \"./LayoutHistoryEntry\";",
+            "export type { WorkspaceLayoutState } from \"./WorkspaceLayoutState\";",
             "export type { GitLogEntry } from \"./GitLogEntry\";",
             "export type { CommitAuthor } from \"./CommitAuthor\";",
             "export type { CommitParent } from \"./CommitParent\";",

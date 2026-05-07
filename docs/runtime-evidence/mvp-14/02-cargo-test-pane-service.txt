@@ -1,0 +1,50 @@
+$ cargo test --package vibestation-core pane_service::
+
+running 24 tests
+test pane_service::export_bindings_paneinitrequest ... ok
+test pane_service::tests::close_last_pane_errors ... ok
+test pane_service::tests::layout_preset_ai_runner_errors_on_single_pane ... ok
+test pane_service::tests::migrate_workspace_layout_state_skips_already_v1 ... ok
+test pane_service::tests::layout_preset_unknown_kind_errors ... ok
+test pane_service::tests::legacy_layout_migration_reads_and_upgrades ... ok
+test pane_service::tests::close_writes_v1_envelope ... ok
+test pane_service::tests::focus_rejects_unknown_pane ... ok
+test pane_service::tests::close_unknown_pane_errors ... ok
+test pane_service::tests::envelope_round_trip_persists_version_and_focus ... ok
+test pane_service::tests::layout_preset_solo_collapses_to_focused ... ok
+test pane_service::tests::close_removes_pane_and_updates_focus ... ok
+test pane_service::tests::focus_updates_focused_pane ... ok
+test pane_service::tests::pane_init_creates_v1_envelope ... ok
+test pane_service::tests::pane_init_creates_first_pane_for_empty_tab ... ok
+test pane_service::tests::migrate_workspace_layout_state_upgrades_legacy ... ok
+test pane_service::tests::pane_init_is_idempotent ... ok
+test pane_service::tests::write_workspace_layout_state_round_trip ... ok
+test pane_service::tests::split_ratio_rejects_invalid_value ... ok
+test pane_service::tests::split_rejects_unknown_parent ... ok
+test pane_service::tests::split_ratio_update_persists ... ok
+test pane_service::tests::split_creates_pane_layout_and_focuses_new ... ok
+test pane_service::tests::split_writes_v1_envelope ... ok
+test pane_service::tests::split_rolls_back_when_layout_invalid ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 574 filtered out; finished in 0.14s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+

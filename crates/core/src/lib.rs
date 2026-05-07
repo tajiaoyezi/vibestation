@@ -65,14 +65,17 @@ pub use git_sync::{
 pub use layout::{LayoutState, LayoutStore};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use pane_service::{
-    apply_layout_preset, apply_pane_close, apply_pane_focus, apply_pane_init_for_tab,
+    apply_layout_preset, apply_layout_preset_advanced, apply_pane_close, apply_pane_focus,
+    apply_pane_init_for_tab, apply_pane_maximize, apply_pane_navigate, apply_pane_resize_step,
     apply_pane_split, apply_split_ratio_update, PaneInitRequest,
 };
 pub use panes::{
-    LayoutApplyRequest, LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError,
-    PaneFocusRequest, PaneListResponse, PanePtyExitedEvent, PanePtySpawnRequest,
-    PanePtyStdoutEvent, PaneScrollbackFetchRequest, PaneState, PanesDao, SmartLayoutKind, SplitDir,
-    SplitRatioUpdateRequest,
+    LayoutApplyAdvancedRequest, LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope,
+    LayoutHistoryEntry, LayoutNode, LayoutPresetKind, PaneCloseRequest, PaneCreateRequest,
+    PaneError, PaneFocusRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
+    PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PanePtyExitedEvent,
+    PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest, PaneScrollbackFetchRequest,
+    PaneState, PanesDao, SmartLayoutKind, SplitDir, SplitRatioUpdateRequest, WorkspaceLayoutState,
 };
 pub use pty::{
     check_shell_exists, list_available_shells, resolve_default_shell, PtyError, PtyEvent,

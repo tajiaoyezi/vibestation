@@ -5,6 +5,7 @@
 
 mod fix_path_env;
 mod menu;
+mod pane_layout_advanced;
 
 use serde::Serialize;
 use std::collections::HashMap;
@@ -14,6 +15,9 @@ use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
 #[allow(unused_imports)]
 use vibestation_core::panes;
+use crate::pane_layout_advanced::{
+    pane_layout_apply_advanced, pane_maximize, pane_navigate, pane_resize_step,
+};
 use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
 use vibestation_core::{
     branch_checkout as core_branch_checkout, branch_create as core_branch_create,
@@ -29,16 +33,18 @@ use vibestation_core::{
     DiffService, FetchProgressEvent, FetchRequest, FetchResult, GitConfigIdentity,
     GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
     GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
-    GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState, LayoutStore,
-    MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
-    PaneCreateRequest, PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent,
-    PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest,
-    PullResult, PushProgressEvent, PushRequest, PushResult, RebaseControlRequest,
-    RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteListRequest,
-    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
-    StageRequest, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    GitStatusWatcher, GitSyncEventHandlers, LayoutApplyAdvancedRequest, LayoutApplyRequest,
+    LayoutApplyResult, LayoutState, LayoutStore, MergeRequest, MergeStatus, NetworkOpError,
+    OperationDoneEvent, PaneCloseRequest, PaneCreateRequest, PaneFocusRequest, PaneInitRequest,
+    PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult, PaneNavigateRequest,
+    PaneNavigateResult, PanePtyEvent, PanePtySpawnRequest, PaneResizeStepRequest, PtyEvent,
+    PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest, PullResult, PushProgressEvent,
+    PushRequest, PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseOpError,
+    RebaseStartRequest, RebaseStatus, RemoteListRequest, RemoteListResponse, SetGitIdentityRequest,
+    SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest,
+    SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
+    TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
+    WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -1645,7 +1651,11 @@ pub fn run() {
             pane_close,
             pane_focus,
             pane_layout_apply,
+            pane_layout_apply_advanced,
             pane_split_ratio_update,
+            pane_navigate,
+            pane_maximize,
+            pane_resize_step,
             git_log_query,
             git_log_commit_detail,
             git_log_cache_clear,

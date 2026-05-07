@@ -1,15 +1,18 @@
-//! Pane storage · MVP-05 Phase A.
+//! Pane storage · MVP-05 Phase A + MVP-14 Phase A.
 //!
 //! This module owns the `panes` table DAO plus the ts-rs IPC contract types for
-//! Pane layout state. IPC commands are intentionally deferred to MVP-05 Phase B.
+//! Pane layout state. IPC commands are in [`crate::pane_service`] and
+//! [`crate::pane_layout_advanced`] (MVP-14).
 
 use crate::db::{DbError, DbPool};
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-pub const MAX_LAYOUT_SPLIT_DEPTH: usize = 2;
-pub const MAX_LAYOUT_PANES: usize = 4;
+pub const MAX_LAYOUT_SPLIT_DEPTH: usize = 5;
+pub const MAX_LAYOUT_PANES: usize = 16;
+pub const MIN_SPLIT_RATIO: f32 = 0.05;
+pub const MAX_SPLIT_RATIO: f32 = 0.95;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
 #[ts(export, rename_all_fields = "camelCase")]
@@ -39,51 +42,76 @@ impl LayoutNode {
         }
     }
 
-    pub fn validate_mvp_05(&self) -> Result<(), PaneError> {
-        let pane_count = self.validate_inner(None, 0)?;
+    /// MVP-14 · v0.2 validator · 替换 MVP-05 `validate_mvp_05`。
+    ///
+    /// - depth 上限 5（原为 2）
+    /// - 同向连续 split **允许**（不再拒绝 H(H(...))）
+    /// - ratio clamp 到 [0.05, 0.95]
+    /// - pane count 上限 16（由深度推导的安全上限）
+    /// - 空 layout / 缺 pane id / 重复 pane id 拒绝
+    pub fn validate_layout(&self) -> Result<(), PaneLayoutError> {
+        let mut seen = std::collections::HashSet::new();
+        let pane_count = self.validate_inner(0, &mut seen)?;
         if pane_count > MAX_LAYOUT_PANES {
-            return Err(PaneError::InvalidLayout(format!(
-                "pane count {pane_count} exceeds MVP-05 max {MAX_LAYOUT_PANES}"
-            )));
+            return Err(PaneLayoutError::PresetApplyFailed {
+                preset: LayoutPresetKind::Solo,
+                reason: format!("pane count {pane_count} exceeds v0.2 max {MAX_LAYOUT_PANES}"),
+            });
         }
         Ok(())
     }
 
     fn validate_inner(
         &self,
-        parent_direction: Option<SplitDir>,
         split_depth: usize,
-    ) -> Result<usize, PaneError> {
+        seen: &mut std::collections::HashSet<String>,
+    ) -> Result<usize, PaneLayoutError> {
         match self {
-            Self::Single { .. } => Ok(1),
+            Self::Single { pane_id } => {
+                if pane_id.is_empty() {
+                    return Err(PaneLayoutError::PaneNotFound {
+                        pane_id: "(empty)".to_string(),
+                    });
+                }
+                if !seen.insert(pane_id.clone()) {
+                    return Err(PaneLayoutError::DuplicatePane {
+                        pane_id: pane_id.clone(),
+                    });
+                }
+                Ok(1)
+            }
             Self::Split {
-                direction,
+                direction: _,
                 ratio,
                 first,
                 second,
             } => {
                 let next_depth = split_depth + 1;
                 if next_depth > MAX_LAYOUT_SPLIT_DEPTH {
-                    return Err(PaneError::InvalidLayout(format!(
-                        "split depth {next_depth} exceeds MVP-05 max {MAX_LAYOUT_SPLIT_DEPTH}"
-                    )));
+                    return Err(PaneLayoutError::MaxDepthExceeded {
+                        max_depth: MAX_LAYOUT_SPLIT_DEPTH as u32,
+                        attempted_depth: next_depth as u32,
+                    });
                 }
-                if parent_direction == Some(direction.clone()) {
-                    return Err(PaneError::InvalidLayout(format!(
-                        "nested {direction:?} split would create a 3-pane row/column"
-                    )));
-                }
-                if !(*ratio > 0.0 && *ratio < 1.0) {
-                    return Err(PaneError::InvalidLayout(format!(
-                        "split ratio must be between 0 and 1, got {ratio}"
-                    )));
+                if *ratio < MIN_SPLIT_RATIO || *ratio > MAX_SPLIT_RATIO {
+                    return Err(PaneLayoutError::InvalidRatio {
+                        ratio: *ratio,
+                        min: MIN_SPLIT_RATIO,
+                        max: MAX_SPLIT_RATIO,
+                    });
                 }
 
-                let first_count = first.validate_inner(Some(direction.clone()), next_depth)?;
-                let second_count = second.validate_inner(Some(direction.clone()), next_depth)?;
+                let first_count = first.validate_inner(next_depth, seen)?;
+                let second_count = second.validate_inner(next_depth, seen)?;
                 Ok(first_count + second_count)
             }
         }
+    }
+
+    /// 保留 MVP-05 兼容接口 · 内部转调新 validator。
+    #[deprecated(since = "0.2.0", note = "use validate_layout instead")]
+    pub fn validate_mvp_05(&self) -> Result<(), PaneError> {
+        self.validate_layout().map_err(PaneError::from)
     }
 }
 
@@ -197,6 +225,247 @@ pub struct PanePtyExitedEvent {
     pub exit_code: Option<i32>,
 }
 
+// ============================================================
+// MVP-14 · Advanced layout IPC request/result types
+// ============================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LayoutApplyAdvancedRequest {
+    pub tab_id: String,
+    pub preset: LayoutPresetKind,
+    pub preserve_instances: bool,
+    pub confirmed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LayoutApplyResult {
+    pub response: PaneListResponse,
+    pub reused_pane_ids: Vec<String>,
+    pub created_pane_ids: Vec<String>,
+    pub closed_pane_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub enum PaneNavDirection {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneNavigateRequest {
+    pub tab_id: String,
+    pub from_pane_id: String,
+    pub direction: PaneNavDirection,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneNavigateResult {
+    pub to_pane_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneMaximizeRequest {
+    pub tab_id: String,
+    pub pane_id: String,
+    pub toggle: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneMaximizeResult {
+    pub maximized: bool,
+    pub restored_layout: Option<LayoutNode>,
+    pub restored_focused_pane_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneResizeStepRequest {
+    pub tab_id: String,
+    pub pane_id: String,
+    pub direction: SplitDir,
+    pub step_ratio: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LayoutHistoryEntry {
+    pub preset: LayoutPresetKind,
+    #[ts(type = "number")]
+    pub timestamp: i64,
+    pub pane_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceLayoutState {
+    pub workspace_id: String,
+    pub envelope: Option<LayoutEnvelope>,
+}
+
+// ============================================================
+// MVP-14 · LayoutEnvelope v1 + LayoutPresetKind + PaneLayoutError
+// ============================================================
+
+/// LayoutNode v1 envelope · 顶层版本化容器。
+///
+/// 旧 `{"kind":"single","paneId":"p"}` 通过 [`LayoutEnvelope::from_legacy_node`]
+/// 包装为 v1 envelope；序列化时输出包含 `version: 1` 的完整 JSON。
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct LayoutEnvelope {
+    #[ts(type = "number")]
+    pub version: u32,
+    pub root: LayoutNode,
+    pub focused_pane_id: Option<String>,
+    #[ts(type = "number")]
+    pub updated_at: i64,
+}
+
+impl LayoutEnvelope {
+    pub fn new_solo(pane_id: &str) -> Self {
+        Self {
+            version: 1,
+            root: LayoutNode::Single {
+                pane_id: pane_id.to_string(),
+            },
+            focused_pane_id: Some(pane_id.to_string()),
+            updated_at: chrono::Utc::now().timestamp(),
+        }
+    }
+
+    pub fn from_legacy_node(node: LayoutNode, focused: Option<String>) -> Self {
+        Self {
+            version: 1,
+            root: node,
+            focused_pane_id: focused,
+            updated_at: chrono::Utc::now().timestamp(),
+        }
+    }
+
+    pub fn try_from_json(json: &str) -> Result<Self, PaneLayoutError> {
+        // 先尝试作为 envelope 解析
+        if let Ok(envelope) = serde_json::from_str::<LayoutEnvelope>(json) {
+            if envelope.version > 1 {
+                return Err(PaneLayoutError::MigrationFailed {
+                    version: Some(envelope.version),
+                    message: "future version".to_string(),
+                });
+            }
+            envelope.root.validate_layout()?;
+            return Ok(envelope);
+        }
+        // 回退：尝试作为裸 LayoutNode 解析（MVP-05 旧格式）
+        let node: LayoutNode = serde_json::from_str(json)
+            .map_err(|e| PaneLayoutError::MigrationFailed {
+                version: None,
+                message: format!("neither envelope nor legacy LayoutNode: {e}"),
+            })?;
+        node.validate_layout()?;
+        Ok(Self::from_legacy_node(node, None))
+    }
+
+    pub fn to_json(&self) -> Result<String, PaneLayoutError> {
+        serde_json::to_string(self).map_err(|e| PaneLayoutError::DbError {
+            message: format!("serialize envelope: {e}"),
+        })
+    }
+}
+
+/// v0.2 Smart Layout 预设种类 · ts-rs 新 binding。
+///
+/// 保留旧 [`SmartLayoutKind`] 作为内部兼容类型 · 提供 `From` 转换。
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, TS, PartialEq, Eq)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub enum LayoutPresetKind {
+    Solo,
+    AiAndRunner,
+    DualAi,
+    TripleReview,
+    Quad,
+}
+
+impl From<SmartLayoutKind> for LayoutPresetKind {
+    fn from(kind: SmartLayoutKind) -> Self {
+        match kind {
+            SmartLayoutKind::Solo => Self::Solo,
+            SmartLayoutKind::AiAndRunner => Self::AiAndRunner,
+        }
+    }
+}
+
+/// MVP-14 · advanced layout 错误 tagged union。
+///
+/// 通过 `From<PaneLayoutError> for PaneError` 兼容 MVP-05 的 [`PaneError::InvalidLayout`]。
+#[derive(Debug, Clone, Serialize, Deserialize, TS, PartialEq)]
+#[ts(export)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum PaneLayoutError {
+    MaxDepthExceeded {
+        max_depth: u32,
+        attempted_depth: u32,
+    },
+    InvalidRatio {
+        #[ts(type = "number")]
+        ratio: f32,
+        #[ts(type = "number")]
+        min: f32,
+        #[ts(type = "number")]
+        max: f32,
+    },
+    PaneNotFound {
+        pane_id: String,
+    },
+    DuplicatePane {
+        pane_id: String,
+    },
+    PresetApplyFailed {
+        preset: LayoutPresetKind,
+        reason: String,
+    },
+    MigrationFailed {
+        version: Option<u32>,
+        message: String,
+    },
+    DbError {
+        message: String,
+    },
+}
+
+impl From<PaneLayoutError> for PaneError {
+    fn from(e: PaneLayoutError) -> Self {
+        PaneError::InvalidLayout(format!("{e:?}"))
+    }
+}
+
+impl std::fmt::Display for PaneLayoutError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl std::error::Error for PaneLayoutError {}
+
 #[derive(Debug, thiserror::Error)]
 pub enum PaneError {
     #[error("pane not found: {0}")]
@@ -207,7 +476,7 @@ pub enum PaneError {
     Db(#[from] DbError),
 }
 
-/// MVP-05 §C · Smart Layout 预设种类。
+/// MVP-05 §C · Smart Layout 预设种类（向后兼容 · 内部使用）。
 ///
 /// - `Solo`：保留当前聚焦 Pane · 关闭其他所有 Pane。
 /// - `AiAndRunner`：保留当前聚焦 Pane + 第一个非聚焦 Pane · 强制右分屏 50/50 · 关闭其他。
@@ -217,11 +486,112 @@ pub enum SmartLayoutKind {
     AiAndRunner,
 }
 
+/// MVP-14 · 根据 preset 构建 LayoutNode（pure function · 不改 PTY · 不写 DB）。
+///
+/// 输入 `available_panes` 为当前存在的 pane id 列表（按 focus / DFS 顺序）·
+/// 输出对应预设的 layout tree。
+pub fn build_layout_for_preset(
+    preset: LayoutPresetKind,
+    available_panes: &[String],
+) -> Result<LayoutNode, PaneLayoutError> {
+    if available_panes.is_empty() {
+        return Err(PaneLayoutError::PresetApplyFailed {
+            preset,
+            reason: "no available panes".to_string(),
+        });
+    }
+
+    let solo = |idx: usize| -> Result<LayoutNode, PaneLayoutError> {
+        available_panes
+            .get(idx)
+            .cloned()
+            .ok_or_else(|| PaneLayoutError::PresetApplyFailed {
+                preset,
+                reason: format!("need pane at index {idx}, only {} available", available_panes.len()),
+            })
+            .map(|pane_id| LayoutNode::Single { pane_id })
+    };
+
+    match preset {
+        LayoutPresetKind::Solo => solo(0),
+        LayoutPresetKind::AiAndRunner => {
+            if available_panes.len() < 2 {
+                return Err(PaneLayoutError::PresetApplyFailed {
+                    preset,
+                    reason: "AI+Runner requires at least 2 panes".to_string(),
+                });
+            }
+            Ok(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo(0)?),
+                second: Box::new(solo(1)?),
+            })
+        }
+        LayoutPresetKind::DualAi => {
+            if available_panes.len() < 2 {
+                return Err(PaneLayoutError::PresetApplyFailed {
+                    preset,
+                    reason: "Dual AI requires at least 2 panes".to_string(),
+                });
+            }
+            Ok(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo(0)?),
+                second: Box::new(solo(1)?),
+            })
+        }
+        LayoutPresetKind::TripleReview => {
+            if available_panes.len() < 3 {
+                return Err(PaneLayoutError::PresetApplyFailed {
+                    preset,
+                    reason: "Triple Review requires at least 3 panes".to_string(),
+                });
+            }
+            Ok(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo(0)?),
+                second: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo(1)?),
+                    second: Box::new(solo(2)?),
+                }),
+            })
+        }
+        LayoutPresetKind::Quad => {
+            if available_panes.len() < 4 {
+                return Err(PaneLayoutError::PresetApplyFailed {
+                    preset,
+                    reason: "Quad requires at least 4 panes".to_string(),
+                });
+            }
+            Ok(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo(0)?),
+                    second: Box::new(solo(1)?),
+                }),
+                second: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo(2)?),
+                    second: Box::new(solo(3)?),
+                }),
+            })
+        }
+    }
+}
+
 /// MVP-05 §H.2 · 在指定 Pane 处右分 / 下分一个新 Pane（pure function · 不修改原 layout）。
 ///
 /// 在 `layout` 中找到 `parent_pane_id` 对应的 `Single` 节点 · 用 `Split { direction, ratio: 0.5,
-/// first: Single(parent), second: Single(new) }` 替换。新布局通过 `validate_mvp_05()` 校验：
-/// 若深度 / 同向嵌套 / pane 数量超限 · 返回 `Err(PaneError::InvalidLayout(_))`。
+/// first: Single(parent), second: Single(new) }` 替换。新布局通过 `validate_layout()` 校验。
 ///
 /// 入参：
 /// - `layout`：当前布局（不被修改）
@@ -232,7 +602,7 @@ pub enum SmartLayoutKind {
 /// 出参：
 /// - `Ok(LayoutNode)`：split 后的新布局
 /// - `Err(PaneError::NotFound)`：`parent_pane_id` 不存在于 layout 中
-/// - `Err(PaneError::InvalidLayout)`：split 会导致深度 / 嵌套 / 数量超限 · 或 `new_pane_id`
+/// - `Err(PaneError::InvalidLayout)`：split 会导致深度 / pane 数量超限 · 或 `new_pane_id`
 ///   已存在于 layout 中
 pub fn split_layout(
     layout: &LayoutNode,
@@ -262,7 +632,7 @@ pub fn split_layout(
             }),
         },
     );
-    new_layout.validate_mvp_05()?;
+    new_layout.validate_layout().map_err(PaneError::from)?;
     Ok(new_layout)
 }
 
@@ -292,7 +662,7 @@ pub fn close_pane_in_layout(layout: &LayoutNode, pane_id: &str) -> Result<Layout
     }
     // 调用 helper · 已确保 pane_id 存在 · 必返回 Some
     let new_layout = remove_pane(layout, pane_id).expect("pane existence checked above");
-    new_layout.validate_mvp_05()?;
+    new_layout.validate_layout().map_err(PaneError::from)?;
     Ok(new_layout)
 }
 
@@ -304,27 +674,51 @@ pub fn close_pane_in_layout(layout: &LayoutNode, pane_id: &str) -> Result<Layout
 /// 入参：
 /// - `layout`：当前布局
 /// - `parent_pane_id`：first 子树包含此 Pane 的 Split 节点是目标
-/// - `new_ratio`：新比例 · 必须在 (0.0, 1.0) 开区间
+/// - `new_ratio`：新比例 · 必须在 [0.05, 0.95] 区间
 ///
 /// 出参：
 /// - `Ok(LayoutNode)`：ratio 已更新的新布局
 /// - `Err(PaneError::NotFound)`：找不到匹配的 Split 节点
-/// - `Err(PaneError::InvalidLayout)`：`new_ratio` 不在 (0, 1) 区间
+/// - `Err(PaneError::InvalidLayout)`：`new_ratio` 不在 [0.05, 0.95] 区间
 pub fn update_split_ratio(
     layout: &LayoutNode,
     parent_pane_id: &str,
     new_ratio: f32,
 ) -> Result<LayoutNode, PaneError> {
-    if !(new_ratio > 0.0 && new_ratio < 1.0) {
+    if new_ratio < MIN_SPLIT_RATIO || new_ratio > MAX_SPLIT_RATIO {
         return Err(PaneError::InvalidLayout(format!(
-            "split ratio must be between 0 and 1, got {new_ratio}"
+            "split ratio must be between {MIN_SPLIT_RATIO} and {MAX_SPLIT_RATIO}, got {new_ratio}"
         )));
     }
     update_ratio_inner(layout, parent_pane_id, new_ratio)
         .ok_or_else(|| PaneError::NotFound(parent_pane_id.to_string()))
 }
 
-/// MVP-05 §C · 应用 Smart Layout 预设（pure function）。
+/// MVP-14 · 查找包含 `pane_id` 的 Split 节点的 ratio（纯查询 · 不修改 layout）。
+///
+/// 返回 `Some(ratio)` 若找到；`None` 若 `pane_id` 不在任何 Split 的 first 子树中。
+pub fn find_split_ratio(layout: &LayoutNode, pane_id: &str) -> Option<f32> {
+    match layout {
+        LayoutNode::Single { .. } => None,
+        LayoutNode::Split {
+            ratio,
+            first,
+            second,
+            ..
+        } => {
+            if layout_contains_pane(first, pane_id) {
+                Some(*ratio)
+            } else if layout_contains_pane(second, pane_id) {
+                // pane 在 second 子树中，递归查找（可能在内层 Split）
+                find_split_ratio(second, pane_id).or(Some(*ratio))
+            } else {
+                None
+            }
+        }
+    }
+}
+
+/// MVP-05 §C · 应用 Smart Layout 预设（pure function · 向后兼容）。
 ///
 /// - `Solo`：返回 `Single { focused_pane_id }` · 关闭所有非聚焦 Pane。
 /// - `AiAndRunner`：保留聚焦 Pane + 第一个非聚焦 Pane（按 layout DFS 顺序）· 强制水平右分屏
@@ -359,7 +753,7 @@ pub fn apply_smart_layout(
             let new_layout = LayoutNode::Single {
                 pane_id: focused_pane_id.to_string(),
             };
-            new_layout.validate_mvp_05()?;
+            new_layout.validate_layout().map_err(PaneError::from)?;
             Ok((new_layout, closed))
         }
         SmartLayoutKind::AiAndRunner => {
@@ -384,7 +778,7 @@ pub fn apply_smart_layout(
                 }),
                 second: Box::new(LayoutNode::Single { pane_id: secondary }),
             };
-            new_layout.validate_mvp_05()?;
+            new_layout.validate_layout().map_err(PaneError::from)?;
             Ok((new_layout, closed))
         }
     }
@@ -403,7 +797,7 @@ fn layout_contains_pane(layout: &LayoutNode, pane_id: &str) -> bool {
 }
 
 /// 收集 layout 中所有 pane_id（DFS · 保留遍历顺序）。
-fn collect_pane_ids(layout: &LayoutNode) -> Vec<String> {
+pub fn collect_pane_ids(layout: &LayoutNode) -> Vec<String> {
     let mut ids = Vec::new();
     collect_pane_ids_inner(layout, &mut ids);
     ids
@@ -872,34 +1266,29 @@ mod tests {
     }
 
     #[test]
-    fn h2_invalid_3horizontal_layout_is_rejected_and_original_layout_unchanged() {
+    fn h2_invalid_depth_6_layout_is_rejected_and_original_layout_unchanged() {
         let (_dir, conn) = mvp_05_helpers::create_fixture_horizontal_2pane();
         let before = current_layout(&conn);
-        let invalid = mvp_05_helpers::create_fixture_invalid_3horizontal();
-        let result = LayoutNode::Split {
-            direction: SplitDir::Horizontal,
-            ratio: 0.5,
-            first: Box::new(invalid[0].clone()),
-            second: Box::new(invalid[1].clone()),
-        }
-        .validate_mvp_05();
-        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+        // depth 6 布局应被新 validator 拒绝
+        let invalid = layout_depth_6_alternating();
+        let result = invalid.validate_layout();
+        assert!(matches!(result, Err(PaneLayoutError::MaxDepthExceeded { max_depth: 5, .. })));
         assert_eq!(current_layout(&conn), before);
     }
 
     #[test]
-    fn h2_invalid_3vertical_layout_is_rejected_and_original_layout_unchanged() {
+    fn h2_invalid_ratio_layout_is_rejected_and_original_layout_unchanged() {
         let (_dir, conn) = mvp_05_helpers::create_fixture_vertical_2pane();
         let before = current_layout(&conn);
-        let invalid = mvp_05_helpers::create_fixture_invalid_3vertical();
-        let result = LayoutNode::Split {
+        // ratio 0.04 应被新 validator 拒绝
+        let invalid = LayoutNode::Split {
             direction: SplitDir::Vertical,
-            ratio: 0.5,
-            first: Box::new(invalid[0].clone()),
-            second: Box::new(invalid[1].clone()),
-        }
-        .validate_mvp_05();
-        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+            ratio: 0.04,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+        let result = invalid.validate_layout();
+        assert!(matches!(result, Err(PaneLayoutError::InvalidRatio { .. })));
         assert_eq!(current_layout(&conn), before);
     }
 
@@ -1199,21 +1588,71 @@ mod tests {
 
     #[test]
     fn split_layout_3_horizontal_illegal() {
-        // 在水平 2 pane 的 right pane 上再右分 → 同向嵌套 · 触发 InvalidLayout
-        let layout = horizontal_2pane("p1", "p2");
-        let result = split_layout(&layout, "p2", SplitDir::Horizontal, "p3".to_string());
+        // MVP-14: 同向连续 split 现在允许 · 但 depth 6 会被拒绝
+        // 测试 depth 超限场景
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Horizontal,
+                    ratio: 0.5,
+                    first: Box::new(LayoutNode::Split {
+                        direction: SplitDir::Horizontal,
+                        ratio: 0.5,
+                        first: Box::new(LayoutNode::Split {
+                            direction: SplitDir::Horizontal,
+                            ratio: 0.5,
+                            first: Box::new(solo_layout("p1")),
+                            second: Box::new(solo_layout("p2")),
+                        }),
+                        second: Box::new(solo_layout("p3")),
+                    }),
+                    second: Box::new(solo_layout("p4")),
+                }),
+                second: Box::new(solo_layout("p5")),
+            }),
+            second: Box::new(solo_layout("p6")),
+        };
+        // p1 在 depth 5 · 再 split → depth 6 超限
+        let result = split_layout(&layout, "p1", SplitDir::Horizontal, "p7".to_string());
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-        // 原 layout 不变
-        assert_eq!(layout, horizontal_2pane("p1", "p2"));
     }
 
     #[test]
     fn split_layout_3_vertical_illegal() {
-        // 在垂直 2 pane 的 bottom pane 上再下分 → 同向嵌套 · 触发 InvalidLayout
-        let layout = vertical_2pane("p1", "p2");
-        let result = split_layout(&layout, "p2", SplitDir::Vertical, "p3".to_string());
+        // 垂直方向同理
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Vertical,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(LayoutNode::Split {
+                        direction: SplitDir::Vertical,
+                        ratio: 0.5,
+                        first: Box::new(LayoutNode::Split {
+                            direction: SplitDir::Vertical,
+                            ratio: 0.5,
+                            first: Box::new(solo_layout("p1")),
+                            second: Box::new(solo_layout("p2")),
+                        }),
+                        second: Box::new(solo_layout("p3")),
+                    }),
+                    second: Box::new(solo_layout("p4")),
+                }),
+                second: Box::new(solo_layout("p5")),
+            }),
+            second: Box::new(solo_layout("p6")),
+        };
+        // p1 在 depth 5 · 再 split → depth 6 超限
+        let result = split_layout(&layout, "p1", SplitDir::Vertical, "p7".to_string());
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-        assert_eq!(layout, vertical_2pane("p1", "p2"));
     }
 
     // --- §H.3.1 pure function 等价 6 case --------------------------
@@ -1231,23 +1670,12 @@ mod tests {
     #[test]
     fn atomic_split_depth_exceeded_returns_unchanged() {
         // case 2 · 深度超限 · pure function 返回 Err · layout 不变
-        let layout = LayoutNode::Split {
-            direction: SplitDir::Horizontal,
-            ratio: 0.5,
-            first: Box::new(solo_layout("p1")),
-            second: Box::new(vertical_2pane("p2", "p3")),
-        };
+        // 构建 depth 5 布局 · 再 split → depth 6 超限
+        let layout = layout_depth_5_alternating();
         let original = layout.clone();
-        // 在 p3 上再下分（已经在 vertical split 的 second 子树 · 再下分会触发 depth 3）
-        // 因为 split_layout 内部会先校验同向嵌套；这里 vertical 2pane 的 p3 再 vertical split
-        // 会触发"3 vertical illegal"分支（同向嵌套）· 也属于 InvalidLayout
-        let result = split_layout(&layout, "p3", SplitDir::Vertical, "p4".to_string());
+        // p1 在 depth 5 · 再 split → depth 6 超限
+        let result = split_layout(&layout, "p1", SplitDir::Horizontal, "p7".to_string());
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-        assert_eq!(layout, original);
-
-        // 反向：在 p3 上 horizontal 分 → 会让 vertical{p2, horizontal{p3, p4}} · depth 3 → 超限
-        let result_h = split_layout(&layout, "p3", SplitDir::Horizontal, "p4".to_string());
-        assert!(matches!(result_h, Err(PaneError::InvalidLayout(_))));
         assert_eq!(layout, original);
     }
 
@@ -1404,11 +1832,11 @@ mod tests {
     #[test]
     fn update_split_ratio_rejects_invalid_ratio_and_unknown_pane() {
         let layout = horizontal_2pane("p1", "p2");
-        // ratio = 0 · 区间外
-        let result = update_split_ratio(&layout, "p1", 0.0);
+        // ratio = 0.04 · 区间外
+        let result = update_split_ratio(&layout, "p1", 0.04);
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-        // ratio = 1 · 区间外
-        let result = update_split_ratio(&layout, "p1", 1.0);
+        // ratio = 0.96 · 区间外
+        let result = update_split_ratio(&layout, "p1", 0.96);
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
         // ratio < 0
         let result = update_split_ratio(&layout, "p1", -0.1);
@@ -1419,5 +1847,351 @@ mod tests {
         // unknown pane
         let result = update_split_ratio(&layout, "ghost", 0.5);
         assert!(matches!(result, Err(PaneError::NotFound(id)) if id == "ghost"));
+    }
+
+    // ============================================================
+    // MVP-14 Phase A · 新增测试
+    // ============================================================
+
+    // --- A.1 LayoutEnvelope round-trip --------------------------------
+
+    #[test]
+    fn layout_envelope_legacy_roundtrip() {
+        let legacy_json = r#"{"kind":"single","paneId":"p1"}"#;
+        let envelope = LayoutEnvelope::try_from_json(legacy_json).unwrap();
+        assert_eq!(envelope.version, 1);
+        assert_eq!(envelope.root, solo_layout("p1"));
+        assert_eq!(envelope.focused_pane_id, None);
+
+        // 序列化后应包含 version 字段
+        let json = envelope.to_json().unwrap();
+        assert!(json.contains(r#""version":1"#));
+        assert!(json.contains(r#""paneId":"p1""#));
+    }
+
+    #[test]
+    fn layout_envelope_v1_roundtrip() {
+        let envelope = LayoutEnvelope {
+            version: 1,
+            root: horizontal_2pane("p1", "p2"),
+            focused_pane_id: Some("p1".to_string()),
+            updated_at: 1760000000000,
+        };
+        let json = envelope.to_json().unwrap();
+        let parsed = LayoutEnvelope::try_from_json(&json).unwrap();
+        assert_eq!(parsed, envelope);
+    }
+
+    #[test]
+    fn layout_envelope_future_version_fails() {
+        let future_json = r#"{"version":2,"root":{"kind":"single","paneId":"p1"},"focusedPaneId":null,"updatedAt":0}"#;
+        let result = LayoutEnvelope::try_from_json(future_json);
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::MigrationFailed { version: Some(2), .. })
+        ));
+    }
+
+    #[test]
+    fn layout_envelope_new_solo() {
+        let envelope = LayoutEnvelope::new_solo("pane-1");
+        assert_eq!(envelope.version, 1);
+        assert_eq!(envelope.root, solo_layout("pane-1"));
+        assert_eq!(envelope.focused_pane_id, Some("pane-1".to_string()));
+        assert!(envelope.updated_at > 0);
+    }
+
+    // --- A.2 depth validation -----------------------------------------
+
+    fn layout_depth_5_alternating() -> LayoutNode {
+        // H(V(H(V(H(p1, p2), p3), p4), p5), p6) · depth = 5
+        LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Horizontal,
+                    ratio: 0.5,
+                    first: Box::new(LayoutNode::Split {
+                        direction: SplitDir::Vertical,
+                        ratio: 0.5,
+                        first: Box::new(LayoutNode::Split {
+                            direction: SplitDir::Horizontal,
+                            ratio: 0.5,
+                            first: Box::new(solo_layout("p1")),
+                            second: Box::new(solo_layout("p2")),
+                        }),
+                        second: Box::new(solo_layout("p3")),
+                    }),
+                    second: Box::new(solo_layout("p4")),
+                }),
+                second: Box::new(solo_layout("p5")),
+            }),
+            second: Box::new(solo_layout("p6")),
+        }
+    }
+
+    fn layout_depth_6_alternating() -> LayoutNode {
+        // depth = 6 · 应在 root 的 first 子树下再加一层
+        LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Horizontal,
+                    ratio: 0.5,
+                    first: Box::new(LayoutNode::Split {
+                        direction: SplitDir::Vertical,
+                        ratio: 0.5,
+                        first: Box::new(LayoutNode::Split {
+                            direction: SplitDir::Horizontal,
+                            ratio: 0.5,
+                            first: Box::new(LayoutNode::Split {
+                                direction: SplitDir::Vertical,
+                                ratio: 0.5,
+                                first: Box::new(solo_layout("p1")),
+                                second: Box::new(solo_layout("p2")),
+                            }),
+                            second: Box::new(solo_layout("p3")),
+                        }),
+                        second: Box::new(solo_layout("p4")),
+                    }),
+                    second: Box::new(solo_layout("p5")),
+                }),
+                second: Box::new(solo_layout("p6")),
+            }),
+            second: Box::new(solo_layout("p7")),
+        }
+    }
+
+    #[test]
+    fn depth_5_passes_validation() {
+        let layout = layout_depth_5_alternating();
+        layout.validate_layout().unwrap();
+    }
+
+    #[test]
+    fn depth_6_fails_validation() {
+        let layout = layout_depth_6_alternating();
+        let result = layout.validate_layout();
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::MaxDepthExceeded { max_depth: 5, attempted_depth: 6 })
+        ));
+    }
+
+    // --- A.3 ratio clamp ----------------------------------------------
+
+    #[test]
+    fn ratio_005_passes_004_fails() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.05,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+        layout.validate_layout().unwrap();
+
+        let bad = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.049,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+        let result = bad.validate_layout();
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::InvalidRatio { ratio: 0.049, min: 0.05, max: 0.95 })
+        ));
+    }
+
+    #[test]
+    fn ratio_095_passes_096_fails() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.95,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+        layout.validate_layout().unwrap();
+
+        let bad = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.951,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+        let result = bad.validate_layout();
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::InvalidRatio { ratio: 0.951, min: 0.05, max: 0.95 })
+        ));
+    }
+
+    // --- A.4 close collapse -------------------------------------------
+
+    #[test]
+    fn close_nested_collapse_h_v() {
+        // H(A, V(B, C)) 删 B → H(A, C)
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("A")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.6,
+                first: Box::new(solo_layout("B")),
+                second: Box::new(solo_layout("C")),
+            }),
+        };
+        let new_layout = close_pane_in_layout(&layout, "B").unwrap();
+        let expected = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("A")),
+            second: Box::new(solo_layout("C")),
+        };
+        assert_eq!(new_layout, expected);
+    }
+
+    // --- A.5 same-direction consecutive split -------------------------
+
+    #[test]
+    fn same_direction_consecutive_split_allowed() {
+        // H(A, H(B, C)) 在 v0.2 应 PASS
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("A")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo_layout("B")),
+                second: Box::new(solo_layout("C")),
+            }),
+        };
+        layout.validate_layout().unwrap();
+    }
+
+    // --- A.6 empty / missing / duplicate pane id ----------------------
+
+    #[test]
+    fn empty_pane_id_rejected() {
+        let layout = LayoutNode::Single {
+            pane_id: "".to_string(),
+        };
+        let result = layout.validate_layout();
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::PaneNotFound { pane_id })
+            if pane_id == "(empty)"
+        ));
+    }
+
+    #[test]
+    fn duplicate_pane_id_rejected() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("same")),
+            second: Box::new(solo_layout("same")),
+        };
+        let result = layout.validate_layout();
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::DuplicatePane { pane_id })
+            if pane_id == "same"
+        ));
+    }
+
+    // --- B.1 preset apply pure function -------------------------------
+
+    #[test]
+    fn preset_solo_builds_single() {
+        let panes = vec!["p1".to_string()];
+        let layout = build_layout_for_preset(LayoutPresetKind::Solo, &panes).unwrap();
+        assert_eq!(layout, solo_layout("p1"));
+    }
+
+    #[test]
+    fn preset_dual_ai_builds_horizontal() {
+        let panes = vec!["claude".to_string(), "codex".to_string()];
+        let layout = build_layout_for_preset(LayoutPresetKind::DualAi, &panes).unwrap();
+        assert_eq!(layout, horizontal_2pane("claude", "codex"));
+    }
+
+    #[test]
+    fn preset_triple_review_builds_nested() {
+        let panes = vec!["ai".to_string(), "runner".to_string(), "log".to_string()];
+        let layout = build_layout_for_preset(LayoutPresetKind::TripleReview, &panes).unwrap();
+        let expected = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(solo_layout("ai")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(solo_layout("runner")),
+                second: Box::new(solo_layout("log")),
+            }),
+        };
+        assert_eq!(layout, expected);
+    }
+
+    #[test]
+    fn preset_quad_builds_quad() {
+        let panes = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
+        let layout = build_layout_for_preset(LayoutPresetKind::Quad, &panes).unwrap();
+        let expected = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(solo_layout("a")),
+                second: Box::new(solo_layout("b")),
+            }),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(solo_layout("c")),
+                second: Box::new(solo_layout("d")),
+            }),
+        };
+        assert_eq!(layout, expected);
+    }
+
+    #[test]
+    fn preset_insufficient_panes_fails() {
+        let panes = vec!["only".to_string()];
+        let result = build_layout_for_preset(LayoutPresetKind::DualAi, &panes);
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::PresetApplyFailed { preset: LayoutPresetKind::DualAi, .. })
+        ));
+    }
+
+    // --- SmartLayoutKind → LayoutPresetKind 转换 ----------------------
+
+    #[test]
+    fn smart_layout_kind_into_layout_preset_kind() {
+        assert_eq!(LayoutPresetKind::from(SmartLayoutKind::Solo), LayoutPresetKind::Solo);
+        assert_eq!(LayoutPresetKind::from(SmartLayoutKind::AiAndRunner), LayoutPresetKind::AiAndRunner);
+    }
+
+    // --- PaneLayoutError → PaneError 转换 -----------------------------
+
+    #[test]
+    fn pane_layout_error_into_pane_error() {
+        let err = PaneLayoutError::MaxDepthExceeded {
+            max_depth: 5,
+            attempted_depth: 6,
+        };
+        let pane_err: PaneError = err.into();
+        assert!(matches!(pane_err, PaneError::InvalidLayout(_)));
     }
 }

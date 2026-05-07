@@ -1,4 +1,4 @@
-//! Pane service · MVP-05 Phase B Step 2 IPC 层
+//! Pane service · MVP-14 Phase A LayoutEnvelope
 //!
 //! 把 [`crate::panes`] 的 4 layout pure functions 包成事务（panes 表 + tabs.layout +
 //! tabs.focused_pane_id 原子写）· 供 Tauri IPC 层（`crates/app/src/lib.rs`）调用。
@@ -14,12 +14,22 @@
 //! - [`apply_pane_focus`] · 仅 UPDATE focused_pane_id（无 layout 改动）
 //! - [`apply_layout_preset`] · §C smart layout + DELETE 关闭的 panes + UPDATE layout
 //! - [`apply_split_ratio_update`] · §D ratio 调整 + UPDATE layout（无 panes 改动）
+//!
+//! ## MVP-14 Phase A · LayoutEnvelope 迁移
+//!
+//! - 所有 layout 读写统一使用 [`LayoutEnvelope`]（v1 envelope 格式）
+//! - 读取时兼容 MVP-05 裸 [`LayoutNode`]（legacy fallback）
+//! - 写入时输出 v1 envelope JSON（含 `version`、`updated_at`、`focused_pane_id`）
 
 use crate::db::{DbError, DbPool};
 use crate::panes::{
-    apply_smart_layout, close_pane_in_layout, split_layout, update_split_ratio, LayoutApplyRequest,
-    LayoutNode, PaneCloseRequest, PaneCreateRequest, PaneError, PaneFocusRequest, PaneListResponse,
-    PanesDao, SmartLayoutKind, SplitRatioUpdateRequest,
+    apply_smart_layout, build_layout_for_preset, close_pane_in_layout, collect_pane_ids,
+    find_split_ratio, split_layout, update_split_ratio, LayoutApplyAdvancedRequest,
+    LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope, LayoutNode, MAX_SPLIT_RATIO,
+    MIN_SPLIT_RATIO, PaneCloseRequest, PaneCreateRequest, PaneError,
+    PaneFocusRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
+    PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PaneResizeStepRequest, PanesDao,
+    SmartLayoutKind, SplitRatioUpdateRequest,
 };
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -51,10 +61,10 @@ pub fn apply_pane_init_for_tab(
         .transaction()
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
-    let current_layout = read_tab_layout(&tx, &req.tab_id)?;
+    let current_envelope = read_tab_layout(&tx, &req.tab_id)?;
 
     // idempotent: 已初始化过则直接返回当前状态
-    if let LayoutNode::Single { pane_id } = &current_layout {
+    if let LayoutNode::Single { pane_id } = &current_envelope.root {
         if !pane_id.is_empty() {
             drop(tx);
             return read_pane_list(pool, &req.tab_id);
@@ -66,6 +76,7 @@ pub fn apply_pane_init_for_tab(
     let new_layout = LayoutNode::Single {
         pane_id: new_pane_id.clone(),
     };
+    let envelope = LayoutEnvelope::from_legacy_node(new_layout, Some(new_pane_id.clone()));
 
     tx.execute(
         "INSERT INTO panes (pane_id, tab_id, shell, cwd, scroll_back, created_at)
@@ -74,7 +85,7 @@ pub fn apply_pane_init_for_tab(
     )
     .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
-    write_tab_layout(&tx, &req.tab_id, &new_layout)?;
+    write_tab_layout(&tx, &req.tab_id, &envelope)?;
     write_focused_pane(&tx, &req.tab_id, Some(&new_pane_id))?;
 
     tx.commit()
@@ -101,14 +112,14 @@ pub fn apply_pane_split(
         .transaction()
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
-    let current_layout = read_tab_layout(&tx, &req.tab_id)?;
+    let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
     let new_layout = split_layout(
-        &current_layout,
+        &envelope.root,
         &req.parent_pane_id,
         req.direction.clone(),
         new_pane_id.clone(),
     )?;
-    new_layout.validate_mvp_05()?;
+    new_layout.validate_layout()?;
 
     tx.execute(
         "INSERT INTO panes (pane_id, tab_id, shell, cwd, scroll_back, created_at)
@@ -117,7 +128,8 @@ pub fn apply_pane_split(
     )
     .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
-    write_tab_layout(&tx, &req.tab_id, &new_layout)?;
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, Some(new_pane_id.clone()));
+    write_tab_layout(&tx, &req.tab_id, &new_envelope)?;
     write_focused_pane(&tx, &req.tab_id, Some(&new_pane_id))?;
 
     tx.commit()
@@ -138,9 +150,9 @@ pub fn apply_pane_close(
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
     let tab_id = read_pane_tab_id(&tx, &req.pane_id)?;
-    let current_layout = read_tab_layout(&tx, &tab_id)?;
-    let new_layout = close_pane_in_layout(&current_layout, &req.pane_id)?;
-    new_layout.validate_mvp_05()?;
+    let envelope = read_tab_layout_envelope(&tx, &tab_id)?;
+    let new_layout = close_pane_in_layout(&envelope.root, &req.pane_id)?;
+    new_layout.validate_layout()?;
 
     let rows = tx
         .execute("DELETE FROM panes WHERE pane_id = ?1", [&req.pane_id])
@@ -149,7 +161,8 @@ pub fn apply_pane_close(
         return Err(PaneError::NotFound(req.pane_id.clone()));
     }
 
-    write_tab_layout(&tx, &tab_id, &new_layout)?;
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout.clone(), first_pane_id(&new_layout));
+    write_tab_layout(&tx, &tab_id, &new_envelope)?;
     let next_focus = first_pane_id(&new_layout);
     write_focused_pane(&tx, &tab_id, next_focus.as_deref())?;
 
@@ -171,8 +184,8 @@ pub fn apply_pane_focus(
         .transaction()
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
-    let layout = read_tab_layout(&tx, &req.tab_id)?;
-    let pane_ids = collect_pane_ids(&layout);
+    let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
+    let pane_ids = collect_pane_ids(&envelope.root);
     if !pane_ids.contains(&req.focused_pane_id) {
         return Err(PaneError::NotFound(req.focused_pane_id.clone()));
     }
@@ -215,18 +228,19 @@ pub fn apply_layout_preset(
     let focused_pane_id = read_focused_pane(&tx, &req.tab_id)?.ok_or_else(|| {
         PaneError::InvalidLayout(format!("tab {} has no focused pane", req.tab_id))
     })?;
-    let current_layout = read_tab_layout(&tx, &req.tab_id)?;
+    let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
 
     let (new_layout, closed_pane_ids) =
-        apply_smart_layout(&current_layout, kind, &focused_pane_id)?;
-    new_layout.validate_mvp_05()?;
+        apply_smart_layout(&envelope.root, kind, &focused_pane_id)?;
+    new_layout.validate_layout()?;
 
     for pane_id in &closed_pane_ids {
         tx.execute("DELETE FROM panes WHERE pane_id = ?1", [pane_id])
             .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
     }
 
-    write_tab_layout(&tx, &req.tab_id, &new_layout)?;
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, Some(focused_pane_id));
+    write_tab_layout(&tx, &req.tab_id, &new_envelope)?;
     // focused_pane_id 不变（preset 保留聚焦 Pane）
 
     tx.commit()
@@ -246,11 +260,12 @@ pub fn apply_split_ratio_update(
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
 
     let tab_id = read_pane_tab_id(&tx, &req.pane_id)?;
-    let current_layout = read_tab_layout(&tx, &tab_id)?;
-    let new_layout = update_split_ratio(&current_layout, &req.pane_id, req.new_ratio)?;
-    new_layout.validate_mvp_05()?;
+    let envelope = read_tab_layout_envelope(&tx, &tab_id)?;
+    let new_layout = update_split_ratio(&envelope.root, &req.pane_id, req.new_ratio)?;
+    new_layout.validate_layout()?;
 
-    write_tab_layout(&tx, &tab_id, &new_layout)?;
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
+    write_tab_layout(&tx, &tab_id, &new_envelope)?;
 
     tx.commit()
         .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
@@ -258,9 +273,147 @@ pub fn apply_split_ratio_update(
     read_pane_list(pool, &tab_id)
 }
 
+/// MVP-14 · 应用高级 Smart Layout 预设（支持 DualAi / TripleReview / Quad）。
+///
+/// 与 `apply_layout_preset` 的区别：
+/// - 输入用 [`LayoutPresetKind`] enum 代替字符串
+/// - 支持 5 个预设（Solo / AiAndRunner / DualAi / TripleReview / Quad）
+/// - 返回复用 / 创建 / 关闭的 pane ids 清单
+/// - `preserve_instances` 为 true 时优先按 pane content identity 复用（当前实现按 id 顺序复用）
+pub fn apply_layout_preset_advanced(
+    pool: &DbPool,
+    req: &LayoutApplyAdvancedRequest,
+) -> Result<LayoutApplyResult, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    let focused_pane_id = read_focused_pane(&tx, &req.tab_id)?.ok_or_else(|| {
+        PaneError::InvalidLayout(format!("tab {} has no focused pane", req.tab_id))
+    })?;
+    let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
+
+    // 收集当前所有 pane id（按 focus + DFS 顺序）
+    let available_panes = collect_pane_ids(&envelope.root);
+    let new_layout = build_layout_for_preset(req.preset, &available_panes)?;
+    new_layout.validate_layout()?;
+
+    // 计算 reused / created / closed（简单实现：复用所有现有 pane，不创建/关闭）
+    let reused_pane_ids = available_panes.clone();
+    let created_pane_ids: Vec<String> = Vec::new();
+    let closed_pane_ids: Vec<String> = Vec::new();
+
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, Some(focused_pane_id));
+    write_tab_layout(&tx, &req.tab_id, &new_envelope)?;
+
+    tx.commit()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    let response = read_pane_list(pool, &req.tab_id)?;
+    Ok(LayoutApplyResult {
+        response,
+        reused_pane_ids,
+        created_pane_ids,
+        closed_pane_ids,
+    })
+}
+
+/// MVP-14 · 方向键导航：从 `from_pane_id` 向 `direction` 方向找几何相邻 pane。
+///
+/// 当前实现：按 DFS 顺序找下一个/上一个 pane（简化版几何相邻）。
+/// Phase C 会替换为真正的基于 DOMRect 投影重叠算法。
+pub fn apply_pane_navigate(
+    pool: &DbPool,
+    req: &PaneNavigateRequest,
+) -> Result<PaneNavigateResult, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let envelope = read_tab_layout_envelope(&conn, &req.tab_id)?;
+
+    let pane_ids = collect_pane_ids(&envelope.root);
+    let Some(current_idx) = pane_ids.iter().position(|id| id == &req.from_pane_id) else {
+        return Ok(PaneNavigateResult { to_pane_id: None });
+    };
+
+    let to_pane_id = match req.direction {
+        PaneNavDirection::Left | PaneNavDirection::Up => {
+            if current_idx > 0 {
+                Some(pane_ids[current_idx - 1].clone())
+            } else {
+                None
+            }
+        }
+        PaneNavDirection::Right | PaneNavDirection::Down => {
+            if current_idx + 1 < pane_ids.len() {
+                Some(pane_ids[current_idx + 1].clone())
+            } else {
+                None
+            }
+        }
+    };
+
+    Ok(PaneNavigateResult { to_pane_id })
+}
+
+/// MVP-14 · 临时最大化 toggle（session-only，不写 DB）。
+///
+/// 当前实现：返回当前 layout 作为 restore 候选；真正的 maximize state 由 frontend 维护。
+/// 若 `toggle == false` 或当前未最大化，返回 `maximized: false`；若 `toggle == true`，返回
+/// `maximized: true` 与当前 layout 供 frontend 进入 maximize 模式。
+pub fn apply_pane_maximize(
+    pool: &DbPool,
+    req: &PaneMaximizeRequest,
+) -> Result<PaneMaximizeResult, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let envelope = read_tab_layout_envelope(&conn, &req.tab_id)?;
+
+    if req.toggle {
+        Ok(PaneMaximizeResult {
+            maximized: true,
+            restored_layout: Some(envelope.root.clone()),
+            restored_focused_pane_id: envelope.focused_pane_id.clone(),
+        })
+    } else {
+        Ok(PaneMaximizeResult {
+            maximized: false,
+            restored_layout: Some(envelope.root.clone()),
+            restored_focused_pane_id: envelope.focused_pane_id.clone(),
+        })
+    }
+}
+
+/// MVP-14 · 键盘步进调整 split ratio（±5% step）。
+///
+/// 找到 `pane_id` 所在 Split 节点，按 `direction` 和 `step_ratio` 调整 ratio。
+/// `step_ratio` 为正时向 `direction` 方向增大 first 子树比例。
+pub fn apply_pane_resize_step(
+    pool: &DbPool,
+    req: &PaneResizeStepRequest,
+) -> Result<PaneListResponse, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
+    let current_ratio = find_split_ratio(&envelope.root, &req.pane_id).unwrap_or(0.5);
+    let new_ratio = (current_ratio + req.step_ratio).clamp(MIN_SPLIT_RATIO, MAX_SPLIT_RATIO);
+
+    let new_layout = update_split_ratio(&envelope.root, &req.pane_id, new_ratio)?;
+    new_layout.validate_layout()?;
+
+    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
+    write_tab_layout(&tx, &req.tab_id, &new_envelope)?;
+
+    tx.commit()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    read_pane_list(pool, &req.tab_id)
+}
+
 // ---- 内部 helpers ----
 
-fn read_tab_layout(conn: &rusqlite::Connection, tab_id: &str) -> Result<LayoutNode, PaneError> {
+fn read_tab_layout(conn: &rusqlite::Connection, tab_id: &str) -> Result<LayoutEnvelope, PaneError> {
     let layout_json: String = conn
         .query_row(
             "SELECT layout FROM tabs WHERE tab_id = ?1",
@@ -271,17 +424,48 @@ fn read_tab_layout(conn: &rusqlite::Connection, tab_id: &str) -> Result<LayoutNo
             rusqlite::Error::QueryReturnedNoRows => PaneError::NotFound(tab_id.to_string()),
             other => PaneError::Db(DbError::Query(other.to_string())),
         })?;
-    serde_json::from_str(&layout_json)
-        .map_err(|e| PaneError::InvalidLayout(format!("layout JSON parse: {e}")))
+
+    // 兼容初始空 tab（paneId == ""）· 不经过 validate_layout
+    if let Ok(node) = serde_json::from_str::<LayoutNode>(&layout_json) {
+        if let LayoutNode::Single { pane_id } = &node {
+            if pane_id.is_empty() {
+                return Ok(LayoutEnvelope::from_legacy_node(node, None));
+            }
+        }
+    }
+
+    LayoutEnvelope::try_from_json(&layout_json).map_err(|e| {
+        PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}"))
+    })
+}
+
+fn read_tab_layout_envelope(
+    conn: &rusqlite::Connection,
+    tab_id: &str,
+) -> Result<LayoutEnvelope, PaneError> {
+    let layout_json: String = conn
+        .query_row(
+            "SELECT layout FROM tabs WHERE tab_id = ?1",
+            [tab_id],
+            |row| row.get(0),
+        )
+        .map_err(|err| match err {
+            rusqlite::Error::QueryReturnedNoRows => PaneError::NotFound(tab_id.to_string()),
+            other => PaneError::Db(DbError::Query(other.to_string())),
+        })?;
+    LayoutEnvelope::try_from_json(&layout_json).map_err(|e| {
+        PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}"))
+    })
 }
 
 fn write_tab_layout(
     tx: &rusqlite::Transaction<'_>,
     tab_id: &str,
-    layout: &LayoutNode,
+    envelope: &LayoutEnvelope,
 ) -> Result<(), PaneError> {
-    let layout_json = serde_json::to_string(layout)
-        .map_err(|e| PaneError::InvalidLayout(format!("layout JSON serialize: {e}")))?;
+    let layout_json = envelope
+        .to_json()
+        .map_err(|e| PaneError::InvalidLayout(format!("layout envelope serialize: {e}")))?;
     let rows = tx
         .execute(
             "UPDATE tabs SET layout = ?1 WHERE tab_id = ?2",
@@ -348,29 +532,94 @@ fn read_tab_cwd(pool: &DbPool, tab_id: &str) -> Result<String, PaneError> {
 fn read_pane_list(pool: &DbPool, tab_id: &str) -> Result<PaneListResponse, PaneError> {
     let panes = PanesDao::list_by_tab(pool, tab_id)?;
     let conn = pool.get().map_err(DbError::from)?;
-    let layout = read_tab_layout(&conn, tab_id)?;
-    let focused_pane_id = read_focused_pane(&conn, tab_id)?;
+    let envelope = read_tab_layout_envelope(&conn, tab_id)?;
+    let focused_pane_id = envelope.focused_pane_id.clone();
     Ok(PaneListResponse {
         panes,
-        layout,
+        layout: envelope.root,
         focused_pane_id,
     })
 }
 
-fn collect_pane_ids(layout: &LayoutNode) -> Vec<String> {
-    let mut out = Vec::new();
-    collect_pane_ids_inner(layout, &mut out);
-    out
-}
+// ---- workspace-level helpers ----
 
-fn collect_pane_ids_inner(layout: &LayoutNode, out: &mut Vec<String>) {
-    match layout {
-        LayoutNode::Single { pane_id } => out.push(pane_id.clone()),
-        LayoutNode::Split { first, second, .. } => {
-            collect_pane_ids_inner(first, out);
-            collect_pane_ids_inner(second, out);
+/// 迁移整个 workspace 的所有 tab layout 从 legacy 到 v1 envelope。
+///
+/// 遍历 tabs 表 · 读取 layout JSON · 用 [`LayoutEnvelope::try_from_json`] 解析（含 legacy fallback）
+/// · 再写回数据库 · 实现原地迁移。
+pub fn migrate_workspace_layout_state(pool: &DbPool) -> Result<usize, PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let tab_ids: Vec<String> = conn
+        .prepare("SELECT tab_id FROM tabs")
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?
+        .query_map([], |row| row.get(0))
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    let mut migrated = 0;
+    for tab_id in &tab_ids {
+        let tx = conn
+            .transaction()
+            .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+        // 读取 legacy layout（直接作为裸字符串）
+        let layout_json: String = tx
+            .query_row(
+                "SELECT layout FROM tabs WHERE tab_id = ?1",
+                [tab_id],
+                |row| row.get(0),
+            )
+            .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+        // 尝试解析为 envelope（含 legacy fallback）
+        match LayoutEnvelope::try_from_json(&layout_json) {
+            Ok(envelope) => {
+                // 如果已经是 v1 envelope 格式（layout_json 以 {"version": 开头），
+                // 且解析成功，说明无需迁移
+                if layout_json.trim_start().starts_with("{\"version\"") {
+                    drop(tx);
+                    continue;
+                }
+                // 否则写回 v1 envelope 格式
+                write_tab_layout(&tx, tab_id, &envelope)?;
+                tx.commit()
+                    .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+                migrated += 1;
+            }
+            Err(e) => {
+                // 跳过无法解析的 layout（保留原样）
+                drop(tx);
+                eprintln!(
+                    "[migrate_workspace_layout_state] skip tab_id={tab_id}: {e}"
+                );
+            }
         }
     }
+
+    Ok(migrated)
+}
+
+/// 为指定 tab 写入完整的 workspace layout state（envelope + focused_pane_id）。
+///
+/// 用于 workspace 恢复时一次性写入 layout + focus 状态。
+pub fn write_workspace_layout_state(
+    pool: &DbPool,
+    tab_id: &str,
+    envelope: &LayoutEnvelope,
+) -> Result<(), PaneError> {
+    let mut conn = pool.get().map_err(DbError::from)?;
+    let tx = conn
+        .transaction()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    write_tab_layout(&tx, tab_id, envelope)?;
+    write_focused_pane(&tx, tab_id, envelope.focused_pane_id.as_deref())?;
+
+    tx.commit()
+        .map_err(|e| PaneError::Db(DbError::Query(e.to_string())))?;
+
+    Ok(())
 }
 
 fn first_pane_id(layout: &LayoutNode) -> Option<String> {
@@ -421,10 +670,11 @@ mod tests {
             },
         )
         .unwrap();
-        // 写 layout = Single{paneId: pane_id} + 设置 focus
+        // 写 layout = v1 envelope + 设置 focus
         let pool_clone = pool.clone();
         let conn = pool_clone.get().unwrap();
-        let layout_json = format!(r#"{{"kind":"single","paneId":"{pane_id}"}}"#);
+        let envelope = LayoutEnvelope::new_solo(pane_id);
+        let layout_json = envelope.to_json().unwrap();
         conn.execute(
             "UPDATE tabs SET layout = ?1, focused_pane_id = ?2 WHERE tab_id = ?3",
             params![layout_json, pane_id, tab_id],
@@ -557,59 +807,49 @@ mod tests {
 
     #[test]
     fn split_rolls_back_when_layout_invalid() {
-        // 制造 §H 限制 illegal 场景：连续 3 次 horizontal split → 第 3 次 invalid
+        // MVP-14 v0.2: 同向 split 已合法 · 改为测试 max depth exceeded（深度超过 5）
         let (_dir, pool, tab_id) = setup();
         seed_initial_pane(&pool, &tab_id, "p1");
 
-        let r1 = apply_pane_split(
-            &pool,
-            &PaneCreateRequest {
-                tab_id: tab_id.clone(),
-                parent_pane_id: "p1".to_string(),
-                direction: SplitDir::Horizontal,
-                shell: "/bin/zsh".to_string(),
-            },
-        )
-        .unwrap();
-        assert_eq!(r1.panes.len(), 2);
-        let pane_2 = r1
-            .panes
-            .iter()
-            .find(|p| p.pane_id != "p1")
-            .map(|p| p.pane_id.clone())
-            .unwrap();
+        // 连续 split 最右侧新 pane 5 次 · 深度达到 6 > MAX_LAYOUT_SPLIT_DEPTH(5)
+        let mut parent_pane = "p1".to_string();
+        let mut existing_panes = std::collections::HashSet::new();
+        existing_panes.insert(parent_pane.clone());
 
-        let r2 = apply_pane_split(
-            &pool,
-            &PaneCreateRequest {
-                tab_id: tab_id.clone(),
-                parent_pane_id: pane_2.clone(),
-                direction: SplitDir::Vertical,
-                shell: "/bin/zsh".to_string(),
-            },
-        )
-        .unwrap();
-        assert_eq!(r2.panes.len(), 3);
-
-        // 第 3 次 split 在 pane_2 上同向（Vertical）会触发 InvalidLayout
-        let pane_3 = r2
-            .panes
-            .iter()
-            .find(|p| p.pane_id != "p1" && p.pane_id != pane_2)
-            .map(|p| p.pane_id.clone())
-            .unwrap();
-        let result = apply_pane_split(
-            &pool,
-            &PaneCreateRequest {
-                tab_id: tab_id.clone(),
-                parent_pane_id: pane_3.clone(),
-                direction: SplitDir::Vertical,
-                shell: "/bin/zsh".to_string(),
-            },
-        );
-        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-        // rollback：依然 3 pane（不是 4）
-        assert_eq!(pane_count(&pool, &tab_id), 3);
+        for i in 0..6 {
+            let result = apply_pane_split(
+                &pool,
+                &PaneCreateRequest {
+                    tab_id: tab_id.clone(),
+                    parent_pane_id: parent_pane.clone(),
+                    direction: if i % 2 == 0 {
+                        SplitDir::Horizontal
+                    } else {
+                        SplitDir::Vertical
+                    },
+                    shell: "/bin/zsh".to_string(),
+                },
+            );
+            if i < 5 {
+                // 前 5 次成功
+                let response = result.unwrap();
+                assert_eq!(response.panes.len(), i + 2);
+                // 找到新创建的 pane（不在 existing_panes 中）
+                let new_pane = response
+                    .panes
+                    .iter()
+                    .find(|p| !existing_panes.contains(&p.pane_id))
+                    .map(|p| p.pane_id.clone())
+                    .unwrap();
+                existing_panes.insert(new_pane.clone());
+                parent_pane = new_pane;
+            } else {
+                // 第 6 次应触发 InvalidLayout（max depth exceeded）
+                assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+                // rollback：依然 6 pane（不是 7）
+                assert_eq!(pane_count(&pool, &tab_id), 6);
+            }
+        }
     }
 
     #[test]
@@ -867,5 +1107,204 @@ mod tests {
         assert!(result.is_err());
         // rollback：依然 1 pane
         assert_eq!(pane_count(&pool, &tab_id), 1);
+    }
+
+    // ---- MVP-14 Phase A · LayoutEnvelope tests ----
+
+    #[test]
+    fn envelope_round_trip_persists_version_and_focus() {
+        let (_dir, pool, tab_id) = setup();
+        seed_initial_pane(&pool, &tab_id, "p1");
+
+        // 读取验证 layout 是 v1 envelope 格式
+        let conn = pool.get().unwrap();
+        let envelope = read_tab_layout_envelope(&conn, &tab_id).unwrap();
+        assert_eq!(envelope.version, 1);
+        assert_eq!(envelope.focused_pane_id, Some("p1".to_string()));
+        assert!(matches!(envelope.root, LayoutNode::Single { ref pane_id } if pane_id == "p1"));
+        assert!(envelope.updated_at > 0);
+    }
+
+    #[test]
+    fn legacy_layout_migration_reads_and_upgrades() {
+        let (_dir, pool, tab_id) = setup();
+        // 直接写 legacy layout（裸 LayoutNode JSON）
+        let conn = pool.get().unwrap();
+        let legacy_json = r#"{"kind":"single","paneId":"legacy-pane"}"#;
+        conn.execute(
+            "UPDATE tabs SET layout = ?1, focused_pane_id = ?2 WHERE tab_id = ?3",
+            params![legacy_json, "legacy-pane", tab_id],
+        )
+        .unwrap();
+
+        // 读取应自动 fallback 为 envelope
+        let envelope = read_tab_layout_envelope(&conn, &tab_id).unwrap();
+        assert_eq!(envelope.version, 1);
+        assert_eq!(envelope.focused_pane_id, None); // legacy 无 focus 信息
+        assert!(matches!(envelope.root, LayoutNode::Single { ref pane_id } if pane_id == "legacy-pane"));
+    }
+
+    #[test]
+    fn migrate_workspace_layout_state_upgrades_legacy() {
+        let (_dir, pool, tab_id) = setup();
+        // 写 legacy layout
+        let conn = pool.get().unwrap();
+        let legacy_json = r#"{"kind":"single","paneId":"p1"}"#;
+        conn.execute(
+            "UPDATE tabs SET layout = ?1, focused_pane_id = ?2 WHERE tab_id = ?3",
+            params![legacy_json, "p1", tab_id],
+        )
+        .unwrap();
+        drop(conn);
+
+        // 迁移
+        let migrated = migrate_workspace_layout_state(&pool).unwrap();
+        assert_eq!(migrated, 1);
+
+        // 验证已升级为 v1 envelope
+        let conn = pool.get().unwrap();
+        let layout_json: String = conn
+            .query_row(
+                "SELECT layout FROM tabs WHERE tab_id = ?1",
+                [&tab_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(layout_json.contains("\"version\":1"));
+        assert!(layout_json.contains("\"focusedPaneId\":"));
+    }
+
+    #[test]
+    fn migrate_workspace_layout_state_skips_already_v1() {
+        let (_dir, pool, tab_id) = setup();
+        seed_initial_pane(&pool, &tab_id, "p1");
+
+        // 已经是 v1 envelope，不应再迁移
+        let migrated = migrate_workspace_layout_state(&pool).unwrap();
+        assert_eq!(migrated, 0);
+    }
+
+    #[test]
+    fn write_workspace_layout_state_round_trip() {
+        let (_dir, pool, tab_id) = setup();
+        let envelope = LayoutEnvelope {
+            version: 1,
+            root: LayoutNode::Single {
+                pane_id: "wsp1".to_string(),
+            },
+            focused_pane_id: Some("wsp1".to_string()),
+            updated_at: 1234567890,
+        };
+
+        write_workspace_layout_state(&pool, &tab_id, &envelope).unwrap();
+
+        // 验证读取一致
+        let conn = pool.get().unwrap();
+        let read_envelope = read_tab_layout_envelope(&conn, &tab_id).unwrap();
+        assert_eq!(read_envelope.version, envelope.version);
+        assert_eq!(read_envelope.focused_pane_id, envelope.focused_pane_id);
+        assert_eq!(read_envelope.updated_at, envelope.updated_at);
+    }
+
+    #[test]
+    fn pane_init_creates_v1_envelope() {
+        let (_dir, pool, tab_id) = setup();
+        assert_eq!(pane_count(&pool, &tab_id), 0);
+
+        let response = apply_pane_init_for_tab(
+            &pool,
+            &PaneInitRequest {
+                tab_id: tab_id.clone(),
+                shell: "/bin/zsh".to_string(),
+                cwd: "/tmp".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert_eq!(response.panes.len(), 1);
+        assert_eq!(pane_count(&pool, &tab_id), 1);
+        assert!(
+            matches!(response.layout, LayoutNode::Single { ref pane_id } if !pane_id.is_empty())
+        );
+
+        // 验证数据库中存的是 v1 envelope
+        let conn = pool.get().unwrap();
+        let layout_json: String = conn
+            .query_row(
+                "SELECT layout FROM tabs WHERE tab_id = ?1",
+                [&tab_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(layout_json.contains("\"version\":1"));
+        assert!(layout_json.contains("\"focusedPaneId\":"));
+    }
+
+    #[test]
+    fn split_writes_v1_envelope() {
+        let (_dir, pool, tab_id) = setup();
+        seed_initial_pane(&pool, &tab_id, "p1");
+
+        apply_pane_split(
+            &pool,
+            &PaneCreateRequest {
+                tab_id: tab_id.clone(),
+                parent_pane_id: "p1".to_string(),
+                direction: SplitDir::Horizontal,
+                shell: "/bin/zsh".to_string(),
+            },
+        )
+        .unwrap();
+
+        let conn = pool.get().unwrap();
+        let layout_json: String = conn
+            .query_row(
+                "SELECT layout FROM tabs WHERE tab_id = ?1",
+                [&tab_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(layout_json.contains("\"version\":1"));
+        assert!(layout_json.contains("\"focusedPaneId\":"));
+    }
+
+    #[test]
+    fn close_writes_v1_envelope() {
+        let (_dir, pool, tab_id) = setup();
+        seed_initial_pane(&pool, &tab_id, "p1");
+        let r1 = apply_pane_split(
+            &pool,
+            &PaneCreateRequest {
+                tab_id: tab_id.clone(),
+                parent_pane_id: "p1".to_string(),
+                direction: SplitDir::Horizontal,
+                shell: "/bin/zsh".to_string(),
+            },
+        )
+        .unwrap();
+        let new_pane = r1
+            .panes
+            .iter()
+            .find(|p| p.pane_id != "p1")
+            .map(|p| p.pane_id.clone())
+            .unwrap();
+
+        apply_pane_close(
+            &pool,
+            &PaneCloseRequest {
+                pane_id: new_pane.clone(),
+            },
+        )
+        .unwrap();
+
+        let conn = pool.get().unwrap();
+        let layout_json: String = conn
+            .query_row(
+                "SELECT layout FROM tabs WHERE tab_id = ?1",
+                [&tab_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(layout_json.contains("\"version\":1"));
     }
 }

@@ -15,6 +15,7 @@ import markdown from "shiki/langs/markdown.mjs";
 import json from "shiki/langs/json.mjs";
 import yaml from "shiki/langs/yaml.mjs";
 import shell from "shiki/langs/shell.mjs";
+import { scheduleHighlight } from "./scheduler";
 import { setShikiTheme } from "./theme-store";
 
 export interface ShikiAdapter {
@@ -22,6 +23,7 @@ export interface ShikiAdapter {
     code: string,
     lang: string,
     theme: "light" | "dark",
+    fileSize?: number,
   ): Promise<string>;
   setTheme(theme: "light" | "dark"): void;
   clearCache(): void;
@@ -187,9 +189,20 @@ export function guessLanguageFromPath(path: string): string | null {
 
 export function createShikiAdapter(): ShikiAdapter {
   const cache = new LRUCache();
+  const syncHighlight = async (
+    code: string,
+    lang: string,
+    theme: "light" | "dark",
+  ): Promise<string> => {
+    const highlighter = await getHighlighter();
+    return highlighter.codeToHtml(code, {
+      lang,
+      theme: theme === "light" ? "github-light" : "github-dark",
+    });
+  };
 
   return {
-    async highlight(code, lang, theme) {
+    async highlight(code, lang, theme, fileSize) {
       const cacheKey = buildCacheKey(code, lang, theme);
       const cached = cache.get(cacheKey);
       if (cached) {
@@ -197,11 +210,13 @@ export function createShikiAdapter(): ShikiAdapter {
       }
 
       try {
-        const highlighter = await getHighlighter();
-        const html = highlighter.codeToHtml(code, {
+        const html = await scheduleHighlight(
+          code,
           lang,
-          theme: theme === "light" ? "github-light" : "github-dark",
-        });
+          theme,
+          fileSize ?? 0,
+          syncHighlight,
+        );
         cache.set(cacheKey, html);
         return html;
       } catch (err) {

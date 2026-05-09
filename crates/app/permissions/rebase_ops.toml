@@ -64,3 +64,8 @@ commands.allow = ["conflict_resolve_file"]
 identifier = "allow-conflict-status"
 description = "Read current git conflict status"
 commands.allow = ["conflict_status"]
+
+[[permission]]
+identifier = "allow-rebase-detect-in-progress"
+description = "Detect in-progress rebase / merge / cherrypick for crash recovery banner"
+commands.allow = ["rebase_detect_in_progress"]

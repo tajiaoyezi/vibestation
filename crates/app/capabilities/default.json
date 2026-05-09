@@ -86,6 +86,7 @@
     "allow-cherrypick-abort",
     "allow-conflict-resolve-file",
     "allow-conflict-status",
+    "allow-rebase-detect-in-progress",
     "core:window:allow-start-dragging",
     "core:window:allow-internal-toggle-maximize",
     "allow-menu-show-tab",

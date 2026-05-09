@@ -210,17 +210,17 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
                     class={`vs-smart-layout-preset ${selected() === config.preset ? "is-selected" : ""}`}
                     onClick={() => setSelected(config.preset)}
                     disabled={disabled}
-                    title={disabled ? presetDisabledReason(config.preset, props.panes) : ""}
+                    title={
+                      disabled
+                        ? presetDisabledReason(config.preset, props.panes)
+                        : ""
+                    }
                   >
                     <div class="vs-smart-layout-preset-icon" aria-hidden="true">
                       {config.icon}
                     </div>
-                    <div class="vs-smart-layout-preset-name">
-                      {config.name}
-                    </div>
-                    <div class="vs-smart-layout-preset-desc">
-                      {config.desc}
-                    </div>
+                    <div class="vs-smart-layout-preset-name">{config.name}</div>
+                    <div class="vs-smart-layout-preset-desc">{config.desc}</div>
                   </button>
                 );
               }}
@@ -262,8 +262,8 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
                 }
               >
                 <div class="vs-smart-layout-preview-warning">
-                  当前只有 {props.panes.length} 个 Pane · AI+Runner 需要至少 2 个
-                  Pane（先 ⌘\ 分屏后再使用）
+                  当前只有 {props.panes.length} 个 Pane · AI+Runner 需要至少 2
+                  个 Pane（先 ⌘\ 分屏后再使用）
                 </div>
               </Show>
             </div>

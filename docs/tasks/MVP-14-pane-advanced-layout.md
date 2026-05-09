@@ -48,7 +48,7 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 | Phase | 范围 | 状态 | PR |
 |-------|------|------|----|
 | Phase A · LayoutNode v1 schema + core service | 放开 `MAX_LAYOUT_SPLIT_DEPTH` 到 5 · `LayoutEnvelope { version: 1, root }` · 迁移旧 `layout_state` / `tabs.layout` · 新增 advanced preset core pure functions · ts-rs bindings | ✅ done · PR #258 | — |
-| Phase B · 递归 Pane UI + Smart Layouts 扩展 | `PaneSplitView` 递归渲染优化 · `SmartLayoutMenu` 增 Dual AI / Triple Review / Quad · 预设切换保留 Pane instance · nested splitter ratio 持久化 | ✅ done · PR #259 | — |
+| Phase B · 递归 Pane UI + Smart Layouts 扩展 | `PaneSplitView` 递归渲染优化 · `SmartLayoutMenu` 增 Dual AI / Triple Review / Quad · 预设切换保留 Pane instance · nested splitter ratio 持久化 | ✅ done · PR #262 | — |
 | Phase C · 键盘导航 + 临时最大化 + a11y | `⌘⌥ ←/→/↑/↓` / `Ctrl+Alt+Arrow` 几何相邻算法 · `⌘Enter` 临时最大化 · split divider keyboard resize · focus ring / ARIA | ⏳ todo | — |
 | Phase D · runtime evidence + bench | 5 层嵌套性能 · 100 次 ratio drag · preset apply · keyboard nav · maximize restore · 4-7 张截图/录屏归档到 `docs/runtime-evidence/mvp-14/` | ⏳ todo | — |
 

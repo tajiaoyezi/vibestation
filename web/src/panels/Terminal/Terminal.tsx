@@ -14,7 +14,6 @@ import {
 } from "solid-js";
 import type {
   LayoutApplyAdvancedRequest,
-  LayoutApplyRequest,
   LayoutApplyResult,
   PaneCloseRequest,
   PaneCreateRequest,
@@ -730,14 +729,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
         if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
       }
     }
-    const result = await invoke<LayoutApplyResult>("pane_layout_apply_advanced", {
-      req: {
-        tabId,
-        preset,
-        preserveInstances: true,
-        confirmed: true,
-      } satisfies LayoutApplyAdvancedRequest,
-    });
+    const result = await invoke<LayoutApplyResult>(
+      "pane_layout_apply_advanced",
+      {
+        req: {
+          tabId,
+          preset,
+          preserveInstances: true,
+          confirmed: true,
+        } satisfies LayoutApplyAdvancedRequest,
+      },
+    );
     setPaneListForTab(tabId, result.response);
     showToast(
       `已应用 ${preset} 布局 · 复用 ${result.reusedPaneIds.length} · 新建 ${result.createdPaneIds.length} · 关闭 ${result.closedPaneIds.length}`,

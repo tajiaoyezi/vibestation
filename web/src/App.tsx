@@ -45,6 +45,15 @@ import {
 } from "./components/ConflictBanner";
 import { ThreeWayDiffView } from "./panels/Diff/3way";
 import "./styles/mvp16.css";
+// MVP-16 Phase C · crash recovery 状态机纯函数（解耦 SolidJS · 可单测）
+import {
+  type CrashRecoveryPayload,
+  type RecoveryDetectResult,
+  type RecoveryUiState,
+  detectResultToRecoveryState,
+  payloadToRecoveryState,
+  reduceRecoveries,
+} from "./lib/crash-recovery";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -177,6 +186,13 @@ const LayoutShell: Component<{
   const [conflict, setConflict] = createSignal<ConflictUiState | null>(null);
   const [conflictBusy, setConflictBusy] = createSignal(false);
   const [conflictError, setConflictError] = createSignal<string | null>(null);
+  // MVP-16 Phase C · per-workspace crash recovery banner 状态 · workspace 切换不丢
+  // key = workspaceId · null/missing 表示该 workspace 无未完成操作
+  const [recoveries, setRecoveries] = createSignal<
+    Record<string, RecoveryUiState>
+  >({});
+  const [recoveryBusy, setRecoveryBusy] = createSignal(false);
+  const [recoveryError, setRecoveryError] = createSignal<string | null>(null);
   const remoteSync = useRemoteSyncStatus();
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
@@ -449,6 +465,125 @@ const LayoutShell: Component<{
     }
   };
 
+  // MVP-16 Phase C · 当前 active workspace 的 recovery 状态（响应式 · 切换 workspace 时切换）
+  const activeRecovery = (): RecoveryUiState | null => {
+    const ws = activeWorkspace();
+    if (!ws) return null;
+    return recoveries()[ws.workspaceId] ?? null;
+  };
+
+  // MVP-16 Phase C · 写入 / 清除单 workspace recovery 状态（不影响其他 workspace · 不可变 patch）
+  // 委托 lib/crash-recovery::reduceRecoveries · 单测在那边
+  const upsertRecovery = (
+    workspaceId: string,
+    next: RecoveryUiState | null,
+  ) => {
+    setRecoveries((prev) => reduceRecoveries(prev, workspaceId, next));
+  };
+
+  // MVP-16 Phase C · 收到 crash recovery payload（来源：启动 emit / 切 workspace IPC 主动查）
+  const ingestRecoveryPayload = (payload: CrashRecoveryPayload) => {
+    upsertRecovery(payload.workspaceId, payloadToRecoveryState(payload));
+  };
+
+  // MVP-16 Phase C · workspace 切换或 dev 启动后主动查 in-progress 状态
+  // 用 IPC 的原因：启动 emit 是 best-effort（在 workspace_init 完成时一次性扫）·
+  // 之后切 workspace 需要 frontend 主动询问目标 workspace。
+  const refreshRecoveryForWorkspace = async (workspaceId: string) => {
+    try {
+      // CrashRecoveryState 字段对齐 ts-rs binding · 不手写 interface
+      const result = await invoke<RecoveryDetectResult>(
+        "rebase_detect_in_progress",
+        { workspaceId },
+      );
+      upsertRecovery(
+        workspaceId,
+        detectResultToRecoveryState(workspaceId, result),
+      );
+    } catch (err) {
+      // 检测失败不影响主流程 · 控制台留痕（不弹 toast 避免烦扰）
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[mvp-16] crash recovery detect failed for ${workspaceId}:`,
+        err instanceof Error ? err.message : String(err),
+      );
+    }
+  };
+
+  // MVP-16 Phase C · Continue：调对应 IPC 让 backend 把状态机推进到下一 step。
+  // 若推进后仍有 conflict · 现有 `git:conflict-detected` event 会渲染 active banner（接管）·
+  // 若完成 · `git:operation-done` event 会清 conflict + 这里清 recovery。
+  const handleRecoveryContinue = async () => {
+    const current = activeRecovery();
+    if (!current) return;
+    setRecoveryBusy(true);
+    setRecoveryError(null);
+    try {
+      if (current.operation === "rebase") {
+        const req: RebaseControlRequest = {
+          workspaceId: current.workspaceId,
+          action: "continue",
+        };
+        await invoke("rebase_continue", { req });
+      } else if (current.operation === "cherrypick") {
+        await invoke("cherrypick_continue", {
+          workspaceId: current.workspaceId,
+        });
+      } else {
+        // merge crash recovery：git2 `MERGE_HEAD` 存在但还未 commit
+        // backend 没有 merge_continue · 用户应自行 commit / abort · 给清晰提示
+        throw new Error(
+          "merge 中断恢复需手动在 Status 面板 commit · 或选 Abort",
+        );
+      }
+    } catch (err) {
+      setRecoveryError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
+  // MVP-16 Phase C · Abort：清 .git 状态 + remove operation_state file · 回原 HEAD。
+  // 复用 backend 已有 `*_abort` IPC（同 active conflict abort 路径 · 语义一致）。
+  const handleRecoveryAbort = async () => {
+    const current = activeRecovery();
+    if (!current) return;
+    setRecoveryBusy(true);
+    setRecoveryError(null);
+    try {
+      if (current.operation === "rebase") {
+        const req: RebaseControlRequest = {
+          workspaceId: current.workspaceId,
+          action: "abort",
+        };
+        await invoke("rebase_abort", { req });
+      } else if (current.operation === "cherrypick") {
+        await invoke("cherrypick_abort", {
+          workspaceId: current.workspaceId,
+        });
+      } else {
+        await invoke("merge_abort", { workspaceId: current.workspaceId });
+      }
+      // backend 成功后会 emit `git:operation-done` success=true · 但本地立即清也无伤
+      upsertRecovery(current.workspaceId, null);
+    } catch (err) {
+      setRecoveryError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRecoveryBusy(false);
+    }
+  };
+
+  // MVP-16 Phase C · View status：dismiss banner + 确保 Secondary Sidebar 打开（Git Log）。
+  // 不导航到具体 commit · 不高亮 rebase 起点（v0.4+ polish · 需 Git Log scroll-to-oid 能力）。
+  const handleRecoveryViewStatus = () => {
+    const current = activeRecovery();
+    if (!current) return;
+    upsertRecovery(current.workspaceId, null);
+    if (!layout().secondaryOpen) {
+      dispatch({ kind: "toggle-secondary" });
+    }
+  };
+
   const handleGlobalMergeResult = (status: MergeStatus) => {
     setGlobalMergeOpen(false);
     if (status.outcome === "conflict" && status.conflictingFiles.length > 0) {
@@ -472,6 +607,8 @@ const LayoutShell: Component<{
   let unlistenRebaseProgress: UnlistenFn | undefined;
   let unlistenConflictDetected: UnlistenFn | undefined;
   let unlistenRebaseDone: UnlistenFn | undefined;
+  // MVP-16 Phase C · 启动检测 emit · per-workspace 一条 event
+  let unlistenCrashRecovery: UnlistenFn | undefined;
 
   onMount(async () => {
     document.addEventListener("keydown", handleKeyDown);
@@ -527,6 +664,12 @@ const LayoutShell: Component<{
     unlistenRebaseDone = await listen<RebaseOperationDonePayload>(
       "git:operation-done",
       (event) => {
+        // MVP-16 Phase C · operation-done 不止跟当前 active workspace 有关 ·
+        // 后台多 workspace 的 abort/continue 完成都会 emit · 故清 recovery 时按 payload.workspaceId
+        // 路由（不 gate active workspace）· 而 active conflict banner 仍仅当前 workspace 有效。
+        if (event.payload.success) {
+          upsertRecovery(event.payload.workspaceId, null);
+        }
         const ws = activeWorkspace();
         if (!ws || event.payload.workspaceId !== ws.workspaceId) {
           return;
@@ -534,9 +677,28 @@ const LayoutShell: Component<{
         if (event.payload.success) {
           setConflict(null);
           setConflictError(null);
+          setRecoveryError(null);
         }
       },
     );
+    // MVP-16 Phase C · 启动 emit `git:crash-recovery-detected` · 每 workspace 一条
+    // backend `emit_rebase_crash_recovery` 在 `workspace_init` 调一次 · 之后切 workspace
+    // 走 `rebase_detect_in_progress` IPC 主动查（见 createEffect below）。
+    unlistenCrashRecovery = await listen<CrashRecoveryPayload>(
+      "git:crash-recovery-detected",
+      (event) => {
+        ingestRecoveryPayload(event.payload);
+      },
+    );
+  });
+
+  // MVP-16 Phase C · workspace 切换时主动查目标 workspace 是否有未完成操作
+  // 触发：activeWorkspace() 变化（switch / open）· 不依赖启动 emit
+  // 副作用幂等：如果状态没变 setRecoveries 不写新值（upsertRecovery 已处理）
+  createEffect(() => {
+    const ws = activeWorkspace();
+    if (!ws) return;
+    void refreshRecoveryForWorkspace(ws.workspaceId);
   });
 
   onCleanup(() => {
@@ -545,6 +707,7 @@ const LayoutShell: Component<{
     unlistenRebaseProgress?.();
     unlistenConflictDetected?.();
     unlistenRebaseDone?.();
+    unlistenCrashRecovery?.();
   });
 
   return (
@@ -577,6 +740,38 @@ const LayoutShell: Component<{
       </Show>
 
       <Show when={conflictError()}>
+        {(message) => (
+          <div class="vs-conflict-error" role="alert">
+            {message()}
+          </div>
+        )}
+      </Show>
+
+      {/* MVP-16 Phase C · crash recovery banner · 仅当 active conflict 不存在时显示
+       * 避免双 banner 抢屏（active conflict 比 recovery 优先级高 · 因为它代表当前用户正在解决的冲突）
+       * `allResolved=true` · `allowSkip=false`（recovery 不出 Skip 按钮 · 用户应先 Continue 让操作推进）
+       * Continue 触发 `*_continue` IPC · 后续 conflict / done 由现有 event 链路接管
+       */}
+      <Show when={!conflict() && activeRecovery()}>
+        {(current) => (
+          <ConflictBanner
+            variant="recovery"
+            operation={current().operation}
+            source={current().branch}
+            target={activeWorkspace()?.repoRoot ?? activeWorkspace()?.name}
+            currentStep={current().currentStep}
+            totalSteps={current().totalSteps}
+            allResolved={true}
+            allowSkip={false}
+            busy={recoveryBusy()}
+            onContinue={handleRecoveryContinue}
+            onAbort={handleRecoveryAbort}
+            onViewStatus={handleRecoveryViewStatus}
+          />
+        )}
+      </Show>
+
+      <Show when={recoveryError()}>
         {(message) => (
           <div class="vs-conflict-error" role="alert">
             {message()}

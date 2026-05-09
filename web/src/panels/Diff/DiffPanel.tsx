@@ -17,6 +17,7 @@ interface DiffPanelProps {
 }
 
 type ViewMode = "split" | "unified";
+const SYNTAX_HIGHLIGHT_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const DiffPanel: Component<DiffPanelProps> = (props) => {
   const [viewMode, setViewMode] = createSignal<ViewMode>("split");
@@ -99,6 +100,16 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const totalSizeBytes = (): number => {
+    const resp = response();
+    if (!resp) return 0;
+    return (resp.oldSizeBytes ?? 0) + (resp.newSizeBytes ?? 0);
+  };
+
+  const disableSyntaxHighlight = (): boolean =>
+    response() !== null &&
+    totalSizeBytes() >= SYNTAX_HIGHLIGHT_MAX_FILE_SIZE_BYTES;
+
   return (
     <div class="vs-diff-panel">
       <div class="vs-diff-toolbar">
@@ -106,7 +117,13 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
           {props.filePath}
         </span>
         <div class="vs-diff-toolbar-right">
-          <PlainTextChip filePath={props.filePath} />
+          <PlainTextChip
+            filePath={props.filePath}
+            reason={
+              disableSyntaxHighlight() ? "large-file" : "unsupported-language"
+            }
+            fileSize={totalSizeBytes()}
+          />
           <button
             type="button"
             class={`vs-diff-mode-btn ${viewMode() === "split" ? "vs-diff-mode-btn-on" : ""}`}
@@ -195,6 +212,8 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
                         viewMode={viewMode()}
                         lineClass={lineClass}
                         filePath={props.filePath}
+                        fileSize={totalSizeBytes()}
+                        disableHighlight={disableSyntaxHighlight()}
                       />
                     )}
                   </For>
@@ -213,6 +232,8 @@ interface DiffHunkViewProps {
   viewMode: ViewMode;
   lineClass: (lineType: string) => string;
   filePath: string;
+  fileSize: number;
+  disableHighlight: boolean;
 }
 
 const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
@@ -234,6 +255,8 @@ const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
             hunk={props.hunk}
             lineClass={props.lineClass}
             filePath={props.filePath}
+            fileSize={props.fileSize}
+            disableHighlight={props.disableHighlight}
           />
         }
       >
@@ -241,6 +264,8 @@ const DiffHunkView: Component<DiffHunkViewProps> = (props) => {
           hunk={props.hunk}
           lineClass={props.lineClass}
           filePath={props.filePath}
+          fileSize={props.fileSize}
+          disableHighlight={props.disableHighlight}
         />
       </Show>
     </div>
@@ -251,6 +276,8 @@ const UnifiedHunkLines: Component<{
   hunk: DiffHunk;
   lineClass: (lineType: string) => string;
   filePath: string;
+  fileSize: number;
+  disableHighlight: boolean;
 }> = (props) => {
   return (
     <div class="vs-diff-unified">
@@ -274,6 +301,8 @@ const UnifiedHunkLines: Component<{
               content={line.content}
               filePath={props.filePath}
               lineType={line.lineType}
+              fileSize={props.fileSize}
+              disableHighlight={props.disableHighlight}
             />
           </div>
         )}
@@ -286,6 +315,8 @@ const SplitHunkLines: Component<{
   hunk: DiffHunk;
   lineClass: (lineType: string) => string;
   filePath: string;
+  fileSize: number;
+  disableHighlight: boolean;
 }> = (props) => {
   return (
     <div class="vs-diff-split">
@@ -304,6 +335,8 @@ const SplitHunkLines: Component<{
                   content={line.content}
                   filePath={props.filePath}
                   lineType={line.lineType}
+                  fileSize={props.fileSize}
+                  disableHighlight={props.disableHighlight}
                 />
               </Show>
             </div>
@@ -319,6 +352,8 @@ const SplitHunkLines: Component<{
                   content={line.content}
                   filePath={props.filePath}
                   lineType={line.lineType}
+                  fileSize={props.fileSize}
+                  disableHighlight={props.disableHighlight}
                 />
               </Show>
             </div>

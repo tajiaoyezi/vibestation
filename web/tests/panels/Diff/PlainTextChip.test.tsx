@@ -50,4 +50,28 @@ describe("PlainTextChip", () => {
     expect(chip!.getAttribute("title")).toBeTruthy();
     expect(chip!.getAttribute("title")).toContain("语法高亮");
   });
+
+  it("large-file 模式优先显示大文件提示（即使语言可识别）", () => {
+    const { container } = render(() => (
+      <PlainTextChip
+        filePath="src/foo.ts"
+        reason="large-file"
+        fileSize={55 * 1024 * 1024}
+      />
+    ));
+    const chip = container.querySelector(".vs-diff-plain-text-chip");
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toContain("Large file");
+    expect(chip!.textContent).toContain("语法高亮已禁用");
+  });
+
+  it("large-file 无 fileSize 时也显示禁用提示", () => {
+    const { container } = render(() => (
+      <PlainTextChip filePath="src/foo.ts" reason="large-file" />
+    ));
+    const chip = container.querySelector(".vs-diff-plain-text-chip");
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toContain("Large file");
+    expect(chip!.textContent).toContain("语法高亮已禁用");
+  });
 });

@@ -66,6 +66,12 @@ import {
   useRemoteSyncStatus,
   type RemoteSyncHighlightRequest,
 } from "../../stores/remote-sync-status";
+import {
+  ENABLE_RAIL_GRAPH,
+  RailGraphCanvas,
+  allocateLanes,
+  buildRailGraphInputFromGitLog,
+} from "./RailGraph";
 
 export interface GitLogPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
@@ -161,6 +167,8 @@ const GIT_PUSH_PROGRESS_EVENT = "git:push-progress";
 const GIT_FETCH_PROGRESS_EVENT = "git:fetch-progress";
 const GIT_OPERATION_DONE_EVENT = "git:operation-done";
 const PROTECTED_BRANCHES = new Set(["main", "master", "trunk"]);
+const RAIL_GRAPH_WIDTH = 140;
+const DEFAULT_RAIL_ROW_HEIGHT = 44;
 
 const emptyProgress: GitSyncProgressValue = {
   current: 0,
@@ -294,6 +302,8 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   let scrollContainer: HTMLDivElement | undefined;
   let panelRoot: HTMLDivElement | undefined;
   const entryRefs = new Map<string, HTMLButtonElement>();
+  const [railRowHeights, setRailRowHeights] = createSignal<number[]>([]);
+  const [gitLogScrollTop, setGitLogScrollTop] = createSignal(0);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let closeProgressTimer: ReturnType<typeof setTimeout> | undefined;
   let highlightTimer: ReturnType<typeof setTimeout> | undefined;
@@ -367,6 +377,47 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const workspacePath = () =>
     props.activeWorkspace()?.repoRoot ?? props.activeWorkspace()?.path ?? "";
   const activeOperation = createMemo(() => operation());
+  const railInput = createMemo(() =>
+    buildRailGraphInputFromGitLog(
+      store.entries(),
+      [],
+      store.entries()[0]?.shortSha ?? null,
+    ),
+  );
+  const railAssignments = createMemo(() => allocateLanes(railInput()));
+  const selectedRailRowIndex = createMemo(() => {
+    const selected = store.selectedSha();
+    if (!selected) return null;
+    const index = store
+      .entries()
+      .findIndex((entry) => entry.shortSha === selected);
+    return index >= 0 ? index : null;
+  });
+  const railTheme = () =>
+    typeof document !== "undefined" &&
+    document.documentElement.dataset.theme === "light"
+      ? "light"
+      : "dark";
+  const railDpr = () =>
+    typeof window !== "undefined" ? window.devicePixelRatio : 1;
+
+  const measureRailRows = () => {
+    if (!ENABLE_RAIL_GRAPH) {
+      setRailRowHeights([]);
+      return;
+    }
+
+    setRailRowHeights(
+      store.entries().map((entry) => {
+        const height = entryRefs
+          .get(entry.shortSha)
+          ?.getBoundingClientRect().height;
+        return Number.isFinite(height) && height != null
+          ? height
+          : DEFAULT_RAIL_ROW_HEIGHT;
+      }),
+    );
+  };
 
   const showToast = (nextToast: ToastState) => {
     if (toastTimer) {
@@ -378,6 +429,36 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
       nextToast.timeoutMs ?? (nextToast.actionLabel ? 30000 : 3600),
     );
   };
+
+  createEffect(() => {
+    const entries = store.entries();
+    if (!ENABLE_RAIL_GRAPH) {
+      setRailRowHeights([]);
+      return;
+    }
+
+    let frame = 0;
+    const scheduleMeasure = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measureRailRows);
+    };
+    const observer =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(scheduleMeasure)
+        : null;
+
+    for (const entry of entries) {
+      const element = entryRefs.get(entry.shortSha);
+      if (element) observer?.observe(element);
+    }
+
+    scheduleMeasure();
+
+    onCleanup(() => {
+      if (frame) cancelAnimationFrame(frame);
+      observer?.disconnect();
+    });
+  });
 
   const closeToast = () => {
     if (toastTimer) {
@@ -1100,6 +1181,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     setContextMenu(null);
     if (!scrollContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    setGitLogScrollTop(scrollTop);
     if (scrollHeight - scrollTop - clientHeight < 50 && store.hasMore()) {
       store.loadMore(workspaceId());
     }
@@ -1408,6 +1490,21 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
           ref={scrollContainer}
           onScroll={handleScroll}
         >
+          <Show when={ENABLE_RAIL_GRAPH}>
+            <div class="vs-git-log-rail-layer">
+              <RailGraphCanvas
+                input={railInput()}
+                assignments={railAssignments()}
+                rowHeights={railRowHeights()}
+                scrollTop={gitLogScrollTop()}
+                selectedRowIndex={selectedRailRowIndex()}
+                theme={railTheme()}
+                dpr={railDpr()}
+                width={RAIL_GRAPH_WIDTH}
+              />
+            </div>
+          </Show>
+
           <Show
             when={!store.loading() || store.entries().length > 0}
             fallback={<div class="vs-git-log-loading">Loading...</div>}

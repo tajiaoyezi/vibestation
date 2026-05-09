@@ -5,3 +5,5 @@ export { buildRailGraphInputFromGitLog } from "./build-input";
 export { allocateLanes } from "./lane-allocator";
 export { normalizeRefs } from "./refs-normalize";
 export { branchNameToColorKey } from "./color-mapper";
+export { RailGraphCanvas } from "./RailGraphCanvas";
+export type { RailGraphCanvasProps } from "./RailGraphCanvas";

@@ -1,3 +1,5 @@
+@import "./styles/rail-graph.css";
+
 /*
  * MVP-03 · Tool Windows 布局
  *
@@ -1604,6 +1606,15 @@ textarea {
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-1) 0;
+  position: relative;
+}
+
+.vs-git-log-rail-layer {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  z-index: 1;
+  pointer-events: none;
 }
 
 .vs-git-log-list::-webkit-scrollbar {

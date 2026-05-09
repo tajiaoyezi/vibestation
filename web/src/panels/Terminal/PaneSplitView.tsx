@@ -1,16 +1,15 @@
 /**
- * PaneSplitView · MVP-05 Phase C
+ * PaneSplitView · MVP-14 Phase B
  *
  * 递归渲染 [`LayoutNode`] 树：
  * - `Single` → 渲染 [`PaneTerminal`]
  * - `Split` → 渲染两个子 [`PaneSplitView`] · 中间夹一个 [`PaneSplitter`] 分隔条
  *
- * §H 布局模型：MVP-05 限制单层嵌套（深度 ≤ 2 · 4 panes max · 由 backend `validate_mvp_05`
- * 强制 · 前端不重复校验 · 但用 layout depth 显示 toast 提示）。
- *
- * Phase C scaffolding · 暂未与 [`Terminal.tsx`] 集成 · 集成留 PR #145。
+ * §H 布局模型：MVP-14 支持最多 5 层嵌套（backend `MAX_LAYOUT_SPLIT_DEPTH = 5`）。
+ * 前端用 `createMemo` 派生 split node 属性 · 避免 sibling pane body 因无关 ratio
+ * 更新而重渲染。
  */
-import { Show, type Component } from "solid-js";
+import { createMemo, Show, type Component } from "solid-js";
 import type { LayoutNode, PaneState, SplitDir } from "../../bindings";
 import { PaneSplitter } from "./PaneSplitter";
 import { PaneTerminal, type PaneTerminalApi } from "./PaneTerminal";
@@ -26,10 +25,8 @@ type PaneSplitViewProps = {
   onPaneExit?: (paneId: string, exitCode: number | null) => void;
   onRegisterPaneApi?: (paneId: string, api: PaneTerminalApi) => void;
   onUnregisterPaneApi?: (paneId: string) => void;
-  // MVP-05 visible toolbar · 按钮触发 split / close · wire 到 Terminal.tsx
   onPaneSplit?: (direction: SplitDir, paneId: string) => void;
   onPaneClose?: (paneId: string) => void;
-  // cmd+V paste guard 透传 · 与 menu paste 路径共享 setPendingPaste 流程
   onPanePasteRequest?: (paneId: string, text: string) => void;
 };
 
@@ -38,8 +35,6 @@ const findPane = (panes: PaneState[], paneId: string): PaneState | null =>
 
 /**
  * 找到 split 节点 first 子树最深处的 pane_id · 用作拖拽 splitter 时的 parent_pane_id key。
- * 与 `pane_service.update_split_ratio` 的语义保持一致（first 子树包含 parent_pane_id 的 Split
- * 节点是目标）。
  */
 const firstPaneInSubtree = (layout: LayoutNode): string => {
   if (layout.kind === "single") return layout.paneId;
@@ -60,11 +55,9 @@ export const PaneSplitView: Component<PaneSplitViewProps> = (props) => {
 const RenderSingle: Component<PaneSplitViewProps> = (props) => {
   if (props.layout.kind !== "single") return null;
   const paneId = props.layout.paneId;
-  const pane = () => findPane(props.panes, paneId);
+  const pane = createMemo(() => findPane(props.panes, paneId));
 
   return (
-    // fallback 用空 placeholder · 防 layout 切换瞬间 SolidJS 在旧 RenderSingle 子树 dispose
-    // 完成前重 evaluate pane() = null · 闪现 "Pane 缺失" 字样几 ms。
     <Show when={pane()} fallback={<div class="vs-pane-missing" />}>
       {(p) => (
         <PaneTerminal
@@ -90,14 +83,18 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
 const RenderSplit: Component<PaneSplitViewProps> = (props) => {
   if (props.layout.kind !== "split") return null;
   const split = props.layout;
+
+  const direction = createMemo(() => split.direction);
+  const ratio = createMemo(() => split.ratio);
+  const styleMemo = createMemo(() => ({
+    "--vs-pane-ratio": String(ratio()),
+  }));
   const parentPaneId = firstPaneInSubtree(split.first);
 
   return (
     <div
-      class={`vs-pane-split vs-pane-split-${split.direction}`}
-      style={{
-        "--vs-pane-ratio": String(split.ratio),
-      }}
+      class={`vs-pane-split vs-pane-split-${direction()}`}
+      style={styleMemo()}
     >
       <div class="vs-pane-split-first">
         <PaneSplitView
@@ -117,8 +114,8 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
         />
       </div>
       <PaneSplitter
-        direction={split.direction}
-        ratio={split.ratio}
+        direction={direction()}
+        ratio={ratio()}
         parentPaneId={parentPaneId}
         onDragEnd={props.onSplitterDragEnd}
       />

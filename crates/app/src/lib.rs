@@ -56,6 +56,9 @@ const GIT_FETCH_PROGRESS_EVENT: &str = "git:fetch-progress";
 const GIT_OPERATION_DONE_EVENT: &str = "git:operation-done";
 const GIT_REBASE_PROGRESS_EVENT: &str = "git:rebase-progress";
 const GIT_CONFLICT_DETECTED_EVENT: &str = "git:conflict-detected";
+/// MVP-16 Phase C · app 启动 / workspace 切换时检测到 in-progress rebase / merge / cherrypick 时
+/// emit 此 event · payload 为 `RebaseCrashRecoveryEvent` · 前端据此渲染 recovery banner。
+const GIT_CRASH_RECOVERY_EVENT: &str = "git:crash-recovery-detected";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -89,6 +92,20 @@ struct RebaseOperationDoneEvent {
     operation: String,
     success: bool,
     message: String,
+}
+
+/// MVP-16 Phase C · 启动 / workspace 切换检测到上次未完成操作时 emit。
+/// 字段对齐 `vibestation_core::CrashRecoveryState` · 加 `workspace_id` 用于多 workspace 路由。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RebaseCrashRecoveryEvent {
+    workspace_id: String,
+    /// "rebase" / "merge" / "cherrypick" · None 不会被 emit（only emit 当 in_progress=true）
+    operation: Option<String>,
+    /// 当前分支 · detached HEAD 时为 None
+    branch: Option<String>,
+    current_step: u32,
+    total_steps: u32,
 }
 
 struct AppState {
@@ -1420,6 +1437,22 @@ fn conflict_status(
     vibestation_core::conflict_status(&repo_path)
 }
 
+/// MVP-16 Phase C · 主动按 workspace 查询是否有 in-progress 操作。
+///
+/// 用途：(1) workspace 切换时 frontend 检查目标 workspace 是否有未完成 rebase / merge /
+/// cherrypick · 立即渲染 recovery banner（启动时 emit 是 best-effort · 之后切换需主动查）。
+/// (2) 用户手动刷新或在 banner 上点 "重新检测" 时调用。
+///
+/// 与启动 emit 用同一 `vibestation_core::detect_in_progress` · 输出语义一致。
+#[tauri::command]
+fn rebase_detect_in_progress(
+    state: State<'_, AppState>,
+    workspace_id: String,
+) -> Result<CrashRecoveryState, RebaseOpError> {
+    let repo_path = rebase_repo_path(&state, &workspace_id)?;
+    vibestation_core::detect_in_progress(&repo_path)
+}
+
 fn rebase_repo_path(
     state: &State<'_, AppState>,
     workspace_id: &str,
@@ -1496,26 +1529,32 @@ fn emit_rebase_done(
     );
 }
 
+/// MVP-16 Phase C · 启动时扫所有 workspace · 任一存在 in-progress 操作（.git/rebase-merge /
+/// .git/CHERRY_PICK_HEAD / .git/MERGE_HEAD / OperationState 文件）即 emit 一条
+/// `git:crash-recovery-detected` event · 前端据此渲染 recovery banner。
+///
+/// 不复用 `git:operation-done` · 避免和正常 abort/completion 路径在 success=false 处歧义。
 fn emit_rebase_crash_recovery(app: &AppHandle, pool: &DbPool) {
     let Ok(workspaces) = WorkspaceStore::list(pool) else {
         return;
     };
     for workspace in workspaces {
         let repo_path = PathBuf::from(&workspace.path);
-        let Ok(CrashRecoveryState {
-            in_progress: true,
-            operation,
-            ..
-        }) = vibestation_core::detect_in_progress(&repo_path)
-        else {
+        let Ok(state) = vibestation_core::detect_in_progress(&repo_path) else {
             continue;
         };
-        emit_rebase_done(
-            app,
-            &workspace.workspace_id,
-            operation.as_deref().unwrap_or("rebase"),
-            false,
-            "operation recovery required",
+        if !state.in_progress {
+            continue;
+        }
+        let _ = app.emit(
+            GIT_CRASH_RECOVERY_EVENT,
+            RebaseCrashRecoveryEvent {
+                workspace_id: workspace.workspace_id.clone(),
+                operation: state.operation,
+                branch: state.branch,
+                current_step: state.current_step,
+                total_steps: state.total_steps,
+            },
         );
     }
 }
@@ -1697,6 +1736,7 @@ pub fn run() {
             cherrypick_abort,
             conflict_resolve_file,
             conflict_status,
+            rebase_detect_in_progress,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,

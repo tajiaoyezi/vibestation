@@ -544,9 +544,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   return (
     <div
       class={`vs-pane-terminal ${props.focused ? "is-focused" : ""}`}
+      data-pane-id={props.paneId}
       onClick={() => props.onClick?.(props.paneId)}
       role="presentation"
     >
+      <div class="vs-pane-maximized-chip" aria-hidden="true" />
       <div ref={hostRef} class="vs-pane-terminal-host" />
       <div class="vs-pane-actions" data-pane-actions>
         <button

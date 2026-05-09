@@ -50,7 +50,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 |-------|------|------|----|
 | Phase A · shiki 集成 + lazy load 基础 | `shiki` v3+ 包引入 · `Highlighter` 单例封装 · theme 预加载（light/dark 两套）· lazy load 核心逻辑（IntersectionObserver + 行级虚拟化）· LRU 缓存（100 文件 / 50MB）· 0 个 IPC binding（见 §G） | ✅ done · PR #252 | feat/MVP-15-phase-A-shiki |
 | Phase B · Diff 视图 syntax highlight 装饰层 | `web/src/panels/Diff/` 组件改造 · 在原 `DiffLine` 渲染逻辑上注入 shiki token span · 主题 CSS variable 切换 · 纯文本降级 · 10 主流语言支持 | ✅ done · PR #255 | feat/MVP-15-phase-B-shiki-decoration |
-| Phase C · 大文件流式加载 | 1MB-10MB 文件：`requestIdleCallback` 分 chunk 解析 · 10MB+：Web Worker 分 chunk · 分段大小 100KB · 主线程阻塞 ≤ 16ms | 🔄 待实施 | — |
+| Phase C · 大文件流式加载 | 1MB-10MB 文件：`requestIdleCallback` 分 chunk 解析 · 10MB+：Web Worker 分 chunk · 分段大小 100KB · 主线程阻塞 ≤ 16ms | ✅ done · PR #260 | feat/MVP-15-phase-C-streaming-large-files |
 | Phase D · runtime 证据 + 性能量化 | 1MB diff 首屏 < 300ms P99 截图（DevTools Performance）· 10MB 流式不阻塞（long task < 50ms）· 主题切换 < 50ms · 5 主流语言 × 2 主题 = 10 张 baseline screenshot · 放 `docs/runtime-evidence/mvp-15/` | 🔄 待实施 | — |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：

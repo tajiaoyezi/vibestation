@@ -13,7 +13,9 @@ import {
   type Component,
 } from "solid-js";
 import type {
+  LayoutApplyAdvancedRequest,
   LayoutApplyRequest,
+  LayoutApplyResult,
   PaneCloseRequest,
   PaneCreateRequest,
   PaneFocusRequest,
@@ -709,8 +711,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
   });
 
   /**
-   * MVP-05 Phase C §C · Smart Layouts 应用 · 调 pane_layout_apply IPC。
-   * preset 直接传给 backend（"solo" / "aiAndRunner" 是 backend pane_service.rs 直接 match 的字符串）·
+   * MVP-14 Phase B · Smart Layouts 应用 · 全部走 pane_layout_apply_advanced 新 IPC。
+   * 旧 pane_layout_apply 保留（不删除）· 供 v0.4 cleanup 时统一迁移。
    * onApply 抛 Error 由 SmartLayoutMenu 内部 alert 显示 · 不向上传播。
    */
   const handleSmartLayoutApply = async (preset: SmartLayoutPreset) => {
@@ -718,13 +720,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) {
       throw new Error("没有 active tab");
     }
-    // MVP-05 Phase C §F.6 instrumentation · 命令面板确认 → 最终布局 DOM commit P99 < 200ms 目标
     const t0 = performance.now();
-    // PaneTerminal.onCleanup 默认不再 kill PTY · backend pane_layout_apply 对 solo / aiAndRunner
-    // 等 preset 会 DELETE 多余 panes · 前端必须 diff pre/post panes 显式 kill 被删 PTY · 否则
-    // 进程留在 pty_pool 没人控制 · resource leak（Codex review #208 finding）。
-    // 同时对**保留** panes serialize 快照 · 让 layout 切换后 PaneTerminal 重 mount 时通过
-    // paneSnapshots 恢复 xterm 显示 · 否则保留 pane 仍会出现"空白 → 等待 stdout"（round 3 finding）。
     const preList = panesByTabId()[tabId];
     const prePaneIds = new Set(preList?.panes.map((p) => p.paneId) ?? []);
     if (preList) {
@@ -734,17 +730,20 @@ export const Terminal: Component<TerminalProps> = (props) => {
         if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
       }
     }
-    const response = await invoke<PaneListResponse>("pane_layout_apply", {
+    const result = await invoke<LayoutApplyResult>("pane_layout_apply_advanced", {
       req: {
         tabId,
         preset,
+        preserveInstances: true,
         confirmed: true,
-      } satisfies LayoutApplyRequest,
+      } satisfies LayoutApplyAdvancedRequest,
     });
-    setPaneListForTab(tabId, response);
-    // 比较前后 panes · 显式 kill 被预设删除的 PTY · 失败（已 exited）静默跳过 · 真错误 toast 警告 leak。
-    // 同时清掉被删 paneId 的 snapshot · 防内存泄漏 + 防 paneId 复用时 stale snapshot 误用。
-    const postPaneIds = new Set(response.panes.map((p) => p.paneId));
+    setPaneListForTab(tabId, result.response);
+    showToast(
+      `已应用 ${preset} 布局 · 复用 ${result.reusedPaneIds.length} · 新建 ${result.createdPaneIds.length} · 关闭 ${result.closedPaneIds.length}`,
+      "info",
+    );
+    const postPaneIds = new Set(result.response.panes.map((p) => p.paneId));
     for (const id of prePaneIds) {
       if (!postPaneIds.has(id)) {
         paneSnapshots.delete(id);
@@ -762,7 +761,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       const dt = performance.now() - t0;
       // eslint-disable-next-line no-console
       console.info(
-        `[mvp-05][F.6] pane_layout_apply ${preset} → DOM commit: ${dt.toFixed(1)}ms`,
+        `[mvp-14][B] pane_layout_apply_advanced ${preset} → DOM commit: ${dt.toFixed(1)}ms`,
       );
     });
   };

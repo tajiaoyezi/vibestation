@@ -4,10 +4,11 @@
 // - lazy load：viewport 外不触发 highlight（innerHTML 仅 escape · 不含 shiki span）
 // - theme reactive：useShikiTheme() 切换主题 · DiffLine 自动重新 highlight
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, cleanup } from "@solidjs/testing-library";
 import { DiffLineContent } from "../../../src/panels/Diff/DiffLine";
 import { setShikiTheme } from "../../../src/utils/shiki/theme-store";
+import { shikiAdapter } from "../../../src/utils/shiki";
 
 // 可控 IntersectionObserver mock
 type IOCallback = (entries: IntersectionObserverEntry[]) => void;
@@ -50,6 +51,10 @@ beforeEach(() => {
   vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
   setShikiTheme("light");
   cleanup();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 async function waitForHighlight(timeoutMs = 1000): Promise<void> {
@@ -143,5 +148,72 @@ describe("DiffLineContent · 不识别 lang fallback", () => {
     // 必须 escape 防 XSS
     expect(span.innerHTML).toContain("&lt;script&gt;");
     expect(span.innerHTML).not.toContain("<script>");
+  });
+});
+
+describe("DiffLineContent · Phase C 保护逻辑", () => {
+  it("disableHighlight=true 时直接走纯文本 fallback，不调用 shikiAdapter", async () => {
+    const highlightSpy = vi
+      .spyOn(shikiAdapter, "highlight")
+      .mockResolvedValue("<span>mock</span>");
+
+    const { container } = render(() => (
+      <DiffLineContent
+        content="<b>hello</b>"
+        filePath="test.ts"
+        lineType="context"
+        disableHighlight
+      />
+    ));
+
+    flushVisible();
+    await waitForHighlight(300);
+
+    const span = container.querySelector(".vs-diff-line-content")!;
+    expect(span.innerHTML).toContain("&lt;b&gt;hello&lt;/b&gt;");
+    expect(highlightSpy).not.toHaveBeenCalled();
+  });
+
+  it("单行内容超过 100KB 时截断并显示提示", () => {
+    const longLine = "a".repeat(110 * 1024);
+    const { container } = render(() => (
+      <DiffLineContent
+        content={longLine}
+        filePath="bundle.js"
+        lineType="context"
+        disableHighlight
+      />
+    ));
+
+    const content = container.querySelector(".vs-diff-line-content")!;
+    const notice = container.querySelector(".vs-diff-line-truncated");
+    expect(content.textContent!.length).toBeLessThan(longLine.length);
+    expect(notice).not.toBeNull();
+    expect(notice!.textContent).toContain("Line too long · truncated at 100KB");
+  });
+
+  it("调用 highlight 时透传 fileSize", async () => {
+    const highlightSpy = vi
+      .spyOn(shikiAdapter, "highlight")
+      .mockResolvedValue("<span>mock</span>");
+
+    render(() => (
+      <DiffLineContent
+        content="const x = 1;"
+        filePath="test.ts"
+        lineType="context"
+        fileSize={5_000_000}
+      />
+    ));
+
+    flushVisible();
+    await waitForHighlight(300);
+
+    expect(highlightSpy).toHaveBeenCalledWith(
+      "const x = 1;",
+      "typescript",
+      "light",
+      5_000_000,
+    );
   });
 });

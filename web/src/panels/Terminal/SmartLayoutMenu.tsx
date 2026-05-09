@@ -1,30 +1,20 @@
 import { createSignal, For, Show, type Component } from "solid-js";
-import type { LayoutNode, PaneState } from "../../bindings";
+import type { LayoutNode, LayoutPresetKind, PaneState } from "../../bindings";
 
-// Smart Layout 预设标识 · 由组件层定义为 camelCase TS 字面量
-// caller（Track A · Terminal.tsx 集成）负责把 onApply 的 preset 翻译成
-// backend LayoutApplyRequest.preset 的 snake_case（"solo" / "ai_runner"）
-export type SmartLayoutPreset = "solo" | "aiAndRunner";
+export type SmartLayoutPreset = LayoutPresetKind;
 
 export type SmartLayoutMenuProps = {
-  /** 是否打开 menu · false 时不渲染（节省 DOM · Esc / 点击外部 / 应用完成都通过 onClose 关闭） */
   open: boolean;
-  /** 当前 tab 的 pane 状态 · 用于 dry-run 预览 will-close 数量 + shell/cwd 摘要 */
   panes: PaneState[];
-  /** 当前 layout 树 · 保留为 prop 以便未来扩展（如 2×2 → 单层降级路径展示）· 当前未使用 */
   layout: LayoutNode;
-  /** 当前 focused pane id · null = 未聚焦（极端 case）· will-close 计算需要这个锚点 */
   focusedPaneId: string | null;
-  /** 用户选 preset 后调（async · caller 在内部 invoke('pane_layout_apply', ...)） */
   onApply: (preset: SmartLayoutPreset) => Promise<void>;
-  /** 关闭 menu 的统一回调（Esc / 点击 backdrop / 应用完成 / 取消按钮） */
   onClose: () => void;
 };
 
 const truncate = (text: string, max: number): string =>
   text.length > max ? `${text.slice(0, max - 3)}...` : text;
 
-// 中段省略 · 长 cwd 路径保留首尾片段 · 例 /Users/.../vibestation/web
 const truncatePath = (path: string, max: number): string => {
   if (path.length <= max) return path;
   const head = Math.floor((max - 3) / 2);
@@ -32,9 +22,6 @@ const truncatePath = (path: string, max: number): string => {
   return `${path.slice(0, head)}...${path.slice(path.length - tail)}`;
 };
 
-// 计算给定 preset 下 will-close 的 panes 列表（dry-run 预览数据源）
-// Solo：保留 focused · 关其他
-// AI+Runner：保留 focused + 第一个非 focused（次主 pane）· 关其他；< 2 panes 返回空（按钮已 disabled）
 function computeWillClose(
   preset: SmartLayoutPreset,
   panes: PaneState[],
@@ -53,7 +40,91 @@ function computeWillClose(
         pane.paneId !== focusedPaneId && pane.paneId !== secondary?.paneId,
     );
   }
+  if (preset === "dualAi") {
+    if (panes.length <= 2) return [];
+    const keep = panes.slice(0, 2);
+    return panes.filter((p) => !keep.some((k) => k.paneId === p.paneId));
+  }
+  if (preset === "tripleReview") {
+    if (panes.length <= 3) return [];
+    const keep = panes.slice(0, 3);
+    return panes.filter((p) => !keep.some((k) => k.paneId === p.paneId));
+  }
+  if (preset === "quad") {
+    if (panes.length <= 4) return [];
+    const keep = panes.slice(0, 4);
+    return panes.filter((p) => !keep.some((k) => k.paneId === p.paneId));
+  }
   return [];
+}
+
+function computeWillCreate(
+  preset: SmartLayoutPreset,
+  panes: PaneState[],
+): number {
+  if (preset === "solo") return 0;
+  if (preset === "aiAndRunner") return Math.max(0, 2 - panes.length);
+  if (preset === "dualAi") return Math.max(0, 2 - panes.length);
+  if (preset === "tripleReview") return Math.max(0, 3 - panes.length);
+  if (preset === "quad") return Math.max(0, 4 - panes.length);
+  return 0;
+}
+
+const PRESET_CONFIG: Array<{
+  preset: SmartLayoutPreset;
+  icon: string;
+  name: string;
+  desc: string;
+}> = [
+  {
+    preset: "solo",
+    icon: "▢",
+    name: "Solo",
+    desc: "保留当前 Pane · 关闭其他",
+  },
+  {
+    preset: "aiAndRunner",
+    icon: "▢│▢",
+    name: "AI + Runner",
+    desc: "左 AI · 右 Runner · 50/50 右分屏",
+  },
+  {
+    preset: "dualAi",
+    icon: "▢│▢",
+    name: "Dual AI",
+    desc: "左 Claude · 右 Codex · 双 AI 并行",
+  },
+  {
+    preset: "tripleReview",
+    icon: "▢│▢/▢",
+    name: "Triple Review",
+    desc: "左 AI · 右上 Runner · 右下 Log",
+  },
+  {
+    preset: "quad",
+    icon: "▢│▢/▢│▢",
+    name: "Quad",
+    desc: "2×2 四格布局",
+  },
+];
+
+function presetDisabled(
+  preset: SmartLayoutPreset,
+  panes: PaneState[],
+): boolean {
+  if (preset === "solo") return false;
+  if (preset === "aiAndRunner") return panes.length < 2;
+  return false;
+}
+
+function presetDisabledReason(
+  preset: SmartLayoutPreset,
+  panes: PaneState[],
+): string {
+  if (preset === "aiAndRunner" && panes.length < 2) {
+    return "需要至少 2 个 Pane";
+  }
+  return "";
 }
 
 export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
@@ -67,8 +138,11 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
     return computeWillClose(preset, props.panes, props.focusedPaneId);
   };
 
-  // AI+Runner 需要至少 2 个 pane · 单 pane 时禁用按钮 + 提示
-  const aiRunnerDisabled = (): boolean => props.panes.length <= 1;
+  const willCreate = (): number => {
+    const preset = selected();
+    if (!preset) return 0;
+    return computeWillCreate(preset, props.panes);
+  };
 
   const handleApply = async (): Promise<void> => {
     const preset = selected();
@@ -80,15 +154,12 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
       setSelected(null);
       props.onClose();
     } catch (e: unknown) {
-      // caller 抛 Error 的 message 直接展示 · 非 Error 转字符串
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setApplying(false);
     }
   };
 
-  // Esc 行为分两层：先取消选中（若有）· 再关闭整个 menu
-  // 与命令面板交互习惯一致（先 deselect · 再 dismiss）
   const handleKeyDown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -109,13 +180,10 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
         aria-labelledby="vs-smart-layout-title"
         tabindex={-1}
         onClick={(event) => {
-          // 仅当点到 backdrop（非内部卡片）时关闭
           if (event.target === event.currentTarget) props.onClose();
         }}
         onKeyDown={handleKeyDown}
         ref={(el) => {
-          // 自动 focus overlay · 保证 Esc keydown 能命中
-          // setTimeout 0 让 Show 渲染完成后再 focus
           setTimeout(() => el?.focus(), 0);
         }}
       >
@@ -133,40 +201,41 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
           </header>
 
           <div class="vs-smart-layout-presets">
-            <button
-              type="button"
-              class={`vs-smart-layout-preset ${selected() === "solo" ? "is-selected" : ""}`}
-              onClick={() => setSelected("solo")}
-            >
-              <div class="vs-smart-layout-preset-icon" aria-hidden="true">
-                ▢
-              </div>
-              <div class="vs-smart-layout-preset-name">Solo</div>
-              <div class="vs-smart-layout-preset-desc">
-                保留当前 Pane · 关闭其他
-              </div>
-            </button>
-            <button
-              type="button"
-              class={`vs-smart-layout-preset ${selected() === "aiAndRunner" ? "is-selected" : ""}`}
-              onClick={() => setSelected("aiAndRunner")}
-              disabled={aiRunnerDisabled()}
-              title={aiRunnerDisabled() ? "需要至少 2 个 Pane" : ""}
-            >
-              <div class="vs-smart-layout-preset-icon" aria-hidden="true">
-                ▢│▢
-              </div>
-              <div class="vs-smart-layout-preset-name">AI + Runner</div>
-              <div class="vs-smart-layout-preset-desc">
-                左 AI · 右 Runner · 50/50 右分屏
-              </div>
-            </button>
+            <For each={PRESET_CONFIG}>
+              {(config) => {
+                const disabled = presetDisabled(config.preset, props.panes);
+                return (
+                  <button
+                    type="button"
+                    class={`vs-smart-layout-preset ${selected() === config.preset ? "is-selected" : ""}`}
+                    onClick={() => setSelected(config.preset)}
+                    disabled={disabled}
+                    title={disabled ? presetDisabledReason(config.preset, props.panes) : ""}
+                  >
+                    <div class="vs-smart-layout-preset-icon" aria-hidden="true">
+                      {config.icon}
+                    </div>
+                    <div class="vs-smart-layout-preset-name">
+                      {config.name}
+                    </div>
+                    <div class="vs-smart-layout-preset-desc">
+                      {config.desc}
+                    </div>
+                  </button>
+                );
+              }}
+            </For>
           </div>
 
           <Show when={selected()}>
             <div class="vs-smart-layout-preview">
               <div class="vs-smart-layout-preview-header">
                 将关闭 {willClose().length} 个 Pane
+                <Show when={willCreate() > 0}>
+                  {" · 将创建 "}
+                  {willCreate()}
+                  {" 个新 Pane"}
+                </Show>
               </div>
               <Show when={willClose().length > 0}>
                 <ul class="vs-smart-layout-preview-list">
@@ -186,11 +255,15 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
                 </ul>
               </Show>
               <Show
-                when={willClose().length === 0 && selected() === "aiAndRunner"}
+                when={
+                  willClose().length === 0 &&
+                  selected() === "aiAndRunner" &&
+                  props.panes.length < 2
+                }
               >
                 <div class="vs-smart-layout-preview-warning">
-                  当前只有 1 个 Pane · AI+Runner 需要至少 2 个 Pane（先 ⌘\
-                  分屏后再使用）
+                  当前只有 {props.panes.length} 个 Pane · AI+Runner 需要至少 2 个
+                  Pane（先 ⌘\ 分屏后再使用）
                 </div>
               </Show>
             </div>
@@ -218,7 +291,8 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
               disabled={
                 !selected() ||
                 applying() ||
-                (selected() === "aiAndRunner" && aiRunnerDisabled())
+                (selected() !== null &&
+                  presetDisabled(selected() as SmartLayoutPreset, props.panes))
               }
             >
               {applying() ? "应用中..." : "确认应用"}

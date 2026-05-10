@@ -7,3 +7,10 @@ export { normalizeRefs } from "./refs-normalize";
 export { branchNameToColorKey } from "./color-mapper";
 export { RailGraphCanvas } from "./RailGraphCanvas";
 export type { RailGraphCanvasProps } from "./RailGraphCanvas";
+export {
+  buildRailRowMetrics,
+  computeVisibleRange,
+  computeVisibleRangeFromMetrics,
+  filterRailGeometryToVisibleRange,
+} from "./RailGraphVirtualizer";
+export type { RailRowMetrics, RailVisibleRange } from "./RailGraphVirtualizer";

@@ -36,3 +36,10 @@ export type {
   RailHitTargetKind,
   RailPointerHighlightEvent,
 } from "./interactions";
+export {
+  collapseRailAssignments,
+  collectCollapsedBranchLabels,
+  computeRailCollapseStrategy,
+  reduceOtherBranchesExpanded,
+} from "./collapse";
+export type { RailCollapseMode, RailCollapseStrategy } from "./collapse";

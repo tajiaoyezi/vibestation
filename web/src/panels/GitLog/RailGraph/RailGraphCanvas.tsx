@@ -1,9 +1,11 @@
 import {
   createEffect,
+  For,
   createMemo,
   createSignal,
   onCleanup,
   onMount,
+  Show,
 } from "solid-js";
 import type { RailGraphInputCommit, RailLaneAssignment } from "./types";
 import type { RailPathHighlight } from "./types-canvas";
@@ -17,6 +19,12 @@ import {
   paintRailGraphFrame,
   paintRailGraphOverlay,
 } from "./canvas-paint";
+import {
+  collapseRailAssignments,
+  collectCollapsedBranchLabels,
+  computeRailCollapseStrategy,
+  reduceOtherBranchesExpanded,
+} from "./collapse";
 import { paintDebugGrid } from "./debug-grid";
 import { computeRailGeometry } from "./geometry";
 import {
@@ -82,13 +90,36 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
   const [themeRevision, setThemeRevision] = createSignal(0);
   const [activeHighlight, setActiveHighlight] =
     createSignal<RailPathHighlight | null>(null);
+  const [isOtherBranchesExpanded, setIsOtherBranchesExpanded] =
+    createSignal(false);
 
   const cssWidth = createMemo(() =>
     clampRailWidth(observedWidth() ?? props.width),
   );
+  const sourceLaneCount = createMemo(
+    () =>
+      props.assignments.reduce(
+        (maxLane, assignment) => Math.max(maxLane, assignment.laneIndex),
+        -1,
+      ) + 1,
+  );
+  const collapseStrategy = createMemo(() =>
+    computeRailCollapseStrategy(sourceLaneCount()),
+  );
+  const renderAssignments = createMemo(() =>
+    collapseRailAssignments(props.assignments, collapseStrategy()),
+  );
+  const collapsedBranchLabels = createMemo(() =>
+    collectCollapsedBranchLabels(
+      props.input,
+      props.assignments,
+      collapseStrategy(),
+    ),
+  );
   const layout = createMemo(() =>
-    computeRailGeometry(props.input, props.assignments, props.rowHeights, {
+    computeRailGeometry(props.input, renderAssignments(), props.rowHeights, {
       width: cssWidth(),
+      laneGap: collapseStrategy().railGap,
       tipStartX: Math.min(92, Math.max(68, cssWidth() - 88)),
     }),
   );
@@ -149,6 +180,12 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
   });
 
   onCleanup(() => scheduler.dispose());
+
+  createEffect(() => {
+    if (collapseStrategy().mode !== "group") {
+      setIsOtherBranchesExpanded(false);
+    }
+  });
 
   createEffect(() => {
     const nextLayout = visibleLayout();
@@ -275,6 +312,14 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
     );
   };
 
+  const toggleOtherBranches = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsOtherBranchesExpanded((current) =>
+      reduceOtherBranchesExpanded(current, "toggle", collapseStrategy()),
+    );
+  };
+
   return (
     <div
       ref={rootEl}
@@ -286,6 +331,8 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
       }}
       data-rail-theme={props.theme}
       data-rail-interactive="true"
+      data-rail-collapse={collapseStrategy().mode}
+      title={collapseStrategy().tooltip ?? undefined}
       aria-hidden="true"
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
@@ -296,6 +343,31 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
         ref={overlayCanvas}
         class={`${styles.canvas} ${styles.overlay}`}
       />
+      <Show when={collapseStrategy().otherGroupVisible}>
+        <button
+          type="button"
+          class={styles.otherBranches}
+          aria-label="Other branches"
+          title="Other branches"
+          onClick={toggleOtherBranches}
+        >
+          Other branches
+        </button>
+        <Show when={isOtherBranchesExpanded()}>
+          <div class={styles.otherBranchesMenu} role="list">
+            <For each={collapsedBranchLabels().slice(0, 12)}>
+              {(label) => (
+                <span class={styles.otherBranchesItem} role="listitem">
+                  {label}
+                </span>
+              )}
+            </For>
+            <Show when={collapsedBranchLabels().length === 0}>
+              <span class={styles.otherBranchesItem}>No refs in group</span>
+            </Show>
+          </div>
+        </Show>
+      </Show>
     </div>
   );
 }

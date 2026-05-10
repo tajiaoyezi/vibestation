@@ -70,11 +70,18 @@ export interface RailGeometryLayout {
   tips: RailTipGeo[];
 }
 
+export interface RailPathHighlight {
+  targetOid: string;
+  nodeOids: string[];
+  edgeKeys: string[];
+}
+
 export interface RailPaintOptions {
   theme: RailTheme;
   width: number;
   height: number;
   selectedRowIndex?: number | null;
+  highlight?: RailPathHighlight | null;
   root?: Element;
 }
 

@@ -3,7 +3,8 @@
   min-width: 120px;
   max-width: 180px;
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: manipulation;
   contain: layout paint;
 }
 

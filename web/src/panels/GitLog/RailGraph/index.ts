@@ -23,3 +23,16 @@ export type {
   RailFrameSchedulerHost,
   RailPerformanceSampler,
 } from "./raf-scheduler";
+export {
+  collectRailPathHighlight,
+  hitTestRailEdge,
+  hitTestRailGeometry,
+  hitTestRailNode,
+  railEdgeKey,
+  reduceRailPointerHighlight,
+} from "./interactions";
+export type {
+  RailHitTarget,
+  RailHitTargetKind,
+  RailPointerHighlightEvent,
+} from "./interactions";

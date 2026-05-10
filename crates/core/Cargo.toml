@@ -73,3 +73,7 @@ harness = false
 [[bench]]
 name = "git_sync_bench"
 harness = false
+
+[[bench]]
+name = "rebase_bench"
+harness = false

@@ -124,10 +124,11 @@ function paintEdge(
   ctx: CanvasRenderingContext2D,
   edge: RailEdgeGeo,
   color: string,
+  lineWidth = 1.5,
 ): void {
   ctx.beginPath();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = lineWidth;
   ctx.lineCap = "round";
   ctx.moveTo(edge.fromX, edge.fromY);
   if (edge.pathKind === "bezier") {
@@ -143,6 +144,10 @@ function paintEdge(
     ctx.lineTo(edge.toX, edge.toY);
   }
   ctx.stroke();
+}
+
+function edgeKey(edge: RailEdgeGeo): string {
+  return `${edge.fromOid}->${edge.toOid}`;
 }
 
 function paintNode(
@@ -264,6 +269,30 @@ export function paintRailGraphOverlay(
   const style = computedStyle(options.root);
   ctx.save();
   ctx.clearRect(0, 0, options.width, options.height);
+
+  if (options.highlight) {
+    const highlightedEdges = new Set(options.highlight.edgeKeys);
+    const highlightedNodes = new Set(options.highlight.nodeOids);
+
+    for (const edge of layout.edges) {
+      if (!highlightedEdges.has(edgeKey(edge))) continue;
+      ctx.save();
+      ctx.globalAlpha = 0.42;
+      paintEdge(ctx, edge, colorForKey(style, edge.colorKey), 4);
+      ctx.restore();
+    }
+
+    for (const node of layout.nodes) {
+      if (!highlightedNodes.has(node.oid)) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = colorForKey(style, node.colorKey);
+      ctx.lineWidth = node.oid === options.highlight.targetOid ? 3 : 2;
+      ctx.globalAlpha = node.oid === options.highlight.targetOid ? 0.9 : 0.55;
+      ctx.arc(node.x, node.y, node.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
 
   if (options.selectedRowIndex == null) {
     ctx.restore();

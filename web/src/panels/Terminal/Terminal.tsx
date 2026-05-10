@@ -37,6 +37,7 @@ import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
 import { TerminalPane } from "./TerminalPane";
 import { usePaneShortcuts } from "./usePaneShortcuts";
+import { usePaneMaximizeToggle, usePaneNavigation } from "./usePaneNavigation";
 import {
   DEFAULT_PTY_COLS,
   DEFAULT_PTY_ROWS,
@@ -122,6 +123,21 @@ export const Terminal: Component<TerminalProps> = (props) => {
    * MVP-05 Phase C §C · Smart Layouts 命令面板开关 · ⌘⇧P 触发。
    */
   const [smartLayoutOpen, setSmartLayoutOpen] = createSignal(false);
+
+  /**
+   * MVP-14 Phase C · §E session-only 临时最大化 · 不写 DB · key = tabId · value = paneId。
+   * §E.5 切换 workspace / close tab 时 caller 必须清理对应 entry · 避免跨 workspace 残留。
+   */
+  const [maximizedPaneIdByTab, setMaximizedPaneIdByTab] = createSignal<
+    Record<string, string>
+  >({});
+
+  /**
+   * MVP-14 Phase C · §D.4 几何导航 no-op 时给目标 pane 一个 150ms acknowledged flash。
+   * 不发 toast · 仅 visual hint。值是 `${tabId}:${paneId}` · 复用一次 setTimeout 清空。
+   */
+  const [navNoOpFlash, setNavNoOpFlash] = createSignal<string | null>(null);
+  let navNoOpFlashTimer: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * MVP-05 视觉细节 · 点击 pane 外（sidebar / tab 区 / 空白）时隐藏 focused pane 的蓝色
@@ -371,11 +387,26 @@ export const Terminal: Component<TerminalProps> = (props) => {
 
   const dropWorkspaceState = (workspaceId: string) => {
     const tabs = tabsByWorkspace()[workspaceId] ?? [];
+    const tabIds = new Set(tabs.map((t) => t.tabId));
     for (const tab of tabs) {
       paneApis.delete(tab.tabId);
       newlyCreatedTabIds.delete(tab.tabId);
       removeRuntime(tab.tabId);
     }
+
+    // §E.5 整 workspace 关掉时清掉所有相关 tab 的 maximized state
+    setMaximizedPaneIdByTab((prev) => {
+      let changed = false;
+      const next: Record<string, string> = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (tabIds.has(k)) {
+          changed = true;
+          continue;
+        }
+        next[k] = v;
+      }
+      return changed ? next : prev;
+    });
 
     removeWorkspaceTabs(workspaceId);
     removeWorkspaceActiveTab(workspaceId);
@@ -710,6 +741,123 @@ export const Terminal: Component<TerminalProps> = (props) => {
   });
 
   /**
+   * MVP-14 Phase C · §D 方向键导航 + §E ⌘Enter 临时最大化。
+   *
+   * isPaneMode：active tab 在 panesByTabId 里 + tab.layout 是 split（>1 pane）·
+   * Single layout 不响应（避免在单 pane 上无意义触发）。
+   */
+  const isPaneSplitMode = (): boolean => {
+    const list = activePaneList();
+    return !!list && list.layout.kind === "split";
+  };
+
+  const triggerNavNoOpFlash = (paneId: string): void => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    setNavNoOpFlash(`${tabId}:${paneId}`);
+    if (navNoOpFlashTimer) clearTimeout(navNoOpFlashTimer);
+    navNoOpFlashTimer = setTimeout(() => {
+      setNavNoOpFlash(null);
+      navNoOpFlashTimer = undefined;
+    }, 150);
+  };
+
+  usePaneNavigation({
+    isPaneMode: isPaneSplitMode,
+    getFocusedPaneId: () => activeFocusedPaneId(),
+    getActiveTabHost: () => {
+      const tabId = currentActiveTabId();
+      if (!tabId) return null;
+      // PaneSplitView 外层 wrapper 加了 data-pane-tab-host=tabId（见 §C.5 §D.6）·
+      // 用 attribute selector 限定查询范围 · 不会拿到旁路 hidden tab 的 0×0 pane。
+      return document.querySelector(`[data-pane-tab-host="${tabId}"]`) ?? null;
+    },
+    onNavigate: (neighborId) => {
+      void handlePaneFocus(neighborId);
+    },
+    onNoOpFlash: () => {
+      const focused = activeFocusedPaneId();
+      if (focused) triggerNavNoOpFlash(focused);
+    },
+    shouldSuppress: () =>
+      pendingPaste() !== null ||
+      smartLayoutOpen() ||
+      activeMaximizedPaneId() !== null,
+  });
+
+  /**
+   * MVP-14 Phase C · §E ⌘Enter / Ctrl+Enter 临时最大化 toggle + Esc 退出。
+   * §E.5 切 tab / workspace 时不在此处理（在 setWorkspaceActiveTab / closeTab 里清）。
+   */
+  const activeMaximizedPaneId = (): string | null => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return null;
+    return maximizedPaneIdByTab()[tabId] ?? null;
+  };
+
+  const togglePaneMaximize = (): void => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    const focused = activeFocusedPaneId();
+    if (!focused) return;
+    setMaximizedPaneIdByTab((prev) => {
+      const next = { ...prev };
+      if (next[tabId]) {
+        delete next[tabId];
+      } else {
+        next[tabId] = focused;
+      }
+      return next;
+    });
+    // 最大化进入后 · xterm 容器尺寸变化 · 触发 pane resize · 由 PaneTerminal
+    // ResizeObserver 自动接管 · 不需要在这里调 fit · 防止重复 layout thrash。
+  };
+
+  const exitPaneMaximize = (): void => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    setMaximizedPaneIdByTab((prev) => {
+      if (!prev[tabId]) return prev;
+      const next = { ...prev };
+      delete next[tabId];
+      return next;
+    });
+  };
+
+  usePaneMaximizeToggle({
+    isPaneMode: isPaneSplitMode,
+    hasFocusedPane: () => activeFocusedPaneId() !== null,
+    isMaximized: () => activeMaximizedPaneId() !== null,
+    onToggle: togglePaneMaximize,
+    onExit: exitPaneMaximize,
+    shouldSuppress: () => pendingPaste() !== null || smartLayoutOpen(),
+  });
+
+  // §E.5 切换 workspace / close tab / Smart Layout apply 时清掉 maximized state
+  // 防止跨 workspace / 跨 layout 残留导致 phantom 撑满。
+  createEffect(() => {
+    const tabId = currentActiveTabId();
+    if (!tabId) return;
+    const list = panesByTabId()[tabId];
+    if (!list) return;
+    const max = maximizedPaneIdByTab()[tabId];
+    if (!max) return;
+    // maximized pane 已不在当前 panes 列表（如 layout apply 后 closed）→ 清理
+    const stillExists = list.panes.some((p) => p.paneId === max);
+    if (!stillExists) {
+      setMaximizedPaneIdByTab((prev) => {
+        const next = { ...prev };
+        delete next[tabId];
+        return next;
+      });
+    }
+  });
+
+  onCleanup(() => {
+    if (navNoOpFlashTimer) clearTimeout(navNoOpFlashTimer);
+  });
+
+  /**
    * MVP-14 Phase B · Smart Layouts 应用 · 全部走 pane_layout_apply_advanced 新 IPC。
    * 旧 pane_layout_apply 保留（不删除）· 供 v0.4 cleanup 时统一迁移。
    * onApply 抛 Error 由 SmartLayoutMenu 内部 alert 显示 · 不向上传播。
@@ -909,6 +1057,13 @@ export const Terminal: Component<TerminalProps> = (props) => {
       newlyCreatedTabIds.delete(tabId);
       removeRuntime(tabId);
       paneApis.delete(tabId);
+      // §E.5 close tab 必须清掉 maximized state · 避免 tabId 复用时残留旧最大化引用
+      setMaximizedPaneIdByTab((prev) => {
+        if (!(tabId in prev)) return prev;
+        const next = { ...prev };
+        delete next[tabId];
+        return next;
+      });
 
       if (isLastTab) {
         dropWorkspaceState(tab.workspaceId);
@@ -1345,48 +1500,63 @@ export const Terminal: Component<TerminalProps> = (props) => {
                       />
                     }
                   >
-                    {(list) => (
-                      <div
-                        class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"} ${paneFocusSuppressed() ? "is-focus-suppressed" : ""}`}
-                        aria-hidden={!tabActive()}
-                      >
-                        <PaneSplitView
-                          layout={list().layout}
-                          panes={list().panes}
-                          active={tabActive()}
-                          focusedPaneId={list().focusedPaneId}
-                          onPaneClick={(paneId) => {
-                            void handlePaneFocus(paneId);
-                          }}
-                          onPaneError={(paneId, message) => {
-                            showToast(`Pane ${paneId.slice(0, 8)}: ${message}`);
-                          }}
-                          onPaneSplit={(direction, paneId) => {
-                            void handlePaneSplit(direction, paneId);
-                          }}
-                          onPaneClose={(paneId) => {
-                            void handlePaneClose(paneId);
-                          }}
-                          onPanePasteRequest={(paneId, text) => {
-                            // pane mode cmd+V 触发 · 走统一 requestPaste · multiline 弹
-                            // PasteConfirmDialog · 与 menu paste / legacy paste 行为一致
-                            // (Codex round 6 / round 7 self-review finding)。
-                            requestPaste(tabId, text, paneId);
-                          }}
-                          onRegisterPaneApi={(paneId, api) => {
-                            // pane mode · paneApis 用 paneId 作 key（与 legacy fallback
-                            // 用 tabId 不冲突：同一 tab 同时只走一种 mode）。这里漏接
-                            // 会让 handlePaneSplit / handlePaneClose 的 serialize() 永远拿
-                            // 不到 PaneTerminalApi · paneSnapshots 永远空 · SerializeAddon
-                            // 形同虚设（Codex review #208 finding）。
-                            paneApis.set(paneId, api);
-                          }}
-                          onUnregisterPaneApi={(paneId) => {
-                            paneApis.delete(paneId);
-                          }}
-                        />
-                      </div>
-                    )}
+                    {(list) => {
+                      const maximizedId = () =>
+                        maximizedPaneIdByTab()[tabId] ?? null;
+                      const noOpFlashKey = () => navNoOpFlash();
+                      return (
+                        <div
+                          class={`vs-pane-tab-host ${tabActive() ? "is-active" : "is-hidden"} ${paneFocusSuppressed() ? "is-focus-suppressed" : ""} ${maximizedId() ? "is-maximized" : ""}`}
+                          data-pane-tab-host={tabId}
+                          data-maximized-pane-id={maximizedId() ?? ""}
+                          data-noop-flash-pane-id={
+                            noOpFlashKey()?.startsWith(`${tabId}:`)
+                              ? (noOpFlashKey()?.slice(tabId.length + 1) ?? "")
+                              : ""
+                          }
+                          aria-hidden={!tabActive()}
+                        >
+                          <PaneSplitView
+                            layout={list().layout}
+                            panes={list().panes}
+                            active={tabActive()}
+                            focusedPaneId={list().focusedPaneId}
+                            maximizedPaneId={maximizedId()}
+                            onPaneClick={(paneId) => {
+                              void handlePaneFocus(paneId);
+                            }}
+                            onPaneError={(paneId, message) => {
+                              showToast(
+                                `Pane ${paneId.slice(0, 8)}: ${message}`,
+                              );
+                            }}
+                            onPaneSplit={(direction, paneId) => {
+                              void handlePaneSplit(direction, paneId);
+                            }}
+                            onPaneClose={(paneId) => {
+                              void handlePaneClose(paneId);
+                            }}
+                            onPanePasteRequest={(paneId, text) => {
+                              // pane mode cmd+V 触发 · 走统一 requestPaste · multiline 弹
+                              // PasteConfirmDialog · 与 menu paste / legacy paste 行为一致
+                              // (Codex round 6 / round 7 self-review finding)。
+                              requestPaste(tabId, text, paneId);
+                            }}
+                            onRegisterPaneApi={(paneId, api) => {
+                              // pane mode · paneApis 用 paneId 作 key（与 legacy fallback
+                              // 用 tabId 不冲突：同一 tab 同时只走一种 mode）。这里漏接
+                              // 会让 handlePaneSplit / handlePaneClose 的 serialize() 永远拿
+                              // 不到 PaneTerminalApi · paneSnapshots 永远空 · SerializeAddon
+                              // 形同虚设（Codex review #208 finding）。
+                              paneApis.set(paneId, api);
+                            }}
+                            onUnregisterPaneApi={(paneId) => {
+                              paneApis.delete(paneId);
+                            }}
+                          />
+                        </div>
+                      );
+                    }}
                   </Show>
                 )}
               </Show>

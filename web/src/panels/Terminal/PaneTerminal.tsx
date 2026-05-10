@@ -71,6 +71,12 @@ type PaneTerminalProps = {
   cwd: string;
   active: boolean;
   focused: boolean;
+  /**
+   * MVP-14 Phase C §E · 是否处于临时最大化状态。
+   * 仅 visual hint：渲染 `data-is-maximized="true"` + 显示 maximized chip ·
+   * CSS 选择器命中后撑满 host。其他 pane 仍 mount · PTY 不被 kill。
+   */
+  maximized?: boolean;
   onRegisterApi?: (paneId: string, api: PaneTerminalApi) => void;
   onUnregisterApi?: (paneId: string) => void;
   onClick?: (paneId: string) => void;
@@ -543,12 +549,18 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   return (
     <div
-      class={`vs-pane-terminal ${props.focused ? "is-focused" : ""}`}
+      class={`vs-pane-terminal ${props.focused ? "is-focused" : ""} ${props.maximized ? "is-maximized-pane" : ""}`}
       data-pane-id={props.paneId}
+      data-is-maximized={props.maximized ? "true" : "false"}
+      role="region"
+      aria-label={`Terminal pane · ${props.shell}`}
       onClick={() => props.onClick?.(props.paneId)}
-      role="presentation"
     >
-      <div class="vs-pane-maximized-chip" aria-hidden="true" />
+      <div
+        class="vs-pane-maximized-chip"
+        aria-hidden="true"
+        data-visible={props.maximized ? "true" : "false"}
+      />
       <div ref={hostRef} class="vs-pane-terminal-host" />
       <div class="vs-pane-actions" data-pane-actions>
         <button

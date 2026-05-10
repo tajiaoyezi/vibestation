@@ -149,6 +149,44 @@ export const PaneSplitter: Component<PaneSplitterProps> = (props) => {
     props.onDragEnd?.(props.parentPaneId, 0.5);
   };
 
+  /**
+   * MVP-14 Phase C §a11y · splitter 键盘 resize ·
+   * - 普通 ArrowLeft/Right (horizontal splitter) · ArrowUp/Down (vertical splitter) → ±1% step
+   * - Shift+Arrow → ±5% step
+   * - Home / End → 跳到最小 / 最大
+   * - Enter / Space → 双击复位 50/50
+   *
+   * 仅 splitter focus 时响应 · 不全局监听 · 防止干扰 PTY / 输入。
+   */
+  const handleSplitterKeyDown = (event: KeyboardEvent): void => {
+    if (isDragging) return;
+
+    const horizontal = props.direction === "horizontal";
+    const decreaseKey = horizontal ? "ArrowLeft" : "ArrowUp";
+    const increaseKey = horizontal ? "ArrowRight" : "ArrowDown";
+    const step = event.shiftKey ? 0.05 : 0.01;
+
+    let target: number | null = null;
+    if (event.key === decreaseKey) {
+      target = clampRatio(props.ratio - step);
+    } else if (event.key === increaseKey) {
+      target = clampRatio(props.ratio + step);
+    } else if (event.key === "Home") {
+      target = RATIO_MIN;
+    } else if (event.key === "End") {
+      target = RATIO_MAX;
+    } else if (event.key === "Enter" || event.key === " ") {
+      target = 0.5;
+    }
+
+    if (target === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (Math.abs(target - props.ratio) > 0.001) {
+      props.onDragEnd?.(props.parentPaneId, target);
+    }
+  };
+
   // 组件卸载时清理 · 防 worker tab 切换 / route 切换造成的悬挂 listener。
   onCleanup(() => {
     cleanupDrag();
@@ -163,6 +201,7 @@ export const PaneSplitter: Component<PaneSplitterProps> = (props) => {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
       onDblClick={handleDoubleClick}
+      onKeyDown={handleSplitterKeyDown}
       role="separator"
       aria-orientation={
         props.direction === "horizontal" ? "vertical" : "horizontal"
@@ -170,7 +209,12 @@ export const PaneSplitter: Component<PaneSplitterProps> = (props) => {
       aria-valuenow={Math.round(props.ratio * 100)}
       aria-valuemin={Math.round(RATIO_MIN * 100)}
       aria-valuemax={Math.round(RATIO_MAX * 100)}
-      tabindex={-1}
+      aria-label={
+        props.direction === "horizontal"
+          ? "Pane 横向分隔条 · 方向键 ←/→ 调整宽度"
+          : "Pane 纵向分隔条 · 方向键 ↑/↓ 调整高度"
+      }
+      tabindex={0}
     />
   );
 };

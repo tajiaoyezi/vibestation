@@ -3,7 +3,8 @@
   min-width: 120px;
   max-width: 180px;
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto;
+  touch-action: manipulation;
   contain: layout paint;
 }
 
@@ -15,4 +16,45 @@
 
 .overlay {
   z-index: 1;
+}
+
+.otherBranches {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  z-index: 2;
+  max-width: 112px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: color-mix(in oklch, var(--bg-2) 88%, transparent);
+  color: var(--text-2);
+  font: 10px var(--font-mono);
+  line-height: 1;
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+
+.otherBranchesMenu {
+  position: absolute;
+  right: 4px;
+  top: 26px;
+  z-index: 3;
+  display: grid;
+  gap: 3px;
+  max-width: 148px;
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--bg-1) 94%, transparent);
+  padding: 6px;
+  box-shadow: 0 12px 24px oklch(0 0 0 / 0.22);
+}
+
+.otherBranchesItem {
+  overflow: hidden;
+  color: var(--text-1);
+  font: 10px var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

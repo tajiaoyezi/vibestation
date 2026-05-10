@@ -1614,7 +1614,7 @@ textarea {
   top: var(--space-1);
   left: var(--space-1);
   z-index: 1;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .vs-git-log-list::-webkit-scrollbar {

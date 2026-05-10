@@ -17,7 +17,11 @@ export interface RailHitTarget {
 }
 
 export type RailPointerHighlightEvent =
-  | { type: "hover"; target: { oid: string } | null; layout: RailGeometryLayout }
+  | {
+      type: "hover";
+      target: { oid: string } | null;
+      layout: RailGeometryLayout;
+    }
   | { type: "tap"; target: { oid: string } | null; layout: RailGeometryLayout }
   | { type: "leave" };
 
@@ -49,7 +53,10 @@ function distanceToSegment(
   const lengthSquared = dx * dx + dy * dy;
   if (lengthSquared === 0) return Math.sqrt(distanceSquared(x, y, x1, y1));
 
-  const t = Math.max(0, Math.min(1, ((x - x1) * dx + (y - y1) * dy) / lengthSquared));
+  const t = Math.max(
+    0,
+    Math.min(1, ((x - x1) * dx + (y - y1) * dy) / lengthSquared),
+  );
   const px = x1 + t * dx;
   const py = y1 + t * dy;
   return Math.sqrt(distanceSquared(x, y, px, py));
@@ -151,8 +158,7 @@ export function hitTestRailGeometry(
   layout: RailGeometryLayout,
 ): RailHitTarget | null {
   return (
-    hitTestRailNode(x, y, layout.nodes) ??
-    hitTestRailEdge(x, y, layout.edges)
+    hitTestRailNode(x, y, layout.nodes) ?? hitTestRailEdge(x, y, layout.edges)
   );
 }
 
@@ -180,7 +186,9 @@ export function collectRailPathHighlight(
     }
   }
 
-  const rowByOid = new Map(layout.nodes.map((node) => [node.oid, node.rowIndex]));
+  const rowByOid = new Map(
+    layout.nodes.map((node) => [node.oid, node.rowIndex]),
+  );
   const nodeOids = Array.from(visitedNodes).sort(
     (a, b) => (rowByOid.get(a) ?? 0) - (rowByOid.get(b) ?? 0),
   );

@@ -5,6 +5,8 @@ import type {
   RailTipGeo,
 } from "../../../../src/panels/GitLog/RailGraph/types-canvas";
 import {
+  copyRailBackBufferToCanvas,
+  configureCanvasBitmapForDpr,
   configureCanvasForDpr,
   paintRailGraphFrame,
   paintRailGraphOverlay,
@@ -101,6 +103,24 @@ class FakeCanvasContext {
 
   fillText(text: string, x: number, y: number) {
     this.calls.push(["fillText", text, x, y, this.fillStyle]);
+  }
+
+  drawImage(
+    source: unknown,
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+  ) {
+    this.calls.push(["drawImage", source, sx, sy, sw, sh, dx, dy, dw, dh]);
+  }
+
+  setTransform(a: number, b: number, c: number, d: number, e: number, f: number) {
+    this.calls.push(["setTransform", a, b, c, d, e, f]);
   }
 }
 
@@ -204,6 +224,44 @@ describe("configureCanvasForDpr", () => {
     expect(canvas.height).toBe(80);
     expect(canvas.style).toEqual({ width: "120px", height: "40px" });
     expect(ctx.calls).toContainEqual(["scale", 2, 2]);
+  });
+});
+
+describe("configureCanvasBitmapForDpr", () => {
+  it("sizes a back-buffer canvas without touching CSS style", () => {
+    const ctx = new FakeCanvasContext();
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ctx,
+    };
+
+    const result = configureCanvasBitmapForDpr(
+      canvas as unknown as HTMLCanvasElement,
+      90,
+      30,
+      2.5,
+    );
+
+    expect(result?.dpr).toBe(2);
+    expect(canvas.width).toBe(180);
+    expect(canvas.height).toBe(60);
+    expect(ctx.calls).toContainEqual(["scale", 2, 2]);
+  });
+
+  it("copies the rendered back buffer to the visible canvas with one drawImage", () => {
+    const ctx = new FakeCanvasContext();
+    const backBuffer = { width: 180, height: 60 };
+
+    copyRailBackBufferToCanvas(
+      ctx as unknown as CanvasRenderingContext2D,
+      backBuffer as unknown as HTMLCanvasElement,
+      90,
+      30,
+    );
+
+    expect(ctx.calls).toContainEqual(["clearRect", 0, 0, 90, 30]);
+    expect(ctx.calls.filter((call) => call[0] === "drawImage")).toHaveLength(1);
   });
 });
 

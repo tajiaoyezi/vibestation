@@ -13,9 +13,31 @@ const FALLBACK_TEXT_2 = "oklch(0.74 0.012 255)";
 const FALLBACK_BG_2 = "oklch(0.22 0.012 255)";
 const FALLBACK_LINE = "oklch(0.28 0.012 255)";
 
+type RailCanvasBitmap = HTMLCanvasElement | OffscreenCanvas;
+
 export function clampRailDpr(dpr: number): number {
   if (!Number.isFinite(dpr) || dpr <= 0) return 1;
   return Math.min(Math.max(dpr, 1), 2);
+}
+
+export function configureCanvasBitmapForDpr(
+  canvas: RailCanvasBitmap,
+  cssWidth: number,
+  cssHeight: number,
+  dpr: number,
+): ConfiguredCanvas | null {
+  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D | null;
+  if (!ctx) return null;
+  const resolvedDpr = clampRailDpr(dpr);
+  const width = Math.max(1, Math.floor(cssWidth * resolvedDpr));
+  const height = Math.max(1, Math.floor(cssHeight * resolvedDpr));
+
+  canvas.width = width;
+  canvas.height = height;
+  ctx.setTransform?.(1, 0, 0, 1, 0, 0);
+  ctx.scale(resolvedDpr, resolvedDpr);
+
+  return { ctx, dpr: resolvedDpr, width, height };
 }
 
 export function configureCanvasForDpr(
@@ -24,20 +46,29 @@ export function configureCanvasForDpr(
   cssHeight: number,
   dpr: number,
 ): ConfiguredCanvas | null {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  const resolvedDpr = clampRailDpr(dpr);
-  const width = Math.max(1, Math.floor(cssWidth * resolvedDpr));
-  const height = Math.max(1, Math.floor(cssHeight * resolvedDpr));
-
   canvas.style.width = `${cssWidth}px`;
   canvas.style.height = `${cssHeight}px`;
-  canvas.width = width;
-  canvas.height = height;
-  ctx.setTransform?.(1, 0, 0, 1, 0, 0);
-  ctx.scale(resolvedDpr, resolvedDpr);
+  return configureCanvasBitmapForDpr(canvas, cssWidth, cssHeight, dpr);
+}
 
-  return { ctx, dpr: resolvedDpr, width, height };
+export function copyRailBackBufferToCanvas(
+  ctx: CanvasRenderingContext2D,
+  backBuffer: CanvasImageSource & { width: number; height: number },
+  cssWidth: number,
+  cssHeight: number,
+): void {
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  ctx.drawImage(
+    backBuffer,
+    0,
+    0,
+    backBuffer.width,
+    backBuffer.height,
+    0,
+    0,
+    cssWidth,
+    cssHeight,
+  );
 }
 
 function computedStyle(root?: Element): CSSStyleDeclaration | null {
@@ -93,10 +124,11 @@ function paintEdge(
   ctx: CanvasRenderingContext2D,
   edge: RailEdgeGeo,
   color: string,
+  lineWidth = 1.5,
 ): void {
   ctx.beginPath();
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = lineWidth;
   ctx.lineCap = "round";
   ctx.moveTo(edge.fromX, edge.fromY);
   if (edge.pathKind === "bezier") {
@@ -112,6 +144,10 @@ function paintEdge(
     ctx.lineTo(edge.toX, edge.toY);
   }
   ctx.stroke();
+}
+
+function edgeKey(edge: RailEdgeGeo): string {
+  return `${edge.fromOid}->${edge.toOid}`;
 }
 
 function paintNode(
@@ -233,6 +269,30 @@ export function paintRailGraphOverlay(
   const style = computedStyle(options.root);
   ctx.save();
   ctx.clearRect(0, 0, options.width, options.height);
+
+  if (options.highlight) {
+    const highlightedEdges = new Set(options.highlight.edgeKeys);
+    const highlightedNodes = new Set(options.highlight.nodeOids);
+
+    for (const edge of layout.edges) {
+      if (!highlightedEdges.has(edgeKey(edge))) continue;
+      ctx.save();
+      ctx.globalAlpha = 0.42;
+      paintEdge(ctx, edge, colorForKey(style, edge.colorKey), 4);
+      ctx.restore();
+    }
+
+    for (const node of layout.nodes) {
+      if (!highlightedNodes.has(node.oid)) continue;
+      ctx.beginPath();
+      ctx.strokeStyle = colorForKey(style, node.colorKey);
+      ctx.lineWidth = node.oid === options.highlight.targetOid ? 3 : 2;
+      ctx.globalAlpha = node.oid === options.highlight.targetOid ? 0.9 : 0.55;
+      ctx.arc(node.x, node.y, node.radius + 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
 
   if (options.selectedRowIndex == null) {
     ctx.restore();

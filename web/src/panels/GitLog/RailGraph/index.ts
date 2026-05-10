@@ -7,3 +7,39 @@ export { normalizeRefs } from "./refs-normalize";
 export { branchNameToColorKey } from "./color-mapper";
 export { RailGraphCanvas } from "./RailGraphCanvas";
 export type { RailGraphCanvasProps } from "./RailGraphCanvas";
+export {
+  buildRailRowMetrics,
+  computeVisibleRange,
+  computeVisibleRangeFromMetrics,
+  filterRailGeometryToVisibleRange,
+} from "./RailGraphVirtualizer";
+export type { RailRowMetrics, RailVisibleRange } from "./RailGraphVirtualizer";
+export {
+  createRailFrameScheduler,
+  createRailPerformanceSampler,
+} from "./raf-scheduler";
+export type {
+  RailFrameScheduler,
+  RailFrameSchedulerHost,
+  RailPerformanceSampler,
+} from "./raf-scheduler";
+export {
+  collectRailPathHighlight,
+  hitTestRailEdge,
+  hitTestRailGeometry,
+  hitTestRailNode,
+  railEdgeKey,
+  reduceRailPointerHighlight,
+} from "./interactions";
+export type {
+  RailHitTarget,
+  RailHitTargetKind,
+  RailPointerHighlightEvent,
+} from "./interactions";
+export {
+  collapseRailAssignments,
+  collectCollapsedBranchLabels,
+  computeRailCollapseStrategy,
+  reduceOtherBranchesExpanded,
+} from "./collapse";
+export type { RailCollapseMode, RailCollapseStrategy } from "./collapse";

@@ -14,3 +14,12 @@ export {
   filterRailGeometryToVisibleRange,
 } from "./RailGraphVirtualizer";
 export type { RailRowMetrics, RailVisibleRange } from "./RailGraphVirtualizer";
+export {
+  createRailFrameScheduler,
+  createRailPerformanceSampler,
+} from "./raf-scheduler";
+export type {
+  RailFrameScheduler,
+  RailFrameSchedulerHost,
+  RailPerformanceSampler,
+} from "./raf-scheduler";

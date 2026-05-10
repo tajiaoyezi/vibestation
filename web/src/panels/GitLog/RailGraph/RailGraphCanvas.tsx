@@ -9,13 +9,19 @@ import type { RailGraphInputCommit, RailLaneAssignment } from "./types";
 import { DEFAULT_RAIL_VIEW_OPTIONS } from "./types-canvas";
 import {
   clampRailDpr,
+  configureCanvasBitmapForDpr,
   configureCanvasForDpr,
+  copyRailBackBufferToCanvas,
   paintRailGraphFallback,
   paintRailGraphFrame,
   paintRailGraphOverlay,
 } from "./canvas-paint";
 import { paintDebugGrid } from "./debug-grid";
 import { computeRailGeometry } from "./geometry";
+import {
+  createRailFrameScheduler,
+  createRailPerformanceSampler,
+} from "./raf-scheduler";
 import {
   buildRailRowMetrics,
   computeVisibleRangeFromMetrics,
@@ -46,10 +52,27 @@ function deviceDpr(fallback: number): number {
   return clampRailDpr(fallback || window.devicePixelRatio || 1);
 }
 
+type RailBackBuffer = HTMLCanvasElement | OffscreenCanvas;
+
+function createBackBuffer(): RailBackBuffer | null {
+  if (typeof OffscreenCanvas !== "undefined") {
+    return new OffscreenCanvas(1, 1);
+  }
+  if (typeof document !== "undefined") {
+    return document.createElement("canvas");
+  }
+  return null;
+}
+
 export function RailGraphCanvas(props: RailGraphCanvasProps) {
   let rootEl: HTMLDivElement | undefined;
   let mainCanvas: HTMLCanvasElement | undefined;
   let overlayCanvas: HTMLCanvasElement | undefined;
+  let backBuffer: RailBackBuffer | null = null;
+  const scheduler = createRailFrameScheduler();
+  const performanceSampler = createRailPerformanceSampler({
+    sampleEvery: 100,
+  });
   const [observedWidth, setObservedWidth] = createSignal<number | null>(null);
   const [themeRevision, setThemeRevision] = createSignal(0);
 
@@ -118,6 +141,8 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
     }
   });
 
+  onCleanup(() => scheduler.dispose());
+
   createEffect(() => {
     const nextLayout = visibleLayout();
     const nextWidth = cssWidth();
@@ -130,30 +155,65 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
     void scrollTop;
     void revision;
 
-    if (!mainCanvas || !overlayCanvas) return;
+    scheduler.invalidate(() => {
+      if (!mainCanvas || !overlayCanvas) return;
 
-    const main = configureCanvasForDpr(
-      mainCanvas,
-      nextWidth,
-      nextHeight,
-      nextDpr,
-    );
-    const overlay = configureCanvasForDpr(
-      overlayCanvas,
-      nextWidth,
-      nextHeight,
-      nextDpr,
-    );
+      const finishSample = performanceSampler.startFrame();
+      const main = configureCanvasForDpr(
+        mainCanvas,
+        nextWidth,
+        nextHeight,
+        nextDpr,
+      );
+      const overlay = configureCanvasForDpr(
+        overlayCanvas,
+        nextWidth,
+        nextHeight,
+        nextDpr,
+      );
 
-    if (!main || !overlay) return;
+      if (!main || !overlay) {
+        finishSample();
+        return;
+      }
 
-    if (nextLayout.nodes.length === 0) {
-      paintRailGraphFallback(main.ctx, {
-        theme,
-        width: nextWidth,
-        height: nextHeight,
-        root: rootEl,
-      });
+      backBuffer ??= createBackBuffer();
+      const back = backBuffer
+        ? configureCanvasBitmapForDpr(
+            backBuffer,
+            nextWidth,
+            nextHeight,
+            nextDpr,
+          )
+        : null;
+      const paintCtx = back?.ctx ?? main.ctx;
+
+      if (nextLayout.nodes.length === 0) {
+        paintRailGraphFallback(paintCtx, {
+          theme,
+          width: nextWidth,
+          height: nextHeight,
+          root: rootEl,
+        });
+      } else {
+        paintRailGraphFrame(paintCtx, nextLayout, {
+          theme,
+          width: nextWidth,
+          height: nextHeight,
+          root: rootEl,
+        });
+        paintDebugGrid(paintCtx, nextLayout);
+      }
+
+      if (back && backBuffer) {
+        copyRailBackBufferToCanvas(
+          main.ctx,
+          backBuffer as CanvasImageSource & { width: number; height: number },
+          nextWidth,
+          nextHeight,
+        );
+      }
+
       paintRailGraphOverlay(overlay.ctx, nextLayout, {
         theme,
         width: nextWidth,
@@ -161,22 +221,7 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
         selectedRowIndex,
         root: rootEl,
       });
-      return;
-    }
-
-    paintRailGraphFrame(main.ctx, nextLayout, {
-      theme,
-      width: nextWidth,
-      height: nextHeight,
-      root: rootEl,
-    });
-    paintDebugGrid(main.ctx, nextLayout);
-    paintRailGraphOverlay(overlay.ctx, nextLayout, {
-      theme,
-      width: nextWidth,
-      height: nextHeight,
-      selectedRowIndex,
-      root: rootEl,
+      finishSample();
     });
   });
 

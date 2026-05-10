@@ -304,6 +304,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
   const entryRefs = new Map<string, HTMLButtonElement>();
   const [railRowHeights, setRailRowHeights] = createSignal<number[]>([]);
   const [gitLogScrollTop, setGitLogScrollTop] = createSignal(0);
+  const [gitLogViewportHeight, setGitLogViewportHeight] = createSignal(0);
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   let closeProgressTimer: ReturnType<typeof setTimeout> | undefined;
   let highlightTimer: ReturnType<typeof setTimeout> | undefined;
@@ -458,6 +459,18 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
       if (frame) cancelAnimationFrame(frame);
       observer?.disconnect();
     });
+  });
+
+  createEffect(() => {
+    if (!ENABLE_RAIL_GRAPH || !scrollContainer) return;
+    const measureViewport = () => {
+      setGitLogViewportHeight(scrollContainer?.clientHeight ?? 0);
+    };
+    measureViewport();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measureViewport);
+    observer.observe(scrollContainer);
+    onCleanup(() => observer.disconnect());
   });
 
   const closeToast = () => {
@@ -1182,6 +1195,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
     if (!scrollContainer) return;
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
     setGitLogScrollTop(scrollTop);
+    setGitLogViewportHeight(clientHeight);
     if (scrollHeight - scrollTop - clientHeight < 50 && store.hasMore()) {
       store.loadMore(workspaceId());
     }
@@ -1501,6 +1515,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
                 theme={railTheme()}
                 dpr={railDpr()}
                 width={RAIL_GRAPH_WIDTH}
+                viewportHeight={gitLogViewportHeight()}
               />
             </div>
           </Show>

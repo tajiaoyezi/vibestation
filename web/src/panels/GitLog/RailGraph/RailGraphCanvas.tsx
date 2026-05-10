@@ -6,6 +6,7 @@ import {
   onMount,
 } from "solid-js";
 import type { RailGraphInputCommit, RailLaneAssignment } from "./types";
+import { DEFAULT_RAIL_VIEW_OPTIONS } from "./types-canvas";
 import {
   clampRailDpr,
   configureCanvasForDpr,
@@ -15,6 +16,11 @@ import {
 } from "./canvas-paint";
 import { paintDebugGrid } from "./debug-grid";
 import { computeRailGeometry } from "./geometry";
+import {
+  buildRailRowMetrics,
+  computeVisibleRangeFromMetrics,
+  filterRailGeometryToVisibleRange,
+} from "./RailGraphVirtualizer";
 import styles from "./RailGraphCanvas.module.css";
 
 export interface RailGraphCanvasProps {
@@ -26,6 +32,8 @@ export interface RailGraphCanvasProps {
   theme: "light" | "dark";
   dpr: number;
   width: number;
+  viewportHeight?: number;
+  overscanRows?: number;
 }
 
 function clampRailWidth(width: number): number {
@@ -54,7 +62,32 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
       tipStartX: Math.min(92, Math.max(68, cssWidth() - 88)),
     }),
   );
-  const cssHeight = createMemo(() => Math.max(1, layout().height));
+  const rowMetrics = createMemo(() =>
+    buildRailRowMetrics(
+      props.rowHeights,
+      props.input.length,
+      DEFAULT_RAIL_VIEW_OPTIONS.rowFallbackHeight,
+    ),
+  );
+  const viewportHeight = createMemo(() => {
+    const measured = props.viewportHeight;
+    if (Number.isFinite(measured) && measured != null && measured > 0) {
+      return measured;
+    }
+    return rootEl?.parentElement?.clientHeight ?? layout().height;
+  });
+  const visibleRange = createMemo(() =>
+    computeVisibleRangeFromMetrics(
+      props.scrollTop,
+      viewportHeight(),
+      rowMetrics(),
+      props.overscanRows ?? 100,
+    ),
+  );
+  const visibleLayout = createMemo(() =>
+    filterRailGeometryToVisibleRange(layout(), visibleRange()),
+  );
+  const cssHeight = createMemo(() => Math.max(1, visibleLayout().height));
 
   onMount(() => {
     if (typeof ResizeObserver !== "undefined" && rootEl) {
@@ -86,7 +119,7 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
   });
 
   createEffect(() => {
-    const nextLayout = layout();
+    const nextLayout = visibleLayout();
     const nextWidth = cssWidth();
     const nextHeight = cssHeight();
     const nextDpr = deviceDpr(props.dpr);
@@ -154,6 +187,7 @@ export function RailGraphCanvas(props: RailGraphCanvasProps) {
       style={{
         width: `${cssWidth()}px`,
         height: `${cssHeight()}px`,
+        transform: `translateY(${visibleRange().startY}px)`,
       }}
       data-rail-theme={props.theme}
       aria-hidden="true"

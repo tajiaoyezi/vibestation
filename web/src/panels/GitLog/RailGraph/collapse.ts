@@ -70,10 +70,11 @@ export function collapseRailAssignments(
     return assignments;
   }
 
+  const otherLaneIndex = strategy.otherLaneIndex;
   return assignments.map((assignment) =>
     assignment.laneIndex < strategy.visibleLaneLimit
       ? assignment
-      : { ...assignment, laneIndex: strategy.otherLaneIndex },
+      : { ...assignment, laneIndex: otherLaneIndex },
   );
 }
 

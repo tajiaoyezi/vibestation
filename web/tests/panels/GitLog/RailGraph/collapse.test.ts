@@ -18,10 +18,7 @@ function assignments(count: number): RailLaneAssignment[] {
   }));
 }
 
-function commit(
-  oid: string,
-  refNames: string[] = [],
-): RailGraphInputCommit {
+function commit(oid: string, refNames: string[] = []): RailGraphInputCommit {
   return {
     oid,
     parents: [],
@@ -75,9 +72,9 @@ describe("collapseRailAssignments", () => {
   it("does not remap full-mode lane assignments", () => {
     const source = assignments(3);
 
-    expect(collapseRailAssignments(source, computeRailCollapseStrategy(3))).toBe(
-      source,
-    );
+    expect(
+      collapseRailAssignments(source, computeRailCollapseStrategy(3)),
+    ).toBe(source);
   });
 
   it("remaps lanes over the visible limit into the other group lane", () => {
@@ -108,7 +105,11 @@ describe("collectCollapsedBranchLabels", () => {
     ];
 
     expect(
-      collectCollapsedBranchLabels(input, lanes, computeRailCollapseStrategy(60)),
+      collectCollapsedBranchLabels(
+        input,
+        lanes,
+        computeRailCollapseStrategy(60),
+      ),
     ).toEqual(["feat/b"]);
   });
 });
@@ -116,13 +117,25 @@ describe("collectCollapsedBranchLabels", () => {
 describe("reduceOtherBranchesExpanded", () => {
   it("toggles group dropdown only while group mode is active", () => {
     expect(
-      reduceOtherBranchesExpanded(false, "toggle", computeRailCollapseStrategy(60)),
+      reduceOtherBranchesExpanded(
+        false,
+        "toggle",
+        computeRailCollapseStrategy(60),
+      ),
     ).toBe(true);
     expect(
-      reduceOtherBranchesExpanded(true, "toggle", computeRailCollapseStrategy(60)),
+      reduceOtherBranchesExpanded(
+        true,
+        "toggle",
+        computeRailCollapseStrategy(60),
+      ),
     ).toBe(false);
     expect(
-      reduceOtherBranchesExpanded(true, "toggle", computeRailCollapseStrategy(30)),
+      reduceOtherBranchesExpanded(
+        true,
+        "toggle",
+        computeRailCollapseStrategy(30),
+      ),
     ).toBe(false);
   });
 });

@@ -89,7 +89,10 @@ export function computeVisibleRange(
     0,
     safeTotalRows - 1,
   );
-  const visibleRows = Math.max(1, Math.ceil(safeViewportHeight / safeRowHeight));
+  const visibleRows = Math.max(
+    1,
+    Math.ceil(safeViewportHeight / safeRowHeight),
+  );
   const lastVisibleRow = Math.min(
     safeTotalRows - 1,
     firstVisibleRow + visibleRows - 1,

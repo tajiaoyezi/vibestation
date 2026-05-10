@@ -19,6 +19,11 @@ type PaneSplitViewProps = {
   panes: PaneState[];
   active: boolean;
   focusedPaneId: string | null;
+  /**
+   * MVP-14 Phase C · 当前 tab 临时最大化的 pane id · null 时正常 split layout。
+   * 透传给 [`PaneTerminal`] 设 `data-is-maximized` · CSS 选中后撑满 host · §E.1。
+   */
+  maximizedPaneId?: string | null;
   onPaneClick: (paneId: string) => void;
   onSplitterDragEnd?: (parentPaneId: string, ratio: number) => void;
   onPaneError?: (paneId: string, message: string) => void;
@@ -66,6 +71,7 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
           cwd={p().cwd}
           active={props.active}
           focused={props.focusedPaneId === paneId}
+          maximized={props.maximizedPaneId === paneId}
           onClick={props.onPaneClick}
           onExit={props.onPaneExit}
           onError={props.onPaneError}
@@ -102,6 +108,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           panes={props.panes}
           active={props.active}
           focusedPaneId={props.focusedPaneId}
+          maximizedPaneId={props.maximizedPaneId}
           onPaneClick={props.onPaneClick}
           onSplitterDragEnd={props.onSplitterDragEnd}
           onPaneError={props.onPaneError}
@@ -125,6 +132,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
           panes={props.panes}
           active={props.active}
           focusedPaneId={props.focusedPaneId}
+          maximizedPaneId={props.maximizedPaneId}
           onPaneClick={props.onPaneClick}
           onSplitterDragEnd={props.onSplitterDragEnd}
           onPaneError={props.onPaneError}

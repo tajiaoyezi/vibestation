@@ -32,7 +32,7 @@ gix = { version = "0.70", default-features = false, features = ["max-performance
 git2 = { version = "0.20", default-features = false, features = ["https", "ssh", "vendored-libgit2", "vendored-openssl"] }
 similar = "2"
 # MVP-08 Phase D Git Status fs watch（notify 6.x stable line）
-notify = "6.1.1"
+notify = "8.2.0"
 # MVP-10 Phase B Telemetry · ADR-015 (Sentry SDK + sanitized payload)
 # default-features = false 关闭 backtrace/contexts/panic 默认集成（ADR-015 §决策 · default_integrations=false 锁定）
 # 仅保留 transport（reqwest + rustls · HTTP envelope 必需）

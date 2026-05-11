@@ -30,7 +30,7 @@ libc = "0.2"
 # MVP-07 Git Log 读路径依赖（OpenCode PR #83 · ADR-007 读切 gix）
 gix = { version = "0.70", default-features = false, features = ["max-performance-safe", "revparse-regex"] }
 git2 = { version = "0.20", default-features = false, features = ["https", "ssh", "vendored-libgit2", "vendored-openssl"] }
-similar = "2"
+similar = "3"
 # MVP-08 Phase D Git Status fs watch（notify 6.x stable line）
 notify = "6.1.1"
 # MVP-10 Phase B Telemetry · ADR-015 (Sentry SDK + sanitized payload)

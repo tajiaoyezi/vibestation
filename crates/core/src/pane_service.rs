@@ -25,11 +25,11 @@ use crate::db::{DbError, DbPool};
 use crate::panes::{
     apply_smart_layout, build_layout_for_preset, close_pane_in_layout, collect_pane_ids,
     find_split_ratio, split_layout, update_split_ratio, LayoutApplyAdvancedRequest,
-    LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope, LayoutNode, MAX_SPLIT_RATIO,
-    MIN_SPLIT_RATIO, PaneCloseRequest, PaneCreateRequest, PaneError,
-    PaneFocusRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
-    PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PaneResizeStepRequest, PanesDao,
-    SmartLayoutKind, SplitRatioUpdateRequest,
+    LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope, LayoutNode, PaneCloseRequest,
+    PaneCreateRequest, PaneError, PaneFocusRequest, PaneListResponse, PaneMaximizeRequest,
+    PaneMaximizeResult, PaneNavDirection, PaneNavigateRequest, PaneNavigateResult,
+    PaneResizeStepRequest, PanesDao, SmartLayoutKind, SplitRatioUpdateRequest, MAX_SPLIT_RATIO,
+    MIN_SPLIT_RATIO,
 };
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -161,7 +161,8 @@ pub fn apply_pane_close(
         return Err(PaneError::NotFound(req.pane_id.clone()));
     }
 
-    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout.clone(), first_pane_id(&new_layout));
+    let new_envelope =
+        LayoutEnvelope::from_legacy_node(new_layout.clone(), first_pane_id(&new_layout));
     write_tab_layout(&tx, &tab_id, &new_envelope)?;
     let next_focus = first_pane_id(&new_layout);
     write_focused_pane(&tx, &tab_id, next_focus.as_deref())?;
@@ -230,8 +231,7 @@ pub fn apply_layout_preset(
     })?;
     let envelope = read_tab_layout_envelope(&tx, &req.tab_id)?;
 
-    let (new_layout, closed_pane_ids) =
-        apply_smart_layout(&envelope.root, kind, &focused_pane_id)?;
+    let (new_layout, closed_pane_ids) = apply_smart_layout(&envelope.root, kind, &focused_pane_id)?;
     new_layout.validate_layout()?;
 
     for pane_id in &closed_pane_ids {
@@ -264,7 +264,8 @@ pub fn apply_split_ratio_update(
     let new_layout = update_split_ratio(&envelope.root, &req.pane_id, req.new_ratio)?;
     new_layout.validate_layout()?;
 
-    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
+    let new_envelope =
+        LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
     write_tab_layout(&tx, &tab_id, &new_envelope)?;
 
     tx.commit()
@@ -402,7 +403,8 @@ pub fn apply_pane_resize_step(
     let new_layout = update_split_ratio(&envelope.root, &req.pane_id, new_ratio)?;
     new_layout.validate_layout()?;
 
-    let new_envelope = LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
+    let new_envelope =
+        LayoutEnvelope::from_legacy_node(new_layout, envelope.focused_pane_id.clone());
     write_tab_layout(&tx, &req.tab_id, &new_envelope)?;
 
     tx.commit()
@@ -434,9 +436,8 @@ fn read_tab_layout(conn: &rusqlite::Connection, tab_id: &str) -> Result<LayoutEn
         }
     }
 
-    LayoutEnvelope::try_from_json(&layout_json).map_err(|e| {
-        PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}"))
-    })
+    LayoutEnvelope::try_from_json(&layout_json)
+        .map_err(|e| PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}")))
 }
 
 fn read_tab_layout_envelope(
@@ -453,9 +454,8 @@ fn read_tab_layout_envelope(
             rusqlite::Error::QueryReturnedNoRows => PaneError::NotFound(tab_id.to_string()),
             other => PaneError::Db(DbError::Query(other.to_string())),
         })?;
-    LayoutEnvelope::try_from_json(&layout_json).map_err(|e| {
-        PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}"))
-    })
+    LayoutEnvelope::try_from_json(&layout_json)
+        .map_err(|e| PaneError::InvalidLayout(format!("layout envelope parse (tab={tab_id}): {e}")))
 }
 
 fn write_tab_layout(
@@ -590,9 +590,7 @@ pub fn migrate_workspace_layout_state(pool: &DbPool) -> Result<usize, PaneError>
             Err(e) => {
                 // 跳过无法解析的 layout（保留原样）
                 drop(tx);
-                eprintln!(
-                    "[migrate_workspace_layout_state] skip tab_id={tab_id}: {e}"
-                );
+                eprintln!("[migrate_workspace_layout_state] skip tab_id={tab_id}: {e}");
             }
         }
     }
@@ -1141,7 +1139,9 @@ mod tests {
         let envelope = read_tab_layout_envelope(&conn, &tab_id).unwrap();
         assert_eq!(envelope.version, 1);
         assert_eq!(envelope.focused_pane_id, None); // legacy 无 focus 信息
-        assert!(matches!(envelope.root, LayoutNode::Single { ref pane_id } if pane_id == "legacy-pane"));
+        assert!(
+            matches!(envelope.root, LayoutNode::Single { ref pane_id } if pane_id == "legacy-pane")
+        );
     }
 
     #[test]

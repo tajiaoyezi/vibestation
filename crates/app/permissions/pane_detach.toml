@@ -1,0 +1,16 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-pane-detach-open"
+description = "MVP-17 Phase B · Open a detached WebviewWindow for the given pane_id"
+commands.allow = ["pane_detach_open"]
+
+[[permission]]
+identifier = "allow-pane-detach-close"
+description = "MVP-17 Phase B · Close a detached WebviewWindow by window_label · reattach pane"
+commands.allow = ["pane_detach_close"]
+
+[[permission]]
+identifier = "allow-pane-detach-list"
+description = "MVP-17 Phase B · List all currently detached panes (runtime-only state)"
+commands.allow = ["pane_detach_list"]

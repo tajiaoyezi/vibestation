@@ -38,7 +38,7 @@ reviewer: Claude Code
 - **上游已落地**：
   - MVP-09 PR #116/#118/#159 已在 `crates/core/src/git_ops.rs` 落地 git2 写路径基础设施（identity / CommitError / Tauri permission 模式）
   - MVP-13 PR #220 已在 `crates/core/src/branch_ops.rs` 落地分支 CRUD（branch list / create / checkout / delete）· MVP-16 直接复用 checkout 链路（rebase / cherry-pick 都需要切分支）
-  - MVP-08 PR #? 已在 `crates/core/src/git_status.rs` + `web/src/panels/Diff/` 落地 Diff 视图基础设施（行级 diff + 颜色区分）· MVP-16 扩展为 3-way conflict view
+  - MVP-08 PR #100 已在 `crates/core/src/git_status.rs` + `web/src/panels/Diff/` 落地 Diff 视图基础设施（行级 diff + 颜色区分）· MVP-16 扩展为 3-way conflict view
 - **战略价值**：rebase / merge / cherry-pick 是 JetBrains 级 Git 工作台的**核心差异化**（vs GitKraken 的图形化 / vs CLI 的效率 / vs Fork 的步进式 UX）· v0.3 解锁后 · 用户不再需要回终端做 90% 的 Git 工作
 
 ---
@@ -99,7 +99,7 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 | Phase A · git2 后端 + IPC | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof | 3d | ✅ done |
 | Phase B · UI 主体（rebase editor + 冲突解决） | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ✅ done · PR #257 · runtime screenshots 按用户要求跳过 |
 | Phase C · 中断恢复 + crash recovery | rebase_state 表持久化 · app 启动检测 .git/rebase-merge · 全局 banner UI · continue / abort / skip 路径 | 1d | ✅ done · PR #259 |
-| Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑 | 0.5d | 🟢 部分 done · macOS Criterion bench done by PR #N · GUI screenshot + Linux 跨平台 deferred |
+| Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑 | 0.5d | 🟢 部分 done · macOS Criterion bench done by PR #266 · GUI screenshot + Linux 跨平台 deferred |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动 · 复用 MVP-09/13 模式）：
 

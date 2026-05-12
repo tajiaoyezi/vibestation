@@ -276,11 +276,11 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
 ### G. 边界 / 错误处理
 
-- [ ] G.1 shiki 加载失败（网络断 / CDN 不可达）：降级纯文本 · console.error + UI chip "Plain text · 加载失败" · 不白屏
-- [ ] G.2 语言识别错误（如 `.js` 被识别成 Java 因为文件内容像 Java）：允许误识别 · 用户不可手动纠正（v0.4+ 评估语言选择器）· 纯文本降级始终可用
-- [ ] G.3 空文件：diff 显示空（MVP-08 已有）· syntax highlight 无内容可高亮 → 空显示 · 不崩溃
-- [ ] G.4 单行超大文件（1 行 10MB）：按 100KB 分段截断显示 · 提示 "Line too long · truncated" · 不 freeze
-- [ ] G.5 Web Worker 创建失败（浏览器禁用 Worker）：fallback `requestIdleCallback` · 仍满足 ≤ 16ms 主线程预算
+- [x] G.1 shiki 加载失败（网络断 / CDN 不可达）：降级纯文本 · console.error + UI chip "Plain text · 加载失败" · 不白屏 · vitest 4 cases · `web/tests/utils/shiki/edge-cases/shiki-load-failure.test.ts`
+- [ ] G.2 语言识别错误（如 `.js` 被识别成 Java 因为文件内容像 Java）：允许误识别 · 用户不可手动纠正（v0.4+ 评估语言选择器）· 纯文本降级始终可用 · **explicit skip** · spec L243
+- [x] G.3 空文件：diff 显示空（MVP-08 已有）· syntax highlight 无内容可高亮 → 空显示 · 不崩溃 · vitest 5 cases · `web/tests/utils/shiki/edge-cases/empty-file.test.ts`
+- [x] G.4 单行超大文件（1 行 10MB）：按 100KB 分段截断显示 · 提示 "Line too long · truncated" · 不 freeze · vitest 4 cases · **⚠️ Phase C 未实施截断逻辑 · 已暴露缺陷 · 留 v0.3 sprint fix track** · `web/tests/utils/shiki/edge-cases/single-large-line.test.ts`
+- [x] G.5 Web Worker 创建失败（浏览器禁用 Worker）：fallback `requestIdleCallback` · 仍满足 ≤ 16ms 主线程预算 · vitest 4 cases · `web/tests/utils/shiki/edge-cases/worker-disabled-fallback.test.ts`
 
 ---
 

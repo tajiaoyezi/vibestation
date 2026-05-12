@@ -240,6 +240,7 @@ pub struct PtySession {
     master: Mutex<Box<dyn MasterPty + Send>>,
     writer: Mutex<Box<dyn Write + Send>>,
     child: Mutex<Box<dyn Child + Send + Sync>>,
+    initial_cwd: PathBuf,
     closed: AtomicBool,
     exit_emitted: AtomicBool,
     scrollback: Mutex<ScrollbackBuffer>,
@@ -266,6 +267,14 @@ impl PtySession {
         writer.write_all(input.as_bytes())?;
         writer.flush()?;
         Ok(())
+    }
+
+    #[must_use]
+    pub fn working_directory(&self) -> PathBuf {
+        self.process_id
+            .and_then(detect_process_cwd)
+            .map(normalize_cwd)
+            .unwrap_or_else(|| normalize_cwd(self.initial_cwd.clone()))
     }
 
     fn resize(&self, cols: u16, rows: u16) -> Result<(), PtyError> {
@@ -601,6 +610,7 @@ impl PtyManager {
             .take_writer()
             .map_err(|error| PtyError::OpenFailed(error.to_string()))?;
 
+        let initial_cwd = normalize_cwd(cwd.clone());
         let mut command = CommandBuilder::new(resolved_shell.as_os_str());
         command.cwd(cwd);
         command.env("TERM", "xterm-256color");
@@ -622,6 +632,7 @@ impl PtyManager {
             master: Mutex::new(pair.master),
             writer: Mutex::new(writer),
             child: Mutex::new(child),
+            initial_cwd,
             closed: AtomicBool::new(false),
             exit_emitted: AtomicBool::new(false),
             scrollback: Mutex::new(ScrollbackBuffer::default()),
@@ -669,6 +680,10 @@ impl PtyManager {
             fd: session.fd,
         });
         session.terminate(&self.event_tx)
+    }
+
+    pub fn working_directory(&self, tab_id: &str) -> Result<PathBuf, PtyError> {
+        Ok(self.session(tab_id)?.working_directory())
     }
 
     pub fn close_all_sessions(&self) {
@@ -1144,6 +1159,36 @@ fn is_executable_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
+    #[cfg(target_os = "linux")]
+    {
+        std::fs::read_link(format!("/proc/{process_id}/cwd")).ok()
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let output = std::process::Command::new("lsof")
+            .args(["-a", "-p", &process_id.to_string(), "-d", "cwd", "-Fn"])
+            .output()
+            .ok()?;
+        if !output.status.success() {
+            return None;
+        }
+        String::from_utf8_lossy(&output.stdout)
+            .lines()
+            .find_map(|line| line.strip_prefix('n'))
+            .map(PathBuf::from)
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    {
+        let _ = process_id;
+        None
+    }
+}
+
+fn normalize_cwd(path: PathBuf) -> PathBuf {
+    path.canonicalize().unwrap_or(path)
+}
+
 fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
     if flags < 0 {
@@ -1455,6 +1500,33 @@ mod tests {
         let (manager, _events) = manager_with_events();
         let error = manager.kill("missing").unwrap_err();
         assert!(matches!(error, PtyError::NotFound(value) if value == "missing"));
+    }
+
+    #[test]
+    fn working_directory_unknown_tab_returns_not_found() {
+        let (manager, _events) = manager_with_events();
+        let error = manager.working_directory("missing").unwrap_err();
+        assert!(matches!(error, PtyError::NotFound(value) if value == "missing"));
+    }
+
+    #[test]
+    fn working_directory_returns_spawn_cwd() {
+        let (manager, _events) = manager_with_events();
+        let dir = tempfile::tempdir().unwrap();
+        manager
+            .spawn(PtySpawnRequest {
+                tab_id: "tab-cwd".to_string(),
+                shell: "/bin/sh".to_string(),
+                cwd: dir.path().to_string_lossy().to_string(),
+                cols: 80,
+                rows: 24,
+            })
+            .unwrap();
+
+        let cwd = manager.working_directory("tab-cwd").unwrap();
+
+        assert_eq!(cwd, dir.path().canonicalize().unwrap());
+        manager.kill("tab-cwd").unwrap();
     }
 
     #[test]

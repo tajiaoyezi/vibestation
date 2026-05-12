@@ -72,6 +72,7 @@ pub fn create_fixture_2x2_layout() -> (TempDir, Connection) {
     )
 }
 
+#[allow(dead_code)]
 pub fn create_fixture_invalid_3horizontal() -> Vec<LayoutNode> {
     vec![
         LayoutNode::Single {
@@ -90,6 +91,7 @@ pub fn create_fixture_invalid_3horizontal() -> Vec<LayoutNode> {
     ]
 }
 
+#[allow(dead_code)]
 pub fn create_fixture_invalid_3vertical() -> Vec<LayoutNode> {
     vec![
         LayoutNode::Single {

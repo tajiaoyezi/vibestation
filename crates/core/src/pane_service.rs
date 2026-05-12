@@ -327,7 +327,7 @@ pub fn apply_pane_navigate(
     pool: &DbPool,
     req: &PaneNavigateRequest,
 ) -> Result<PaneNavigateResult, PaneError> {
-    let mut conn = pool.get().map_err(DbError::from)?;
+    let conn = pool.get().map_err(DbError::from)?;
     let envelope = read_tab_layout_envelope(&conn, &req.tab_id)?;
 
     let pane_ids = collect_pane_ids(&envelope.root);
@@ -364,7 +364,7 @@ pub fn apply_pane_maximize(
     pool: &DbPool,
     req: &PaneMaximizeRequest,
 ) -> Result<PaneMaximizeResult, PaneError> {
-    let mut conn = pool.get().map_err(DbError::from)?;
+    let conn = pool.get().map_err(DbError::from)?;
     let envelope = read_tab_layout_envelope(&conn, &req.tab_id)?;
 
     if req.toggle {

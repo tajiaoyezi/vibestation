@@ -1,0 +1,21 @@
+{
+  "$schema": "对应 scripts/validate-runtime-evidence.mjs · session 28（2026-05-12）引入",
+  "version": 1,
+  "_doc": "Runtime evidence validator exception · 仅供 spec-mandated 命名 / 历史 evidence 体积豁免。新增 mvp 条目必须在 PR body 含 spec_ref + reason · 评审拒绝无理由 exception。",
+  "mvps": {
+    "mvp-11": {
+      "reason": "session 19 spec L140/L278 硬引用 05a/05b/05c opacity 序列 + A5/B4 平台前缀语义 · 重命名将破坏 spec link · 体积超 0.78MB 来自 .mov 录屏（webview-disabled-behaviors 7.54MB）· 本地无 ffmpeg 暂不压缩",
+      "spec_ref": "docs/tasks/MVP-11-native-feel-quality.md#L140-L278",
+      "incident_ref": "PR #273 / #274 runtime evidence validator 首次扫描暴露 · session 28（2026-05-12）",
+      "allow_r3_naming": [
+        "05a-opacity-0.5.png",
+        "05b-opacity-0.85.png",
+        "05c-opacity-1.0.png",
+        "A5-linux-vibrancy-dark.png",
+        "A5-linux-vibrancy-light.png",
+        "B4-linux-default-titlebar.png"
+      ],
+      "r4_dir_tolerance_bytes": 1048576
+    }
+  }
+}

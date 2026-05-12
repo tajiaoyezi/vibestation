@@ -738,11 +738,11 @@ fn external_term_preview_env(
     state: State<'_, AppState>,
     pane_id: String,
 ) -> Result<EnvPreview, String> {
-    state
+    let env = state
         .pane_pty
-        .working_directory(&pane_id)
+        .environment(&pane_id)
         .map_err(|error| format!("pane PTY session unavailable: {error}"))?;
-    Ok(filter_env(&current_process_env()))
+    Ok(filter_env(&env))
 }
 
 #[tauri::command]
@@ -763,7 +763,11 @@ fn external_term_launch(
     let launch_command =
         build_launch_command(&request.terminal_id, &cwd, &shell, current_platform())
             .map_err(|error| error.to_string())?;
-    let filtered_env = filtered_env_vars(&current_process_env());
+    let pane_env = state
+        .pane_pty
+        .environment(&request.pane_id)
+        .map_err(|error| format!("pane PTY session unavailable: {error}"))?;
+    let filtered_env = filtered_env_vars(&pane_env);
 
     let mut command = Command::new(&launch_command.program);
     command
@@ -799,10 +803,6 @@ fn external_term_launch(
             failed_reason: Some(error.to_string()),
         }),
     }
-}
-
-fn current_process_env() -> HashMap<String, String> {
-    std::env::vars().collect()
 }
 
 // ─── MVP-05 Phase B Step 2 · Pane layout IPC（6 commands · §H.3 atomicity） ───

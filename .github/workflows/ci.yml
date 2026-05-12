@@ -158,6 +158,34 @@ jobs:
       - name: pnpm build (web bundle smoke)
         run: pnpm --filter @vibestation/web build
 
+  # ────────────── Runtime evidence validator（session 28 PR #273 工具 + PR #279 exception）──────────────
+  runtime-evidence-validator:
+    name: Runtime evidence · R1-R5 + .validator-exceptions.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Run runtime-evidence validator
+        # 扫 docs/runtime-evidence/<task-id>/ 25 目录（截至 session 28）·
+        # R1 命名 / R2 git tracked / R3 顺序前缀 / R4 体积 ≤ 10MB · 单文件 + 总和 ·
+        # spec-mandated 命名 / 历史超体积 via .validator-exceptions.json 豁免 ·
+        # PR #279 加 11 vitest case · 当前 baseline: 21 PASS / 4 WARNING / 0 ERROR
+        run: node scripts/validate-runtime-evidence.mjs
+
+      - name: Run validator vitest unit tests
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @vibestation/web exec vitest run tests/scripts/validate-runtime-evidence.test.ts
+
   # ────────────── 占位 placeholder（pre-code 状态指示器）──────────────
   pre-code-status:
     name: Pre-code status · 当前阶段说明
@@ -170,6 +198,7 @@ jobs:
           echo "   · markdown-lint: active"
           echo "   · rust-build: active（cargo clippy + fmt + test）"
           echo "   · frontend-build: active（pnpm lint + typecheck）"
+          echo "   · runtime-evidence-validator: active (session 28 PR #273 + #279)"
           echo "   · secret-scan: active (see .github/workflows/secret-scan.yml)"
           echo "   · task-spec-validator: active (see .github/workflows/task-spec-validator.yml)"
           echo ""

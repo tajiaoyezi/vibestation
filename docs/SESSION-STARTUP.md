@@ -5,38 +5,53 @@
 
 ---
 
-## ⚠️ 当前阶段：session 17 · MVP-04 Phase F 收口 + MVP-08 Phase A/B 已落地（2026-04-23）
+## ⚠️ 当前阶段：session 29 · v0.1/v0.2/v0.3 sprint 全代码收官 + MVP-17 v0.3 future 启动（2026-05-13）
 
-**仓库已进入代码实施中段**，`main` 当前已合入 `PR #99/#100/#101/#102`：
+**仓库代码实施全面铺开**，`main` 当前已合入 PR #281-#288（session 29 主 agent 8 PR · session 28 9 PR · session 27 3 PR）：
 
-- ✅ `crates/app/` + `crates/core/` + `web/` 生产代码已在仓库中
-- ✅ `pnpm tauri:dev` / `cargo build` / `pnpm typecheck` 为可执行路径，不再是 pre-code 空仓库
-- ✅ `MVP-02/03/07` 已 done
-- ✅ `MVP-04` 已完成 Phase A/B/C/E/F，仅剩 Phase D shell 兼容
-- ✅ `MVP-08` 已完成 Phase A/B，当前主线进入 Phase C（Diff 视图前端）
-- ⚠️ 外部阻塞仍是 Ubuntu 24 环境与 Apple Developer Program；不阻塞当前主线
-- ⚠️ main 分支保护仍未应用（用户暂缓 · 见 `docs/BRANCH-PROTECTION.md`）
+- ✅ `crates/app/` + `crates/core/` + `web/` 生产代码完整 · 测试 ~688 cargo + ~228 vitest 全过
+- ✅ `pnpm tauri:dev` / `cargo build` / `pnpm typecheck` / `cargo clippy -D warnings` / `cargo fmt --check` 全 exit 0
+- ✅ **v0.1 主线 MVP-01..11 全代码收官**（4 类 GUI capture deferred · Arbiter 自定时机）
+- ✅ **v0.2 MVP-22 done** · MVP-13 + MVP-21 全 4 phase 自动化 done（GUI screenshots deferred）
+- ✅ **v0.3 sprint MVP-12/14/15/16 自动化全收**（含 Phase A/B/C + MVP-15 §F §G + MVP-16 Phase D part A bench）
+- 🔄 **v0.3 future MVP-17 active**（spec ready @ PR #283 + Phase B skeleton @ PR #285 + 3-track dispatch · Codex Phase A / OpenCode Phase C 进行中）
+- ✅ Ubuntu 24 已 validated（session 19 PR #137-#139 · ADR-006 解除 caveat · X11 108ms + Wayland 107ms / 30 cold boot 0 fail）
+- ✅ v0.1.0-alpha 双平台已发（session 21 PR #173-#175 · macOS unsigned .dmg + Linux .deb / .AppImage）
+- ✅ Branch protection 机械化（session 19 PR #145 · `.githooks/pre-push` + `package.json prepare` 自动 `git config core.hooksPath = .githooks`）
+- ⚠️ Apple Developer Program 推 v0.2（SPIKE-06 §B blocked · v0.1 alpha unsigned 模式 + Gatekeeper bypass README 指引替代 · 不阻塞 GA）
 
 **先读 `docs/PROGRESS.md` 的"📍 当前位置"和"🔜 下一步"获取最新状态。**
 
+历史 session 归档在 `docs/session-history/`（session 17-21 + 24-27 已归档 · session 28-29 仍在 PROGRESS 滚动窗口内）。
+
 ---
 
-## 🏁 今天立即能做的（按优先级）
+## 🏁 今天立即能做的（按优先级 · session 29+ 视角）
 
-### 选项 A · 继续主线：MVP-08 Phase C（推荐）
-认领 `docs/tasks/MVP-08-diff-and-git-status.md`：
-- 复用已落地 `diff_compute` / `diff_get_settings` / Git Status 面板 contract
-- 主区接入 Diff 视图前端：split/unified 切换、行号、binary 提示、大文件 fallback
-- 把 Git Status / Git Log 的文件点击真正接到 Diff 视图
+### 选项 A · 接 MVP-17 Phase B 收尾（推荐 · session 30 主线）
+PR #285 已落地 skeleton · 剩余 Tauri WebviewWindow 真实 lifecycle：
+- `crates/app/src/pane_detach/window_manager.rs` 替换 skeleton return 为真实 `WebviewWindowBuilder`
+- close event listener 注册 · 异常关闭路径（kill -9 / IPC channel close · spec D.5）
+- WebviewWindow bounds 实时同步（拖动后取最新）
+- IPC 集成测试（`cargo test --features integration` · 5 case）
+- worktree 已就位：`/private/tmp/MVP-17-phase-B-work`
 
-### 选项 B · 收口主线：MVP-08 Phase D/E
-- `notify` / polling 刷新方案
-- runtime 证据 + 性能量化
-- 让 MVP-08 达到可交付状态，为 MVP-09 写路径铺路
+### 选项 B · 跑 v0.3 sprint Phase D capture playbook（Arbiter 手工 · 90-120 min）
+PR #271 playbook 已就位 · 4 MVP × ~28 PNG + 1 MP4 + 4 metrics 一气呵成：
+- MVP-12 commit rail graph 截图
+- MVP-14 pane advanced layout 截图 + 30s 录屏
+- MVP-15 diff syntax highlight DevTools Performance + 视觉回归
+- MVP-16 rebase/merge/cherrypick 截图 + WCAG audit
+- 跑完 4 MVP spec status: ready → done flip
 
-### 选项 C · 低优先级收尾：MVP-04 Phase D
-- 默认 shell / Claude CLI / Codex CLI 实机兼容
-- 这是当前终端主链唯一剩余 Phase，但优先级低于 MVP-08 / MVP-09
+### 选项 C · 等待 dispatch agent 完成（被动）
+- Codex CLI · MVP-17 Phase A external_term backend（worktree `/private/tmp/MVP-17-phase-A-work`）
+- OpenCode · MVP-17 Phase C frontend + mock IPC（worktree `/private/tmp/MVP-17-phase-C-work`）
+- PR 推送后由主 agent review + merge · 完成后接 selection A 集成
+
+### 选项 D · 起新 v0.4+ spec（低优先 · 远期）
+- SPIKE-07 CLI parser draft → ready（v1.0-pre · 3d）
+- MVP-18/19/20 是 v1.0 vision · 严格按 CLAUDE.md 禁区不对外暴露 · 不主动详化（等 Arbiter 明确触发）
 
 ---
 

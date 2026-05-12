@@ -1,0 +1,16 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+[[permission]]
+identifier = "allow-external-term-list"
+description = "List installed external terminal apps for Pop to External feature"
+commands.allow = ["external_term_list"]
+
+[[permission]]
+identifier = "allow-external-term-preview-env"
+description = "Preview filtered env vars before launching external terminal"
+commands.allow = ["external_term_preview_env"]
+
+[[permission]]
+identifier = "allow-external-term-launch"
+description = "Launch external terminal with filtered env + cwd + shell"
+commands.allow = ["external_term_launch"]

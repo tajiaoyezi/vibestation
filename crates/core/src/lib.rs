@@ -8,6 +8,7 @@ pub mod branch_ops;
 pub mod config_import;
 pub mod db;
 pub mod diff;
+pub mod external_term;
 pub mod fs_watch;
 pub mod git_log;
 pub mod git_ops;
@@ -42,6 +43,11 @@ pub use config_import::ipc::{
 pub use config_import::ImportSource;
 pub use diff::{
     DiffError, DiffHunk, DiffLine, DiffLineType, DiffRequest, DiffResponse, DiffService,
+};
+pub use external_term::{
+    build_launch_command, current_platform, detect_terminals, filter_env, filtered_env_vars,
+    EnvEntry, EnvPreview, ExternalTerminalInfo, ExternalTerminalLaunchRequest,
+    ExternalTerminalLaunchResult, LaunchCommand, LaunchError, Platform,
 };
 pub use fs_watch::{GitStatusWatchError, GitStatusWatcher, GIT_STATUS_WATCH_DEBOUNCE};
 pub use git_log::{

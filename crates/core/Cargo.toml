@@ -36,7 +36,7 @@ notify = "6.1.1"
 # MVP-10 Phase B Telemetry · ADR-015 (Sentry SDK + sanitized payload)
 # default-features = false 关闭 backtrace/contexts/panic 默认集成（ADR-015 §决策 · default_integrations=false 锁定）
 # 仅保留 transport（reqwest + rustls · HTTP envelope 必需）
-sentry = { version = "0.47", default-features = false, features = ["transport", "rustls"] }
+sentry = { version = "0.48", default-features = false, features = ["transport", "rustls"] }
 # SHA-256 · panic message 哈希（不可逆 · 防 PII 泄漏）
 sha2 = "0.11"
 

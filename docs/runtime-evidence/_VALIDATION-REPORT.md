@@ -1,14 +1,14 @@
 # Runtime Evidence Validation Report
 
-> 生成时间：2026-05-12T12:37:39 · 由 `scripts/validate-runtime-evidence.mjs` 自动生成
-> Repo HEAD：20246592b56e311e09195b543f9c5eb9d763d4ae
+> 生成时间：2026-05-12T13:26:19 · 由 `scripts/validate-runtime-evidence.mjs` 自动生成
+> Repo HEAD：bc815c8a20592b20a5c81acdd2b0080829f96ac5
 
 ## 总览
 
 - 扫描 25 个 MVP 目录
-- ✅ 全 PASS：20 个
-- 🟡 WARNING：3 个（16 项推荐违反）
-- 🔴 ERROR：2 个（2 项硬规则违反）
+- ✅ 全 PASS：21 个
+- 🟡 WARNING：4 个（5 项推荐违反）
+- 🔴 ERROR：0 个（0 项硬规则违反）
 
 ## 详情
 
@@ -189,38 +189,32 @@
 | perf-benchmark.md | 3.17 KB | ✅ |
 | ui-screenshots.md | 4.26 KB | ✅ |
 
-### MVP-08 🔴 ERROR
+### MVP-08 🟡 WARNING
 
 - 路径：`docs/runtime-evidence/mvp-08/`
 - 文件数：17
-- 总体积：25.84 MB
+- 总体积：9.35 MB
 - 问题：
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.72 MB） · `docs/runtime-evidence/mvp-08/phase-d/01-fs-watch-idle.png`
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.01 MB） · `docs/runtime-evidence/mvp-08/phase-d/02-file-edit-trigger.png`
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.71 MB） · `docs/runtime-evidence/mvp-08/phase-d/04-debounce-within-200ms.png`
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.40 MB） · `docs/runtime-evidence/mvp-08/phase-d/05-git-index-lock-excluded.png`
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.43 MB） · `docs/runtime-evidence/mvp-08/phase-d/06-multi-file-edit-burst.png`
-  - 🟡 **R4** · 图片/GIF 体积超过推荐 3MB（当前 3.44 MB） · `docs/runtime-evidence/mvp-08/phase-d/07-windows-skip-note.png`
-  - 🔴 **R4** · 目录 `docs/runtime-evidence/mvp-08/` 总体积 25.84 MB 超过上限 10MB
+  - 🟡 **R4** · 目录 `docs/runtime-evidence/mvp-08/` 总体积 9.35 MB 超过推荐 3MB
 - 文件清单：
 
 | 文件 | 体积 | 命名合规 |
 |---|---|---|
 | 00-app-default-state.jpg | 246.01 KB | ✅ |
 | 01-commit-detail-loaded.jpg | 249.19 KB | ✅ |
-| 01-fs-watch-idle.png | 3.72 MB | ✅ |
+| 01-fs-watch-idle.jpg | 1.13 MB | ✅ |
 | 02-diff-overlay-opened.jpg | 245.30 KB | ✅ |
-| 02-file-edit-trigger.png | 3.01 MB | ✅ |
+| 02-file-edit-trigger.jpg | 911.19 KB | ✅ |
 | 03-diff-file-switched.jpg | 245.55 KB | ✅ |
-| 03-status-refreshed.png | 2.97 MB | ✅ |
+| 03-status-refreshed.jpg | 872.76 KB | ✅ |
 | 04-a2-run1-before-click.jpg | 243.86 KB | ✅ |
-| 04-debounce-within-200ms.png | 3.71 MB | ✅ |
+| 04-debounce-within-200ms.jpg | 1.24 MB | ✅ |
 | 05-a2-run1-after-404ms.jpg | 244.65 KB | ✅ |
-| 05-git-index-lock-excluded.png | 3.40 MB | ✅ |
+| 05-git-index-lock-excluded.jpg | 1023.85 KB | ✅ |
 | 06-a2-run2-after-131ms.jpg | 243.80 KB | ✅ |
-| 06-multi-file-edit-burst.png | 3.43 MB | ✅ |
+| 06-multi-file-edit-burst.jpg | 1.03 MB | ✅ |
 | 07-f3-run1-before-refresh.jpg | 237.01 KB | ✅ |
-| 07-windows-skip-note.png | 3.44 MB | ✅ |
+| 07-windows-skip-note.jpg | 1.04 MB | ✅ |
 | 08-f3-run1-after-159ms.jpg | 237.78 KB | ✅ |
 | metrics-phase-e.md | 19.42 KB | ✅ |
 
@@ -268,19 +262,11 @@
 | step2-pii-sanitization.txt | 1.32 KB | ✅ |
 | step3-cargo-bloat.txt | 12.69 KB | ✅ |
 
-### MVP-11 🔴 ERROR
+### MVP-11 ✅ PASS
 
 - 路径：`docs/runtime-evidence/mvp-11/`
 - 文件数：12
 - 总体积：10.78 MB
-- 问题：
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/05a-opacity-0.5.png`
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/05b-opacity-0.85.png`
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/05c-opacity-1.0.png`
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/A5-linux-vibrancy-dark.png`
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/A5-linux-vibrancy-light.png`
-  - 🟡 **R3** · 媒体文件命名不符合 `NN-kebab-name.ext`：`docs/runtime-evidence/mvp-11/B4-linux-default-titlebar.png`
-  - 🔴 **R4** · 目录 `docs/runtime-evidence/mvp-11/` 总体积 10.78 MB 超过上限 10MB
 - 文件清单：
 
 | 文件 | 体积 | 命名合规 |
@@ -343,15 +329,22 @@
 ### MVP-15 ✅ PASS
 
 - 路径：`docs/runtime-evidence/mvp-15/`
-- 文件数：3
-- 总体积：26.62 KB
+- 文件数：10
+- 总体积：48.42 KB
 - 文件清单：
 
 | 文件 | 体积 | 命名合规 |
 |---|---|---|
 | 01-typescript-syntax-highlight-light.png | 12.84 KB | ✅ |
 | 02-theme-switch-dark.png | 12.94 KB | ✅ |
+| lru-cache-hit.raw.log | 1.94 KB | ✅ |
+| memory-10x1mb.raw.log | 2.70 KB | ✅ |
 | README.md | 855 B | ✅ |
+| README.md | 3.57 KB | ✅ |
+| README.md | 2.13 KB | ✅ |
+| scheduler-10mb-three-tier.raw.log | 5.40 KB | ✅ |
+| shiki-parse-1mb.raw.log | 4.09 KB | ✅ |
+| theme-switch.raw.log | 1.97 KB | ✅ |
 
 ### MVP-16 ✅ PASS
 

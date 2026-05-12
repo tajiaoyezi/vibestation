@@ -166,6 +166,50 @@ describe("validate-runtime-evidence.mjs", () => {
     expect(runValidator(tmpRoot).code).toBe(1);
   });
 
+  // session 28（2026-05-12）新增 · exception 配置生效后 R3 命名豁免 + R4 dir tolerance
+  it("exception · R3 命名豁免命中 → 不再报 WARNING", async () => {
+    const base = join(tmpRoot, "docs", "runtime-evidence", "mvp-name-exempt");
+    await mkdir(base, { recursive: true });
+    // 故意用 spec-mandated 类命名（带字母后缀 / 大写前缀）
+    await writeFile(join(base, "05a-opacity-0.5.png"), Buffer.alloc(50));
+    await gitCommitAll(tmpRoot, "exempt");
+
+    // 无 exception · 应报 R3 WARNING（strict exit 1）
+    expect(runValidator(tmpRoot, ["--strict"]).code).toBe(1);
+
+    // 写 exception · 命中后 strict 应 exit 0
+    const exceptions = JSON.stringify({
+      version: 1,
+      mvps: { "mvp-name-exempt": { allow_r3_naming: ["05a-opacity-0.5.png"] } },
+    });
+    await writeFile(join(tmpRoot, ".validator-exceptions.json"), exceptions);
+    expect(runValidator(tmpRoot, ["--strict"]).code).toBe(0);
+  });
+
+  // session 28 · 目录总和略超 10MB 但 r4_dir_tolerance_bytes 容忍 → ERROR 降级
+  it("exception · R4 dir tolerance 容忍微超 10MB → ERROR 移除", async () => {
+    const base = join(tmpRoot, "docs", "runtime-evidence", "mvp-over-budget");
+    await mkdir(base, { recursive: true });
+    // 写 1 个 11MB 单文件 → 但单文件 > 10MB 是另一项 R4 ERROR · 不被 dir tolerance 豁免
+    // 改写 11 个 1MB 文件 · 总 11MB · 仅触发"dir 总和超 10MB"ERROR
+    for (let i = 1; i <= 11; i++) {
+      const name = `${String(i).padStart(2, "0")}-file.jpg`;
+      await writeFile(join(base, name), Buffer.alloc(1024 * 1024));
+    }
+    await gitCommitAll(tmpRoot, "over-budget");
+
+    // 无 exception · 应 ERROR
+    expect(runValidator(tmpRoot).code).toBe(1);
+
+    // 写 exception · r4_dir_tolerance_bytes=2MB · 11MB ≤ 10+2 → ERROR 移除
+    const exceptions = JSON.stringify({
+      version: 1,
+      mvps: { "mvp-over-budget": { r4_dir_tolerance_bytes: 2 * 1024 * 1024 } },
+    });
+    await writeFile(join(tmpRoot, ".validator-exceptions.json"), exceptions);
+    expect(runValidator(tmpRoot).code).toBe(0);
+  });
+
   it("ERROR · task 目录名含大写字母", async () => {
     const base = join(tmpRoot, "docs", "runtime-evidence", "MVP-bad");
     await mkdir(base, { recursive: true });

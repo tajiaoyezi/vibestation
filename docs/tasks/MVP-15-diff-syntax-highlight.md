@@ -269,10 +269,15 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 ### F. 性能基准
 
 - [ ] F.1 1MB JS 文件 diff 首屏 < 300ms（P99 · 5 次采样 · DevTools Performance）
+  - [x] F.1.vitest 1MB TypeScript Shiki parse cache-miss 子集已量化（P99 1,900.52ms · 5 samples · 不含 IPC/DOM/首屏 · raw log: `docs/runtime-evidence/mvp-15/bench/shiki-parse-1mb.raw.log`）· 完整首屏 < 300ms 留 Arbiter DevTools playbook
 - [ ] F.2 10MB 文件流式不阻塞：主线程 long task < 50ms（DevTools Performance · 3 次采样取 P99）
+  - [x] F.2.vitest `scheduleHighlight()` 三档调度子集已量化（`<1MB` sync P99 0.0004ms / `1MB-10MB` idle P99 2.7077ms / `>=10MB` Worker fail fallback P99 1.4725ms · raw log: `docs/runtime-evidence/mvp-15/bench/scheduler-10mb-three-tier.raw.log`）· 完整 DevTools long task trace 留 Arbiter playbook
 - [ ] F.3 主题切换 < 50ms（DevTools Performance · 3 次采样取 P99）
+  - [x] F.3.vitest `setShikiTheme` signal → cached highlight 子集已量化（P99 0.0140ms · raw log: `docs/runtime-evidence/mvp-15/bench/theme-switch.raw.log`）· 完整 Diff DOM repaint 留 Arbiter DevTools playbook
 - [ ] F.4 LRU 缓存命中：同一文件再次打开 < 5ms（DevTools Performance · 3 次采样取 P99）
+  - [x] F.4.vitest `ShikiAdapter.highlight()` 同 key 第二次命中已量化（P99 0.0013ms · raw log: `docs/runtime-evidence/mvp-15/bench/lru-cache-hit.raw.log`）
 - [ ] F.5 内存占用：打开 10 个 1MB diff 文件后 · shiki cache + theme + parse 结果总内存 < 100MB（Chrome DevTools Memory 面板 snapshot）
+  - [x] F.5.vitest 10 个 1MB TypeScript variant heap 估算已量化（heap delta 55.54MB after GC · LRU 保留 6 entries / 46.07MB · raw log: `docs/runtime-evidence/mvp-15/bench/memory-10x1mb.raw.log`）· Chrome DevTools Memory snapshot 留 Arbiter playbook
 
 ### G. 边界 / 错误处理
 

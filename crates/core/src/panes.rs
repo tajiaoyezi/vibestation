@@ -375,8 +375,8 @@ impl LayoutEnvelope {
             return Ok(envelope);
         }
         // 回退：尝试作为裸 LayoutNode 解析（MVP-05 旧格式）
-        let node: LayoutNode = serde_json::from_str(json)
-            .map_err(|e| PaneLayoutError::MigrationFailed {
+        let node: LayoutNode =
+            serde_json::from_str(json).map_err(|e| PaneLayoutError::MigrationFailed {
                 version: None,
                 message: format!("neither envelope nor legacy LayoutNode: {e}"),
             })?;
@@ -507,7 +507,10 @@ pub fn build_layout_for_preset(
             .cloned()
             .ok_or_else(|| PaneLayoutError::PresetApplyFailed {
                 preset,
-                reason: format!("need pane at index {idx}, only {} available", available_panes.len()),
+                reason: format!(
+                    "need pane at index {idx}, only {} available",
+                    available_panes.len()
+                ),
             })
             .map(|pane_id| LayoutNode::Single { pane_id })
     };
@@ -1272,7 +1275,10 @@ mod tests {
         // depth 6 布局应被新 validator 拒绝
         let invalid = layout_depth_6_alternating();
         let result = invalid.validate_layout();
-        assert!(matches!(result, Err(PaneLayoutError::MaxDepthExceeded { max_depth: 5, .. })));
+        assert!(matches!(
+            result,
+            Err(PaneLayoutError::MaxDepthExceeded { max_depth: 5, .. })
+        ));
         assert_eq!(current_layout(&conn), before);
     }
 
@@ -1888,7 +1894,10 @@ mod tests {
         let result = LayoutEnvelope::try_from_json(future_json);
         assert!(matches!(
             result,
-            Err(PaneLayoutError::MigrationFailed { version: Some(2), .. })
+            Err(PaneLayoutError::MigrationFailed {
+                version: Some(2),
+                ..
+            })
         ));
     }
 
@@ -1980,7 +1989,10 @@ mod tests {
         let result = layout.validate_layout();
         assert!(matches!(
             result,
-            Err(PaneLayoutError::MaxDepthExceeded { max_depth: 5, attempted_depth: 6 })
+            Err(PaneLayoutError::MaxDepthExceeded {
+                max_depth: 5,
+                attempted_depth: 6
+            })
         ));
     }
 
@@ -2005,7 +2017,11 @@ mod tests {
         let result = bad.validate_layout();
         assert!(matches!(
             result,
-            Err(PaneLayoutError::InvalidRatio { ratio: 0.049, min: 0.05, max: 0.95 })
+            Err(PaneLayoutError::InvalidRatio {
+                ratio: 0.049,
+                min: 0.05,
+                max: 0.95
+            })
         ));
     }
 
@@ -2028,7 +2044,11 @@ mod tests {
         let result = bad.validate_layout();
         assert!(matches!(
             result,
-            Err(PaneLayoutError::InvalidRatio { ratio: 0.951, min: 0.05, max: 0.95 })
+            Err(PaneLayoutError::InvalidRatio {
+                ratio: 0.951,
+                min: 0.05,
+                max: 0.95
+            })
         ));
     }
 
@@ -2144,7 +2164,12 @@ mod tests {
 
     #[test]
     fn preset_quad_builds_quad() {
-        let panes = vec!["a".to_string(), "b".to_string(), "c".to_string(), "d".to_string()];
+        let panes = vec![
+            "a".to_string(),
+            "b".to_string(),
+            "c".to_string(),
+            "d".to_string(),
+        ];
         let layout = build_layout_for_preset(LayoutPresetKind::Quad, &panes).unwrap();
         let expected = LayoutNode::Split {
             direction: SplitDir::Horizontal,
@@ -2171,7 +2196,10 @@ mod tests {
         let result = build_layout_for_preset(LayoutPresetKind::DualAi, &panes);
         assert!(matches!(
             result,
-            Err(PaneLayoutError::PresetApplyFailed { preset: LayoutPresetKind::DualAi, .. })
+            Err(PaneLayoutError::PresetApplyFailed {
+                preset: LayoutPresetKind::DualAi,
+                ..
+            })
         ));
     }
 
@@ -2179,8 +2207,14 @@ mod tests {
 
     #[test]
     fn smart_layout_kind_into_layout_preset_kind() {
-        assert_eq!(LayoutPresetKind::from(SmartLayoutKind::Solo), LayoutPresetKind::Solo);
-        assert_eq!(LayoutPresetKind::from(SmartLayoutKind::AiAndRunner), LayoutPresetKind::AiAndRunner);
+        assert_eq!(
+            LayoutPresetKind::from(SmartLayoutKind::Solo),
+            LayoutPresetKind::Solo
+        );
+        assert_eq!(
+            LayoutPresetKind::from(SmartLayoutKind::AiAndRunner),
+            LayoutPresetKind::AiAndRunner
+        );
     }
 
     // --- PaneLayoutError → PaneError 转换 -----------------------------

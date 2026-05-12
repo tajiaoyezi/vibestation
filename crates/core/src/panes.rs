@@ -685,7 +685,7 @@ pub fn update_split_ratio(
     parent_pane_id: &str,
     new_ratio: f32,
 ) -> Result<LayoutNode, PaneError> {
-    if new_ratio < MIN_SPLIT_RATIO || new_ratio > MAX_SPLIT_RATIO {
+    if !(MIN_SPLIT_RATIO..=MAX_SPLIT_RATIO).contains(&new_ratio) {
         return Err(PaneError::InvalidLayout(format!(
             "split ratio must be between {MIN_SPLIT_RATIO} and {MAX_SPLIT_RATIO}, got {new_ratio}"
         )));
@@ -1238,7 +1238,7 @@ mod tests {
         let (_dir, conn) = mvp_05_helpers::create_fixture_solo_layout();
         let layout = current_layout(&conn);
         assert_eq!(layout.pane_count(), 1);
-        layout.validate_mvp_05().unwrap();
+        layout.validate_layout().unwrap();
     }
 
     #[test]
@@ -1246,7 +1246,7 @@ mod tests {
         let (_dir, conn) = mvp_05_helpers::create_fixture_horizontal_2pane();
         let layout = current_layout(&conn);
         assert_eq!(layout.pane_count(), 2);
-        layout.validate_mvp_05().unwrap();
+        layout.validate_layout().unwrap();
     }
 
     #[test]
@@ -1254,7 +1254,7 @@ mod tests {
         let (_dir, conn) = mvp_05_helpers::create_fixture_vertical_2pane();
         let layout = current_layout(&conn);
         assert_eq!(layout.pane_count(), 2);
-        layout.validate_mvp_05().unwrap();
+        layout.validate_layout().unwrap();
     }
 
     #[test]
@@ -1262,7 +1262,7 @@ mod tests {
         let (_dir, conn) = mvp_05_helpers::create_fixture_2x2_layout();
         let layout = current_layout(&conn);
         assert_eq!(layout.pane_count(), 4);
-        layout.validate_mvp_05().unwrap();
+        layout.validate_layout().unwrap();
     }
 
     #[test]
@@ -1537,7 +1537,7 @@ mod tests {
         let layout = solo_layout("p1");
         let result = split_layout(&layout, "p1", SplitDir::Horizontal, "p2".to_string()).unwrap();
         assert_eq!(result.pane_count(), 2);
-        result.validate_mvp_05().unwrap();
+        result.validate_layout().unwrap();
         assert_eq!(result, horizontal_2pane("p1", "p2"));
         // 原 layout 未被修改（pure function 不变性）
         assert_eq!(layout, solo_layout("p1"));
@@ -1548,7 +1548,7 @@ mod tests {
         let layout = solo_layout("p1");
         let result = split_layout(&layout, "p1", SplitDir::Vertical, "p2".to_string()).unwrap();
         assert_eq!(result.pane_count(), 2);
-        result.validate_mvp_05().unwrap();
+        result.validate_layout().unwrap();
         assert_eq!(result, vertical_2pane("p1", "p2"));
         assert_eq!(layout, solo_layout("p1"));
     }
@@ -1559,7 +1559,7 @@ mod tests {
         let layout = horizontal_2pane("p1", "p2");
         let result = split_layout(&layout, "p2", SplitDir::Vertical, "p3".to_string()).unwrap();
         assert_eq!(result.pane_count(), 3);
-        result.validate_mvp_05().unwrap();
+        result.validate_layout().unwrap();
         let expected = LayoutNode::Split {
             direction: SplitDir::Horizontal,
             ratio: 0.5,
@@ -1571,7 +1571,7 @@ mod tests {
         // 再在 p1 下分 p4 → 真正的 2×2
         let result_2x2 = split_layout(&result, "p1", SplitDir::Vertical, "p4".to_string()).unwrap();
         assert_eq!(result_2x2.pane_count(), 4);
-        result_2x2.validate_mvp_05().unwrap();
+        result_2x2.validate_layout().unwrap();
     }
 
     #[test]

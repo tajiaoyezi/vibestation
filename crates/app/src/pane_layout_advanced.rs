@@ -5,7 +5,7 @@
 //! - `pane_maximize` · 临时最大化 toggle
 //! - `pane_resize_step` · 键盘 resize 5% step
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::State;
 use vibestation_core::{
     pane_service, LayoutApplyAdvancedRequest, LayoutApplyResult,
     PaneMaximizeRequest, PaneMaximizeResult, PaneNavigateRequest, PaneNavigateResult,

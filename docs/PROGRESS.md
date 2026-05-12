@@ -15,7 +15,7 @@
 | **Latest commit**         | 见 `git log --oneline -1`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | —             |
 | **Worktree status**       | 见 `git status` + `git worktree list`（三方 worktree 隔离 · 无 shared-tree 冲突）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | —             |
 | **Unpushed branches**     | 见 `git branch -vv`（不在此处硬编码）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | —             |
-| **Next concrete action**  | **v0.3 sprint phase A+B+C 全收 + Phase D 启动 · session 27 一日 3 PR concurrent merge**（PR #264 主 agent MVP-14 Phase C 键盘导航 + ⌘Enter + a11y · PR #265 Codex CLI MVP-12 Phase C 虚拟化 + 交互 + collapse · PR #266 主 agent MVP-16 Phase D Criterion bench macOS arm64 baseline · 3-track 文件域 0 交集 · 全 cross-agent review 通过 · 主 agent self-merge v2-D.2 trailer 合规）· **v0.3 sprint MVP 状态**：MVP-12 / 14 Phase A+B+C done · MVP-15 Phase A+B+C done · MVP-16 Phase A+B+C done + Phase D part A (bench) done · 全部仅剩 Phase D runtime evidence + GUI screenshots · **下一步候选**：(1) **v0.3 sprint Phase D 总 capture playbook**（推荐 · 仿 MVP-05 playbook · 4 MVP × ~24 evidence GUI capture · 让 Arbiter 1-2h 一气呵成）· (2) **MVP-15 Phase D bench-only 子集**（仿 MVP-16 part A · 主 agent 自跑 vitest bench · DevTools trace 量化）· (3) **MVP-16 Phase D part B**（GUI screenshots + Linux 跨平台 · 推 v0.2 W17 dev VM）· **🅿️ deferred items（Arbiter 自定时机 · 不主动追问）**：(1) MVP-04 §I 22 张截图 + 2 段 30s 录屏 · (2) MVP-05 Phase D capture（30-45 min · CAPTURE-PLAYBOOK.md · 14 PNG + 1 MOV + metrics 填值）· (3) MVP-09 Phase D runtime · (4) MVP-10 §F.04 0 outbound DevTools network panel · (5) MVP-13 Phase D GUI screenshots · (6) MVP-21 Phase D GUI screenshots / recordings · (7) **v0.3 sprint MVP-12/14/15/16 Phase D GUI / 跨平台**（新增 · session 27 后） · **解 deferred 触发条件**：Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段（届时所有 7 类一次性收口）· **off-mainline**：MVP-10 Phase C macOS notarize **推 v0.2**（Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式替代）· SPIKE-06 §B Apple Dev **推 v0.2** | session end   |
+| **Next concrete action**  | **session 28 9 PR merged · 4-track 并发派工 + 5 idle 查漏补缺收口**（PR #271 v0.3 sprint capture playbook · PR #272 stale PR # backfill · PR #273 Cursor validator fix-up · PR #274 MVP-08 PNG→JPG · PR #275 Codex MVP-15 §F bench · PR #276 cargo clippy fix · PR #277 OpenCode MVP-15 §G edge · PR #278 dispatch §2.5.1 worktreeConfig · PR #279 validator exception）· **v0.3 sprint MVP 状态**：MVP-12/14 Phase A+B+C done · MVP-15 Phase A+B+C done + Phase D §F vitest bench + §G edge cases 自动化全收 · MVP-16 Phase A+B+C done + Phase D part A bench done · **下一步候选**：(1) **v0.3 sprint Phase D 总 capture playbook 跑**（PR #271 playbook 已就位 · 90-120 min · Arbiter 一气呵成 4 MVP × 28 PNG + 1 MP4 + 4 metrics · 跑完 4 MVP spec ready → done flip）· (2) **session 26 归档到 docs/session-history/**（独立 PR · M-2 滚动窗口规则要求）· (3) **MVP-16 Phase D part B**（GUI screenshots + Linux 跨平台 · 推 v0.2 W17 dev VM）· **🅿️ deferred items（Arbiter 自定时机 · 不主动追问）**：(1) MVP-04 §I 22 张截图 + 2 段 30s 录屏 · (2) MVP-05 Phase D capture（30-45 min · CAPTURE-PLAYBOOK.md · 14 PNG + 1 MOV + metrics 填值）· (3) MVP-09 Phase D runtime · (4) MVP-10 §F.04 0 outbound DevTools network panel · (5) MVP-13 Phase D GUI screenshots · (6) MVP-21 Phase D GUI screenshots / recordings · (7) **v0.3 sprint MVP-12/14/15/16 Phase D GUI / DevTools Performance / 视觉回归 / WCAG audit / 跨平台**（按 PR #271 playbook） · **解 deferred 触发条件**：Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段（届时所有 7 类一次性收口 · PR #271 playbook 为主路径）· **off-mainline**：MVP-10 Phase C macOS notarize **推 v0.2**（Apple Dev Program $99/y + 2-2 周审批 · v0.1 alpha unsigned 模式替代）· SPIKE-06 §B Apple Dev **推 v0.2** | session end   |
 | **Blocked by**            | **无 v0.1 GA blocker**（session 20 · 2026-04-26 决策 · v0.1 alpha 改 unsigned 模式 · SPIKE-06 §B Apple Dev Program 推 v0.2 · README + Release notes 写明 macOS Gatekeeper bypass 指引）· SPIKE-01/02 Phase B Ubuntu validated（PR #137-#139 · ADR-006 解除 caveat）                                                                                                                                                                                                                                                                                                                                                                                                                | 阻塞变化      |
 | **Missing infra**         | 无（v0.1 GA 双平台已就位 · macOS unsigned + Linux deb/AppImage）· Apple Developer Program 推 v0.2（不阻塞 v0.1 alpha · v0.2 升级触发条件见 MVP-10 §I.D）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Phase 完成时  |
 | **Required env/accounts** | ✅ rustup stable 1.95 / Node 20.17 / pnpm 9.15 / tauri-cli 2.x · ✅ Ubuntu 24 LTS（已就位 · session 19 PR #137-#139）· ⏳ Apple Dev（推 v0.2 · v0.1 alpha unsigned 模式不依赖）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 新账号/工具时 |
@@ -25,10 +25,69 @@
 
 ## 📍 当前位置
 
-**阶段**：session 27 收尾 + **v0.3 sprint phase A+B+C 全收 + Phase D 启动 · 单 session 3 PR concurrent**（PR #264 主 agent MVP-14 Phase C 键盘导航 + ⌘Enter + a11y · PR #265 Codex CLI MVP-12 Phase C 虚拟化 + 交互 + 21-50/>50 collapse · PR #266 主 agent MVP-16 Phase D Criterion bench macOS arm64 baseline · 3-track 文件域 0 交集）· **session 26 仍在 M-2 滚动窗口内**（4 PR concurrent · 见下方段落）· **v0.3 sprint MVP 状态**：MVP-12 / 14 Phase A+B+C done · MVP-15 Phase A+B+C done · MVP-16 Phase A+B+C done + Phase D part A (bench) done · 全部仅剩 Phase D runtime evidence + GUI screenshots · **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26 session 21）· **MVP 状态汇总**：v0.1 主线 MVP-01..11 全代码收官（4 类 GUI capture deferred · Arbiter 自定时机）· **v0.2** MVP-22 done · MVP-13 + MVP-21 全 4 phase 自动化 done（GUI screenshots deferred）· **v0.3 sprint MVP-12/14/15/16 全部 Phase A+B+C done · MVP-16 Phase D part A done**· 16 ADR · v2-D.2 规则稳态 · trailer 合规率持续 100%
-**日期**：2026-05-10（session 27 · 单 day 3 PR concurrent · 团队 = 主 agent + Codex CLI · 3-track 文件域 0 交集）
+**阶段**：session 28 收尾 + **v0.3 sprint MVP-15 Phase D §F + §G 自动化全收 · 4-track 并发派工 + idle 查漏补缺 9 PR merged**（Track 1 Codex MVP-15 §F vitest bench PR #275 · Track 2 OpenCode MVP-15 §G edge cases PR #277 · Track 3 Cursor runtime-evidence-validator PR #273 fix-up 后 byte-level · Track 4 主 agent capture playbook PR #271 + 5 idle 查漏补缺 PR #272/#274/#276/#278/#279）· **session 27 仍在 M-2 滚动窗口内**· **v0.3 sprint MVP 状态**：MVP-12/14 Phase A+B+C done · MVP-15 Phase A+B+C done + Phase D §F vitest bench + §G edge cases vitest done（仅剩 DevTools Performance / 视觉回归 / WCAG audit · 留 Arbiter playbook）· MVP-16 Phase A+B+C done + Phase D part A (bench) done · **新工具**：`scripts/validate-runtime-evidence.mjs` + `.validator-exceptions.json`（25 目录扫 21 PASS / 4 WARNING / 0 ERROR）· **v0.1.0-alpha 双平台已发**（macOS .dmg unsigned + Linux .deb / .AppImage · PR #173/#174/#175 · 2026-04-26 session 21）· **MVP 状态汇总**：v0.1 主线 MVP-01..11 全代码收官（4 类 GUI capture deferred · Arbiter 自定时机）· **v0.2** MVP-22 done · MVP-13 + MVP-21 全 4 phase 自动化 done（GUI screenshots deferred）· **v0.3 sprint MVP-15 Phase D 自动化收口** · 16 ADR · v2-D.2 规则稳态 · trailer 合规率持续 100% · **§2.5.1 worktreeConfig 升级**（PR #278 · 根治 §2.12 跨 agent author 污染 · session 28 实证 3 次）
+**日期**：2026-05-12（session 28 · 单 day 9 PR merged · 团队 = 主 agent + Codex CLI + OpenCode + Cursor · 4-track 文件域 0 交集 + 5 idle 查漏补缺）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
+
+### Session 28（2026-05-12 · 1 day 9 PR merged · 4-track 并发派工 + 5 idle 查漏补缺 · MVP-15 Phase D 自动化全收 · 主 agent + Codex CLI + OpenCode + Cursor 四 agent 并行）
+
+**最大成果**：v0.3 sprint 4-track 并发派工 + 主 agent idle 查漏补缺 · 单 session 9 PR merged · **MVP-15 Phase D §F vitest bench + §G edge cases vitest 自动化全收**·新增 `scripts/validate-runtime-evidence.mjs` 工具 + `.validator-exceptions.json` 配置 · 主 repo cargo clippy `-D warnings` 0 / pnpm lint+typecheck PASS / 25 evidence 目录 0 ERROR。
+
+#### 9 PR merged
+
+**Track 4 主 agent（6 PR · 1 dispatch playbook + 5 idle 查漏补缺）**：
+
+- **PR #271** · v0.3 sprint Phase D capture playbook（641 行 · 仿 MVP-05 14 invariant · 4 MVP × ~28 GUI evidence step · 让 Arbiter 90-120 min 一气呵成）
+- **PR #272** · MVP-12/16 spec stale `PR #N` backfill（3 处占位回填 · MVP-08 PR #100 · MVP-16 PR #266 · MVP-12 PR #256）
+- **PR #274** · MVP-08 Phase D 7 PNG → JPG quality 65 压缩 · 25.84MB → 9.35MB（sips · 满足 R4 ≤ 10MB · 同步 metrics-phase-e.md 8 处 `.png` → `.jpg`）
+- **PR #276** · cargo clippy 13 warnings fix（8× deprecated `validate_mvp_05` → `validate_layout` · 2× unused mut · 1× manual `!Range::contains` · 2× dead_code 加 `#[allow(dead_code)]` · 2× unused imports · 恢复 `-D warnings` 干净）
+- **PR #278** · dispatch-prompt §2.5.1 升级 · 启用 `extensions.worktreeConfig=true` + `git config --worktree`（根治 §2.12 跨 agent author 污染 · session 14+28 共 6 次实证）
+- **PR #279** · validator `--exceptions` 配置 + MVP-11 R3 命名 + R4 dir tolerance 豁免（spec L140/L278 硬引用 05a/A5/B4 命名 · 不能改名 · validator main 从 1 ERROR → 0 ERROR）
+
+**Track 1 Codex CLI · PR #275** · MVP-15 Phase D §F vitest bench + fixture（5 commit · +631514/-0 · 21 文件 · 新建 `scripts/fixtures/generate-syntax-highlight-fixtures.sh` 169 行 + 5 lang × 1MB fixture + 10MB TS fixture + 5 bench file · §F.1 shiki parse 1900.52ms / §F.2 三档 0.0004/2.7077/1.4725ms / §F.3 theme switch 0.0140ms / §F.4 LRU cache 0.0013ms / §F.5 heap 55.54MB · 全部满足 spec budget · DevTools 完整首屏部分留 Arbiter playbook）
+
+**Track 2 OpenCode · PR #277** · MVP-15 Phase D §G edge cases vitest（5 commit · +386/-5 · 4 测试文件 + README + spec 勾选 · G.1 shiki 加载失败 4 cases / G.3 空文件 5 cases / G.4 单行超大暴露 Phase C 缺陷 4 cases / G.5 Worker fallback 4 cases · 17/17 vitest PASS · G.2 spec L243 explicit skip · **N=2 后回归 PASS · N=3 永久转出未触发**）
+
+**Track 3 Cursor fix-up · PR #273** · runtime-evidence-validator + §2.4 N=1 audit trail（首次 dispatch 在主 repo 主 working tree 违反 §2.4 · 主 agent 备份到 `/tmp/cursor-track-3-backup/` · fix-up dispatch 在 `/private/tmp/runtime-evidence-validator-work` worktree 重 commit · **4 文件 byte-level 一致**：`scripts/validate-runtime-evidence.mjs` 449 行 + 9 vitest cases + `scripts/README.md` + `docs/runtime-evidence/_VALIDATION-REPORT.md` 416 行）
+
+#### Dependabot 4 PR 处置
+
+- ❌ **close** #270 (notify 6→8 major×2 · MVP-08 fs_watch 兼容性高风险) + #268 (similar 2→3 major · MVP-08 diff algorithm 输出可能变化)
+- ✅ **merged** #269 (sentry 0.47→0.48 · cargo check + telemetry tests 14/14 PASS) + #240 (Tauri 2.10.1→2.11.1 minor · pnpm install + typecheck + lint PASS)
+
+#### 协作 failure mode · 治理事件
+
+| 事件 | 次数 | 根因 | 处置 |
+|---|---|---|---|
+| §2.4 worktree N=1 (Cursor) | 1 | 首次 dispatch 在主 repo 主 working tree commit | 备份 → fix-up dispatch · byte-level 一致 · audit trail 永久 |
+| §2.12 主 repo `.git/config` 污染 | 3+ | dispatch §2.5.1 旧版 `git config user.email`（无 --worktree）写主 repo 共享 .git/config · 多 agent 互相覆盖 | 每次主 agent commit 前 unset local + amend reset author · PR #278 §2.5.1 升级根治 |
+| §2.10 OpenCode evidence-based | 0 | N=2 后回归测试 | **PR #277 三段全真实**（lint/typecheck/vitest 子集 17/17 + baseline 12 errors 一致）· N=3 未触发 · N=2 保持 |
+
+#### 主 repo 健康度（session 28 后）
+
+- ✅ cargo clippy `--workspace --all-targets -- -D warnings` exit 0（PR #276）
+- ✅ pnpm lint（prettier）+ pnpm typecheck（tsc --noEmit）exit 0
+- ✅ pnpm vitest run 217/217（含既有 DiffLine flake · 单跑 PASS · session 27 实证）
+- ✅ runtime-evidence validator 25 目录扫：21 PASS / 4 WARNING / 0 ERROR（PR #273+#279）
+- ✅ extensions.worktreeConfig=true 已启用主 repo（PR #276 副产物 · 防 §2.12 复发）
+
+#### 反思
+
+- 4-track 并发派工 + idle 查漏补缺 = 单 session 9 PR · 比 session 27（3 PR）跃升 3× · 但治理负担显著上升（§2.4 N=1 + §2.12 反复污染 + 网络抖动 + GitHub self-approve 限制）
+- §2.12 反复 3 次污染 · 根因诊断成熟（共享 .git/config · 无 --worktree flag）· PR #278 系统性根治
+- OpenCode N=2 后回归 PASS · 给 N=3 转出条款实证耐心：简单 vitest task + evidence-based 强约束 prompt = 可信合规交付
+- Cursor 首次 dispatch §2.4 violation 提示：未来新 agent dispatch 必须更明显强调 worktree 启动命令（已 fix-up 验证可恢复）
+- validator 工具上线后立即闭环 2 ERROR（MVP-08 体积 PR #274 + MVP-11 exception PR #279）· 验证工具价值
+
+#### 主 agent 收尾动作
+
+- 9 PR merged via `gh pr merge --merge`（GitHub self-approve 限制走 PR comment + trailer + admin direct merge）
+- 4 dependabot PR 处置（2 close + 2 merge）
+- 本地 main 同步 origin/main · 3 stale worktree + 3 stale feat 分支删除（feat/MVP-15-phase-D-{vitest-bench,edge-cases} + feat/runtime-evidence-validator）
+- 4 dispatch prompts 归档 `spike-tmp/dispatch/_archived/`（含 Cursor 首次 + fix-up 两版）
+- /tmp/cursor-track-3-backup + /tmp/mvp-08-png-backup 已清
+- PROGRESS.md session 28 段新增 · session 27 段保留（M-2 滚动窗口允许 2 session）· session 26 待归档
 
 ### Session 27（2026-05-10 · 1 day 3 PR concurrent · v0.3 sprint phase A+B+C 全收 + Phase D 启动 · MVP-12/14 Phase C done · MVP-16 Phase D part A done · 主 agent + Codex CLI · 3-track 文件域 0 交集）
 

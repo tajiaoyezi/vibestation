@@ -14,6 +14,7 @@ pub mod git_ops;
 pub mod git_status;
 pub mod git_sync;
 pub mod layout;
+pub mod pane_detach;
 pub mod pane_pty;
 pub mod pane_service;
 pub mod panes;
@@ -64,6 +65,11 @@ pub use git_sync::{
     RemoteListRequest, RemoteListResponse,
 };
 pub use layout::{LayoutState, LayoutStore};
+pub use pane_detach::{
+    generate_window_label, DetachError, DetachedPaneMap, DetachedWindowBounds, DetachedWindowInfo,
+    PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
+    PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
+};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use pane_service::{
     apply_layout_preset, apply_layout_preset_advanced, apply_pane_close, apply_pane_focus,

@@ -25,22 +25,22 @@ use vibestation_core::{
     ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
     LayoutApplyAdvancedRequest, LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope,
     LayoutHistoryEntry, LayoutNode, LayoutPresetKind, LayoutState, MergeConflictInfo, MergeRequest,
-    WorkspaceLayoutState,
-    MergeStatus,
-    MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest, PaneCreateRequest,
+    MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
+    PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult,
+    PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
     PaneFocusRequest, PaneInitRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
     PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PanePtyExitedEvent,
     PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest, PaneScrollbackFetchRequest,
-    PaneState, PtyExitedEvent, PtySpawnRequest,
-    PtyStdoutEvent, PullRequest, PullResult, PullStrategy, PushProgressEvent, PushRequest,
-    PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample, RailGraphRebaseStatePayload,
-    RailGraphViewportSyncPayload, RebaseControlRequest, RebaseInteractivePlan,
-    RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo,
-    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
-    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
-    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest, PullResult,
+    PullStrategy, PushProgressEvent, PushRequest, PushResult, RailGraphBranchChangedPayload,
+    RailGraphPerfSample, RailGraphRebaseStatePayload, RailGraphViewportSyncPayload,
+    RebaseControlRequest, RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError,
+    RebaseStartRequest, RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -66,6 +66,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/config_import/ipc.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/keybinding.rs");
     println!("cargo:rerun-if-changed=../core/src/rail_graph_events.rs");
+    println!("cargo:rerun-if-changed=../core/src/pane_detach.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -225,6 +226,15 @@ fn main() {
     RailGraphRebaseStatePayload::export_all(&config).expect("export RailGraphRebaseStatePayload");
     RailGraphPerfSample::export_all(&config).expect("export RailGraphPerfSample");
 
+    // MVP-17 Phase B · Pane Detach IPC contract（5 IPC struct + 1 event + 2 nested = 8 binding）
+    PaneDetachOpenRequest::export_all(&config).expect("export PaneDetachOpenRequest");
+    PaneDetachOpenResult::export_all(&config).expect("export PaneDetachOpenResult");
+    PaneDetachCloseRequest::export_all(&config).expect("export PaneDetachCloseRequest");
+    PaneDetachCloseResult::export_all(&config).expect("export PaneDetachCloseResult");
+    PaneDetachListEntry::export_all(&config).expect("export PaneDetachListEntry");
+    PaneDetachStateEvent::export_all(&config).expect("export PaneDetachStateEvent");
+    PaneDetachAction::export_all(&config).expect("export PaneDetachAction");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -368,6 +378,15 @@ fn main() {
             "export type { RailGraphBranchChangedPayload } from \"./RailGraphBranchChangedPayload\";",
             "export type { RailGraphRebaseStatePayload } from \"./RailGraphRebaseStatePayload\";",
             "export type { RailGraphPerfSample } from \"./RailGraphPerfSample\";",
+            // MVP-17 Phase B · Pane Detach IPC contract
+            "export type { PaneDetachOpenRequest } from \"./PaneDetachOpenRequest\";",
+            "export type { PaneDetachOpenResult } from \"./PaneDetachOpenResult\";",
+            "export type { PaneDetachCloseRequest } from \"./PaneDetachCloseRequest\";",
+            "export type { PaneDetachCloseResult } from \"./PaneDetachCloseResult\";",
+            "export type { PaneDetachListEntry } from \"./PaneDetachListEntry\";",
+            "export type { PaneDetachStateEvent } from \"./PaneDetachStateEvent\";",
+            "export type { PaneDetachAction } from \"./PaneDetachAction\";",
+            "export type { DetachedWindowBounds } from \"./DetachedWindowBounds\";",
             "",
         ]
         .join("\n"),

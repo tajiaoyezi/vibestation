@@ -7,16 +7,19 @@
 
 use tauri::State;
 use vibestation_core::{
-    pane_service, LayoutApplyAdvancedRequest, LayoutApplyResult,
+    pane_service, LayoutApplyAdvancedRequest, LayoutApplyResult, PaneListResponse,
     PaneMaximizeRequest, PaneMaximizeResult, PaneNavigateRequest, PaneNavigateResult,
-    PaneResizeStepRequest, PaneListResponse,
+    PaneResizeStepRequest,
 };
 
 use crate::{AppState, DbPool};
 
 fn get_pool(state: &State<'_, AppState>) -> Result<DbPool, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
-    guard.as_ref().cloned().ok_or("database not initialized".to_string())
+    guard
+        .as_ref()
+        .cloned()
+        .ok_or("database not initialized".to_string())
 }
 
 #[tauri::command]

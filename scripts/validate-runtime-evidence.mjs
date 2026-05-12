@@ -7,10 +7,16 @@
 //   node scripts/validate-runtime-evidence.mjs --mvp mvp-02
 //   node scripts/validate-runtime-evidence.mjs --report docs/runtime-evidence/_VALIDATION-REPORT.md
 //   node scripts/validate-runtime-evidence.mjs --strict
+//   node scripts/validate-runtime-evidence.mjs --exceptions .validator-exceptions.json
+//
+// Exception 配置（spec-mandated 命名 / 体积豁免 · 见 .validator-exceptions.json）：
+//   - allow_r3_naming: 列表 · 命中即跳过 R3 命名违规
+//   - r4_dir_tolerance_bytes: 数字 · 目录总和 < (10MB + tolerance) 时 R4 上限 ERROR 降级为 WARNING
+// 默认读 <repoRoot>/.validator-exceptions.json（若存在）· 也可 --exceptions <path> 显式指定。
 //
 // 测试/自动化可设 RUNTIME_EVIDENCE_VALIDATOR_ROOT 指向临时 git 仓库根目录（覆盖脚本所在仓库推断）。
 
-import { readdir, stat, writeFile } from "node:fs/promises";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -29,18 +35,88 @@ const REC_VIDEO_BYTES = 5 * 1024 * 1024;
 /** @typedef {{ level: 'ERROR' | 'WARNING', code: string, message: string }} Issue */
 
 function parseArgs(argv) {
-  const out = { mvp: null, report: null, strict: false };
+  const out = { mvp: null, report: null, strict: false, exceptions: null };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--strict") out.strict = true;
     else if (a === "--mvp") out.mvp = argv[++i] ?? null;
     else if (a === "--report") out.report = argv[++i] ?? null;
+    else if (a === "--exceptions") out.exceptions = argv[++i] ?? null;
     else if (a === "--help" || a === "-h") {
-      console.log(`Usage: node scripts/validate-runtime-evidence.mjs [--mvp <id>] [--report <path>] [--strict]`);
+      console.log(`Usage: node scripts/validate-runtime-evidence.mjs [--mvp <id>] [--report <path>] [--strict] [--exceptions <path>]`);
       process.exit(0);
     }
   }
   return out;
+}
+
+/**
+ * 读 exception JSON · 默认 <repoRoot>/.validator-exceptions.json · 不存在返回 null
+ * @param {string} repoRoot
+ * @param {string|null} customPath
+ * @returns {Promise<{ version: number, mvps: Record<string, { reason?: string, spec_ref?: string, allow_r3_naming?: string[], r4_dir_tolerance_bytes?: number }> } | null>}
+ */
+async function loadExceptions(repoRoot, customPath) {
+  const path = customPath
+    ? customPath.startsWith("/")
+      ? customPath
+      : join(repoRoot, customPath)
+    : join(repoRoot, ".validator-exceptions.json");
+  if (!(await pathExists(path))) {
+    if (customPath) {
+      console.error(`exception 文件未找到：${path}`);
+      process.exit(1);
+    }
+    return null;
+  }
+  try {
+    const raw = await readFile(path, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && parsed.mvps) return parsed;
+    console.error(`exception 文件格式异常：${path}（缺少 mvps 字段）`);
+    process.exit(1);
+  } catch (e) {
+    console.error(`读 exception 文件失败：${path} · ${e.message}`);
+    process.exit(1);
+  }
+  return null;
+}
+
+/**
+ * 对单 MVP issue 列表应用 exception · 返回保留的 issues 和已应用的豁免列表
+ * @param {Issue[]} issues
+ * @param {{ allow_r3_naming?: string[], r4_dir_tolerance_bytes?: number } | null} exception
+ * @param {number} totalBytes
+ * @returns {{ kept: Issue[], applied: { code: string, reason: string }[] }}
+ */
+function applyExceptions(issues, exception, totalBytes) {
+  if (!exception) return { kept: issues, applied: [] };
+  /** @type {Issue[]} */
+  const kept = [];
+  /** @type {{ code: string, reason: string }[]} */
+  const applied = [];
+  for (const issue of issues) {
+    if (issue.code === "R3" && exception.allow_r3_naming && exception.allow_r3_naming.length > 0) {
+      const hit = exception.allow_r3_naming.some((name) => issue.message.includes(name));
+      if (hit) {
+        applied.push({ code: "R3", reason: `命名豁免：${issue.message}` });
+        continue;
+      }
+    }
+    if (
+      issue.code === "R4" &&
+      issue.level === "ERROR" &&
+      issue.message.includes("总体积") &&
+      issue.message.includes("超过上限") &&
+      exception.r4_dir_tolerance_bytes &&
+      totalBytes <= MAX_DIR_TOTAL_BYTES + exception.r4_dir_tolerance_bytes
+    ) {
+      applied.push({ code: "R4", reason: `dir 总体积 tolerance：${issue.message}` });
+      continue;
+    }
+    kept.push(issue);
+  }
+  return { kept, applied };
 }
 
 function posixRel(p) {
@@ -394,13 +470,16 @@ async function main() {
   }
 
   const trackedRoot = gitLsFilesTracked(repoRoot, "docs/runtime-evidence");
+  const exceptions = await loadExceptions(repoRoot, args.exceptions);
 
-  /** @type {{ mvpId: string, issues: Issue[], rows: any[], totalBytes: number }[]} */
+  /** @type {{ mvpId: string, issues: Issue[], rows: any[], totalBytes: number, appliedExceptions: { code: string, reason: string }[] }[]} */
   const mvpResults = [];
 
   for (const mvpId of mvpIds) {
     const { issues, rows, totalBytes } = await validateMvpDir(repoRoot, mvpId, trackedRoot);
-    mvpResults.push({ mvpId, issues, rows, totalBytes });
+    const mvpException = exceptions?.mvps?.[mvpId] ?? null;
+    const { kept, applied } = applyExceptions(issues, mvpException, totalBytes);
+    mvpResults.push({ mvpId, issues: kept, rows, totalBytes, appliedExceptions: applied });
   }
 
   const isoDate = new Date().toISOString().replace(/\.\d{3}Z$/, "");

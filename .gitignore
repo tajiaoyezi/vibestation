@@ -129,6 +129,8 @@ spike-raw/
 *.pprof
 *.heapprofile
 flamegraph.svg
+# MVP-15 Phase D · 50MB syntax highlight fixture 仅本地生成，避免大文件进 git
+web/tests/fixtures/syntax-highlight/50mb-*.ts
 # 本地终端配置扫描缓存
 .vs-profile-cache/
 .omx/

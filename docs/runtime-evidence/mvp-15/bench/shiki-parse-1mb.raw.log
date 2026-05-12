@@ -1,0 +1,50 @@
+(node:28114) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28119) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28131) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Benchmarking is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+
+ RUN  v4.1.5 /private/tmp/MVP-15-phase-D-bench-work/web
+
+
+ RUN  v4.1.5 /private/tmp/MVP-15-phase-D-bench-work/web
+
+(node:28203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ ✓ tests/utils/shiki/bench/shiki-parse.bench.ts > MVP-15 Phase D §F.1 shiki parse 1MB fixtures 45922ms
+     name                                                                       hz       min       max      mean       p75       p99      p995      p999     rme  samples
+   · parse 1mb-typescript.ts as typescript (cache miss, sync ShikiAdapter)  0.5337  1,861.23  1,900.52  1,873.88  1,873.37  1,900.52  1,900.52  1,900.52  ±1.04%        5
+   · parse 1mb-rust.rs as rust (cache miss, sync ShikiAdapter)              0.6501  1,529.02  1,552.64  1,538.17  1,542.58  1,552.64  1,552.64  1,552.64  ±0.77%        5
+   · parse 1mb-python.py as python (cache miss, sync ShikiAdapter)          0.7209  1,372.15  1,395.83  1,387.25  1,395.63  1,395.83  1,395.83  1,395.83  ±1.01%        5
+   · parse 1mb-go.go as go (cache miss, sync ShikiAdapter)                  0.7147  1,366.23  1,460.72  1,399.13  1,416.42  1,460.72  1,460.72  1,460.72  ±3.50%        5
+   · parse 1mb-java.java as java (cache miss, sync ShikiAdapter)            0.7022  1,405.84  1,466.32  1,424.09  1,423.07  1,466.32  1,466.32  1,466.32  ±2.15%        5
+
+ ✓ tests/utils/shiki/bench/shiki-parse.bench.ts > MVP-15 Phase D §F.1 shiki parse 1MB fixtures 45922ms
+     name                                                                       hz       min       max      mean       p75       p99      p995      p999     rme  samples
+   · parse 1mb-typescript.ts as typescript (cache miss, sync ShikiAdapter)  0.5337  1,861.23  1,900.52  1,873.88  1,873.37  1,900.52  1,900.52  1,900.52  ±1.04%        5
+   · parse 1mb-rust.rs as rust (cache miss, sync ShikiAdapter)              0.6501  1,529.02  1,552.64  1,538.17  1,542.58  1,552.64  1,552.64  1,552.64  ±0.77%        5
+   · parse 1mb-python.py as python (cache miss, sync ShikiAdapter)          0.7209  1,372.15  1,395.83  1,387.25  1,395.63  1,395.83  1,395.83  1,395.83  ±1.01%        5
+   · parse 1mb-go.go as go (cache miss, sync ShikiAdapter)                  0.7147  1,366.23  1,460.72  1,399.13  1,416.42  1,460.72  1,460.72  1,460.72  ±3.50%        5
+   · parse 1mb-java.java as java (cache miss, sync ShikiAdapter)            0.7022  1,405.84  1,466.32  1,424.09  1,423.07  1,466.32  1,466.32  1,466.32  ±2.15%        5
+
+ BENCH  Summary
+
+  parse 1mb-python.py as python (cache miss, sync ShikiAdapter) - tests/utils/shiki/bench/shiki-parse.bench.ts > MVP-15 Phase D §F.1 shiki parse 1MB fixtures
+    1.01x faster than parse 1mb-go.go as go (cache miss, sync ShikiAdapter)
+    1.03x faster than parse 1mb-java.java as java (cache miss, sync ShikiAdapter)
+    1.11x faster than parse 1mb-rust.rs as rust (cache miss, sync ShikiAdapter)
+    1.35x faster than parse 1mb-typescript.ts as typescript (cache miss, sync ShikiAdapter)
+
+
+ BENCH  Summary
+
+  parse 1mb-python.py as python (cache miss, sync ShikiAdapter) - tests/utils/shiki/bench/shiki-parse.bench.ts > MVP-15 Phase D §F.1 shiki parse 1MB fixtures
+    1.01x faster than parse 1mb-go.go as go (cache miss, sync ShikiAdapter)
+    1.03x faster than parse 1mb-java.java as java (cache miss, sync ShikiAdapter)
+    1.11x faster than parse 1mb-rust.rs as rust (cache miss, sync ShikiAdapter)
+    1.35x faster than parse 1mb-typescript.ts as typescript (cache miss, sync ShikiAdapter)
+

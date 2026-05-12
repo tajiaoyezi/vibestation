@@ -18,7 +18,7 @@
 
 ## 📍 当前阶段（一句话）
 
-**开发中 · 主线已进入 MVP-08 Phase C（Diff 视图前端）**（当前事实以 `docs/PROGRESS.md` 为准）。
+**v0.1/v0.2/v0.3 sprint 全代码收官 · v0.3 future MVP-17 active**（spec ready @ PR #283 + Phase B skeleton @ PR #285 + 3-track dispatch · 当前事实以 `docs/PROGRESS.md` 为准）。
 
 ---
 

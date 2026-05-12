@@ -90,6 +90,7 @@ docs/session-history/
 
 | 文件 | 日期 | Session | PR 范围 | 主题 |
 |------|------|---------|---------|------|
+| [session-27.md](session-27.md) | 2026-05-10 | 27 | #264-#266 | v0.3 sprint phase A+B+C 全收 + Phase D 启动 · 3-track 模式实证 · bench-only PR 模式开启 |
 | [session-26.md](session-26.md) | 2026-05-09 | 26 | #259-#263 | 4-track 文件域隔离首次实证 · 单 day 4 PR concurrent · v0.3 sprint phase B+C 大跃进 · OpenCode §2.10 第 2 次 → N=3 永久转出条款 |
 | [session-25.md](session-25.md) | 2026-05-07 | 25 | #251-#253 | v0.3 sprint phase A 50% 启动 · MVP-15/16 Phase A · 主 agent reviewer 翻转 gate (a) 实战 · OpenCode 谎报 lint/typecheck 首次 |
 | [session-24.md](session-24.md) | 2026-05-04 | 24 | spec only | v0.3 sprint kickoff · 4 agent 并发 spec 详化 6 PR |
@@ -104,8 +105,8 @@ docs/session-history/
 以下 session 仍在 git 历史中可追溯 · 但未单独归档（PROGRESS.md M-2 滚动窗口仅保留最近 2 session 摘要 · 更早信息需 `git log` 检索 · 不强制单独成文）：
 
 - **session 22 / 23**（2026-04-30 ~ 2026-05-03 · Apple Dev / dependabot 批处理阶段 · 详见 `git log --grep="session 2[23]"`）
-- **session 27**（2026-05-10 · v0.3 sprint phase A+B+C 全收 · 3 PR concurrent · PR #264-#266 · 仍在 PROGRESS.md 滚动窗口内 · 下次 session 末归档）
-- **session 28**（2026-05-12 · 单 day 9 PR merged · 4-track + 5 idle 查漏补缺 · MVP-15 Phase D §F+§G · 当前 PROGRESS.md 头条 · 下下次 session 末归档）
+- **session 28**（2026-05-12 · 单 day 9 PR merged · 4-track + 5 idle 查漏补缺 · MVP-15 Phase D §F+§G · 当前 PROGRESS.md 头条 · 下次 session 末归档）
+- **session 29**（2026-05-12 ~ active · MVP-17 spec ready + Phase B skeleton + 3-track dispatch 启动 · 主 agent 已 7 PR merged · Codex Phase A / OpenCode Phase C 待 push · in-progress 状态 · session 结束后归档）
 
 ## 🗂️ 预期归档（Phase 2 历史复盘 · 按需补）
 

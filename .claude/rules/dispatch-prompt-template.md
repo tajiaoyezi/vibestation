@@ -149,7 +149,9 @@ Co-authored-by: <Agent Name> <noreply@<vendor>.ai>
 - Codex CLI：`Co-authored-by: Codex CLI <noreply@openai.com>`
 - OpenCode：`Co-authored-by: OpenCode <noreply@opencode.ai>`
 - Kimi（Moonshot）：`Co-authored-by: Kimi <noreply@moonshot.ai>`
-- Cursor / Aider / 其他：按工具官方邮箱
+- Droid（Factory.ai）：`Co-authored-by: Droid <noreply@factory.ai>`（session 25-26 实战 · PR #260）
+- Cursor：`Co-authored-by: Cursor <noreply@cursor.com>`（session 28 实战 · PR #273）
+- Aider / Windsurf / 其他：按工具官方邮箱
 
 #### 2.5.3 · commit 后立即验证 author 字段
 
@@ -225,7 +227,7 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 | Agent 类型 | 代表 | 本地文件 | git/shell | prompt 策略 |
 |---|---|---|---|---|
-| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf | ✅ worktree + Bash | ✅ 完整 | **给路径即可** |
+| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf · Droid（Factory.ai） | ✅ worktree + Bash | ✅ 完整 | **给路径即可** |
 | **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek | ❌ 无本地 | ❌ 无 shell | **必须附文件原文** |
 | **IDE 插件** | Trae / Kilo / Cursor 内嵌聊天 · Copilot Chat | 🟡 依赖插件 | 🟡 部分 | **明确工具要求 + 附原文兜底** |
 

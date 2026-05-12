@@ -54,7 +54,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 
 | Phase | 范围 | 状态 | 预估 | 交付物 |
 |---|---|---|---|---|
-| Phase A · 数据接线 + 布局骨架 | 消费 MVP-07 commit list + refs，完成 lane 分配最小实现，输出布局快照（不含高级优化） | ✅ done · PR #N | 2d | `web/src/panels/GitLog/RailGraph/` + 4 ts-rs binding + 21 vitest 单测 + 6 快照 |
+| Phase A · 数据接线 + 布局骨架 | 消费 MVP-07 commit list + refs，完成 lane 分配最小实现，输出布局快照（不含高级优化） | ✅ done · PR #256 | 2d | `web/src/panels/GitLog/RailGraph/` + 4 ts-rs binding + 21 vitest 单测 + 6 快照 |
 | Phase B · Canvas 绘制 + 视觉语义 | commit 节点、连线、merge/fork 节点形态、branch tip 标签（local/remote/tag） | ✅ done · PR #261 | 2d | `RailGraphCanvas.tsx` + 视觉回归首版 |
 | Phase C · 虚拟化 + 交互 | viewport ±100、offscreen canvas、RAF、hover 路径高亮、collapse 策略 | ✅ done · PR #265 | 2d | `RailGraphVirtualizer.ts` + perf trace |
 | Phase D · 集成 + 性能收敛 | 与 MVP-07 滚动同步、MVP-13 事件联动、主题色 token 化、性能预算验收 | 🟡 planned | 2d | Phase D 验收报告 + QA 清单 |

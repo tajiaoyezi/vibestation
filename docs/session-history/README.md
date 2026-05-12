@@ -90,13 +90,26 @@ docs/session-history/
 
 | 文件 | 日期 | Session | PR 范围 | 主题 |
 |------|------|---------|---------|------|
+| [session-26.md](session-26.md) | 2026-05-09 | 26 | #259-#263 | 4-track 文件域隔离首次实证 · 单 day 4 PR concurrent · v0.3 sprint phase B+C 大跃进 · OpenCode §2.10 第 2 次 → N=3 永久转出条款 |
+| [session-25.md](session-25.md) | 2026-05-07 | 25 | #251-#253 | v0.3 sprint phase A 50% 启动 · MVP-15/16 Phase A · 主 agent reviewer 翻转 gate (a) 实战 · OpenCode 谎报 lint/typecheck 首次 |
+| [session-24.md](session-24.md) | 2026-05-04 | 24 | spec only | v0.3 sprint kickoff · 4 agent 并发 spec 详化 6 PR |
+| [session-21.md](session-21.md) | 2026-04-29 | 21 | #173-#175 | v0.1.0-alpha 双平台 GA · macOS unsigned .dmg + Linux .deb / .AppImage |
+| [session-20.md](session-20.md) | 2026-04-26 | 20 | #152-#168 | ADR-015 accepted + PR #157 round 1/2 inline 反模式 → §2.13 规则化 |
 | [session-19.md](session-19.md) | 2026-04-25 | 19 | #117-#152 | 史上最高产 36 PR · MVP-11 5/5 ✅ + MVP-05 Phase A/B/C + ADR-006 Ubuntu validated + branch protect 机械化 + ADR-015 accepted |
 | [session-18.md](session-18.md) | 2026-04-25 | 18 | #106-#116 | 4 track 并发极致产出 · 11 PR merge · 5 Phase 落地 + 3 spec ready 加强 |
 | [session-17.md](session-17.md) | 2026-04-23 | 17 | #99-#105 | MVP-04 Phase F 收口 + MVP-08 Phase A/B/C 落地 + PR Actions 分钟节流 |
 
-## 🗂️ 预期归档（Phase 3 之后逐步填入）
+## 🗂️ 待归档（M-2 滚动窗口外 · 按需补）
 
-以下为 Phase 2 积累的可归档 session（在 Phase 3 之后按需补）：
+以下 session 仍在 git 历史中可追溯 · 但未单独归档（PROGRESS.md M-2 滚动窗口仅保留最近 2 session 摘要 · 更早信息需 `git log` 检索 · 不强制单独成文）：
+
+- **session 22 / 23**（2026-04-30 ~ 2026-05-03 · Apple Dev / dependabot 批处理阶段 · 详见 `git log --grep="session 2[23]"`）
+- **session 27**（2026-05-10 · v0.3 sprint phase A+B+C 全收 · 3 PR concurrent · PR #264-#266 · 仍在 PROGRESS.md 滚动窗口内 · 下次 session 末归档）
+- **session 28**（2026-05-12 · 单 day 9 PR merged · 4-track + 5 idle 查漏补缺 · MVP-15 Phase D §F+§G · 当前 PROGRESS.md 头条 · 下下次 session 末归档）
+
+## 🗂️ 预期归档（Phase 2 历史复盘 · 按需补）
+
+以下为 Phase 2 积累的可归档话题（在事件复盘需要时按需补入）：
 
 - **2026-04-17 ~ 2026-04-18 Phase 2 Codex 5 轮审查**（10 HIGH findings · PR #9 3 commits · Codex companion 对抗性审查方法的效果评估）
 - **PR #4 close · 为什么不用共享 `SPIKE-REPORT.md`**（物理隔离 vs 声明式并发治理 · Codex PR #5 R2 F1 教训）

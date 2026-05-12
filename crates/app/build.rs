@@ -18,7 +18,8 @@ use vibestation_core::{
     CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse,
     ConflictFile, ConflictHunk, ConflictHunkResolution, ConflictResolution,
     ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, CrashReportPayload, DiffHunk,
-    DiffLine, DiffLineType, DiffRequest, DiffResponse, FetchProgressEvent, FetchRequest,
+    DiffLine, DiffLineType, DiffRequest, DiffResponse, EnvEntry, EnvPreview, ExternalTerminalInfo,
+    ExternalTerminalLaunchRequest, ExternalTerminalLaunchResult, FetchProgressEvent, FetchRequest,
     FetchResult, FileChange, FileStatusEvent, GitConfigIdentity, GitLogEntry, GitLogQueryRequest,
     GitLogQueryResponse, GitStatusCollapseRequest, GitStatusGroup, GitStatusPanelSettings,
     GitStatusRequest, GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType,
@@ -62,6 +63,10 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
+    println!("cargo:rerun-if-changed=../core/src/external_term/mod.rs");
+    println!("cargo:rerun-if-changed=../core/src/external_term/detect.rs");
+    println!("cargo:rerun-if-changed=../core/src/external_term/env_filter.rs");
+    println!("cargo:rerun-if-changed=../core/src/external_term/launch.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/mod.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/ipc.rs");
     println!("cargo:rerun-if-changed=../core/src/config_import/keybinding.rs");
@@ -202,6 +207,14 @@ fn main() {
 
     // MVP-20 BUG-001 · cd echo flash 修复 · IPC 返回类型
     SpawnResult::export_all(&config).expect("export SpawnResult");
+
+    // MVP-17 Phase A · Pop to External IPC contract
+    ExternalTerminalInfo::export_all(&config).expect("export ExternalTerminalInfo");
+    ExternalTerminalLaunchRequest::export_all(&config)
+        .expect("export ExternalTerminalLaunchRequest");
+    ExternalTerminalLaunchResult::export_all(&config).expect("export ExternalTerminalLaunchResult");
+    EnvPreview::export_all(&config).expect("export EnvPreview");
+    EnvEntry::export_all(&config).expect("export EnvEntry");
 
     // MVP-10 Phase B · Telemetry contract（ADR-015）
     CrashReportPayload::export_all(&config).expect("export CrashReportPayload");
@@ -360,6 +373,12 @@ fn main() {
             "export type { AppSettings } from \"./AppSettings\";",
             "export type { SettingsUpdateRequest } from \"./SettingsUpdateRequest\";",
             "export type { ShellInfo } from \"./ShellInfo\";",
+            // MVP-17 Phase A · Pop to External contract
+            "export type { ExternalTerminalInfo } from \"./ExternalTerminalInfo\";",
+            "export type { ExternalTerminalLaunchRequest } from \"./ExternalTerminalLaunchRequest\";",
+            "export type { ExternalTerminalLaunchResult } from \"./ExternalTerminalLaunchResult\";",
+            "export type { EnvPreview } from \"./EnvPreview\";",
+            "export type { EnvEntry } from \"./EnvEntry\";",
             "export type { CrashReportPayload } from \"./CrashReportPayload\";",
             "export type { TelemetryOptInRequest } from \"./TelemetryOptInRequest\";",
             "export type { TelemetryStatus } from \"./TelemetryStatus\";",

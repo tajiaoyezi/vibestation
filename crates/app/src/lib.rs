@@ -14,9 +14,11 @@ use crate::pane_layout_advanced::{
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, State};
+use vibestation_core::external_term::*;
 #[allow(unused_imports)]
 use vibestation_core::panes;
 use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
@@ -61,6 +63,7 @@ const GIT_CONFLICT_DETECTED_EVENT: &str = "git:conflict-detected";
 /// MVP-16 Phase C · app 启动 / workspace 切换时检测到 in-progress rebase / merge / cherrypick 时
 /// emit 此 event · payload 为 `RebaseCrashRecoveryEvent` · 前端据此渲染 recovery banner。
 const GIT_CRASH_RECOVERY_EVENT: &str = "git:crash-recovery-detected";
+const EXTERNAL_TERM_LAUNCHED_EVENT: &str = "external_term_launched";
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -108,6 +111,13 @@ struct RebaseCrashRecoveryEvent {
     branch: Option<String>,
     current_step: u32,
     total_steps: u32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ExternalTermLaunchedEvent {
+    terminal_id: String,
+    pane_id: String,
 }
 
 struct AppState {
@@ -707,6 +717,92 @@ fn pane_pty_kill(state: State<'_, AppState>, pane_id: String) -> Result<(), Stri
     pane_pty::kill(&state.pane_pty, &pane_id)
         .map(|_| ())
         .map_err(|e| e.to_string())
+}
+
+// ─── MVP-17 Phase A · Pop to External IPC（终端识别 + env 预览 + 启动） ───
+
+#[tauri::command]
+fn external_term_list() -> Result<Vec<ExternalTerminalInfo>, String> {
+    let terminals = detect_terminals();
+    if terminals.is_empty() {
+        return Err(
+            "No external terminal found. Install Ghostty, iTerm2, Terminal.app, Alacritty, GNOME Terminal, or Konsole."
+                .to_string(),
+        );
+    }
+    Ok(terminals)
+}
+
+#[tauri::command]
+fn external_term_preview_env(
+    state: State<'_, AppState>,
+    pane_id: String,
+) -> Result<EnvPreview, String> {
+    state
+        .pane_pty
+        .working_directory(&pane_id)
+        .map_err(|error| format!("pane PTY session unavailable: {error}"))?;
+    Ok(filter_env(&current_process_env()))
+}
+
+#[tauri::command]
+fn external_term_launch(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    request: ExternalTerminalLaunchRequest,
+) -> Result<ExternalTerminalLaunchResult, String> {
+    let cwd = state
+        .pane_pty
+        .working_directory(&request.pane_id)
+        .map_err(|error| format!("pane PTY session unavailable: {error}"))?;
+    let shell = {
+        let guard = state.pool.lock().map_err(|error| error.to_string())?;
+        let pool = guard.as_ref().ok_or("database not initialized")?;
+        vibestation_core::resolve_default_shell(Some(pool))
+    };
+    let launch_command =
+        build_launch_command(&request.terminal_id, &cwd, &shell, current_platform())
+            .map_err(|error| error.to_string())?;
+    let filtered_env = filtered_env_vars(&current_process_env());
+
+    let mut command = Command::new(&launch_command.program);
+    command
+        .args(&launch_command.args)
+        .current_dir(&cwd)
+        .env_clear()
+        .envs(filtered_env);
+
+    match command.spawn() {
+        Ok(mut child) => {
+            let terminal_id = request.terminal_id.clone();
+            let pane_id = request.pane_id.clone();
+            thread::Builder::new()
+                .name("vibestation-external-term-reaper".to_string())
+                .spawn(move || {
+                    let _ = child.wait();
+                })
+                .map_err(|error| error.to_string())?;
+            let _ = app.emit(
+                EXTERNAL_TERM_LAUNCHED_EVENT,
+                ExternalTermLaunchedEvent {
+                    terminal_id,
+                    pane_id,
+                },
+            );
+            Ok(ExternalTerminalLaunchResult {
+                success: true,
+                failed_reason: None,
+            })
+        }
+        Err(error) => Ok(ExternalTerminalLaunchResult {
+            success: false,
+            failed_reason: Some(error.to_string()),
+        }),
+    }
+}
+
+fn current_process_env() -> HashMap<String, String> {
+    std::env::vars().collect()
 }
 
 // ─── MVP-05 Phase B Step 2 · Pane layout IPC（6 commands · §H.3 atomicity） ───
@@ -1803,6 +1899,9 @@ pub fn run() {
             pane_pty_resize,
             pane_pty_signal,
             pane_pty_kill,
+            external_term_list,
+            external_term_preview_env,
+            external_term_launch,
             pane_init_for_tab,
             pane_split,
             pane_close,

@@ -44,7 +44,7 @@ reviewer:
 ### 与已有 MVP 协同
 
 - 复用 MVP-04 PTY runtime（pane_id → session → PtySession 映射 · 不新增 PTY 抽象）
-- 复用 MVP-14 LayoutNode tree（detach 时把 PaneLeaf 标 `state: detached` · 不移除 node · 关闭时复原）
+- 复用 MVP-14 LayoutNode tree 的 pane_id 引用语义（detach 时前端 `detachedPanes: Map<PaneId, WindowLabel>` runtime signal 标记 · LayoutNode 不动 · 关闭时移除 map 项即复原）
 - 复用 MVP-10 settings 面板（外部终端偏好 / env 白名单可配置）
 
 ### 占位 spec 升级
@@ -58,7 +58,7 @@ reviewer:
 | Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
 |-------|------|--------|------|------|----|
 | **Phase A · Pop to External 终端识别 + 启动** | `crates/core/src/external_term/` 新模块：`detect.rs`（按 `TERM_PROGRAM` + `which` 探测 5 种终端）+ `launch.rs`（`open -a <App>` macOS / `gnome-terminal --` Linux · cwd + shell 传参）+ `env_filter.rs`（白名单 env 过滤 · 防 API key 泄漏）· 单元测试 ≥ 12（5 终端检测 + 4 命令构造 + 3 env 过滤边界）| `crates/core/src/external_term/*` · `crates/core/src/lib.rs`（re-export） | MVP-04 done | ⏳ ready | TBD |
-| **Phase B · Pane Detach WebviewWindow 生命周期** | `crates/app/src/pane_detach/` 新模块：`window_manager.rs`（新建 WebviewWindow · label `pane-detach-<uuid>` · close listener）+ `layout_state.rs`（LayoutNode 标 `state: detached` · 不删 node）· IPC `pane_detach_open` / `pane_detach_close` / `pane_detach_list` + 4 ts-rs binding · 30 单测 · pane_id 转 detach state 状态机 | `crates/app/src/pane_detach/*` · `crates/app/src/lib.rs` · `crates/app/permissions/pane_detach.toml` · `crates/app/capabilities/default.json` · `crates/core/src/panes.rs`（LayoutLeafState 扩 `detached`） | MVP-14 done · Phase A done（共享 pane_id 抽象） | ⏳ ready | TBD |
+| **Phase B · Pane Detach WebviewWindow 生命周期** | `crates/app/src/pane_detach/` 新模块：`window_manager.rs`（新建 WebviewWindow · label `pane-detach-<uuid>` · close listener）+ `state.rs`（`DetachedPaneMap` runtime-only HashMap · 不持久化）· IPC `pane_detach_open` / `pane_detach_close` / `pane_detach_list` + 5 ts-rs binding（含 PaneDetachStateEvent）· 30 单测 · pane_id 转 detach state 状态机 · **不动 `crates/core/src/panes.rs`**（LayoutNode schema 0 侵入 · 见 §数据模型修订记录） | `crates/app/src/pane_detach/*` · `crates/app/src/lib.rs` · `crates/app/permissions/pane_detach.toml` · `crates/app/capabilities/default.json` | MVP-14 done · Phase A done（共享 pane_id 抽象） | ⏳ ready | TBD |
 | **Phase C · UI + 快捷键 + 右键菜单 + 集成** | 右键菜单 "Pop to External" / "Detach Pane" 两项 · `⌘⇧O` (Pop) + `⌘⇧D` (Detach) 全局快捷键 · detached pane 在原位置显示 "Detached · click to bring back" placeholder · 第二 WebviewWindow 自带 mini-toolbar（pane_id + workspace 名 + "Reattach" 按钮）· 关闭 detached 重新挂载 PaneTerminal | `web/src/panels/Terminal/PaneContextMenu.tsx`（扩）· `web/src/panels/Terminal/DetachedPlaceholder.tsx`（新建）· `web/src/dialogs/PopToExternal/PopToExternalDialog.tsx`（新建 · 终端选择 + env 预览）· `web/src/lib/pane-detach.ts`（IPC 接通）· `web/src/lib/external-term.ts`（IPC 接通）· `web/src/styles.css`（placeholder 样式 + mini-toolbar） | Phase A + Phase B done | ⏳ ready | TBD |
 | **Phase D · runtime 证据 + GUI capture** | macOS + Linux 双平台各 5 张截图（Phase A 终端选择对话框 + env 预览 / Phase B detached window 显示 + reattach 按钮 / Phase C 右键菜单 + placeholder + 多 detached 共存）· 30s 录屏（Detach → 拖窗口到另一屏 → 关闭还原）· Acceptance §H runtime evidence + 内存释放量化（关闭 detached 后 ≤ 10MB 残留 · 通过 Activity Monitor / `ps -o rss=` 测）| `docs/runtime-evidence/mvp-17/phase-d/` | Phase C done | ⏳ deferred（Arbiter 自定时机 · 类似其他 v0.3 sprint MVP）| — |
 
@@ -161,13 +161,13 @@ reviewer:
 
 - [ ] C.1 右键菜单点击 "Detach Pane" → 创建新 WebviewWindow · label `pane-detach-<uuid>` · 大小 800×600 · 位置主窗口 offset (40, 40)
 - [ ] C.2 detached window URL = `index.html?mode=detached&pane=<id>` · 前端 `App.tsx` 根据 `mode` query 渲染 minimal layout（只 PaneTerminal + mini-toolbar）
-- [ ] C.3 主窗口原位置 Pane 标 `state: detached` · LayoutNode tree 不删 leaf · 显示 placeholder（点击 focus detached window）
+- [ ] C.3 主窗口原位置前端 `detachedPanes` map 标记该 pane_id · LayoutNode tree 不动 · 显示 placeholder（点击 focus detached window）
 - [ ] C.4 detached window 共享主窗口 PTY backend（同 `pane_id` → 同 PtySession）· xterm.js 在 detached 内 attach 现有 stream · scrollback 保留
 - [ ] C.5 detached window 数量无硬上限 · 当前实施测 ≥ 3 个并存稳定
 
 ### D. Pane Detach · 关闭恢复（Phase B）
 
-- [ ] D.1 点 detached window ✕ → triggers `pane_detach_close` IPC · 主窗口 LayoutNode 还原 `state: attached` · placeholder 消失 · PaneTerminal 在原位置 re-mount · xterm 流不断
+- [ ] D.1 点 detached window ✕ → triggers `pane_detach_close` IPC · backend 从 `DetachedPaneMap` 移除 · emit `pane_detach_state_changed { action: "attached" }` 事件 · 前端 `detachedPanes` map 移除 + placeholder 消失 · PaneTerminal 在原位置 re-mount · xterm 流不断
 - [ ] D.2 主窗口退出（quit）时所有 detached window 自动关闭 · 状态全部回主窗口（虽然进程也退 · 但 quit 前的 state save 保持 attached 状态 · 不存 detached 中间态）
 - [ ] D.3 detached window 关闭后内存释放 ≤ 10MB 残留（measured by `ps -o rss=` 对比 detach 前 / 关闭后稳态 · 间隔 5s 取均值）
 - [ ] D.4 reattach 后 ⌘Enter maximize / 方向键 navigation 等 MVP-14 Phase C 功能正常（regression test）
@@ -189,7 +189,7 @@ reviewer:
 ### G. 错误处理 / 边界
 
 - [ ] G.1 Pop to External 启动命令失败（exit code ≠ 0）· 不留 zombie process · IPC 返回 stderr 内容 · UI toast 显示 "Failed to open in {terminal}: <reason>"
-- [ ] G.2 Pane Detach 时该 Pane 已 maximized（MVP-14 ⌘Enter）· 先取消 maximize · 再 detach（保证 LayoutNode 一致）
+- [ ] G.2 Pane Detach 时该 Pane 已 maximized（MVP-14 ⌘Enter）· 先取消 maximize · 再 detach（保证 detach state + maximize state 不同时存在）
 - [ ] G.3 Pane Detach 时该 Pane 已 detached（重复触发）· no-op + toast "Already detached"
 - [ ] G.4 detached window 触发 Detach（嵌套 detach）· no-op + toast "Cannot detach a detached pane"
 - [ ] G.5 同一 workspace 内 detach 全部 Pane（极端）· 主窗口可能空 layout · 仍可见 sidebar + tool windows · 右下 toast "All panes detached. Reattach to continue."
@@ -211,7 +211,7 @@ reviewer:
 | 单元（Rust） | 终端检测 5 case + 命令构造 5 终端 × 2 平台 fixture + env 过滤 ≥ 8 case + WebviewWindow lifecycle state machine | `cargo test --workspace` | `external_term` mod ≥ 90% line cov · `pane_detach` mod ≥ 85% |
 | 单元（Frontend） | pane-detach.ts / external-term.ts IPC wrapper 错误路径 + DetachedPlaceholder 渲染 + PopToExternalDialog form state | `vitest` | 新增 ≥ 18 单测 |
 | 集成 | IPC contract pane_detach_open → close → reattach 状态机 · 含异常关闭 | `cargo test --features integration` | 5 integration test |
-| E2E | Playwright 模拟："detach pane → 拖窗口 → 关闭 → 验证 LayoutNode 还原" 一气呵成 · "Pop to External" 弹对话框 + 选 Ghostty + 验证 spawn 命令（不真启 · mock 拦截 `open` 命令） | Playwright | 2 E2E（cross-platform） |
+| E2E | Playwright 模拟："detach pane → 拖窗口 → 关闭 → 验证主窗口 placeholder 消失 + PaneTerminal 在原位置 re-mount" 一气呵成 · "Pop to External" 弹对话框 + 选 Ghostty + 验证 spawn 命令（不真启 · mock 拦截 `open` 命令） | Playwright | 2 E2E（cross-platform） |
 | Runtime evidence | 5 PNG + 1 MP4（macOS） · Phase D capture · Linux Phase D part B 推 v0.4 跟 SPIKE-01 Phase C | manual | Arbiter 60-90 min |
 
 ---
@@ -226,23 +226,57 @@ reviewer:
 | `external_term_dont_ask_again` | bool | false | "Don't ask again" 状态 · true 时跳过对话框 |
 | `pane_detach_default_size` | json | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
 
-### LayoutNode 扩展（Phase B · 不破坏 MVP-14 schema）
+### Detach state · runtime-only map（**不动 panes.rs schema** · Phase B）
+
+> **本次详化修订（2026-05-12 session 29）**：原 §数据模型变更段写"扩展 LayoutNode + 新增 LayoutLeafState enum + struct PaneLeaf"是误读 · 实际 `crates/core/src/panes.rs` L24 是 `enum LayoutNode { Single { pane_id }, Split {...} }` · 无 `PaneLeaf` struct · 且本 spec D.2 + H.5 已明确"detached state 不持久化 · 重启回主窗口"。**正确实现路径 = runtime-only HashMap · 不动 LayoutNode schema · MVP-14 binding 0 侵入**。
+
+**Phase B 实现**：
 
 ```rust
-// crates/core/src/panes.rs
-#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
-pub enum LayoutLeafState {
-    Attached,                              // 默认 · 主窗口内渲染
-    Detached { window_label: String },     // 新增 · 在 detached window 渲染
+// crates/app/src/pane_detach/state.rs · 新文件 · app 层运行时状态
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+/// detached pane 运行时状态映射 · App 启动时空 · quit 时全清 · 不持久化
+pub struct DetachedPaneMap {
+    inner: Mutex<HashMap<PaneId, DetachedWindowInfo>>,
 }
 
-pub struct PaneLeaf {
-    pub pane_id: PaneId,
-    pub state: LayoutLeafState,            // 新字段 · 默认 Attached · serde default
+pub struct DetachedWindowInfo {
+    pub window_label: String,      // tauri WebviewWindow label · "pane-detach-<uuid-v4>"
+    pub workspace_id: String,
+    pub created_at: SystemTime,
+}
+
+impl DetachedPaneMap {
+    pub fn new() -> Self { /* ... */ }
+    pub fn insert(&self, pane_id: PaneId, info: DetachedWindowInfo) -> Result<(), DetachError> { /* idempotent · 已存在返回 AlreadyDetached */ }
+    pub fn remove(&self, pane_id: &PaneId) -> Option<DetachedWindowInfo> { /* 关闭时调用 */ }
+    pub fn get(&self, pane_id: &PaneId) -> Option<DetachedWindowInfo> { /* clone · 不持锁 */ }
+    pub fn list(&self) -> Vec<(PaneId, DetachedWindowInfo)> { /* 全量列举 · UI 显示 */ }
+    pub fn clear(&self) { /* App quit 时调用 · 无副作用 · IPC 接收方负责发 close */ }
 }
 ```
 
-迁移：序列化时旧版本（无 `state` 字段）解析为 `Attached` · 通过 `#[serde(default)]` 兼容。无 DB migration（layout 存 KV blob）。
+**注册为 Tauri state**：`tauri::Builder::default().manage(DetachedPaneMap::new())`。
+
+**不改 `crates/core/src/panes.rs`**：MVP-14 已 done · LayoutNode schema 稳定 · 0 binding regression。
+
+**前端如何感知 detached 状态**：
+
+- 通过 `pane_detach_state_changed` 事件（payload: `{ pane_id, action: "detached" | "attached", window_label?: string }`）
+- 前端 `App.tsx` 维护 `detachedPanes: Map<PaneId, WindowLabel>` solid signal · 渲染 placeholder 时查 map
+- MVP-14 `PaneTerminal.tsx` props 加一行 `isDetached?: boolean` 决定渲染主体 vs placeholder（接收 caller 计算 · 不污染 LayoutNode tree）
+
+### app_settings 新增 KV（Phase C · 通过 MVP-10 settings UI 写 · 唯一持久化项）
+
+| key | type | default | 说明 |
+|---|---|---|---|
+| `external_term_preferred` | string \| null | null | 用户选择的默认外部终端 · null = 每次问 |
+| `external_term_dont_ask_again` | bool | false | "Don't ask again" 状态 · true 时跳过对话框 |
+| `pane_detach_default_size` | json | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
+
+**总结**：本 MVP 唯一 schema 变更是 `app_settings` KV 加 3 行（既有表 + 既有 IPC · 复用 MVP-10 已有写路径）· 0 DB migration · 0 LayoutNode binding 变更 · detached state 全 runtime。
 
 ---
 
@@ -264,10 +298,9 @@ pub struct PaneLeaf {
 | 8 | `PaneDetachCloseRequest` | Phase B `pane_detach_close` 入参（window_label） | B |
 | 9 | `PaneDetachCloseResult` | Phase B `pane_detach_close` 返回（pane_id reattached） | B |
 | 10 | `PaneDetachListEntry` | Phase B `pane_detach_list` 返回的单项（window_label + pane_id + bounds） | B |
-| 11 | `LayoutLeafState` | enum 扩展（Attached / Detached { window_label }）· MVP-14 PaneLeaf 内字段 · 不破坏既有 binding 通过 serde default 兼容 | B |
-| 12 | `PaneDetachStateEvent` | Phase B 事件 payload（pane_detach_state_changed · window_label + new_state） | B |
+| 11 | `PaneDetachStateEvent` | Phase B 事件 payload（pane_detach_state_changed · pane_id + action: "detached" \| "attached" + window_label?: Option\<String\>） | B |
 
-共 12 个新 binding。
+共 **11 个新 binding**（原 12 · 修订移除 LayoutLeafState · 见 §数据模型变更修订记录 · detached state 改 runtime-only · 不扩 LayoutNode schema）。
 
 ### G.2 IPC command 清单
 
@@ -343,7 +376,7 @@ pub struct PaneLeaf {
 
 **理由**：
 
-- 简化 LayoutNode tree 状态机（detached leaf 一定是 PaneLeaf · 不是 SplitNode）
+- 简化 detach state 状态机（一个 detached window 永远对应 LayoutNode 的一个 `Single { pane_id }` variant · 不会指向 `Split` 子树）
 - 用户场景实际：detach 是为了"独立屏 / 独立窗口"· 而非"独立分屏组"
 - v1.0+ 若有用户反馈 · 评估 detached 内分屏（但需要重写 LayoutNode 支持"sub-tree as root"）
 
@@ -364,7 +397,7 @@ pub struct PaneLeaf {
 | ID | 风险 | 触发条件 | 缓解 | 严重度 |
 |---|---|---|---|---|
 | R1 | env 泄漏 API key | 用户在 shell `export OPENAI_API_KEY=...` 后 Pop to External | 黑名单层强制 redact `OPENAI` 字段名 · §H.3 + B.3 单测 | 🔴 high |
-| R2 | detached window 关闭 → Pane 状态丢失 | IPC channel race · close 事件先于 LayoutNode 还原 | D.5 异常路径 IPC channel close listener + LayoutNode 状态机 idempotent | 🟡 medium |
+| R2 | detached window 关闭 → Pane 状态丢失 | IPC channel race · close 事件先于 DetachedPaneMap 移除完成 | D.5 异常路径 IPC channel close listener + `DetachedPaneMap::remove` idempotent + 事件 retry once | 🟡 medium |
 | R3 | Pane Detach + Maximized 状态冲突 | MVP-14 ⌘Enter maximize 后再 detach | G.2 detach 前自动取消 maximize | 🟡 medium |
 | R4 | 多 detached window IPC 拥堵 | 5+ detached 并存 · 每个独立 IPC channel · main process 处理压力 | 当前 KISS · D.3 测 3 detached 稳态 OK · > 4 时 toast 警告 · v0.4 评估 channel multiplexing | 🟢 low |
 | R5 | macOS Gatekeeper 阻止 detached window | unsigned alpha build · macOS 13+ Gatekeeper 对 sub-window 二次询问 | 复用 MVP-10 §I.D Gatekeeper bypass 指引 · README 已有 | 🟢 low |
@@ -384,8 +417,8 @@ pub struct PaneLeaf {
 
 ### 与 MVP-14 LayoutNode 的对接
 
-- LayoutNode `PaneLeaf` 加 `state: LayoutLeafState` 字段 · serde default = Attached
-- MVP-14 已有的 LayoutNode 序列化逻辑兼容（旧 layout JSON 无 state 字段 → 解析为 Attached · 不破坏）
+- **不动 `crates/core/src/panes.rs`**（修订决策 · 详见 §数据模型变更）· LayoutNode schema 稳定 · MVP-14 13 个 binding 0 regression
+- detached state 全 runtime（`DetachedPaneMap` HashMap in app state · 前端 `detachedPanes` Solid signal）· App 重启回到 attached（H.5 实施 · 不需特殊 migration）
 - MVP-14 的 maximize state（session-level memory）不持久化 · 不影响 detach state
 
 ### 命名 / 文案
@@ -399,7 +432,7 @@ pub struct PaneLeaf {
 
 ## 🔗 相关
 
-- **上游**：MVP-04 (PTY runtime · cwd 获取) · MVP-14 (LayoutNode tree · LayoutLeafState 扩展) · MVP-10 (settings UI 对接)
+- **上游**：MVP-04 (PTY runtime · cwd 获取) · MVP-14 (LayoutNode tree · pane_id 引用语义复用 · **不扩 schema**) · MVP-10 (settings UI 对接)
 - **下游**：无（v1.0 cross-window drag / v1.0 global shortcut 都是独立 MVP · 不依赖本 MVP）
 - **依据**：`implementation-plan.md` §10.1（v0.3 砍到名单）· §5.3（多窗口策略）
 - **ADR 引用**：ADR-014（IPC contract via ts-rs）· ADR-006（Tauri 2 desktop framework）
@@ -446,7 +479,7 @@ pub struct PaneLeaf {
    - 平台：macOS 13+ + Ubuntu 24 (X11/Wayland) · Windows 推 v0.4（F.3 明示）
    - 终端：5 个（macOS 4 + Linux 4 · 交集 2）· 顺序明确 · 0 检测到也覆盖
    - 并发：detached 数 ≥ 3 稳定 · > 4 toast 警告（R4 缓解）
-   - 状态机：Attached / Detached 2 态 · enum serde default 兼容旧 layout JSON
+   - 状态机：Attached / Detached 2 态 · runtime-only `DetachedPaneMap` HashMap · 不持久化 · 0 LayoutNode schema 变更（D.2 + H.5 一致）
    ✅
 4. **YAGNI**：
    - cross-window drag · global shortcut · detached menubar 独立 · detached 内分屏 · 双向同步 → 全部明示 don't do · 推 v0.4 / v1.0

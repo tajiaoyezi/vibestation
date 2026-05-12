@@ -134,3 +134,11 @@ export type { RailGraphViewportSyncPayload } from "./RailGraphViewportSyncPayloa
 export type { RailGraphBranchChangedPayload } from "./RailGraphBranchChangedPayload";
 export type { RailGraphRebaseStatePayload } from "./RailGraphRebaseStatePayload";
 export type { RailGraphPerfSample } from "./RailGraphPerfSample";
+export type { PaneDetachOpenRequest } from "./PaneDetachOpenRequest";
+export type { PaneDetachOpenResult } from "./PaneDetachOpenResult";
+export type { PaneDetachCloseRequest } from "./PaneDetachCloseRequest";
+export type { PaneDetachCloseResult } from "./PaneDetachCloseResult";
+export type { PaneDetachListEntry } from "./PaneDetachListEntry";
+export type { PaneDetachStateEvent } from "./PaneDetachStateEvent";
+export type { PaneDetachAction } from "./PaneDetachAction";
+export type { DetachedWindowBounds } from "./DetachedWindowBounds";

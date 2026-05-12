@@ -22,6 +22,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-clipboard-manager = "2"
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 vibestation-core = { path = "../core" }
 r2d2.workspace = true
 r2d2_sqlite.workspace = true

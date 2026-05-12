@@ -220,8 +220,8 @@ rm -rf /tmp/f3-fixture
 > **状态**：✅ **Phase D 已通过（PR #117 round 1）**
 
 **证据**：
-- `phase-d/04-debounce-within-200ms.png` · debounce 触发在 200ms 窗口内
-- `phase-d/01-fs-watch-idle.png` → `02-file-edit-trigger.png` → `03-status-refreshed.png` · 触发链截图
+- `phase-d/04-debounce-within-200ms.jpg` · debounce 触发在 200ms 窗口内
+- `phase-d/01-fs-watch-idle.jpg` → `02-file-edit-trigger.jpg` → `03-status-refreshed.jpg` · 触发链截图
 
 **结论**：本 R-PHASE-E round 2 sub-agent 不重测 F.6 · 引用现有 phase-d 证据。
 
@@ -282,13 +282,13 @@ rm -rf /tmp/f3-fixture
 
 | # | File | Status |
 |---|------|--------|
-| - | `phase-d/01-fs-watch-idle.png` | ✅ |
-| - | `phase-d/02-file-edit-trigger.png` | ✅ |
-| - | `phase-d/03-status-refreshed.png` | ✅ |
-| - | `phase-d/04-debounce-within-200ms.png` | ✅ |
-| - | `phase-d/05-git-index-lock-excluded.png` | ✅ |
-| - | `phase-d/06-multi-file-edit-burst.png` | ✅ |
-| - | `phase-d/07-windows-skip-note.png` | ✅ |
+| - | `phase-d/01-fs-watch-idle.jpg` | ✅ |
+| - | `phase-d/02-file-edit-trigger.jpg` | ✅ |
+| - | `phase-d/03-status-refreshed.jpg` | ✅ |
+| - | `phase-d/04-debounce-within-200ms.jpg` | ✅ |
+| - | `phase-d/05-git-index-lock-excluded.jpg` | ✅ |
+| - | `phase-d/06-multi-file-edit-burst.jpg` | ✅ |
+| - | `phase-d/07-windows-skip-note.jpg` | ✅ |
 
 ---
 

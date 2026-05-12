@@ -1,0 +1,78 @@
+(node:30320) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30381) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Benchmarking is an experimental feature.
+Breaking changes might not follow SemVer, please pin Vitest's version when using it.
+
+ RUN  v4.1.5 /private/tmp/MVP-15-phase-D-bench-work/web
+
+
+ RUN  v4.1.5 /private/tmp/MVP-15-phase-D-bench-work/web
+
+(node:30426) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+stderr | Module.scheduleHighlight (/private/tmp/MVP-15-phase-D-bench-work/web/src/utils/shiki/scheduler.ts:57:13)
+[shiki] worker highlight failed, fallback to requestIdleCallback: vitest bench worker unsupported
+
+
+ ✓ tests/utils/shiki/bench/scheduler.bench.ts > MVP-15 Phase D §F.2 scheduler three-tier throughput
+     name                                                                      hz     min     max    mean     p75     p99    p995    p999      rme  samples
+   · < 1MB sync scheduler path                                       3,947,553.93  0.0002  0.0190  0.0003  0.0002  0.0004  0.0007  0.0038   ±4.22%     3948
+   · 1MB-10MB requestIdleCallback scheduler path                           843.91  0.3072  2.7077  1.1850  0.9870  2.7077  2.7077  2.7077  ±94.13%        5
+   · >=10MB worker fail fallback requestIdleCallback scheduler path        794.65  0.5757  1.4725  1.2584  1.4533  1.4725  1.4725  1.4725  ±37.81%        5
+
+ ✓ tests/utils/shiki/bench/scheduler.bench.ts > MVP-15 Phase D §F.2 scheduler three-tier throughput
+     name                                                                      hz     min     max    mean     p75     p99    p995    p999      rme  samples
+   · < 1MB sync scheduler path                                       3,947,553.93  0.0002  0.0190  0.0003  0.0002  0.0004  0.0007  0.0038   ±4.22%     3948
+   · 1MB-10MB requestIdleCallback scheduler path                           843.91  0.3072  2.7077  1.1850  0.9870  2.7077  2.7077  2.7077  ±94.13%        5
+   · >=10MB worker fail fallback requestIdleCallback scheduler path        794.65  0.5757  1.4725  1.2584  1.4533  1.4725  1.4725  1.4725  ±37.81%        5
+
+ BENCH  Summary
+
+  < 1MB sync scheduler path - tests/utils/shiki/bench/scheduler.bench.ts > MVP-15 Phase D §F.2 scheduler three-tier throughput
+    4677.69x faster than 1MB-10MB requestIdleCallback scheduler path
+    4967.64x faster than >=10MB worker fail fallback requestIdleCallback scheduler path
+
+
+ BENCH  Summary
+
+  < 1MB sync scheduler path - tests/utils/shiki/bench/scheduler.bench.ts > MVP-15 Phase D §F.2 scheduler three-tier throughput
+    4677.69x faster than 1MB-10MB requestIdleCallback scheduler path
+    4967.64x faster than >=10MB worker fail fallback requestIdleCallback scheduler path
+

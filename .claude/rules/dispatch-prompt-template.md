@@ -103,15 +103,37 @@ cd /private/tmp/<task-id>-work
 
 **必须** 3 条全做 · 不得只做 trailer 而跳过 git config：
 
-#### 2.5.1 · 覆盖继承的 git config（worktree 创建后第一步）
+#### 2.5.1 · worktree-local git config（worktree 创建后第一步 · session 28 升级 · 防 §2.12 污染）
 
 ```bash
 cd /private/tmp/<task-id>-work
-git config user.name "<Agent Name>"           # 例 "Codex CLI"
-git config user.email "<vendor>@<vendor>.ai"  # 例 "noreply@openai.com"
+
+# (a) 启用 worktree-local config 支持（idempotent · 重复跑安全）
+#     主 repo .git/config 多写一行 extensions.worktreeConfig=true · 不污染 identity
+git config extensions.worktreeConfig true
+
+# (b) 设 worktree-local identity（写 .git/worktrees/<name>/config.worktree · 不污染主 repo）
+git config --worktree user.name "<Agent Name>"           # 例 "Codex CLI"
+git config --worktree user.email "<vendor>@<vendor>.ai"  # 例 "noreply@openai.com"
+
+# (c) 验证（必须显示 worktree-local 值 · 不是 global / main repo .git/config 值）
+git config user.name && git config user.email
 ```
 
-**为什么**：`git worktree add` 会继承主 repo 的 `.git/config` · 若上一个 task 在此 worktree 跑过其他 agent · author 字段会错归（例 PR #71 Codex commit author = "Kimi <noreply@moonshot.ai>"）。
+**为什么改用 `--worktree`**（session 28 实证 · 2026-05-12）：
+
+- `git worktree add` 创建的 worktree **共享主 repo 的 `.git/config`**（不是独立 config）
+- 直接 `git config user.email "..."`（无 `--worktree` flag）默认写主 repo `.git/config` · 会被同 repo **所有** worktree 继承 · 也污染主 agent 在主 working tree 的 commit
+- session 28 实测：3 agent 顺序设 user.email → 主 repo `.git/config` 反复被覆盖 → 主 agent commit author 错归 OpenCode / Cursor / 等 · 复发 3 次
+- **唯一根治**：启用 `extensions.worktreeConfig=true` 后 · `--worktree` flag 写 `.git/worktrees/<name>/config.worktree` · 真正 per-worktree 隔离
+
+**反模式**（违反 BLOCK · session 28 后强化）：
+
+| 反模式 | 正确做法 |
+|---|---|
+| `git config user.email "..."`（无 --worktree） | 必须 `git config --worktree user.email "..."` |
+| 跳过 `git config extensions.worktreeConfig true` · 直接 `--worktree` | git 拒绝 · `--worktree` flag 需先启用 extension（fallback 写主 repo · 污染） |
+| 假设主 repo .git/config 不会被 worktree 污染 | session 28 实证 3 次污染 · 必须 `extensions.worktreeConfig=true` + `--worktree` 双保险 |
 
 #### 2.5.2 · 每个 commit 必含 `Co-authored-by` trailer
 
@@ -325,8 +347,11 @@ CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettie
 
 ```bash
 cd /private/tmp/<agent>-work
-git config --unset user.email
-git config --unset user.name
+git config --worktree --unset user.email   # 若之前用 --worktree 设过
+git config --worktree --unset user.name
+# 同时清 fallback path（防 session 28 前老 prompt 留下的污染）
+git config --unset user.email 2>/dev/null || true
+git config --unset user.name 2>/dev/null || true
 # 验证
 git config user.email   # 应该显示 global config · 不是临时值
 ```
@@ -343,7 +368,17 @@ git config --local --unset user.name 2>/dev/null || true
 
 **为什么**
 
-`git worktree add` 共享 `.git` 目录 · worktree-local config 写到 `.git/config` · 会被同 repo 的所有 worktree 继承。**更严重**：某些情况下 · worktree 操作会污染主 repo 的 local config（机制待确认 · 但 session 14 实测发生）。
+`git worktree add` 共享 `.git` 目录 · worktree 默认共享 `.git/config`（除非启用 `extensions.worktreeConfig=true` + 用 `--worktree` flag）。**session 14 + session 28 共两轮实证**：worktree 操作（无 `--worktree`）会污染主 repo 的 local config · 被同 repo 所有 worktree + 主 working tree 继承。
+
+**根治方案**（session 28 起 §2.5.1 强制 · 见 §2.5.1）：
+
+```bash
+git config extensions.worktreeConfig true       # 启用 per-worktree config
+git config --worktree user.name "<Agent Name>"  # 写 .git/worktrees/<name>/config.worktree
+git config --worktree user.email "..."
+```
+
+`--worktree` 写入位置不再共享 · 跨 agent 污染从根上消除。
 
 **事件**
 
@@ -353,12 +388,20 @@ git config --local --unset user.name 2>/dev/null || true
 2. PR #83（OpenCode 交付）· 前端 commit `366cd73` author 错归 Codex · 根因：主 agent 修 PR #82 时 `git config user.email noreply@openai.com` 到 worktree · OpenCode 后续 commit 继承 · 主 agent 代修
 3. PR #84（主 agent sync PR）· 主 repo **自己的 local config** 也被污染为 `OpenCode <noreply@opencode.ai>`· 主 agent commit 初次归为 OpenCode · unset local + amend reset 恢复为 global user
 
+2026-05-12 · session 28 · **3+ 次主 repo .git/config 污染**（机制已确诊）：
+
+1. PR #272（主 agent backfill）首次 commit author = `OpenCode <noreply@opencode.ai>`· 根因：早段 Cursor / OpenCode 在主 repo 主 working tree 跑 `git config user.email` · 留 .git/config 污染 · unset local + amend reset 修复
+2. PR #274（主 agent MVP-08 PNG→JPG）首次 commit author = `Cursor <noreply@cursor.com>`· 根因：Cursor §2.4 violation 期间在主 repo 设 config · unset local + amend reset 修复
+3. PR #276（主 agent clippy fix）首次 commit author = `OpenCode <noreply@opencode.ai>`· 根因：4-track 并发期 OpenCode worktree 跑 §2.5.1（旧版无 `--worktree`）写主 repo .git/config · unset local + amend reset 修复 + 启用 `extensions.worktreeConfig=true`
+4. **session 28 之后 §2.5.1 升级**：所有 dispatch prompt 改用 `git config --worktree` · 从根上消除（见本文件 §2.5.1）
+
 **反模式**
 
 | 反模式 | 正确做法 |
 |---|---|
 | 在别人 worktree 改 git config 后不 unset | 必须 unset · 或该 worktree 用完立即 `git worktree remove` 销毁 |
-| 假设 worktree local config 不影响主 repo | 2026-04-21 实测**会污染**主 repo · 不知机制 · 必须防御性 unset |
+| dispatch prompt 用 `git config user.email "..."`（无 `--worktree`）| session 28 起必须 `git config --worktree` + 先启用 `extensions.worktreeConfig=true`（见 §2.5.1） |
+| 假设主 repo .git/config 不会被 worktree 污染 | session 14 + session 28 共 6 次实证污染 · 必须双保险（防御性 unset + `--worktree` 隔离） |
 | 每次 commit 忘记验证 author（硬约束 2.5.3）| 2.5.3 的硬约束必须执行 · `git log -1 %an <%ae>` 是最后一道防线 |
 
 ### 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件

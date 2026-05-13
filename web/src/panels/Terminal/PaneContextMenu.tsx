@@ -1,10 +1,4 @@
-import {
-  createSignal,
-  Show,
-  For,
-  type Component,
-  type JSX,
-} from "solid-js";
+import { Show, For, type Component } from "solid-js";
 import { createStore } from "solid-js/store";
 
 interface MenuItem {
@@ -71,10 +65,7 @@ export const PaneContextMenuOverlay: Component<{
     <Show when={props.state.visible}>
       <>
         {/* 点击外部关闭 */}
-        <div
-          class="vs-pane-context-menu-backdrop"
-          onClick={props.onHide}
-        />
+        <div class="vs-pane-context-menu-backdrop" onClick={props.onHide} />
         <ul
           class="vs-pane-context-menu"
           style={{

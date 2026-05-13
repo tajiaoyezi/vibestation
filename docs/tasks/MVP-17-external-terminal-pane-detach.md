@@ -178,7 +178,7 @@ reviewer: Claude Code · self-review（单人项目 v2-D.2 模式 · session 29 
 - [ ] E.1 `⌘⇧O` (macOS) / `Ctrl⇧O` (Linux) 触发 Pop to External 对话框
 - [ ] E.2 `⌘⇧D` (macOS) / `Ctrl⇧D` (Linux) 触发当前 focused Pane 的 Detach
 - [ ] E.3 右键菜单 "Pop to External" + "Detach Pane" 两项可见 · 已 detached 的 Pane（placeholder）右键菜单显示 "Reattach" 替代 "Detach"
-- [ ] E.4 设置面板 (MVP-10) Appearance 段 / 新增 Pane 段加 "External Terminal" subsection：preferred terminal 下拉 + "Don't ask again" toggle + env 白名单可视化（read-only · v0.3 不允许编辑 · v0.4+ 加自定义）
+- [x] E.4 设置面板 (MVP-10) Appearance 段 / 新增 Pane 段加 "External Terminal" subsection：preferred terminal 下拉 + "Don't ask again" toggle + env 白名单可视化（read-only · v0.3 不允许编辑 · v0.4+ 加自定义）
 
 ### F. 跨平台（Phase C）
 

@@ -1,27 +1,23 @@
 //! Tauri WebviewWindow 生命周期管理。
-//!
-//! 本文件是 **session 29 Phase B skeleton**。session 30 将完成：
-//! - 实际 WebviewWindow builder + 异步创建
-//! - close event listener · DetachedPaneMap idempotent remove
-//! - 异常关闭路径（kill -9 / IPC channel close · spec D.5）
-//! - WebviewWindow bounds 实时同步（拖动后取最新 bounds）
-//!
-//! 当前 stub 行为：
-//! - `create_detached_window` 返回 placeholder error `WindowCreationFailed { reason: "skeleton · session 30 实施" }`
-//! - `close_detached_window` 返回 OK · 实际不操作 Tauri runtime
-//!
-//! 该 stub 让以下能力立即可用（session 29）：
-//! - ts-rs binding 自动 export 到前端 · Phase C OpenCode mock IPC 接通
-//! - IPC handler 在 lib.rs 注册 · permission / capability 配齐
-//! - DetachedPaneMap 状态机单测全过（core 层 18 单测 + 9 export 验证）
 
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use thiserror::Error;
-use vibestation_core::{DetachError, DetachedWindowBounds};
+use uuid::Uuid;
+use vibestation_core::{
+    DetachedWindowBounds, PaneDetachAction, PaneDetachCloseResult, PaneDetachOpenResult,
+    PaneDetachStateEvent,
+};
+
+use crate::pane_detach::state::{
+    DetachError as DetachStateError, DetachedPaneMap, DetachedWindowInfo, PaneId,
+};
+
+const PANE_DETACH_STATE_CHANGED_EVENT: &str = "pane_detach_state_changed";
 
 #[derive(Debug, Error)]
 pub enum WindowManagerError {
     #[error("detach state error: {0}")]
-    DetachStateError(#[from] DetachError),
+    DetachStateError(#[from] DetachStateError),
 
     #[error("WebviewWindow creation failed: {reason}")]
     WindowCreationFailed { reason: String },
@@ -30,34 +26,41 @@ pub enum WindowManagerError {
     WindowCloseFailed { reason: String },
 }
 
-/// 创建新的 detached WebviewWindow · skeleton 实现。
-///
-/// session 30 替换为：
-/// ```ignore
-/// use tauri::{AppHandle, WebviewUrl, WebviewWindowBuilder};
-/// let url = WebviewUrl::App(format!("index.html?mode=detached&pane={pane_id}").into());
-/// let window = WebviewWindowBuilder::new(app, &window_label, url)
-///     .inner_size(bounds.width as f64, bounds.height as f64)
-///     .position(bounds.x as f64, bounds.y as f64)
-///     .title(format!("Pane · {pane_id}"))
-///     .build()?;
-/// ```
-pub fn create_detached_window(
-    pane_id: &str,
-    window_label: &str,
-    bounds: &DetachedWindowBounds,
-) -> Result<(), WindowManagerError> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct DetachedWindowSpec {
+    pub pane_id: PaneId,
+    pub window_label: String,
+    pub url: String,
+    pub title: String,
+    pub bounds: DetachedWindowBounds,
+    pub registers_close_listener: bool,
+}
+
+pub fn new_detached_window_label() -> String {
+    format!("pane-detach-{}", Uuid::new_v4().simple())
+}
+
+pub fn detached_window_url(pane_id: &str) -> Result<String, WindowManagerError> {
     if pane_id.is_empty() {
         return Err(WindowManagerError::WindowCreationFailed {
             reason: "pane_id is empty".to_string(),
         });
     }
+    Ok(format!("index.html?mode=detached&pane={pane_id}"))
+}
+
+pub fn detached_window_spec(
+    pane_id: impl Into<String>,
+    window_label: impl Into<String>,
+    bounds: DetachedWindowBounds,
+) -> Result<DetachedWindowSpec, WindowManagerError> {
+    let pane_id = pane_id.into();
+    let window_label = window_label.into();
     if window_label.is_empty() {
         return Err(WindowManagerError::WindowCreationFailed {
             reason: "window_label is empty".to_string(),
         });
     }
-    // bounds 合理性 sanity check（min 200×150 · 防 Tauri 2 builder panic）
     if bounds.width < 200 || bounds.height < 150 {
         return Err(WindowManagerError::WindowCreationFailed {
             reason: format!(
@@ -67,106 +70,220 @@ pub fn create_detached_window(
         });
     }
 
-    // session 30 替换 skeleton return
-    Err(WindowManagerError::WindowCreationFailed {
-        reason: "skeleton · session 30 实施 WebviewWindowBuilder".to_string(),
+    Ok(DetachedWindowSpec {
+        url: detached_window_url(&pane_id)?,
+        title: format!("Pane · {pane_id}"),
+        pane_id,
+        window_label,
+        bounds,
+        registers_close_listener: true,
     })
 }
 
-/// 关闭 detached WebviewWindow · skeleton 实现。
-///
-/// session 30 替换为：
-/// ```ignore
-/// let window = app.get_webview_window(window_label)
-///     .ok_or_else(|| WindowManagerError::WindowCloseFailed { reason: "window not found".into() })?;
-/// window.close()?;
-/// ```
-pub fn close_detached_window(window_label: &str) -> Result<(), WindowManagerError> {
+pub fn open_detached_window(
+    app: &AppHandle,
+    detached_panes: &DetachedPaneMap,
+    pane_id: PaneId,
+) -> Result<PaneDetachOpenResult, WindowManagerError> {
+    let window_label = new_detached_window_label();
+    let bounds = DetachedWindowBounds::default();
+    let spec = detached_window_spec(pane_id.clone(), window_label.clone(), bounds.clone())?;
+    let info = DetachedWindowInfo::new(window_label.clone(), "default", bounds.clone());
+
+    detached_panes.insert(pane_id.clone(), info)?;
+
+    let build_result =
+        WebviewWindowBuilder::new(app, &window_label, WebviewUrl::App(spec.url.into()))
+            .title(spec.title)
+            .inner_size(bounds.width as f64, bounds.height as f64)
+            .position(bounds.x as f64, bounds.y as f64)
+            .resizable(true)
+            .build();
+
+    let window = match build_result {
+        Ok(window) => window,
+        Err(error) => {
+            detached_panes.remove(&pane_id);
+            return Err(WindowManagerError::WindowCreationFailed {
+                reason: error.to_string(),
+            });
+        }
+    };
+
+    let app_for_listener = app.clone();
+    let listener_label = window_label.clone();
+    window.on_window_event(move |event| {
+        if matches!(event, WindowEvent::Destroyed) {
+            if let Err(error) = handle_detached_window_destroyed(&app_for_listener, &listener_label)
+            {
+                eprintln!("[MVP-17] detached window destroy handler failed: {error}");
+            }
+        }
+    });
+
+    emit_state_event(
+        app,
+        &PaneDetachStateEvent {
+            pane_id,
+            action: PaneDetachAction::Detached,
+            window_label: Some(window_label.clone()),
+        },
+    );
+
+    Ok(PaneDetachOpenResult {
+        window_label,
+        initial_bounds: bounds,
+    })
+}
+
+pub fn close_detached_window(
+    app: &AppHandle,
+    detached_panes: &DetachedPaneMap,
+    window_label: &str,
+) -> Result<PaneDetachCloseResult, WindowManagerError> {
     if window_label.is_empty() {
         return Err(WindowManagerError::WindowCloseFailed {
             reason: "window_label is empty".to_string(),
         });
     }
 
-    // session 30 替换 skeleton return
-    // 当前返回 OK · 让 IPC handler / DetachedPaneMap remove 路径可测
-    Ok(())
+    let event = require_reattach_closed_window(detached_panes, window_label)?;
+
+    if let Some(window) = app.get_webview_window(window_label) {
+        window
+            .close()
+            .map_err(|error| WindowManagerError::WindowCloseFailed {
+                reason: error.to_string(),
+            })?;
+    }
+
+    emit_state_event(app, &event);
+
+    Ok(PaneDetachCloseResult {
+        pane_id: event.pane_id,
+    })
+}
+
+pub fn handle_detached_window_destroyed(
+    app: &AppHandle,
+    window_label: &str,
+) -> Result<Option<PaneDetachStateEvent>, WindowManagerError> {
+    let detached_panes = app.state::<DetachedPaneMap>();
+    let event = reattach_closed_window(detached_panes.inner(), window_label)?;
+    if let Some(event) = event.as_ref() {
+        emit_state_event(app, event);
+    }
+    Ok(event)
+}
+
+pub fn reattach_closed_window(
+    detached_panes: &DetachedPaneMap,
+    window_label: &str,
+) -> Result<Option<PaneDetachStateEvent>, WindowManagerError> {
+    Ok(detached_panes
+        .remove_by_label(window_label)
+        .map(|(pane_id, _)| PaneDetachStateEvent {
+            pane_id,
+            action: PaneDetachAction::Attached,
+            window_label: None,
+        }))
+}
+
+pub fn require_reattach_closed_window(
+    detached_panes: &DetachedPaneMap,
+    window_label: &str,
+) -> Result<PaneDetachStateEvent, WindowManagerError> {
+    reattach_closed_window(detached_panes, window_label)?.ok_or_else(|| {
+        WindowManagerError::WindowCloseFailed {
+            reason: format!("window_label {window_label} not found"),
+        }
+    })
+}
+
+fn emit_state_event(app: &AppHandle, event: &PaneDetachStateEvent) {
+    if let Err(error) = app.emit(PANE_DETACH_STATE_CHANGED_EVENT, event) {
+        eprintln!("[MVP-17] emit pane_detach_state_changed failed: {error}");
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pane_detach::state::{DetachedPaneMap, DetachedWindowInfo};
+    use vibestation_core::{PaneDetachAction, PaneDetachStateEvent};
 
     #[test]
-    fn create_rejects_empty_pane_id() {
+    fn label_uuid_is_unique_and_prefixed() {
+        let first = new_detached_window_label();
+        let second = new_detached_window_label();
+
+        assert!(first.starts_with("pane-detach-"));
+        assert!(second.starts_with("pane-detach-"));
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn window_url_targets_detached_mode_and_pane_id() {
+        let url = detached_window_url("pane-1").expect("valid url");
+
+        assert_eq!(url, "index.html?mode=detached&pane=pane-1");
+    }
+
+    #[test]
+    fn window_spec_uses_default_bounds() {
         let bounds = DetachedWindowBounds::default();
-        let err = create_detached_window("", "pane-detach-aaa", &bounds).unwrap_err();
-        match err {
-            WindowManagerError::WindowCreationFailed { reason } => {
-                assert!(reason.contains("pane_id is empty"));
-            }
-            other => panic!("expected WindowCreationFailed · got {other:?}"),
-        }
+        let spec =
+            detached_window_spec("pane-1", "pane-detach-aaa", bounds.clone()).expect("valid spec");
+
+        assert_eq!(spec.bounds, bounds);
+        assert_eq!(spec.bounds.width, 800);
+        assert_eq!(spec.bounds.height, 600);
+        assert_eq!(spec.bounds.x, 40);
+        assert_eq!(spec.bounds.y, 40);
     }
 
     #[test]
-    fn create_rejects_empty_window_label() {
+    fn window_spec_registers_destroyed_listener() {
         let bounds = DetachedWindowBounds::default();
-        let err = create_detached_window("pane-1", "", &bounds).unwrap_err();
-        match err {
-            WindowManagerError::WindowCreationFailed { reason } => {
-                assert!(reason.contains("window_label is empty"));
-            }
-            other => panic!("expected WindowCreationFailed · got {other:?}"),
-        }
+        let spec = detached_window_spec("pane-1", "pane-detach-aaa", bounds).expect("valid spec");
+
+        assert!(spec.registers_close_listener);
     }
 
     #[test]
-    fn create_rejects_too_small_bounds() {
-        let bounds = DetachedWindowBounds {
-            x: 0,
-            y: 0,
-            width: 100, // < 200
-            height: 80,
-        };
-        let err = create_detached_window("pane-1", "pane-detach-aaa", &bounds).unwrap_err();
-        match err {
-            WindowManagerError::WindowCreationFailed { reason } => {
-                assert!(reason.contains("bounds too small"));
-                assert!(reason.contains("100x80"));
+    fn destroyed_window_removes_map_entry_and_returns_attached_event() {
+        let map = DetachedPaneMap::new();
+        map.insert(
+            "pane-1".to_string(),
+            DetachedWindowInfo::new(
+                "pane-detach-aaa",
+                "workspace-1",
+                DetachedWindowBounds::default(),
+            ),
+        )
+        .expect("insert");
+
+        let event = reattach_closed_window(&map, "pane-detach-aaa")
+            .expect("reattach")
+            .expect("event emitted");
+
+        assert_eq!(
+            event,
+            PaneDetachStateEvent {
+                pane_id: "pane-1".to_string(),
+                action: PaneDetachAction::Attached,
+                window_label: None,
             }
-            other => panic!("expected WindowCreationFailed · got {other:?}"),
-        }
+        );
+        assert!(map.get(&"pane-1".to_string()).is_none());
     }
 
     #[test]
-    fn create_valid_input_skeleton_returns_session_30_marker() {
-        // skeleton 阶段验证：valid input 但仍返回 session 30 marker · session 30 翻成 Ok
-        let bounds = DetachedWindowBounds::default();
-        let err = create_detached_window("pane-1", "pane-detach-aaa", &bounds).unwrap_err();
-        match err {
-            WindowManagerError::WindowCreationFailed { reason } => {
-                assert!(reason.contains("skeleton"));
-                assert!(reason.contains("session 30"));
-            }
-            other => panic!("expected skeleton marker · got {other:?}"),
-        }
-    }
+    fn destroyed_missing_window_label_is_graceful_noop() {
+        let map = DetachedPaneMap::new();
 
-    #[test]
-    fn close_rejects_empty_window_label() {
-        let err = close_detached_window("").unwrap_err();
-        match err {
-            WindowManagerError::WindowCloseFailed { reason } => {
-                assert!(reason.contains("empty"));
-            }
-            other => panic!("expected WindowCloseFailed · got {other:?}"),
-        }
-    }
+        let event = reattach_closed_window(&map, "pane-detach-missing").expect("graceful");
 
-    #[test]
-    fn close_valid_label_returns_ok_skeleton() {
-        // skeleton 阶段：close 返回 OK · session 30 替换为真实 Tauri close
-        assert!(close_detached_window("pane-detach-aaa").is_ok());
+        assert!(event.is_none());
     }
 }

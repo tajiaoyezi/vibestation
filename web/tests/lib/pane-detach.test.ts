@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async () => () => {}),
+}));
+
 import {
   detachedPanes,
   setDetachedPanes,
   initPaneDetachStateListener,
 } from "../../src/lib/pane-detach";
 
-describe.skip("pane-detach.ts · detachedPanes signal", () => {
+describe("pane-detach.ts · detachedPanes signal", () => {
   beforeEach(() => {
     setDetachedPanes(new Map());
   });
@@ -46,18 +51,17 @@ describe.skip("pane-detach.ts · detachedPanes signal", () => {
   });
 });
 
-describe.skip("pane-detach.ts · initPaneDetachStateListener", () => {
+describe("pane-detach.ts · initPaneDetachStateListener", () => {
   beforeEach(() => {
     setDetachedPanes(new Map());
     vi.restoreAllMocks();
-  });
-
-  it("返回 unlisten cleanup 函数", async () => {
     vi.stubGlobal("__TAURI_INTERNALS__", {
       transformCallback: vi.fn(() => 42),
       invoke: vi.fn(),
     });
+  });
 
+  it("返回 unlisten cleanup 函数", async () => {
     const unlisten = await initPaneDetachStateListener();
     expect(typeof unlisten).toBe("function");
     unlisten();

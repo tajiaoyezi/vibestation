@@ -2,8 +2,8 @@
 id: MVP-11
 type: mvp
 title: Native Feel Quality · 对标 MUX0 · 治 "web 套壳" 观感
-status: ready
-owner:
+status: done
+owner: Claude Code · OpenCode · Codex CLI · Kimi（5/5 Phase 多 agent 协作 · PR #122-#131 + Linux fallback #139 · session 30 housekeeping 翻 done）
 phase: W12+
 depends_on: ["MVP-10"]
 depends_on_notes: "MVP-10 Phase A 设置面板 UI 已 done（PR #114）· MVP-11 Phase 1/2/3/5 不依赖 MVP-10 Phase B · **MVP-11 Phase 4（Appearance 字段扩展）必须等 MVP-10 Phase B IPC + ts-rs binding 交付后才能实施**（settings_update IPC + AppSettings/SettingsUpdateRequest binding 是 Phase B 产物 · Phase A 仅有 UI mock + AppSettingsStore KV 工具类 · 见 MVP-10 spec §G.1）· 文件域和 MVP-10 Phase B/C/D/E 不冲突 · 可并行。"
@@ -43,6 +43,7 @@ reviewer: Claude Code（self-review + code-reviewer agent · session 19）
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - macOS Vibrancy（毛玻璃材质 · native `NSVisualEffectView`）
 - 禁用 webview 浏览器行为（右键 inspector / Cmd+R 刷新 / Cmd+- 缩放 / Ctrl+A 全选页面）
 - Tauri native context menu（走 AppKit NSMenu · 替换 web div 伪装）
@@ -52,6 +53,7 @@ reviewer: Claude Code（self-review + code-reviewer agent · session 19）
 - Linux / Windows 降级（Linux 纯色兜底 · Windows 推 v0.4）
 
 **Don't**：
+
 - 切换技术栈到 Swift / Rust native UI（爆炸性变更 · 违反决策 #6/#12/#19 · 超出 MVP-11）
 - 自绘 terminal 渲染层（当前仍用 xterm.js · Metal GPU 渲染超出范围）
 - 完整 agent status icon 系统（MUX0 的差异化 · 但依赖 AI-Aware Pane · v1.0 vision 锁定 · 见 ADR-009）
@@ -62,23 +64,25 @@ reviewer: Claude Code（self-review + code-reviewer agent · session 19）
 
 MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件域大部分隔离）· Phase 5 单 agent 收尾：
 
-| Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
-|---|---|---|---|---|---|
-| **Phase 1 · Vibrancy + 禁 webview 行为** | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true` · `Cargo.toml` 加 `tauri features = ["macos-private-api"]`（**Tauri 2 build-time 强制 conf + Cargo feature 双启用一致性** · session 19 PR #123 实测 · 缺 Cargo feature 时报 `dependency features does not match the allowlist`）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only） | `crates/app/tauri.conf.json` · `crates/app/Cargo.toml` · `web/src/styles.css` · `web/src/index.tsx` | MVP-10 Phase A（已 done） | ✅ done（A.1-A.4 + A.6-A.7 全 done · A.5 Linux fallback 验证仍待 Linux 环境 · 见 R-PHASE-1.linux） | PR #123 + #130 + #131 |
-| **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`data-tauri-drag-region` + 显式 `startDragging()`）· sidebar 延伸到 title bar 区 · Linux 不显示 drag 空白区 | `crates/app/tauri.conf.json` · `crates/app/src/lib.rs` · `crates/app/capabilities/default.json` · `web/src/App.tsx` · `web/src/index.tsx` · `web/src/styles.css` | Phase 1（Vibrancy 生效才能看到 overlay） | ✅ done（macOS runtime pass · Ubuntu GUI 未测 · 见 R-PHASE-2.linux） | PR #129 |
-| **Phase 3 · Native Context Menu + 快捷键** | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用 | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx` | Phase 1 | ⏳ todo | — |
-| **Phase 4 · Appearance 字段对标 MUX0** | 扩展 MVP-10 `AppearanceGroup.tsx` 加 7 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink + Unfocused Pane Opacity）· `app_settings` KV 扩 7 keys · `AppSettings` + `SettingsUpdateRequest` ts-rs binding · `settings_get` / `settings_update` IPC · CSS vars 消费（含 `backdrop-filter: blur(var(--bg-blur))`）· `#root` 用 `opacity` property 实现 whole-tree 半透明（MUX0 风格 · 替代 background rgba · 避免 fully-opaque children 遮蔽）· cursor 走 xterm option + reactive effect · settings store 同步 `data-theme` attribute（避免 ThemeProvider race）· 实时生效 < 100ms · D.6 持久化自动化测试覆盖 · D.7 三档截图自动化捕获 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（7 新 KV key + AppSettings struct + SettingsUpdateRequest + get_all/update + persist test）· `crates/app/src/lib.rs`（settings_get settings_update IPC）· `crates/app/build.rs`（ts-rs export）· `web/src/stores/settings.ts`（IPC 接通 + CSS vars + dataset.theme apply）· `web/src/stores/theme.tsx`（删除 setAttribute · 避免 race）· `web/src/styles.css`（CSS vars + opacity property + backdrop-filter）· `web/src/panels/Terminal/TerminalPane.tsx`（cursor 接通 xterm + reactive effect） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ✅ done | PR #127 + #128 + #130 |
-| **Phase 5 · 字体对齐 HIG** | CSS `font-family` · macOS `"SF Pro Display", system-ui` + `"SF Mono", ui-monospace` · Linux `"Inter", system-ui` + `"JetBrains Mono", monospace` · 不 bundle 字体（走系统字体） | `web/src/styles/typography.css`（新建）· `web/src/index.tsx` · `web/src/stores/settings.ts` | 无 | ✅ done | 本 PR |
+| Phase                                               | 范围                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 文件域                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 依赖                                                                  | 状态                                                                                               | PR                    |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------------------- |
+| **Phase 1 · Vibrancy + 禁 webview 行为**            | `tauri.conf.json` 加 `windowEffects` + `transparent: true` + `app.macOSPrivateApi: true` · `Cargo.toml` 加 `tauri features = ["macos-private-api"]`（**Tauri 2 build-time 强制 conf + Cargo feature 双启用一致性** · session 19 PR #123 实测 · 缺 Cargo feature 时报 `dependency features does not match the allowlist`）· 全局 CSS 半透明 + 禁 `user-select` + terminal/diff override · 前端 keyboard event 禁 Cmd+R / Cmd+- / Ctrl+A（prod only）                                                                                                                                                                                                             | `crates/app/tauri.conf.json` · `crates/app/Cargo.toml` · `web/src/styles.css` · `web/src/index.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | MVP-10 Phase A（已 done）                                             | ✅ done（A.1-A.4 + A.6-A.7 全 done · A.5 Linux fallback 验证仍待 Linux 环境 · 见 R-PHASE-1.linux） | PR #123 + #130 + #131 |
+| **Phase 2 · 自定义 title bar + Traffic Light 融入** | `titleBarStyle: "Overlay"` + `hiddenTitle: true` + `trafficLightPosition` · 前端加 `.title-bar-drag` 区域（`data-tauri-drag-region` + 显式 `startDragging()`）· sidebar 延伸到 title bar 区 · Linux 不显示 drag 空白区                                                                                                                                                                                                                                                                                                                                                                                                                                          | `crates/app/tauri.conf.json` · `crates/app/src/lib.rs` · `crates/app/capabilities/default.json` · `web/src/App.tsx` · `web/src/index.tsx` · `web/src/styles.css`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Phase 1（Vibrancy 生效才能看到 overlay）                              | ✅ done（macOS runtime pass · Ubuntu GUI 未测 · 见 R-PHASE-2.linux）                               | PR #129               |
+| **Phase 3 · Native Context Menu + 快捷键**          | 新建 `crates/app/src/menu.rs` · Tauri v2 `Menu API`（NSMenu 走 AppKit）· 标签栏右键（Close / Close Others / Rename / Duplicate）· 终端右键（Copy / Paste / Clear）· `⌘T/⌘W/⌘D` 快捷键 · permission toml + capability 引用                                                                                                                                                                                                                                                                                                                                                                                                                                       | `crates/app/src/menu.rs`（新建）· `crates/app/permissions/menu.toml`（新建）· `crates/app/capabilities/default.json` · `web/src/panels/Terminal/*.tsx`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Phase 1                                                               | ⏳ todo                                                                                            | —                     |
+| **Phase 4 · Appearance 字段对标 MUX0**              | 扩展 MVP-10 `AppearanceGroup.tsx` 加 7 字段（Background Opacity / Blur / Padding X / Y / Cursor Style / Cursor Blink + Unfocused Pane Opacity）· `app_settings` KV 扩 7 keys · `AppSettings` + `SettingsUpdateRequest` ts-rs binding · `settings_get` / `settings_update` IPC · CSS vars 消费（含 `backdrop-filter: blur(var(--bg-blur))`）· `#root` 用 `opacity` property 实现 whole-tree 半透明（MUX0 风格 · 替代 background rgba · 避免 fully-opaque children 遮蔽）· cursor 走 xterm option + reactive effect · settings store 同步 `data-theme` attribute（避免 ThemeProvider race）· 实时生效 < 100ms · D.6 持久化自动化测试覆盖 · D.7 三档截图自动化捕获 | `web/src/panels/Settings/AppearanceGroup.tsx`（扩）· `web/src/panels/Settings/TerminalGroup.tsx`（扩 Unfocused Pane）· `crates/core/src/app_settings.rs`（7 新 KV key + AppSettings struct + SettingsUpdateRequest + get_all/update + persist test）· `crates/app/src/lib.rs`（settings_get settings_update IPC）· `crates/app/build.rs`（ts-rs export）· `web/src/stores/settings.ts`（IPC 接通 + CSS vars + dataset.theme apply）· `web/src/stores/theme.tsx`（删除 setAttribute · 避免 race）· `web/src/styles.css`（CSS vars + opacity property + backdrop-filter）· `web/src/panels/Terminal/TerminalPane.tsx`（cursor 接通 xterm + reactive effect） | MVP-10 Phase A（设置面板存在）· Phase 1（Opacity/Blur CSS vars 生效） | ✅ done                                                                                            | PR #127 + #128 + #130 |
+| **Phase 5 · 字体对齐 HIG**                          | CSS `font-family` · macOS `"SF Pro Display", system-ui` + `"SF Mono", ui-monospace` · Linux `"Inter", system-ui` + `"JetBrains Mono", monospace` · 不 bundle 字体（走系统字体）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `web/src/styles/typography.css`（新建）· `web/src/index.tsx` · `web/src/stores/settings.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 无                                                                    | ✅ done                                                                                            | 本 PR                 |
 
 **下次 agent 起点**：Phase 2 已落地（title bar overlay + traffic light 融入 + macOS drag runtime 通过）· 继续按风险清单补 manual/runtime evidence 并回收 MVP-11 closeout。
 
 **并行调度建议**：
+
 - OpenCode（全栈）· Phase 1 + Phase 4（连贯：Vibrancy 生效后扩 Appearance 字段）· 估时 4d
 - Codex（视觉精细）· Phase 2（title bar 跨平台分支）· 估时 2d
 - Kimi（本地或远程）· Phase 3（Menu API 独立模块）· 估时 1.5d
 - 主 agent 或 Kimi · Phase 5（字体 · 0.5d 小任务）
 
 **依赖关系说明**：
+
 - MVP-11 整体依赖 MVP-10 Phase A done（✅ · PR #114）· 其他 MVP-01..09 已 done
 - Phase 1 → Phase 2（Overlay title bar 依赖 Vibrancy 显示 · 否则 overlay 看不到）
 - Phase 1 → Phase 4（Appearance 字段的 Opacity/Blur CSS vars 依赖 Phase 1 透明基础）
@@ -144,8 +148,11 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 - [ ] E.1 `web/src/styles/typography.css` 定义 `--font-ui` + `--font-mono` CSS var
   ```css
   :root {
-    --font-ui: -apple-system, "SF Pro Display", system-ui, "Inter", "Segoe UI", sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+    --font-ui:
+      -apple-system, "SF Pro Display", system-ui, "Inter", "Segoe UI",
+      sans-serif;
+    --font-mono:
+      ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
   }
   ```
 - [ ] E.2 全局 `body { font-family: var(--font-ui); }` · terminal/diff/commit `font-family: var(--font-mono);`
@@ -155,13 +162,13 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|---|---|
-| 单元 | CSS vars 消费（JS 读 `getComputedStyle` 验证）+ IPC binding 7 字段往返 |
-| 集成 | 设置变更 → rusqlite 写入 → 进程重启 → 读取一致（7 字段 full roundtrip） |
-| E2E | 完整 flow：打开 Preferences → 改 Opacity 到 0.5 → 看到窗口立刻变透 → 重启 app → 值保持 |
-| 手动 QA | 3 平台启动（macOS 14 · Ubuntu 24 · Windows 11 skip）· 拖窗口 / 右键菜单 / 快捷键 |
-| Runtime 证据 | ≥ 6 张截图 + 1 段 30s 录屏（完整 Appearance 调节 demo）|
+| 层次         | 范围                                                                                   |
+| ------------ | -------------------------------------------------------------------------------------- |
+| 单元         | CSS vars 消费（JS 读 `getComputedStyle` 验证）+ IPC binding 7 字段往返                 |
+| 集成         | 设置变更 → rusqlite 写入 → 进程重启 → 读取一致（7 字段 full roundtrip）                |
+| E2E          | 完整 flow：打开 Preferences → 改 Opacity 到 0.5 → 看到窗口立刻变透 → 重启 app → 值保持 |
+| 手动 QA      | 3 平台启动（macOS 14 · Ubuntu 24 · Windows 11 skip）· 拖窗口 / 右键菜单 / 快捷键       |
+| Runtime 证据 | ≥ 6 张截图 + 1 段 30s 录屏（完整 Appearance 调节 demo）                                |
 
 ## 📸 Runtime 证据要求
 
@@ -183,14 +190,14 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 `app_settings` 表当前结构（MVP-03 已建）· MVP-11 Phase 4 扩 7 KV key · **不新建 migration**（YAGNI · 对齐 MVP-10 pattern）：
 
-| key | value 编码 | default | 含义 |
-|---|---|---|---|
-| `bg_opacity` | `"0.85"`（string · f32 解析）| `"0.85"` | 窗口半透明度（影响 container bg alpha） |
-| `window_padding_x` | `"2"` | `"2"` | 窗口内容 X 边距（px） |
-| `window_padding_y` | `"2"` | `"2"` | 窗口内容 Y 边距（px） |
-| `cursor_style` | `"block"` / `"bar"` / `"underline"` | `"block"` | 终端光标形状 |
-| `cursor_blink` | `"true"` / `"false"` | `"false"` | 终端光标闪烁 |
-| `unfocused_pane_opacity` | `"0.7"` | `"0.7"` | 非聚焦 pane 透明度 |
+| key                      | value 编码                          | default   | 含义                                    |
+| ------------------------ | ----------------------------------- | --------- | --------------------------------------- |
+| `bg_opacity`             | `"0.85"`（string · f32 解析）       | `"0.85"`  | 窗口半透明度（影响 container bg alpha） |
+| `window_padding_x`       | `"2"`                               | `"2"`     | 窗口内容 X 边距（px）                   |
+| `window_padding_y`       | `"2"`                               | `"2"`     | 窗口内容 Y 边距（px）                   |
+| `cursor_style`           | `"block"` / `"bar"` / `"underline"` | `"block"` | 终端光标形状                            |
+| `cursor_blink`           | `"true"` / `"false"`                | `"false"` | 终端光标闪烁                            |
+| `unfocused_pane_opacity` | `"0.7"`                             | `"0.7"`   | 非聚焦 pane 透明度                      |
 
 Rust `AppSettings` struct 扩 6 字段 · ts-rs binding 自动更新 · `SettingsUpdateRequest` partial update 扩 6 `Option<>` 字段。
 
@@ -200,10 +207,10 @@ Rust `AppSettings` struct 扩 6 字段 · ts-rs binding 自动更新 · `Setting
 
 ### G.1 Binding 复用（不新建 · 复用 MVP-10）
 
-| Rust struct | 用途 | 变化 |
-|---|---|---|
-| `AppSettings`（MVP-10）| 全量 settings 查询 | **扩 6 字段**（bg_opacity / window_padding_x / window_padding_y / cursor_style / cursor_blink / unfocused_pane_opacity · 不含 bg_blur） |
-| `SettingsUpdateRequest`（MVP-10）| partial update | **扩 6 `Option<>` 字段** |
+| Rust struct                       | 用途               | 变化                                                                                                                                    |
+| --------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `AppSettings`（MVP-10）           | 全量 settings 查询 | **扩 6 字段**（bg_opacity / window_padding_x / window_padding_y / cursor_style / cursor_blink / unfocused_pane_opacity · 不含 bg_blur） |
+| `SettingsUpdateRequest`（MVP-10） | partial update     | **扩 6 `Option<>` 字段**                                                                                                                |
 
 ### G.2 derive 扩展（示例）
 

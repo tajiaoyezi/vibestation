@@ -2,8 +2,8 @@
 id: MVP-01
 type: mvp
 title: Tauri 应用骨架 + 启动流程 + 基础崩溃恢复
-status: ready
-owner: Claude Code (Sonnet 4.6 · Phase A PR #28 · Phase B PR #33 · macOS 交付完成 · Phase C Ubuntu 待环境)
+status: done
+owner: Claude Code (Sonnet 4.6 · Phase A PR #28 · Phase B PR #33 · Phase C Ubuntu PR #139 · 双平台 GA done · session 30 housekeeping 翻 done)
 phase: W1-W2
 depends_on: ["SPIKE-02"]
 blocks: ["MVP-02", "MVP-03", "MVP-04", "MVP-10"]
@@ -40,6 +40,7 @@ reviewer: Claude Code
 ## 🎨 功能范围（Scope）
 
 **Do（MVP-01 范围内）**：
+
 - Cargo workspace 骨架：`app`（Tauri 启动层） + `core`（业务逻辑，Rust 纯库）
 - 前端项目：SolidJS + TypeScript + Vite（对齐 Tauri 2 默认 template）
 - 应用启动：窗口显示 "Vibestation" 欢迎页
@@ -49,6 +50,7 @@ reviewer: Claude Code
 - 应用图标：使用 `design/logos/mark.svg`（Calm Studio 定稿版本）
 
 **Don't（推到后续 MVP）**：
+
 - Workspace 创建 / 项目识别逻辑（→ MVP-02）
 - Tool Windows 布局 / Primary Sidebar（→ MVP-03）
 - 终端 Tab（→ MVP-04）
@@ -126,12 +128,12 @@ reviewer: Claude Code
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元（Rust）| `core/` 逻辑（崩溃恢复 state 序列化）| `cargo test -p vibestation-core` |
-| 集成（Rust + Tauri）| IPC + 本地存储读写 | `cargo test -p vibestation-app --features integration` |
-| E2E（前端）| 启动 → 欢迎页渲染 → CTA 点击 | Playwright + Tauri webdriver |
-| 手动 QA | 双平台打包 + 崩溃恢复 | `implementation-plan.md §8.3` QA 清单 |
+| 层次                 | 范围                                  | 覆盖路径                                               |
+| -------------------- | ------------------------------------- | ------------------------------------------------------ |
+| 单元（Rust）         | `core/` 逻辑（崩溃恢复 state 序列化） | `cargo test -p vibestation-core`                       |
+| 集成（Rust + Tauri） | IPC + 本地存储读写                    | `cargo test -p vibestation-app --features integration` |
+| E2E（前端）          | 启动 → 欢迎页渲染 → CTA 点击          | Playwright + Tauri webdriver                           |
+| 手动 QA              | 双平台打包 + 崩溃恢复                 | `implementation-plan.md §8.3` QA 清单                  |
 
 **覆盖率目标**：`core/` crate **≥ 80%**（`CLAUDE.md` 全局规则）。`app/` 因含大量 Tauri IPC boilerplate 可放宽到 **≥ 60%**。
 

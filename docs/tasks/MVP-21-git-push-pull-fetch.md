@@ -2,8 +2,8 @@
 id: MVP-21
 type: mvp
 title: Git Push / Pull / Fetch（远端同步）
-status: ready
-owner:
+status: done
+owner: Codex CLI · Cursor（Phase A/B/C/D 全 done · PR #228 / #231 / #233 / #236 · session 30 housekeeping 翻 done）
 phase: v0.2
 depends_on: ["MVP-09", "MVP-13"]
 blocks: []
@@ -94,12 +94,12 @@ reviewer: Claude Code
 
 MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · git2 网络层后端 + Auth + IPC | git_push / git_pull / git_fetch / remote_list 后端封装 + SSH/HTTPS auth callback + ts-rs bindings + 单元测试（fixture: 本地 bare repo 做 remote）| ✅ done · PR #228 | #228 |
-| Phase B · UI 集成（push/pull/fetch 按钮 + 进度条 + 错误流） | Git Log 工具栏 Push/Pull 按钮（design line 1046-1051）+ progress modal + force push 二次确认 + auth modal + conflict graceful 提示 | ✅ done · PR #231 | #231 |
-| Phase C · Conflict 处理 + 状态栏 ahead/behind | merge --abort 流程 + status bar 显示 `↑N ↓M` + post-fetch refresh | ✅ done · PR #233 | #233 |
-| Phase D · runtime 证据 + 性能量化 + 跨平台验证 | 截图 + 录屏（push 进度 / pull conflict abort / fetch prune）+ 性能 P99（push 1MB / 100 commits） + macOS + Linux 双平台跑 + 放 `docs/runtime-evidence/mvp-21/` | ✅ done · PR #236 | #236 |
+| Phase                                                       | 范围                                                                                                                                                           | 状态              | PR   |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ---- |
+| Phase A · git2 网络层后端 + Auth + IPC                      | git_push / git_pull / git_fetch / remote_list 后端封装 + SSH/HTTPS auth callback + ts-rs bindings + 单元测试（fixture: 本地 bare repo 做 remote）              | ✅ done · PR #228 | #228 |
+| Phase B · UI 集成（push/pull/fetch 按钮 + 进度条 + 错误流） | Git Log 工具栏 Push/Pull 按钮（design line 1046-1051）+ progress modal + force push 二次确认 + auth modal + conflict graceful 提示                             | ✅ done · PR #231 | #231 |
+| Phase C · Conflict 处理 + 状态栏 ahead/behind               | merge --abort 流程 + status bar 显示 `↑N ↓M` + post-fetch refresh                                                                                              | ✅ done · PR #233 | #233 |
+| Phase D · runtime 证据 + 性能量化 + 跨平台验证              | 截图 + 录屏（push 进度 / pull conflict abort / fetch prune）+ 性能 P99（push 1MB / 100 commits） + macOS + Linux 双平台跑 + 放 `docs/runtime-evidence/mvp-21/` | ✅ done · PR #236 | #236 |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动 · 复用 MVP-09 模式）：
 
@@ -246,14 +246,14 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元（core） | `git_sync.rs` 所有函数（push / pull / fetch / merge_abort / rebase_abort）+ `NetworkOpError` enum 全 variant + auth callback 模拟（mock SSH agent / mock credential helper） | `cargo test --package vibestation-core git_sync::` · fixture: tempfile + 本地 bare repo + working repo |
-| 集成 | 完整链路：本地 bare repo 做 origin · push → fetch → pull → conflict abort 全流程 · 含 SSH（用 sshd local + ssh-agent fixture）+ HTTPS（用 nginx local serve git smart http） | `cargo test --features integration` |
-| Criterion bench | push 1MB / 100 commits · pull ff · fetch 10 refs · 三个核心 P99 数字 | `crates/core/benches/git_sync_bench.rs` |
-| E2E（Playwright） | golden path：commit → push → 模拟另一 clone fetch → pull · 跨界面流转完整 | `web/tests/e2e/git_sync.spec.ts` |
-| 视觉回归 | Push progress modal · Pull conflict modal · Auth modal · Force Push 二次确认 | Playwright screenshot diff |
-| 手动 QA | 真实 GitHub repo（小 fixture repo 仅用于 manual QA）· macOS + Linux 双平台 SSH/HTTPS 真实 keychain 流程 · 含密码保护的 SSH 密钥 | 手动 capture |
+| 层次              | 范围                                                                                                                                                                         | 覆盖路径                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 单元（core）      | `git_sync.rs` 所有函数（push / pull / fetch / merge_abort / rebase_abort）+ `NetworkOpError` enum 全 variant + auth callback 模拟（mock SSH agent / mock credential helper） | `cargo test --package vibestation-core git_sync::` · fixture: tempfile + 本地 bare repo + working repo |
+| 集成              | 完整链路：本地 bare repo 做 origin · push → fetch → pull → conflict abort 全流程 · 含 SSH（用 sshd local + ssh-agent fixture）+ HTTPS（用 nginx local serve git smart http） | `cargo test --features integration`                                                                    |
+| Criterion bench   | push 1MB / 100 commits · pull ff · fetch 10 refs · 三个核心 P99 数字                                                                                                         | `crates/core/benches/git_sync_bench.rs`                                                                |
+| E2E（Playwright） | golden path：commit → push → 模拟另一 clone fetch → pull · 跨界面流转完整                                                                                                    | `web/tests/e2e/git_sync.spec.ts`                                                                       |
+| 视觉回归          | Push progress modal · Pull conflict modal · Auth modal · Force Push 二次确认                                                                                                 | Playwright screenshot diff                                                                             |
+| 手动 QA           | 真实 GitHub repo（小 fixture repo 仅用于 manual QA）· macOS + Linux 双平台 SSH/HTTPS 真实 keychain 流程 · 含密码保护的 SSH 密钥                                              | 手动 capture                                                                                           |
 
 ### C.1 · fixture 准备脚本（本地 bare repo + working repo · 不依赖 GitHub）
 
@@ -393,22 +393,22 @@ criterion_main!(benches);
 
 ### G.1 本 MVP 涉及的 IPC struct 清单（预期）
 
-| Rust struct | 用途 | 前端 import 路径 |
-|-------------|------|-----------------|
-| `RemoteInfo` | 单个 remote 元数据 | 新增 |
-| `PushRequest` | push 输入 · `{ workspace_id, remote, branch, force }` | 新增 |
-| `PushResult` | push 输出 · `{ pushed_commits, new_remote_head }` | 新增 |
-| `PullRequest` | pull 输入 · `{ workspace_id, remote, branch, strategy: "merge" \| "rebase", frontend_status_snapshot: GitStatusResponse, frontend_status_taken_at: i64 }` · snapshot 字段是 race guard 必需（§H.4.1 · backend 重检 dirty drift 用） | 新增 |
-| `PullResult` | pull 输出 · `{ stage: "ff" \| "merge" \| "rebase", new_head, merged_commits }` | 新增 |
-| `FetchRequest` | fetch 输入 · `{ workspace_id, remote, prune }` | 新增 |
-| `FetchResult` | fetch 输出 · `{ fetched_refs, pruned_refs }` | 新增 |
-| `AuthMethod` | enum · `SshAgent` / `SshKeyFile { path, passphrase: Option<String> }` / `HttpsHelper` / `HttpsManual { username, password }` | 新增 |
-| `AuthRequest` | 输入侧（auth modal 提交后回调）· `{ workspace_id, auth_challenge_id, task_id, remote_url, allowed_methods, method }` · **必须** challenge-bound（防多远端并发凭证错绑） | 新增 |
-| `AuthChallenge` | 输出侧（后端发起 auth 提示前广播）· `{ workspace_id, auth_challenge_id, task_id, remote_url, host_fingerprint, allowed_methods, expires_at }` | 新增 |
-| `NetworkOpError` | 错误枚举 · 含 payload | 新增 |
-| `MergeConflictInfo` | conflict 详情 · `{ files: ConflictFile[], aborted: bool }` | 新增 |
-| `ConflictFile` | 单个冲突文件 · `{ path, ours_oid, theirs_oid }` | 新增 |
-| `RemoteListRequest` / `RemoteListResponse` | 列出 remote · `{ workspace_id }` → `{ remotes: RemoteInfo[] }` | 新增 |
+| Rust struct                                | 用途                                                                                                                                                                                                                                | 前端 import 路径 |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `RemoteInfo`                               | 单个 remote 元数据                                                                                                                                                                                                                  | 新增             |
+| `PushRequest`                              | push 输入 · `{ workspace_id, remote, branch, force }`                                                                                                                                                                               | 新增             |
+| `PushResult`                               | push 输出 · `{ pushed_commits, new_remote_head }`                                                                                                                                                                                   | 新增             |
+| `PullRequest`                              | pull 输入 · `{ workspace_id, remote, branch, strategy: "merge" \| "rebase", frontend_status_snapshot: GitStatusResponse, frontend_status_taken_at: i64 }` · snapshot 字段是 race guard 必需（§H.4.1 · backend 重检 dirty drift 用） | 新增             |
+| `PullResult`                               | pull 输出 · `{ stage: "ff" \| "merge" \| "rebase", new_head, merged_commits }`                                                                                                                                                      | 新增             |
+| `FetchRequest`                             | fetch 输入 · `{ workspace_id, remote, prune }`                                                                                                                                                                                      | 新增             |
+| `FetchResult`                              | fetch 输出 · `{ fetched_refs, pruned_refs }`                                                                                                                                                                                        | 新增             |
+| `AuthMethod`                               | enum · `SshAgent` / `SshKeyFile { path, passphrase: Option<String> }` / `HttpsHelper` / `HttpsManual { username, password }`                                                                                                        | 新增             |
+| `AuthRequest`                              | 输入侧（auth modal 提交后回调）· `{ workspace_id, auth_challenge_id, task_id, remote_url, allowed_methods, method }` · **必须** challenge-bound（防多远端并发凭证错绑）                                                             | 新增             |
+| `AuthChallenge`                            | 输出侧（后端发起 auth 提示前广播）· `{ workspace_id, auth_challenge_id, task_id, remote_url, host_fingerprint, allowed_methods, expires_at }`                                                                                       | 新增             |
+| `NetworkOpError`                           | 错误枚举 · 含 payload                                                                                                                                                                                                               | 新增             |
+| `MergeConflictInfo`                        | conflict 详情 · `{ files: ConflictFile[], aborted: bool }`                                                                                                                                                                          | 新增             |
+| `ConflictFile`                             | 单个冲突文件 · `{ path, ours_oid, theirs_oid }`                                                                                                                                                                                     | 新增             |
+| `RemoteListRequest` / `RemoteListResponse` | 列出 remote · `{ workspace_id }` → `{ remotes: RemoteInfo[] }`                                                                                                                                                                      | 新增             |
 
 > 实际 struct 名和字段以实施 PR 为准 · 但**必须**全部走 ts-rs 自动生成。
 
@@ -551,34 +551,34 @@ pub struct ConflictFile {
 
 MVP-21 实施前必须明确复用 / 新增边界：
 
-| 已有 binding | MVP-21 §G.1 涉及 | 决策 | 理由 |
-|---|---|---|---|
-| `BranchInfo`（MVP-07 已生成 · 含 `name / upstream / ahead / behind`）| status bar `↑N ↓M` 数字来源 | ✅ **复用** · 不重新查 | MVP-07 + MVP-13 已通过 BranchInfo 提供 ahead/behind · MVP-21 fetch 后只需触发 BranchInfo 重算事件 |
-| `BranchKind` / `CommitAuthor` | 不直接涉及 | ⛔ 不复用 | MVP-21 不操作 commit metadata · 不引入 |
-| `FileChange`（MVP-07/08）| `MergeConflictInfo.files` 含路径 | ⛔ 不复用 · 用独立 `ConflictFile` | conflict 文件需要 ours_oid / theirs_oid 元数据 · `FileChange` 没有 · 强行复用会让 union 膨胀 |
-| `GitStatusResponse`（MVP-08）| pull 前 dirty tree 检测 | ✅ 前端**复用** · 不新建 | MVP-21 前端调 MVP-08 已有 `git_status` IPC 检测 dirty · 不重复实现 |
-| `CommitError`（MVP-09）| 不直接涉及 | ⛔ 不复用 · 新建独立 `NetworkOpError` | 错误语义完全不同（push/pull 是网络层 · commit 是本地写）· 强行复用让 union 膨胀 |
-| `BranchError`（MVP-13）| 不直接涉及 | ⛔ 不复用 · 同上 | branch 操作错误 ≠ 网络操作错误 |
+| 已有 binding                                                          | MVP-21 §G.1 涉及                 | 决策                                  | 理由                                                                                              |
+| --------------------------------------------------------------------- | -------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `BranchInfo`（MVP-07 已生成 · 含 `name / upstream / ahead / behind`） | status bar `↑N ↓M` 数字来源      | ✅ **复用** · 不重新查                | MVP-07 + MVP-13 已通过 BranchInfo 提供 ahead/behind · MVP-21 fetch 后只需触发 BranchInfo 重算事件 |
+| `BranchKind` / `CommitAuthor`                                         | 不直接涉及                       | ⛔ 不复用                             | MVP-21 不操作 commit metadata · 不引入                                                            |
+| `FileChange`（MVP-07/08）                                             | `MergeConflictInfo.files` 含路径 | ⛔ 不复用 · 用独立 `ConflictFile`     | conflict 文件需要 ours_oid / theirs_oid 元数据 · `FileChange` 没有 · 强行复用会让 union 膨胀      |
+| `GitStatusResponse`（MVP-08）                                         | pull 前 dirty tree 检测          | ✅ 前端**复用** · 不新建              | MVP-21 前端调 MVP-08 已有 `git_status` IPC 检测 dirty · 不重复实现                                |
+| `CommitError`（MVP-09）                                               | 不直接涉及                       | ⛔ 不复用 · 新建独立 `NetworkOpError` | 错误语义完全不同（push/pull 是网络层 · commit 是本地写）· 强行复用让 union 膨胀                   |
+| `BranchError`（MVP-13）                                               | 不直接涉及                       | ⛔ 不复用 · 同上                      | branch 操作错误 ≠ 网络操作错误                                                                    |
 
 ### G.6 · MVP-21 新增 binding 清单（明确数量）
 
 以下 **12 个 binding** 为 MVP-21 **计划新增**（实际 Phase A PR #228 实施 **19 个** · ts-rs auto export AuthChallenge / MergeConflictInfo / ConflictFile / event payload 等 nested types · 详见本节末 footnote audit · 2026-05-04 session 23 audit · v2-D.2 模式）· 实施时 `web/src/bindings/` 应新增 12 个 `.ts` 文件：
 
-| Rust struct / enum | 用途 | 前端 import 路径 |
-|---|---|---|
-| `RemoteInfo` | remote 元数据 · `{ name, url, fetch_url }` | `import type { RemoteInfo } from "../bindings/RemoteInfo"` |
-| `RemoteListRequest` / `RemoteListResponse` | list remote · 2 binding | `import type { RemoteListRequest, RemoteListResponse } from "../bindings/..."` |
-| `PushRequest` | push 输入 | `import type { PushRequest } from "../bindings/PushRequest"` |
-| `PushResult` | push 输出 · `{ pushedCommits, newRemoteHead }` | `import type { PushResult } from "../bindings/PushResult"` |
-| `PullRequest` / `PullStrategy` | pull 输入 · 2 binding | `import type { PullRequest, PullStrategy } from "../bindings/..."` |
-| `PullResult` | pull 输出 · `{ stage, newHead, mergedCommits }` | `import type { PullResult } from "../bindings/PullResult"` |
-| `FetchRequest` | fetch 输入 | `import type { FetchRequest } from "../bindings/FetchRequest"` |
-| `FetchResult` | fetch 输出 · `{ fetchedRefs, prunedRefs }` | `import type { FetchResult } from "../bindings/FetchResult"` |
-| `AuthMethod` | auth 枚举 · 含 payload tagged union | `import type { AuthMethod } from "../bindings/AuthMethod"` |
-| `AuthRequest` | auth modal 提交回调 · challenge-bound | `import type { AuthRequest } from "../bindings/AuthRequest"` |
-| `AuthChallenge` | 后端发起 auth 提示前广播（§G.1 · spec round 2 fix 加） | `import type { AuthChallenge } from "../bindings/AuthChallenge"` |
-| `NetworkOpError` | 错误枚举 · 含 payload tagged union（**11 variant** · 含 AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / **StaleLease** / **SslError** / Git2Error · 以 §G.2 完整 enum 为准）| `import type { NetworkOpError } from "../bindings/NetworkOpError"` |
-| `MergeConflictInfo` / `ConflictFile` | conflict 详情 · 2 binding | `import type { MergeConflictInfo, ConflictFile } from "../bindings/..."` |
+| Rust struct / enum                         | 用途                                                                                                                                                                                                                                                             | 前端 import 路径                                                               |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `RemoteInfo`                               | remote 元数据 · `{ name, url, fetch_url }`                                                                                                                                                                                                                       | `import type { RemoteInfo } from "../bindings/RemoteInfo"`                     |
+| `RemoteListRequest` / `RemoteListResponse` | list remote · 2 binding                                                                                                                                                                                                                                          | `import type { RemoteListRequest, RemoteListResponse } from "../bindings/..."` |
+| `PushRequest`                              | push 输入                                                                                                                                                                                                                                                        | `import type { PushRequest } from "../bindings/PushRequest"`                   |
+| `PushResult`                               | push 输出 · `{ pushedCommits, newRemoteHead }`                                                                                                                                                                                                                   | `import type { PushResult } from "../bindings/PushResult"`                     |
+| `PullRequest` / `PullStrategy`             | pull 输入 · 2 binding                                                                                                                                                                                                                                            | `import type { PullRequest, PullStrategy } from "../bindings/..."`             |
+| `PullResult`                               | pull 输出 · `{ stage, newHead, mergedCommits }`                                                                                                                                                                                                                  | `import type { PullResult } from "../bindings/PullResult"`                     |
+| `FetchRequest`                             | fetch 输入                                                                                                                                                                                                                                                       | `import type { FetchRequest } from "../bindings/FetchRequest"`                 |
+| `FetchResult`                              | fetch 输出 · `{ fetchedRefs, prunedRefs }`                                                                                                                                                                                                                       | `import type { FetchResult } from "../bindings/FetchResult"`                   |
+| `AuthMethod`                               | auth 枚举 · 含 payload tagged union                                                                                                                                                                                                                              | `import type { AuthMethod } from "../bindings/AuthMethod"`                     |
+| `AuthRequest`                              | auth modal 提交回调 · challenge-bound                                                                                                                                                                                                                            | `import type { AuthRequest } from "../bindings/AuthRequest"`                   |
+| `AuthChallenge`                            | 后端发起 auth 提示前广播（§G.1 · spec round 2 fix 加）                                                                                                                                                                                                           | `import type { AuthChallenge } from "../bindings/AuthChallenge"`               |
+| `NetworkOpError`                           | 错误枚举 · 含 payload tagged union（**11 variant** · 含 AuthFailed / NetworkUnreachable / RemoteNotFound / NonFastForward / MergeConflict / Aborted / DirtyWorkingTree / RejectedByRemote / **StaleLease** / **SslError** / Git2Error · 以 §G.2 完整 enum 为准） | `import type { NetworkOpError } from "../bindings/NetworkOpError"`             |
+| `MergeConflictInfo` / `ConflictFile`       | conflict 详情 · 2 binding                                                                                                                                                                                                                                        | `import type { MergeConflictInfo, ConflictFile } from "../bindings/..."`       |
 
 > 复用上游：`BranchInfo`（MVP-13）· `GitStatusResponse`（MVP-08 · 用于 PullRequest.frontend_status_snapshot · §H.4.1 race guard）· 实施时 bindings 目录新增 **19 个** `.ts` 文件（Phase A PR #228 实测 · ts-rs 每个 `#[derive(TS)]` 生成独立文件 · 含 nested AuthChallenge / MergeConflictInfo / ConflictFile / PushProgressEvent / FetchProgressEvent / OperationDoneEvent 等 · spec 表头 12 是规划数 · 实际 19 是 ts-rs 自动 export 行为 · 不是 drift bug · 是 spec 描述精度待提升 · 2026-05-04 session 23 audit + Arbiter approval 修订）。
 
@@ -633,11 +633,13 @@ pub struct OperationDoneEvent {
 ```
 
 事件名（全局规范）：
+
 - `git:push-progress` (payload: `PushProgressEvent`)
 - `git:fetch-progress` (payload: `FetchProgressEvent`)
 - `git:operation-done` (payload: `OperationDoneEvent`)
 
 前端 listen 模式（仿 MVP-04 `pty:stdout`）：
+
 ```typescript
 // web/src/utils/gitSyncEvents.ts
 import { listen } from "@tauri-apps/api/event";
@@ -663,13 +665,13 @@ MVP-21 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-
 
 ### H.2 Auth 方法决策锁定（防 v0.2 实施反复讨论）
 
-| Auth 类型 | 默认路径 | 缺失时 fallback | v0.2 实现优先级 |
-|----------|---------|----------------|----------------|
-| SSH | 系统 ssh-agent（`SSH_AUTH_SOCK`）| `~/.ssh/id_ed25519` → `~/.ssh/id_rsa` 顺序读 · 密码弹 modal | P0 必须 |
-| HTTPS | git credential helper（osxkeychain / libsecret）| 弹 modal · `"保存到 keychain"` 复选框 | P0 必须 |
-| GPG signing | ❌ 不支持 | — | v0.3+ |
-| OAuth token（GitHub Personal Access Token）| 走 HTTPS 同路径（user 输入 token 当 password）| 同 HTTPS | P0（共享 HTTPS 路径） |
-| Kerberos / NTLM | ❌ 不支持 | — | v1.0+ 企业版 |
+| Auth 类型                                   | 默认路径                                         | 缺失时 fallback                                             | v0.2 实现优先级       |
+| ------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------- | --------------------- |
+| SSH                                         | 系统 ssh-agent（`SSH_AUTH_SOCK`）                | `~/.ssh/id_ed25519` → `~/.ssh/id_rsa` 顺序读 · 密码弹 modal | P0 必须               |
+| HTTPS                                       | git credential helper（osxkeychain / libsecret） | 弹 modal · `"保存到 keychain"` 复选框                       | P0 必须               |
+| GPG signing                                 | ❌ 不支持                                        | —                                                           | v0.3+                 |
+| OAuth token（GitHub Personal Access Token） | 走 HTTPS 同路径（user 输入 token 当 password）   | 同 HTTPS                                                    | P0（共享 HTTPS 路径） |
+| Kerberos / NTLM                             | ❌ 不支持                                        | —                                                           | v1.0+ 企业版          |
 
 **关键决策**：**不自己实现 keyring**（OS keychain 集成由 git credential helper 负责 · 经过 git2 + libgit2 调用）· 减少 attack surface + 维护成本。
 
@@ -679,28 +681,28 @@ MVP-21 是**纯写路径 + 网络** · 对齐 CLAUDE.md 决策表 #13（2026-04-
 
 理由：
 
-| 选项 | 优点 | 缺点 | v0.2 评估 |
-|------|------|------|-----------|
-| (a) **merge 默认**（**v0.2 选定**）| 不改写本地历史 · 用户预期符合 GitHub Desktop 默认 · 不易出 force-push 灾难 | 历史变 messy | ✅ MVP 安全优先 |
-| (b) rebase 默认 | 历史干净 | 改写本地历史 · 用户在 push 时遇 non-fast-forward 困惑 · 容易导致 force push | ❌ MVP 不可接受 |
-| (c) 弹 modal 每次问 | 灵活 | UX 太烦 | ❌ |
+| 选项                                | 优点                                                                       | 缺点                                                                        | v0.2 评估       |
+| ----------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- | --------------- |
+| (a) **merge 默认**（**v0.2 选定**） | 不改写本地历史 · 用户预期符合 GitHub Desktop 默认 · 不易出 force-push 灾难 | 历史变 messy                                                                | ✅ MVP 安全优先 |
+| (b) rebase 默认                     | 历史干净                                                                   | 改写本地历史 · 用户在 push 时遇 non-fast-forward 困惑 · 容易导致 force push | ❌ MVP 不可接受 |
+| (c) 弹 modal 每次问                 | 灵活                                                                       | UX 太烦                                                                     | ❌              |
 
 **v0.3 升级触发条件**：用户研究证明 70%+ 用户偏好 rebase（实施 telemetry 收集 v0.2 的实际使用数据 · MVP-10 anonymized）。
 
 ### H.4 git2 0.20 网络 API 使用要点（实施参考）
 
-| 操作 | git2 API 调用链 |
-|------|----------------|
-| Remote list | `Repository::remotes()` → `Vec<&str>` (远端名)→ `Repository::find_remote(name)` |
-| Push | `Repository::find_remote("origin")` → `Remote::push(refspecs, Some(&PushOptions))` · `PushOptions` 含 `RemoteCallbacks` |
+| 操作              | git2 API 调用链                                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remote list       | `Repository::remotes()` → `Vec<&str>` (远端名)→ `Repository::find_remote(name)`                                                                                                          |
+| Push              | `Repository::find_remote("origin")` → `Remote::push(refspecs, Some(&PushOptions))` · `PushOptions` 含 `RemoteCallbacks`                                                                  |
 | Pull (fetch + ff) | **必须先 backend snapshot dirty check**（见下方 race guard）→ `Remote::fetch(...)` + `Repository::merge_analysis(annot)` 检测 ff → `Repository::reset(target_commit, Hard, ...)` 直接 ff |
-| Pull (merge) | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::merge(...)` + 检 conflict + `Repository::commit(...)` 创建 merge commit |
-| Pull (rebase) | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::rebase(Some(branch), Some(upstream), None, RebaseOptions)` + 循环 `next` + `commit` |
-| Fetch | `Remote::fetch(refspecs, opts, msg)` · `FetchOptions::prune(FetchPrune::On)` for prune |
-| Auth callback | `RemoteCallbacks::credentials(\|url, username, allowed\| { match allowed { ... } })` |
-| Progress callback | `RemoteCallbacks::transfer_progress(\|stats\| { emit_event(...); true })` · 返回 false 表 cancel |
-| Merge abort | `Repository::cleanup_state()` + `Repository::reset(orig_head, Hard, ...)` 双保险（§R5） |
-| 错误分诊 | `git2::Error::class()` / `git2::Error::code()` → 映射到 `NetworkOpError` enum |
+| Pull (merge)      | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::merge(...)` + 检 conflict + `Repository::commit(...)` 创建 merge commit                                    |
+| Pull (rebase)     | **必须先 backend snapshot dirty check** → `Remote::fetch(...)` + `Repository::rebase(Some(branch), Some(upstream), None, RebaseOptions)` + 循环 `next` + `commit`                        |
+| Fetch             | `Remote::fetch(refspecs, opts, msg)` · `FetchOptions::prune(FetchPrune::On)` for prune                                                                                                   |
+| Auth callback     | `RemoteCallbacks::credentials(\|url, username, allowed\| { match allowed { ... } })`                                                                                                     |
+| Progress callback | `RemoteCallbacks::transfer_progress(\|stats\| { emit_event(...); true })` · 返回 false 表 cancel                                                                                         |
+| Merge abort       | `Repository::cleanup_state()` + `Repository::reset(orig_head, Hard, ...)` 双保险（§R5）                                                                                                  |
+| 错误分诊          | `git2::Error::class()` / `git2::Error::code()` → 映射到 `NetworkOpError` enum                                                                                                            |
 
 ### H.4.1 Pull / Rebase race guard（**强制** backend-side dirty check）
 
@@ -968,14 +970,15 @@ v0.3+ 升级：`PROTECTED_BRANCHES` 移到设置面板（用户可自定义）·
 
 ### H.7 跨平台依赖
 
-| 平台 | git2 features | libssh2 / OpenSSL | keychain | v0.2 状态 |
-|------|---------------|-------------------|----------|-----------|
-| macOS（Apple Silicon / Intel）| `vendored-libgit2 + vendored-openssl` | 静态链接 · 不依赖系统 OpenSSL | osxkeychain（系统集成） | ✅ |
-| Linux（Ubuntu 24 X11） | 同上 | 同上 | libsecret（GNOME Keyring · 用户需装） | ✅ |
-| Linux（Ubuntu 24 Wayland） | 同上 | 同上 | 同上 | ✅ |
-| Windows | 需 win32-openssh + path separator 适配 | TBD | wincred（Windows Credential Manager） | ❌ v0.3+ |
+| 平台                           | git2 features                          | libssh2 / OpenSSL             | keychain                              | v0.2 状态 |
+| ------------------------------ | -------------------------------------- | ----------------------------- | ------------------------------------- | --------- |
+| macOS（Apple Silicon / Intel） | `vendored-libgit2 + vendored-openssl`  | 静态链接 · 不依赖系统 OpenSSL | osxkeychain（系统集成）               | ✅        |
+| Linux（Ubuntu 24 X11）         | 同上                                   | 同上                          | libsecret（GNOME Keyring · 用户需装） | ✅        |
+| Linux（Ubuntu 24 Wayland）     | 同上                                   | 同上                          | 同上                                  | ✅        |
+| Windows                        | 需 win32-openssh + path separator 适配 | TBD                           | wincred（Windows Credential Manager） | ❌ v0.3+  |
 
 `crates/core/Cargo.toml` 需明确 git2 features：
+
 ```toml
 git2 = { version = "0.20", default-features = false, features = ["vendored-libgit2", "vendored-openssl", "ssh"] }
 ```
@@ -986,16 +989,16 @@ git2 = { version = "0.20", default-features = false, features = ["vendored-libgi
 
 MVP-21 是**网络层** · 严格隔离：
 
-| 场景 | MVP-09 责任 | MVP-13 责任 | MVP-21 责任 |
-|------|------------|------------|-------------|
-| 本地 commit | ✅ | ❌ | ❌ |
-| Branch CRUD | ❌ | ✅ | ❌ |
-| Push to remote | ❌ | ❌ | ✅ |
-| Pull / Fetch | ❌ | ❌ | ✅ |
-| Push --delete remote branch | ❌ | ❌ | ✅（v0.3 评估 · v0.2 不做）|
-| Auth | ❌ | ❌ | ✅ |
-| Conflict 处理 | ❌ | ❌ | ✅（仅 abort · GUI mergetool v0.3）|
-| 状态栏 ahead/behind 计算 | ❌ | ❌（仅触发 BranchInfo 刷新）| ✅（fetch 后更新） |
+| 场景                        | MVP-09 责任 | MVP-13 责任                  | MVP-21 责任                         |
+| --------------------------- | ----------- | ---------------------------- | ----------------------------------- |
+| 本地 commit                 | ✅          | ❌                           | ❌                                  |
+| Branch CRUD                 | ❌          | ✅                           | ❌                                  |
+| Push to remote              | ❌          | ❌                           | ✅                                  |
+| Pull / Fetch                | ❌          | ❌                           | ✅                                  |
+| Push --delete remote branch | ❌          | ❌                           | ✅（v0.3 评估 · v0.2 不做）         |
+| Auth                        | ❌          | ❌                           | ✅                                  |
+| Conflict 处理               | ❌          | ❌                           | ✅（仅 abort · GUI mergetool v0.3） |
+| 状态栏 ahead/behind 计算    | ❌          | ❌（仅触发 BranchInfo 刷新） | ✅（fetch 后更新）                  |
 
 实施时严格遵循 · MVP-21 PR 不应碰 `git_ops.rs` / `branch_ops.rs`。
 
@@ -1031,24 +1034,25 @@ MVP-21 是**网络层** · 严格隔离：
 
 ## 详化完成度评估（Arbiter 审 PR 时参考）
 
-| 12 段必含 | 状态 | 备注 |
-|----------|------|------|
-| 1. frontmatter | ✅ | id (rename 自原 MVP-11) / type / title / status:**ready** / depends_on / phase / estimate / plan_ref / risk_ref / reviewer (Claude Code) 全填 · ID 冲突已解决 |
-| 2. 🎯 目标 Goal | ✅ | 一句话核心 + plan_ref link |
-| 3. 📖 背景 Context | ✅ | implementation-plan + CLAUDE.md + 路线图 W14 + 历史尝试 |
-| 4. 🛠 实施进度表 | ✅ | Phase A/B/C/D 拆分 + Phase A 起点 checklist（11 项） |
-| 5. 🎨 功能范围 Scope | ✅ | Do 5 大类 / Don't 9 项 |
-| 6. 🖼 UI 引用 | ✅ | design 原型 line 引用 + 6 类 UI 元素描述（含 force push / pull conflict / auth modal） |
-| 7. ✅ Acceptance | ✅ | A-G 7 大组 / 50+ 项 checkbox · 每项含具体测法 |
-| 8. 🧪 测试策略 | ✅ | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + fixture（带 sshd / nginx mock）+ bench 模板 |
-| 9. 💾 数据模型变更 | ✅ | 2 个 app_settings key · 不新建表 + 反模式禁止 + **绝不持久化凭证** |
-| 10. §G IPC Contract | ✅ | 14 struct + derive 模板 + G.5 复用 + G.6 新增 12 binding 清单 + G.7 progress event |
-| 11. §H 决策锁定 | ✅ | H.1-H.8 8 子段 · 含 Auth 矩阵 + Merge/Rebase 表 + git2 API 表 + 跨平台依赖矩阵 + Auth 安全实现 |
-| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅ | 6 风险 + 7 Notes + 6 相关 + 8 条自审 |
+| 12 段必含                                 | 状态 | 备注                                                                                                                                                          |
+| ----------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. frontmatter                            | ✅   | id (rename 自原 MVP-11) / type / title / status:**ready** / depends_on / phase / estimate / plan_ref / risk_ref / reviewer (Claude Code) 全填 · ID 冲突已解决 |
+| 2. 🎯 目标 Goal                           | ✅   | 一句话核心 + plan_ref link                                                                                                                                    |
+| 3. 📖 背景 Context                        | ✅   | implementation-plan + CLAUDE.md + 路线图 W14 + 历史尝试                                                                                                       |
+| 4. 🛠 实施进度表                          | ✅   | Phase A/B/C/D 拆分 + Phase A 起点 checklist（11 项）                                                                                                          |
+| 5. 🎨 功能范围 Scope                      | ✅   | Do 5 大类 / Don't 9 项                                                                                                                                        |
+| 6. 🖼 UI 引用                             | ✅   | design 原型 line 引用 + 6 类 UI 元素描述（含 force push / pull conflict / auth modal）                                                                        |
+| 7. ✅ Acceptance                          | ✅   | A-G 7 大组 / 50+ 项 checkbox · 每项含具体测法                                                                                                                 |
+| 8. 🧪 测试策略                            | ✅   | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + fixture（带 sshd / nginx mock）+ bench 模板                                                              |
+| 9. 💾 数据模型变更                        | ✅   | 2 个 app_settings key · 不新建表 + 反模式禁止 + **绝不持久化凭证**                                                                                            |
+| 10. §G IPC Contract                       | ✅   | 14 struct + derive 模板 + G.5 复用 + G.6 新增 12 binding 清单 + G.7 progress event                                                                            |
+| 11. §H 决策锁定                           | ✅   | H.1-H.8 8 子段 · 含 Auth 矩阵 + Merge/Rebase 表 + git2 API 表 + 跨平台依赖矩阵 + Auth 安全实现                                                                |
+| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅   | 6 风险 + 7 Notes + 6 相关 + 8 条自审                                                                                                                          |
 
 **完成度**：12/12 = **100%** · status 已翻 `ready`（2026-05-03 session 23 PR #210 rename + Arbiter approve）。
 
 **遗留问题**：
+
 - ✅ ID 冲突已解决（PR #210 rename · 文件顶部历史 HTML 注释保留作 trace）
 - ✅ 决策表已锁定 · 没有"v0.2 启动后再讨论"的悬空项
 - ⏳ 等 v0.2 sprint 启动派 Phase A 实施 agent（前置 MVP-13 done · 当前 MVP-13 ready · session 23 主 agent 已派 Codex 跑 MVP-13 Phase A）

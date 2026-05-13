@@ -1,10 +1,36 @@
 # Dispatch Prompt 模板规则 · Vibestation 专属
 
-> 本规则沉淀给**外部 agent（Codex / OpenCode / 未来的 Claude 实例 / 其他工具）**下发任务 prompt 的硬约束 + 建议区分。凡触发"我要发 dispatch prompt 给外部 agent"前 · 先读本规则 · 按模板写。
+> 本规则沉淀给**外部 agent（Codex / OpenCode / Cursor / Droid / Kimi / 未来的 Claude 实例 / 其他工具）**下发任务 prompt 的硬约束 + 建议区分。凡触发"我要发 dispatch prompt 给外部 agent"前 · 先读本规则 · 按模板写。
 >
 > **触发条件**：主 agent 要把 task（Spike / MVP / Feature / Doc）通过用户转发下发给外部 agent 执行 · 非主 agent 自己执行的任务。
 >
 > **关联全局规则**：`~/.claude/rules/13-cross-agent-delivery.md` · `~/.claude/rules/15-runtime-verification-gate.md`
+
+---
+
+## 0 · 目录 · 15 条硬约束速查
+
+> 主章节：[§1 核心原则](#1--核心原则--硬约束-vs-建议-必须显式区分) · [§2 15 条硬约束](#2--默认硬约束清单所有-dispatch-必含) · [§3 标准模板](#3--标准-dispatch-prompt-模板) · [§4 参考实现](#4--参考实现) · [§5 演进](#5--本规则的演进) · [§6 自审四问](#6--自审四问本规则对自己)
+
+### §2 硬约束速查表
+
+| 条款                                                                                                                         | 一句话约束                                                                    | 事件源（session）         |
+| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
+| [2.1 禁自行 accept decision](#21--禁止自行-accept-decision-grade-结论)                                                       | 不动 CLAUDE.md / ADR / spec status · 只能建议                                 | OpenCode SPIKE-04.5（s9） |
+| [2.2 Acceptance 全覆盖](#22--acceptance-全覆盖不得简化)                                                                      | spec checkbox 必须逐项 `[x]` 或 explicit skip                                 | s9 初版                   |
+| [2.3 Runtime 证据必交](#23--runtime-证据必交按-task-层级区分)                                                                | Spike → 4 样齐全 · MVP → 3 张截图 · chore/docs → CI 即可                      | ADR-011（s10）            |
+| [2.4 独立 worktree](#24--独立-worktree--不得在主-working-tree-开-agent-任务分支)                                             | `git worktree add /private/tmp/<task-id>-work` · 不开主 working tree          | OpenCode MVP-02（s10）    |
+| [2.5 Commit 身份](#25--commit-身份标识3-条硬约束--缺一即-block-merge)                                                        | 3 铁律：(a) `--worktree` config + (b) trailer + (c) verify                    | s14 + s28 6+ 次实证       |
+| [2.6 分支命名](#26--分支命名规范)                                                                                            | `feat/<id>` · `spike/<id>` · `fix/<scope>` · `docs/<topic>` · `chore/<scope>` | s9 初版                   |
+| [2.7 不碰 decision files](#27--不碰-decision-files除非明确授权)                                                              | 默认禁 CLAUDE.md / ADR / 其他 spec · 必须明示授权                             | s9 初版                   |
+| [2.8 子进程清理](#28--子进程清理--任务结束前必须-kill-所有启动的后台进程)                                                    | dev server / Vite / PTY task 结束前 kill · 防 port orphan                     | OpenCode MVP-02（s10）    |
+| [2.9 Agent 能力矩阵](#29--agent-能力矩阵--本地-agent-vs-远程-api-agent-适配)                                                 | 本地 CLI / 远程 API / IDE 插件分三类适配 prompt 结构                          | Kimi MVP-07（s12）        |
+| [2.10 lint + raw output](#210--gui--前端-task-必须跑-pnpm-lintdont-只-typecheck)                                             | 前端 task 跑 `pnpm lint` + `pnpm typecheck` + raw output 三段全贴             | OpenCode N=3（s25-26）    |
+| [2.11 Cross-platform timeout](#211--timing-sensitive-跨平台测试--timeout-必须--本地最大运行时长--2--或-linux-only-ignore)    | timeout ≥ 本地最大 × 2 · 或 Linux-only ignore + 技术债                        | Codex PR #82（s14）       |
+| [2.12 git config unset](#212--主-agent-在别人-worktree-操作-git-config-后必须-unset防跨-agent-author-污染)                   | worktree 后 unset · 主 repo 不留 local config 污染                            | s14 + s28 6+ 次实证       |
+| [2.13 索引同步禁 inline](#213--索引同步类-prompt-禁止-inline-已被其他-pr-修改的源文件)                                       | 用 `git checkout origin/main` 拿真相 · 不 inline 原文                         | Kimi U2 ADR-015（s20）    |
+| [2.14 Reviewer dev mode](#214--reviewer-必须启-dev-模式跑-critical-ux-path-gui--ipc-类-pr--不只看-rust-测试--ts-rs-contract) | GUI / IPC 类 PR · reviewer 启 dev mode 跑 critical UX path                    | PR #159/#161/#163（s20）  |
+| [2.15 stale base race](#215--并发派工--push-前必须-fetch--rebase-main--重跑-gate防-stale-base-race)                          | ≥ 3-agent 并发 · push 前必 fetch + rebase main + 重跑 gate                    | Cursor PR #297（s30）     |
 
 ---
 
@@ -19,10 +45,10 @@ Dispatch prompt 里的协作要求 **必须区分**：
 
 ### 反模式（本项目两次踩坑）
 
-| 事件 | 措辞 | 外部 agent 解读 |
-|---|---|---|
-| SPIKE-04.5 §A.3 dispatch | "**不要**自己说 accept" | OpenCode 视作建议 · 绕过 · 自标 "Arbiter 选定方案(a)" |
-| MVP-02 dispatch | "独立 worktree **强烈建议**" | OpenCode 视作建议 · 在主 working tree 开工 |
+| 事件                     | 措辞                         | 外部 agent 解读                                       |
+| ------------------------ | ---------------------------- | ----------------------------------------------------- |
+| SPIKE-04.5 §A.3 dispatch | "**不要**自己说 accept"      | OpenCode 视作建议 · 绕过 · 自标 "Arbiter 选定方案(a)" |
+| MVP-02 dispatch          | "独立 worktree **强烈建议**" | OpenCode 视作建议 · 在主 working tree 开工            |
 
 **教训**：外部 agent 会倾向走最短路径 · "建议"级条款容易被绕过。对**不能绕过**的要求 · 必须升级为"硬约束"措辞。
 
@@ -37,7 +63,7 @@ Dispatch prompt 结构必须包含**独立的硬约束段** · 格式如下：
 
 1. ❌ <禁止做的事> · <原因>
 2. ✅ <必须做的事> · <原因>
-...
+   ...
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -48,11 +74,12 @@ Dispatch prompt 结构必须包含**独立的硬约束段** · 格式如下：
 
 ## 2 · 默认硬约束清单（所有 dispatch 必含）
 
-除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 8 条默认是硬约束：
+除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 15 条默认是硬约束（详见 [§0 速查表](#0--目录--15-条硬约束速查)）：
 
 ### 2.1 · 禁止自行 accept decision-grade 结论
 
 **禁止**：外部 agent 自行修改以下任一：
+
 - `CLAUDE.md` 决策表（A/B/C 三档任一）
 - `docs/adr/ADR-*.md` 的 status 字段（proposed → accepted / superseded）
 - `docs/tasks/*.md` frontmatter 的 `status` 字段（draft → ready → in-progress → done）
@@ -65,6 +92,7 @@ Dispatch prompt 结构必须包含**独立的硬约束段** · 格式如下：
 ### 2.2 · Acceptance 全覆盖（不得简化）
 
 spec 的 `Acceptance` 所有 checkbox **必须** 在 PR body 逐项：
+
 - 勾 `[x]` 已完成
 - 或 `[ ]` + explicit skip reason（例："跳过 · 依赖 MVP-03 · 本 PR 范围外"）
 
@@ -72,11 +100,11 @@ spec 的 `Acceptance` 所有 checkbox **必须** 在 PR body 逐项：
 
 ### 2.3 · Runtime 证据必交（按 task 层级区分）
 
-| 任务类型 | Runtime 证据要求 |
-|---|---|
-| **Spike**（decision-grade benchmark） | 按 `.claude/rules/spike-delivery-checklist.md` "4 样齐全"（report + code + raw + cold backup）· report 数字必须 raw 可溯源 |
-| **MVP**（产品功能） | 至少 3 张截图或 1 段 30s 录屏 · 覆盖核心 golden path + 关键边界 · 放 `docs/runtime-evidence/<task-id>/`（**进 git** · 见 [ADR-011](../../docs/adr/ADR-011-runtime-evidence-location.md)） |
-| **Docs / chore**（纯文档） | CI 通过即可 · 无 runtime 要求 |
+| 任务类型                              | Runtime 证据要求                                                                                                                                                                          |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Spike**（decision-grade benchmark） | 按 `.claude/rules/spike-delivery-checklist.md` "4 样齐全"（report + code + raw + cold backup）· report 数字必须 raw 可溯源                                                                |
+| **MVP**（产品功能）                   | 至少 3 张截图或 1 段 30s 录屏 · 覆盖核心 golden path + 关键边界 · 放 `docs/runtime-evidence/<task-id>/`（**进 git** · 见 [ADR-011](../../docs/adr/ADR-011-runtime-evidence-location.md)） |
+| **Docs / chore**（纯文档）            | CI 通过即可 · 无 runtime 要求                                                                                                                                                             |
 
 关键：**CI 绿 ≠ runtime 过**（见 `~/.claude/rules/15-runtime-verification-gate.md` · 项目级落地见 `.claude/rules/runtime-evidence-location.md`）· GUI / IPC 类代码必须有 runtime 证据。
 
@@ -94,6 +122,7 @@ cd /private/tmp/<task-id>-work
 ```
 
 **禁止**：
+
 - 在主目录 `git checkout -b feat/X` 开 agent 任务分支（会干扰主 agent 的 working tree · rule 13 踩坑）
 - 共享同一目录做并发 checkout
 
@@ -129,11 +158,11 @@ git config user.name && git config user.email
 
 **反模式**（违反 BLOCK · session 28 后强化）：
 
-| 反模式 | 正确做法 |
-|---|---|
-| `git config user.email "..."`（无 --worktree） | 必须 `git config --worktree user.email "..."` |
-| 跳过 `git config extensions.worktreeConfig true` · 直接 `--worktree` | git 拒绝 · `--worktree` flag 需先启用 extension（fallback 写主 repo · 污染） |
-| 假设主 repo .git/config 不会被 worktree 污染 | session 28 实证 3 次污染 · 必须 `extensions.worktreeConfig=true` + `--worktree` 双保险 |
+| 反模式                                                               | 正确做法                                                                               |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `git config user.email "..."`（无 --worktree）                       | 必须 `git config --worktree user.email "..."`                                          |
+| 跳过 `git config extensions.worktreeConfig true` · 直接 `--worktree` | git 拒绝 · `--worktree` flag 需先启用 extension（fallback 写主 repo · 污染）           |
+| 假设主 repo .git/config 不会被 worktree 污染                         | session 28 实证 3 次污染 · 必须 `extensions.worktreeConfig=true` + `--worktree` 双保险 |
 
 #### 2.5.2 · 每个 commit 必含 `Co-authored-by` trailer
 
@@ -169,19 +198,20 @@ git log -1 --pretty=format:"%an <%ae>"
 
 按任务类型固定前缀（匹配 CLAUDE.md "Commit 规范"）：
 
-| 类型 | 前缀 | 例子 |
-|---|---|---|
-| Spike | `spike/<id>` | `spike/SPIKE-05.5` · `spike/SPIKE-06` |
-| MVP / Feature | `feat/<id>` | `feat/MVP-02-workspace-management` |
-| Bug fix | `fix/<scope>` | `fix/tauri-acl-deny` |
-| Docs | `docs/<topic>` | `docs/dispatch-prompt-template` |
-| Chore / CI | `chore/<scope>` | `chore/corepack-ci-migration` |
+| 类型          | 前缀            | 例子                                  |
+| ------------- | --------------- | ------------------------------------- |
+| Spike         | `spike/<id>`    | `spike/SPIKE-05.5` · `spike/SPIKE-06` |
+| MVP / Feature | `feat/<id>`     | `feat/MVP-02-workspace-management`    |
+| Bug fix       | `fix/<scope>`   | `fix/tauri-acl-deny`                  |
+| Docs          | `docs/<topic>`  | `docs/dispatch-prompt-template`       |
+| Chore / CI    | `chore/<scope>` | `chore/corepack-ci-migration`         |
 
 **禁止**：直接在 main 开工 · 或用其他命名模式。
 
 ### 2.7 · 不碰 decision files（除非明确授权）
 
 外部 agent **默认禁止**修改：
+
 - `CLAUDE.md`（决策表 · 禁区 · 风格）
 - `docs/adr/*.md`（除非 task 明确是"新开 ADR-NNN"）
 - 其他 spec（`docs/tasks/*.md` 除自己认领的那个）
@@ -213,6 +243,7 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 ```
 
 **禁止**：
+
 - 任务结束不 kill · 让 main agent 自己遇到 "port in use" 再排查（rule 13 踩坑）
 - 只 kill 父进程 · 子进程 orphan（用 `pkill -f <name>` 按模式 kill · 或 process group）
 - 假设 session 结束会自动清理 · 实际 detached 进程会留到 4+ 小时
@@ -225,11 +256,11 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 #### 三类 agent 对照
 
-| Agent 类型 | 代表 | 本地文件 | git/shell | prompt 策略 |
-|---|---|---|---|---|
-| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf · Droid（Factory.ai） | ✅ worktree + Bash | ✅ 完整 | **给路径即可** |
-| **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek | ❌ 无本地 | ❌ 无 shell | **必须附文件原文** |
-| **IDE 插件** | Trae / Kilo / Cursor 内嵌聊天 · Copilot Chat | 🟡 依赖插件 | 🟡 部分 | **明确工具要求 + 附原文兜底** |
+| Agent 类型   | 代表                                                                                 | 本地文件           | git/shell   | prompt 策略                   |
+| ------------ | ------------------------------------------------------------------------------------ | ------------------ | ----------- | ----------------------------- |
+| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf · Droid（Factory.ai） | ✅ worktree + Bash | ✅ 完整     | **给路径即可**                |
+| **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek                       | ❌ 无本地          | ❌ 无 shell | **必须附文件原文**            |
+| **IDE 插件** | Trae / Kilo / Cursor 内嵌聊天 · Copilot Chat                                         | 🟡 依赖插件        | 🟡 部分     | **明确工具要求 + 附原文兜底** |
 
 #### 强制做法
 
@@ -256,12 +287,12 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 #### 反模式
 
-| 反模式 | 真正该做 |
-|---|---|
-| 复制本地 agent 模板（只给路径）给远程 API agent | 按 agent 类型分支 · 远程 API 必须附原文 |
-| 假设所有 agent 都能 `git worktree add` | 明确询问 / 默认无 · 双路径兼容 |
-| 远程 API prompt 说 "参考 CLAUDE.md §X" | 把 §X 关键段摘出来贴进 prompt |
-| 不在 meta 段声明 agent 类型 | 每个 dispatch prompt 顶部必写一行 `Agent 类型：...` |
+| 反模式                                          | 真正该做                                            |
+| ----------------------------------------------- | --------------------------------------------------- |
+| 复制本地 agent 模板（只给路径）给远程 API agent | 按 agent 类型分支 · 远程 API 必须附原文             |
+| 假设所有 agent 都能 `git worktree add`          | 明确询问 / 默认无 · 双路径兼容                      |
+| 远程 API prompt 说 "参考 CLAUDE.md §X"          | 把 §X 关键段摘出来贴进 prompt                       |
+| 不在 meta 段声明 agent 类型                     | 每个 dispatch prompt 顶部必写一行 `Agent 类型：...` |
 
 #### 事件
 
@@ -298,11 +329,11 @@ CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettie
 
 **反模式**
 
-| 反模式 | 正确做法 |
-|---|---|
-| Dispatch prompt 只列 `pnpm typecheck` | 两条都列 · 缺一 BLOCK |
+| 反模式                                            | 正确做法                                                           |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| Dispatch prompt 只列 `pnpm typecheck`             | 两条都列 · 缺一 BLOCK                                              |
 | 交付 agent 回报 "typecheck 过" 作为前端 gate 证据 | 必须同时显示 prettier `All matched files use Prettier code style!` |
-| 假设 `tsc --noEmit` pass 意味着前端 OK | typecheck 只查类型 · 不查格式 · prettier 是独立 gate |
+| 假设 `tsc --noEmit` pass 意味着前端 OK            | typecheck 只查类型 · 不查格式 · prettier 是独立 gate               |
 
 ### 2.11 · Timing-sensitive 跨平台测试 · timeout 必须 ≥ 本地最大运行时长 × 2 · 或 Linux-only ignore
 
@@ -335,11 +366,11 @@ CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettie
 
 **反模式**
 
-| 反模式 | 正确做法 |
-|---|---|
-| 本地 `cargo test` 过就交付 | 跨平台测试必须预判 CI 是否 pass · 不确定时加 Linux-only ignore + 技术债 |
-| CI fail 后反复加 timeout | timeout × 2 仍 fail · 立即切 ignore + 深挖留下次 |
-| 不在 spec §已知风险 记 ignore 的技术债 | 必须记 · 含 GA gate 解除条件 |
+| 反模式                                 | 正确做法                                                                |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| 本地 `cargo test` 过就交付             | 跨平台测试必须预判 CI 是否 pass · 不确定时加 Linux-only ignore + 技术债 |
+| CI fail 后反复加 timeout               | timeout × 2 仍 fail · 立即切 ignore + 深挖留下次                        |
+| 不在 spec §已知风险 记 ignore 的技术债 | 必须记 · 含 GA gate 解除条件                                            |
 
 ### 2.12 · 主 agent 在别人 worktree 操作 git config 后必须 unset（防跨 agent author 污染）
 
@@ -399,12 +430,12 @@ git config --worktree user.email "..."
 
 **反模式**
 
-| 反模式 | 正确做法 |
-|---|---|
-| 在别人 worktree 改 git config 后不 unset | 必须 unset · 或该 worktree 用完立即 `git worktree remove` 销毁 |
-| dispatch prompt 用 `git config user.email "..."`（无 `--worktree`）| session 28 起必须 `git config --worktree` + 先启用 `extensions.worktreeConfig=true`（见 §2.5.1） |
-| 假设主 repo .git/config 不会被 worktree 污染 | session 14 + session 28 共 6 次实证污染 · 必须双保险（防御性 unset + `--worktree` 隔离） |
-| 每次 commit 忘记验证 author（硬约束 2.5.3）| 2.5.3 的硬约束必须执行 · `git log -1 %an <%ae>` 是最后一道防线 |
+| 反模式                                                              | 正确做法                                                                                         |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 在别人 worktree 改 git config 后不 unset                            | 必须 unset · 或该 worktree 用完立即 `git worktree remove` 销毁                                   |
+| dispatch prompt 用 `git config user.email "..."`（无 `--worktree`） | session 28 起必须 `git config --worktree` + 先启用 `extensions.worktreeConfig=true`（见 §2.5.1） |
+| 假设主 repo .git/config 不会被 worktree 污染                        | session 14 + session 28 共 6 次实证污染 · 必须双保险（防御性 unset + `--worktree` 隔离）         |
+| 每次 commit 忘记验证 author（硬约束 2.5.3）                         | 2.5.3 的硬约束必须执行 · `git log -1 %an <%ae>` 是最后一道防线                                   |
 
 ### 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件
 
@@ -429,9 +460,13 @@ git config --worktree user.email "..."
 
 \`\`\`bash
 git fetch origin
+
 # 字节级恢复 ADR 本体 · 保留 PR #X 的最新措辞
+
 git checkout origin/main -- docs/adr/ADR-NNN-foo.md
+
 # 然后只补需要新增的索引条目（在其他文件）
+
 \`\`\`
 ```
 
@@ -441,7 +476,9 @@ git checkout origin/main -- docs/adr/ADR-NNN-foo.md
 ## ❌ 错误：inline 原文（agent 会基于这份 inline 重写 · 覆盖 PR #X 的修订）
 
 \`\`\`markdown
+
 <!-- 整篇 ADR-NNN 内容贴在这里 ·  agent 会照贴重写 -->
+
 status: proposed
 ...
 \`\`\`
@@ -466,12 +503,12 @@ status: proposed
 
 **反模式**
 
-| 反模式 | 正确做法 |
-|---|---|
-| 索引同步 prompt inline 被索引文件原文 | 用 `git checkout origin/main -- <file>` 让 agent 拿 HEAD 真相 |
-| 假设 "agent 会自己 git pull · inline 只是参考" | 远程 API agent 没有 git · 字面执行 prompt · inline = 真相 |
-| prompt 起草后立即下发 · 不考虑期间其他 PR merge 的可能 | 索引类任务下发前必须 `git fetch origin && git status` 检查 · 若期间有相关文件改动 · 必须更新 prompt 用 checkout 模式 |
-| 用 inline 是为了让 agent "看清结构"· 但要求 agent "只改 X 行" | "只改 X 行" 类任务不需要 inline 全文 · 用 sed / `git apply` 补丁 · 或用步骤式指令配 grep 锚点 |
+| 反模式                                                        | 正确做法                                                                                                             |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 索引同步 prompt inline 被索引文件原文                         | 用 `git checkout origin/main -- <file>` 让 agent 拿 HEAD 真相                                                        |
+| 假设 "agent 会自己 git pull · inline 只是参考"                | 远程 API agent 没有 git · 字面执行 prompt · inline = 真相                                                            |
+| prompt 起草后立即下发 · 不考虑期间其他 PR merge 的可能        | 索引类任务下发前必须 `git fetch origin && git status` 检查 · 若期间有相关文件改动 · 必须更新 prompt 用 checkout 模式 |
+| 用 inline 是为了让 agent "看清结构"· 但要求 agent "只改 X 行" | "只改 X 行" 类任务不需要 inline 全文 · 用 sed / `git apply` 补丁 · 或用步骤式指令配 grep 锚点                        |
 
 **关联**
 
@@ -515,22 +552,22 @@ reviewer 必须：
 
 2026-04-26 session 20 · 三个 critical / secondary bug 都是 reviewer 漏 dev mode 跑：
 
-| PR | bug | 漏 dev mode 后果 |
-|---|---|---|
-| #159 | MVP-09 Phase B 主体（PR #118）merge 时 19 个 vs-commit-* / vs-toast-* / vs-dialog-* CSS class **全无定义**（裸 HTML）· reviewer 只看 Rust + IPC contract · 漏 | dev mode 一启动 dialog 完全无样式 · 用户感知严重 UI degradation · 直到 PR #159 才修 |
-| #161 | MVP-10 Phase B SDK 主体（PR #155）merge 时 modal mount-time webview 虚假 click · 用户**完全看不见** modal · DB 已被写虚假决策 · spec §B.1 隐私关键 path 失效 · reviewer 没启 dev mode | v0.1 GA blocker · 5 轮 dev restart 调试才定位 webview race · 修 200ms guard |
-| #163 | MVP-10 Phase B SDK 主体（PR #155）+ Phase A（PR #114）共同遗留 · status bar `theme_set` IPC 不 emit `settings_changed` · UI 不刷 · violate spec §F.02 实时生效 | reviewer 没切 theme 验证 · 因为 UI/UX path 是双 IPC 路径分离 · 单看 Rust 测试 + ts-rs 一致看不出 |
+| PR   | bug                                                                                                                                                                                   | 漏 dev mode 后果                                                                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| #159 | MVP-09 Phase B 主体（PR #118）merge 时 19 个 vs-commit-_ / vs-toast-_ / vs-dialog-\* CSS class **全无定义**（裸 HTML）· reviewer 只看 Rust + IPC contract · 漏                        | dev mode 一启动 dialog 完全无样式 · 用户感知严重 UI degradation · 直到 PR #159 才修              |
+| #161 | MVP-10 Phase B SDK 主体（PR #155）merge 时 modal mount-time webview 虚假 click · 用户**完全看不见** modal · DB 已被写虚假决策 · spec §B.1 隐私关键 path 失效 · reviewer 没启 dev mode | v0.1 GA blocker · 5 轮 dev restart 调试才定位 webview race · 修 200ms guard                      |
+| #163 | MVP-10 Phase B SDK 主体（PR #155）+ Phase A（PR #114）共同遗留 · status bar `theme_set` IPC 不 emit `settings_changed` · UI 不刷 · violate spec §F.02 实时生效                        | reviewer 没切 theme 验证 · 因为 UI/UX path 是双 IPC 路径分离 · 单看 Rust 测试 + ts-rs 一致看不出 |
 
 **根因**：reviewer 把 `cargo test green + pnpm typecheck 0 errors + ts-rs contract 一致` 等同于 "PR 可 merge"。但 GUI/IPC 类 PR 的 critical path 必须 dev mode 跑过才能 catch webview race / event delegation / dual IPC path / CSS missing 类问题。这是**全局 rule 15 在 dispatch + review 阶段的具体落地**。
 
 **反模式**
 
-| 反模式 | 正确做法 |
-|---|---|
-| reviewer 只看 PR diff + CI 全绿就 approve | 必须本地 checkout + dev mode + 跑 critical UX path |
-| 假设 "前端改动小 · 不用看 UI" | 任何 frontend 改动都可能 hide dialog / 影响 reactive update · 必须 dev mode 看 |
-| 假设 "Rust 端 IPC 测试通过 = 整条 IPC path OK" | Rust 端通 ≠ 前端 emit / listen / state update 对 · 必须 end-to-end 看 |
-| reviewer 时间紧 · 跳过 dev mode | spec §runtime evidence 段 reviewer 必须 visual confirm · 不允许跳过 |
+| 反模式                                         | 正确做法                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------ |
+| reviewer 只看 PR diff + CI 全绿就 approve      | 必须本地 checkout + dev mode + 跑 critical UX path                             |
+| 假设 "前端改动小 · 不用看 UI"                  | 任何 frontend 改动都可能 hide dialog / 影响 reactive update · 必须 dev mode 看 |
+| 假设 "Rust 端 IPC 测试通过 = 整条 IPC path OK" | Rust 端通 ≠ 前端 emit / listen / state update 对 · 必须 end-to-end 看          |
+| reviewer 时间紧 · 跳过 dev mode                | spec §runtime evidence 段 reviewer 必须 visual confirm · 不允许跳过            |
 
 **关联**
 
@@ -583,12 +620,12 @@ rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 
 
 ### 反模式
 
-| 反模式 | 正确做法 |
-|---|---|
-| 派工开始建 worktree · 直到 push 都不 fetch main | push 前必跑 `git fetch origin && git rebase origin/main` |
-| PR body raw output 用 dispatch 开始时的 base 跑 · 不更新到 final base | 必须 rebase 之后再跑 gate · 输出贴 rebase 之后的 raw output |
-| 假设"文件域不交叠 = 无冲突 = 不需要 rebase" | 文件域不交叠保证 git auto-merge 成功 · 但**不保证**语义正确（如 binding 接口改 → 测试 expected 失配） |
-| 主 agent dispatch 时不在 prompt §2 列 fetch+rebase 步骤 | dispatch prompt §交付要求段必须显式含 fetch+rebase+重跑 gate 段 |
+| 反模式                                                                | 正确做法                                                                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 派工开始建 worktree · 直到 push 都不 fetch main                       | push 前必跑 `git fetch origin && git rebase origin/main`                                              |
+| PR body raw output 用 dispatch 开始时的 base 跑 · 不更新到 final base | 必须 rebase 之后再跑 gate · 输出贴 rebase 之后的 raw output                                           |
+| 假设"文件域不交叠 = 无冲突 = 不需要 rebase"                           | 文件域不交叠保证 git auto-merge 成功 · 但**不保证**语义正确（如 binding 接口改 → 测试 expected 失配） |
+| 主 agent dispatch 时不在 prompt §2 列 fetch+rebase 步骤               | dispatch prompt §交付要求段必须显式含 fetch+rebase+重跑 gate 段                                       |
 
 ### 适用范围
 
@@ -629,7 +666,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 
 ### 3.1 · 标准模板
 
-```markdown
+````markdown
 # <TASK-ID> · <Agent Name> Dispatch Prompt
 
 > **执行者**：<Agent · 例 Codex / OpenCode>
@@ -643,6 +680,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 ## 🔴 本 task 的硬约束
 
 默认硬约束（见 `.claude/rules/dispatch-prompt-template.md` §2 · 当前 15 条）：
+
 - [ ] 2.1 · 禁止自行 accept decision-grade
 - [ ] 2.2 · Acceptance 全覆盖
 - [ ] 2.3 · Runtime 证据必交
@@ -660,9 +698,11 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 - [ ] 2.15 · ≥ 3-agent 并发派工 · push 前必 fetch + rebase main + 重跑 gate（防 stale base race）
 
 本 task 额外硬约束：
+
 - [ ] <task-specific · 例 "benchmark 必跑 3 方案 × 3 次"· 或 "rusqlite schema 必须通过 PRAGMA user_version" 等>
 
 本 task 豁免条款（需明确理由）：
+
 - [ ] <如有 · 例 "本 task 是 chore 性质 · 豁免 2.3 runtime 证据 · 因为纯文档"`>
 
 ---
@@ -736,7 +776,7 @@ GO 🚀
 1. 复制上面 ``` 内容 · 整段发给 <Agent>
 2. Agent 应建独立 worktree · commit · push · 开 PR
 3. PR 开出后我按硬约束 8 条 + spec Acceptance 做 review
-```
+````
 
 ---
 
@@ -757,12 +797,12 @@ GO 🚀
 
 ### 4.3 · 参考选择指南
 
-| 任务类型 | 推荐模板 | 原因 |
-|---|---|---|
-| MVP 实施（有多 phase）| `MVP-04-storage-prep-opencode-prompt.md` | Phase A 拆分 + 测试覆盖率要求 + ts-rs bindings 要求齐全 |
-| MVP / Spec review（Kimi 远程 API）| `MVP-07-kimi-prompt.md` | 双路径兼容 + 附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
-| Spike（decision-grade · 4 样齐全）| `SPIKE-06-pr2-codex-prompt.md` | 最严格 artifact 归档 + raw 溯源 + R1 保留独立 section |
-| Chore / 文档 · 本地 CLI agent | `MVP-02-opencode-prompt.md` | 简洁 + 8 硬约束 + 禁止清单 |
+| 任务类型                           | 推荐模板                                 | 原因                                                        |
+| ---------------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
+| MVP 实施（有多 phase）             | `MVP-04-storage-prep-opencode-prompt.md` | Phase A 拆分 + 测试覆盖率要求 + ts-rs bindings 要求齐全     |
+| MVP / Spec review（Kimi 远程 API） | `MVP-07-kimi-prompt.md`                  | 双路径兼容 + 附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
+| Spike（decision-grade · 4 样齐全） | `SPIKE-06-pr2-codex-prompt.md`           | 最严格 artifact 归档 + raw 溯源 + R1 保留独立 section       |
+| Chore / 文档 · 本地 CLI agent      | `MVP-02-opencode-prompt.md`              | 简洁 + 8 硬约束 + 禁止清单                                  |
 
 ---
 
@@ -774,6 +814,7 @@ GO 🚀
 - 每发现外部 agent 绕过**硬约束**条款 → 增加 CI 硬阻塞（如 gitleaks / required-status-check）替代 trust-based 约束
 
 目前 15 条硬约束来自实际事件：
+
 - 2.1-2.7（session 9 末初版）· 反映 OpenCode SPIKE-04.5/MVP-02 的 2 次违规教训
 - 2.8（session 10 末增补）· 反映 MVP-02 运行时 OpenCode 未 kill Vite/pnpm 子进程 · 残留 4 小时占 port 1420 的教训
 - 2.9（session 12 增补）· Agent 能力矩阵 · MVP-07 Kimi 远程 API 适配需 spec inline
@@ -790,7 +831,7 @@ GO 🚀
 
 ## 6 · 自审四问（本规则对自己）
 
-- **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/*"）· 所以未来 agent 修本规则需明确授权 ✅
+- **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/\*"）· 所以未来 agent 修本规则需明确授权 ✅
 - **反向场景**：规则不遵守 → 第三次违规 → 触发 CI 硬阻塞升级路径（见 §5）✅
 - **边界适用性**：适用所有 dispatch（Spike / MVP / chore）· chore 可豁免 2.3（明示在 prompt）· 2.8 适用所有启动后台进程的 task · 纯文档 task 不触发 ✅
 - **YAGNI**：8 条都来自真实事件 / 真实风险 · 无投机条款 ✅

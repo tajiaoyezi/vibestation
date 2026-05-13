@@ -1,9 +1,9 @@
-# Session 30 · 2026-05-13
+# Session 30 · 2026-05-13 + 2026-05-14
 
 **session**: 30
-**date**: 2026-05-13（单 day · 11 PR merged · 4-agent dispatch pool 首次同时跑 + MVP-17 Phase A/B/C 完整收口）
-**pr_range**: #281-#303（完整 session · 含早段 spec micro-fixup + 4-agent pool 同时跑 + housekeeping）
-**theme**: 4-agent dispatch pool（主 agent + Codex + OpenCode + Droid + Cursor）**首次同时跑** + MVP-17 Phase A/B/C **完整代码收口** + OpenCode N=4 试金石通过留 pool + §2.15 stale base race 规则化（来自 Cursor PR #297 实证）+ Droid 首次走 Vibestation 全流程 PASS · 单 session 11 PR merged · 比 session 28 峰值（9 PR）再跃升 22%
+**date**: 2026-05-13 + 2026-05-14（跨 2 day · 15 PR merged · 4-agent dispatch pool 首次同时跑 + MVP-17 Phase A/B/C/E.4 完整收口 + session 末 5 项收尾全 done）
+**pr_range**: #281-#307（完整 session · 2026-05-13 阶段含早段 spec micro-fixup + 4-agent pool 同时跑 + housekeeping #281-#303 = 11 PR · 2026-05-14 早上 5 项收尾 #304-#307 = 4 PR）
+**theme**: 4-agent dispatch pool（主 agent + Codex + OpenCode + Droid + Cursor）**首次同时跑** + MVP-17 Phase A/B/C/E.4 **完整代码收口** + OpenCode N=4 试金石通过留 pool + §2.15 stale base race 规则化（来自 Cursor PR #297 实证）+ Droid 首次走 Vibestation 全流程 PASS + 跨 day 5 项收尾全 done · 跨 2 day 15 PR merged · 比 session 28 峰值（9 PR）跃升 67%
 
 ---
 
@@ -98,12 +98,37 @@ session 29 末 Arbiter 推翻"N=3 永久转出"条款 → N=4 触发条件 + tas
 - **#295** Droid doc · **#296** binding rebase · **#297** Cursor vitest · **#298** §2.15 · **#299** session 28 滚出 · **#300** AGENTS pool
 - **#301** Phase B lifecycle · **#302** Phase C wiring · **#303** PROGRESS session 30 收口
 
-**注**：**#304** dispatch 模板 TOC 合入于 #303 之后，属 **session 31 前夕** hygiene；本 session **pr_range** 上界按任务书取 **#303**。
+---
+
+## session 30 末延续段（2026-05-14 · 4 PR 收尾）
+
+session 30 跨午夜后（2026-05-14 早上）继续完成 "5 项 session 末收尾"（A 归档 / B 漂移 housekeeping / C MVP-17 E.4 / D 漂移扫描报告 / E dispatch template TOC）· 共 4 PR merged：
+
+| PR       | 内容                                                                                                                                                                    | 类型                 | 执行者                                                      |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------- |
+| **#304** | dispatch-prompt-template.md §0 加 TOC + 15 条硬约束速查表                                                                                                               | E · housekeeping     | 主 agent                                                    |
+| **#305** | session 30 归档（2026-05-13 段 #281-#303 滚出到 session-30.md · 109 行）                                                                                                | A · 归档             | Droid（Cursor second-mover 确认）                           |
+| **#306** | spec status drift cleanup（4 项：MVP-01/11/21 frontmatter ready→done + MVP-17 README draft→ready）                                                                      | B · housekeeping     | 主 agent                                                    |
+| **#307** | MVP-17 Phase E.4 settings 面板 External Terminal subsection（backend schema 加 2 字段 + ts-rs binding 自动重生 + ExternalTerminalGroup.tsx 110 行 + 5 vitest + 3 截图） | C · MVP-17 follow-up | Cursor + 主 agent §2.10 prettier fix-up（commit `d3792a7`） |
+
+**核心成果**：
+
+- **MVP-17 真正完整代码收官**：Phase A/B/C 之外 · E.4 settings UI subsection 也实施完成 · 仅 Phase D（H.1-H.5 性能 + 5 PNG + 1 MP4 录屏）推 Arbiter playbook
+- **D 漂移 9 项扫描报告**：留 `spike-tmp/local-notes/D-spec-status-drift-audit-2026-05-14.md`（gitignored · Arbiter 决策引用）· 含 3 类（forward drift 6 / reverse drift 1 / double-skip MVP-14 1 / 加 MVP-21 实际 done 漂移 1）· 3 选项（A 立即全翻 / B 等 Phase D / C 折中）· 本 session 走选项 C 折中 · 立即翻 4 项明确无歧义的 · 剩 5 项 v0.3 sprint MVP（12/13/14/15/16/17）等 PR #271 Phase D capture playbook 跑完一起翻
+- **session 30 健康度持续**：cargo clippy `-D warnings` exit 0 / pnpm lint+typecheck exit 0 / vitest 全过 / runtime-evidence validator 干净 / 0 author 污染
+- **3 条新 memory feedback 沉淀**：4-agent pool 能力分工 / §2.15 stale base race / worktreeConfig 隔离根治 author 污染（私有 memory 不入 repo）
+
+**Cursor §2.10 微漏首次记录**：PR #307 Cursor 3 commits push 后 `web/tests/panels/Settings/ExternalTerminalGroup.test.tsx` prettier --check fail（Cursor 没跑 prettier --write）· 主 agent fix-up commit `d3792a7`（11+/4- · 11 行格式化 · 0 语义改动 · 类 PR #297 ce08c7f 单行 fix 先例 · author 显式标主 agent · Cursor §2.10 微漏首次记录 · 与 OpenCode N 系列性质不同 · 不触发任务受限策略）。
+
+**附录 merge 序号速查更新**（含 2026-05-14 段）：
+
+- **#304** dispatch TOC（主 agent）· **#305** session 30 归档（Cursor by Droid prompt · second-mover 确认）
+- **#306** spec drift housekeeping（主 agent）· **#307** MVP-17 E.4 settings UI（Cursor + 主 agent prettier fix-up）
 
 ---
 
 ## 归档元信息
 
 - **本文件归档时间**：session 31 启动前 · 2026-05-13（M-2 滚动窗口规则 · session 31 时 session 30 滚出 · session 29 保留为当前 2 session 窗口的另一半）
-- **归档执行**：Droid · branch `docs/session-30-archive` · PR #305
-- **PROGRESS.md 同步操作**：删除 PROGRESS session 30 完整段（~62 行 · L33-L94）· 替换为 5 行归档引用
+- **归档执行**：Droid · branch `docs/session-30-archive` · PR #305 · 跨 day 4 PR 延续段在 PR #308 补归档（本文件 · 2026-05-14 主 agent）
+- **PROGRESS.md 同步操作**：删除 PROGRESS session 30 完整段（~62 行 · L33-L94）· 替换为 5 行归档引用（PR #305）· 2026-05-14 末 4 PR 数据同步到 PROGRESS 当前位置段（PR #308）

@@ -5,7 +5,7 @@ import {
 } from "../../../src/panels/Terminal/PaneContextMenu";
 import { render, screen, fireEvent } from "@solidjs/testing-library";
 
-describe.skip("PaneContextMenu · createPaneContextMenu", () => {
+describe("PaneContextMenu · createPaneContextMenu", () => {
   it("初始状态不可见", () => {
     const menu = createPaneContextMenu();
     expect(menu.state.visible).toBe(false);
@@ -31,12 +31,12 @@ describe.skip("PaneContextMenu · createPaneContextMenu", () => {
   });
 });
 
-describe.skip("PaneContextMenuOverlay · 渲染", () => {
+describe("PaneContextMenuOverlay · 渲染", () => {
   it("不可见时不渲染菜单", () => {
     const menu = createPaneContextMenu();
-    render(() =>
-      h(PaneContextMenuOverlay, { state: menu.state, onHide: () => {} }),
-    );
+    render(() => (
+      <PaneContextMenuOverlay state={menu.state} onHide={() => {}} />
+    ));
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
@@ -48,9 +48,9 @@ describe.skip("PaneContextMenuOverlay · 渲染", () => {
       { id: "detach", label: "Detach Pane", shortcut: "⌘⇧D", onClick: () => {} },
     ]);
 
-    render(() =>
-      h(PaneContextMenuOverlay, { state: menu.state, onHide: () => {} }),
-    );
+    render(() => (
+      <PaneContextMenuOverlay state={menu.state} onHide={() => {}} />
+    ));
 
     expect(screen.getByText("Pop to External")).toBeInTheDocument();
     expect(screen.getByText("⌘⇧O")).toBeInTheDocument();
@@ -67,9 +67,9 @@ describe.skip("PaneContextMenuOverlay · 渲染", () => {
       { id: "pop", label: "Pop to External", onClick },
     ]);
 
-    render(() =>
-      h(PaneContextMenuOverlay, { state: menu.state, onHide }),
-    );
+    render(() => (
+      <PaneContextMenuOverlay state={menu.state} onHide={onHide} />
+    ));
 
     const item = screen.getByText("Pop to External");
     fireEvent.click(item);
@@ -86,9 +86,9 @@ describe.skip("PaneContextMenuOverlay · 渲染", () => {
       { id: "pop", label: "Pop to External", disabled: true, onClick },
     ]);
 
-    render(() =>
-      h(PaneContextMenuOverlay, { state: menu.state, onHide }),
-    );
+    render(() => (
+      <PaneContextMenuOverlay state={menu.state} onHide={onHide} />
+    ));
 
     const item = screen.getByText("Pop to External");
     fireEvent.click(item);

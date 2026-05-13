@@ -19,7 +19,7 @@ const mockedListTerminals = vi.mocked(listTerminals);
 const mockedPreviewEnv = vi.mocked(previewEnv);
 const mockedLaunchTerminal = vi.mocked(launchTerminal);
 
-describe.skip("PopToExternalDialog", () => {
+describe("PopToExternalDialog", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
@@ -93,7 +93,6 @@ describe.skip("PopToExternalDialog", () => {
       expect(mockedLaunchTerminal).toHaveBeenCalledWith({
         terminalId: "ghostty",
         paneId: "p1",
-        overrideEnv: null,
       });
     });
     expect(onClose).toHaveBeenCalled();

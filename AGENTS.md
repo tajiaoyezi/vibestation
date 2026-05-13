@@ -1,7 +1,7 @@
 <!--
   AGENTS.md · 通用 Agent 入口（兼容 OpenAI / Codex CLI agents.md 约定）
   本文件是工具无关的 agent 总入口。所有 agent 工具（Codex CLI / Claude Code / Cursor /
-  Aider / OpenCode / Windsurf / Gemini / 自建 …）都从这里开始。
+  Aider / OpenCode / Windsurf / Droid / Gemini / Kimi / 自建 …）都从这里开始。
 
   本文件不重复 CLAUDE.md 内容，只做"路由 + 关键约束摘录"。
   CLAUDE.md 是当前项目的事实权威单文件入口（详细规则 / 决策表 / 禁区 / 自审四问）。
@@ -12,13 +12,13 @@
 > 给 **Claude CLI / Codex CLI / 其他 agent CLI** 用户的多 Tab 终端 + JetBrains 级 Git 工作台
 > （Tauri 2 桌面应用 · Apache 2.0 · 不签 CLA）。
 
-**本项目不绑定具体 agent 工具。** 任何工具（Claude Code / Codex CLI / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …）皆可贡献。
+**本项目不绑定具体 agent 工具。** 任何工具（Claude Code / Codex CLI / Cursor / Aider / OpenCode / Windsurf / Droid / Gemini / Kimi / 自建 …）皆可贡献。
 
 ---
 
 ## 📍 当前阶段（一句话）
 
-**v0.1/v0.2/v0.3 sprint 全代码收官 · v0.3 future MVP-17 active**（spec ready @ PR #283 + Phase B skeleton @ PR #285 + 3-track dispatch · 当前事实以 `docs/PROGRESS.md` 为准）。
+**v0.1/v0.2/v0.3 sprint 全代码收官 · v0.3 future MVP-17 收尾中**（session 30 · 4-agent dispatch pool 同时跑 = 主 agent + Codex CLI + OpenCode + Droid + Cursor · Phase A done @ PR #291 · Phase B skeleton @ PR #285 + lifecycle in-progress · Phase C 源码 done @ PR #292 + 测试重写 @ PR #297 · 当前事实以 `docs/PROGRESS.md` 为准）。
 
 ---
 
@@ -36,17 +36,17 @@
 
 ## 🔗 关键文档地图
 
-| 类别 | 路径 | 用途 |
-|------|------|------|
-| **权威单文件入口** | `CLAUDE.md` | 规则 / 决策 / 禁区 / 命令速查 · 所有 agent 工具的事实标准 |
-| **当前位置** | `docs/PROGRESS.md` | 阶段 / 进度 / 下一步 |
-| **人类阶段感知手册** | `docs/SESSION-STARTUP.md` | 当前阶段 Playbook + FAQ |
-| **任务索引** | `docs/tasks/README.md` + `docs/tasks/<TYPE-NN>-*.md` | 30 个 task spec |
-| **架构决策** | `docs/adr/README.md` + `docs/adr/ADR-NNN-*.md` | 14 ADR accepted |
-| **战略计划（14 章 + 附录）** | `docs/implementation-plan.md` | 完整产品定位 / 架构 / 风险登记 / Milestone |
-| **视觉原型** | `design/directions/1-calm-studio.html` | Calm Studio 定稿 · 1329 行可直接 `open` 体验 |
-| **贡献指南** | `CONTRIBUTING.md` | PR 流程 + Commit 规范 + 用户拍板 gate |
-| **分支保护** | `docs/BRANCH-PROTECTION.md` | admin checklist（当前未应用） |
+| 类别                         | 路径                                                 | 用途                                                      |
+| ---------------------------- | ---------------------------------------------------- | --------------------------------------------------------- |
+| **权威单文件入口**           | `CLAUDE.md`                                          | 规则 / 决策 / 禁区 / 命令速查 · 所有 agent 工具的事实标准 |
+| **当前位置**                 | `docs/PROGRESS.md`                                   | 阶段 / 进度 / 下一步                                      |
+| **人类阶段感知手册**         | `docs/SESSION-STARTUP.md`                            | 当前阶段 Playbook + FAQ                                   |
+| **任务索引**                 | `docs/tasks/README.md` + `docs/tasks/<TYPE-NN>-*.md` | 30 个 task spec                                           |
+| **架构决策**                 | `docs/adr/README.md` + `docs/adr/ADR-NNN-*.md`       | 14 ADR accepted                                           |
+| **战略计划（14 章 + 附录）** | `docs/implementation-plan.md`                        | 完整产品定位 / 架构 / 风险登记 / Milestone                |
+| **视觉原型**                 | `design/directions/1-calm-studio.html`               | Calm Studio 定稿 · 1329 行可直接 `open` 体验              |
+| **贡献指南**                 | `CONTRIBUTING.md`                                    | PR 流程 + Commit 规范 + 用户拍板 gate                     |
+| **分支保护**                 | `docs/BRANCH-PROTECTION.md`                          | admin checklist（当前未应用）                             |
 
 ---
 
@@ -74,13 +74,24 @@
 
 ## 📝 Agent 身份示例（commit trailer）
 
-| 工具 | trailer |
-|------|---------|
-| Claude Code | `Co-authored-by: Claude Code <noreply@anthropic.com>` |
-| Codex CLI | `Co-authored-by: Codex CLI <noreply@openai.com>` |
-| Cursor | `Co-authored-by: Cursor <support@cursor.com>` |
-| 其他 | `Co-authored-by: <Tool Name> <email>` |
-| 人类 | `Co-authored-by: <Name> <email>` |
+| 工具                       | trailer                                               |
+| -------------------------- | ----------------------------------------------------- |
+| Claude Code                | `Co-authored-by: Claude Code <noreply@anthropic.com>` |
+| Codex CLI                  | `Co-authored-by: Codex CLI <noreply@openai.com>`      |
+| OpenCode                   | `Co-authored-by: OpenCode <noreply@opencode.ai>`      |
+| Cursor                     | `Co-authored-by: Cursor <noreply@cursor.com>`         |
+| Droid (Factory.ai)         | `Co-authored-by: Droid <noreply@factory.ai>`          |
+| Kimi (Moonshot · 远程 API) | `Co-authored-by: Kimi <noreply@moonshot.ai>`          |
+| 其他                       | `Co-authored-by: <Tool Name> <email>`                 |
+| 人类                       | `Co-authored-by: <Name> <email>`                      |
+
+**4-agent dispatch pool 能力分工**（session 30 实证 · 见 `.claude/rules/dispatch-prompt-template.md` §2.9 Agent 能力矩阵）：
+
+- **Codex CLI** · Rust 后端 / Tauri lifecycle / 复杂集成测试 · 历史最稳
+- **OpenCode** · 机械重构（binding rebase · 删 mock · grep 可验证）· 文档 sync · style 调整 · ❌ 不分配测试重写 / 复杂逻辑（N=3 §2.10 违规史 · task 类型受限 · N=4 触发永久转出）
+- **Cursor** · IDE 插件型 · React/Solid 测试 + 复杂组件逻辑 · jest-dom + vitest 接入
+- **Droid** · 纯文档（PROGRESS sync · spec frontmatter 翻转）· 新加入 · session 30 首次走全流程
+- **Kimi** · 远程 API · 需 prompt 内附 spec 原文（无 worktree access）· spec review / draft 任务
 
 ---
 

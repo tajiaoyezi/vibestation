@@ -25,16 +25,17 @@
 
 ## 📍 当前位置
 
-**阶段**：session 30 末 · **MVP-17 Phase A/B/C 完整收口 + 4-agent dispatch pool 首次同时跑 11 PR merged**（PR #295 Droid doc sync · PR #296 OpenCode N=4 试金石通过 binding rebase · PR #297 Cursor + 主 agent fix-up vitest unskip · PR #298 §2.15 stale base 规则 · PR #299 session 28 滚出 · PR #300 AGENTS.md 4-agent pool · PR #301 Codex Phase B Tauri lifecycle · PR #302 Phase C wiring 核心）· **v0.3 sprint MVP 状态**：MVP-12/14/15/16 完整代码收官 + MVP-17 Phase A/B/C done · **v0.3 sprint 5/5 MVP 完整代码收官 99%**（仅 MVP-17 E.4 settings UI follow-up + 全 5 MVP Phase D Arbiter playbook 推迟）· **下一步候选**：(1) MVP-17 E.4 settings 面板 External Terminal subsection follow-up（30-60min · 不阻塞核心 flow）· (2) MVP-17 spec frontmatter status → done flip（含 E.4 partial + Phase D deferred 说明）· (3) Phase D capture playbook（PR #271 · Arbiter 90-120min · 5 MVP 一气呵成 28 PNG + 1 MP4 + metrics）· **🅿️ deferred items（Arbiter 自定时机）**：(1) v0.3 sprint MVP-12/14/15/16/17 Phase D GUI / DevTools / 视觉回归 / WCAG / 跨平台（PR #271 playbook） · (2) MVP-04 §I 22 PNG + 2 MOV · (3) MVP-05/09/13/21 Phase D · (4) MVP-10 §F.04 outbound network panel · **解 deferred 触发**：Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段
-**日期**：2026-05-13（session 30 · 1 day · 11 PR merged · 4-agent pool 首次同时跑 = 主 agent + Codex CLI + OpenCode（N=4 试金石 PASS · 留 pool）+ Droid（首次走全流程 PASS）+ Cursor · 4-track 文件域 0 交叠 + stale base fix-up + housekeeping）
+**阶段**：session 30 彻底收尾 · **2 day 跨（2026-05-13 + 2026-05-14）· 15 PR merged · MVP-17 Phase A/B/C/E.4 完整代码收口 + 4-agent dispatch pool 首次同时跑 + 5 项 session 末收尾全 done**· **v0.3 sprint MVP 状态**：MVP-12/13/14/15/16/17 6/6 完整代码收官 100%（MVP-21 v0.2 sprint 同样 done · PR #228/#231/#233/#236 · D 漂移 housekeeping 翻 done 见 PR #306）· **下一步候选**：(1) MVP-17 + v0.3 sprint 5 MVP spec frontmatter status → done flip（等 Phase D capture playbook 跑完一起翻）· (2) Phase D capture playbook（PR #271 · Arbiter 90-120min · 6 MVP 一气呵成 ~33 PNG + 1 MP4 + metrics）· (3) session 31 启动新 sprint · **🅿️ deferred items（Arbiter 自定时机）**：(1) v0.3 sprint MVP-12/13/14/15/16/17 Phase D（PR #271 playbook · 6 MVP × ~28 GUI step） · (2) MVP-04 §I 22 PNG + 2 MOV · (3) MVP-05/09/13/21 Phase D · (4) MVP-10 §F.04 outbound network panel · **解 deferred 触发**：Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段
+**日期**：2026-05-13 + 2026-05-14（session 30 跨 2 day · 15 PR merged · session 30 末 "5 项收尾" 4 PR（#304/#305/#306/#307）在 2026-05-14 早上完成 · 4-agent pool 首次同时跑 = 主 agent + Codex CLI + OpenCode（N=4 试金石 PASS · 留 pool）+ Droid（首次走全流程 PASS）+ Cursor · 4-track 文件域 0 交叠 + stale base fix-up + housekeeping）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 30（2026-05-13 · 已归档至 [`session-30.md`](./session-history/session-30.md)）
+### Session 30（2026-05-13 + 2026-05-14 · 跨 2 day 15 PR merged · 已归档至 [`session-30.md`](./session-history/session-30.md)）
 
-- 1 day 11 PR merged · 4-agent dispatch pool 首次同时跑 + MVP-17 Phase A/B/C 完整代码收口
-- 4-track 文件域 0 交叠（OpenCode/Codex/Droid/Cursor）· §2.5.1 worktreeConfig 隔离完美 · 0 author 污染
-- §2.15 stale base race 规则化（PR #298 · 来自 Cursor PR #297 实证）· OpenCode N=4 试金石通过留 pool
+- **2 day 跨 15 PR merged**（2026-05-13 阶段 11 PR #295-#303 + 2026-05-14 末 5 项收尾 4 PR #304-#307）· 比 session 28 峰值 9 PR 跃升 67%
+- 4-agent dispatch pool 首次同时跑（OpenCode + Codex + Droid + Cursor · 文件域 0 交叠）+ MVP-17 Phase A/B/C/E.4 完整代码收口
+- §2.5.1 worktreeConfig 隔离完美 · 0 author 污染 · §2.15 stale base race 规则化（PR #298 · 来自 Cursor PR #297 实证）· OpenCode N=4 试金石通过留 pool
+- session 末 5 项收尾全 done（A 归档 #305 · B 漂移 housekeeping #306 · C MVP-17 E.4 #307 · D drift 报告 spike-tmp · E dispatch TOC #304）
 - 详情见 [`session-30.md`](./session-history/session-30.md)
 
 ### Session 29（2026-05-13 · 主 agent 单人 day · 12 PR merged · OpenCode N=3 §2.10 violation 处置）

@@ -147,11 +147,7 @@ pub fn close_detached_window(
         });
     }
 
-    let Some(event) = reattach_closed_window(detached_panes, window_label)? else {
-        return Err(WindowManagerError::WindowCloseFailed {
-            reason: format!("window_label {window_label} not found"),
-        });
-    };
+    let event = require_reattach_closed_window(detached_panes, window_label)?;
 
     if let Some(window) = app.get_webview_window(window_label) {
         window
@@ -191,6 +187,17 @@ pub fn reattach_closed_window(
             action: PaneDetachAction::Attached,
             window_label: None,
         }))
+}
+
+pub fn require_reattach_closed_window(
+    detached_panes: &DetachedPaneMap,
+    window_label: &str,
+) -> Result<PaneDetachStateEvent, WindowManagerError> {
+    reattach_closed_window(detached_panes, window_label)?.ok_or_else(|| {
+        WindowManagerError::WindowCloseFailed {
+            reason: format!("window_label {window_label} not found"),
+        }
+    })
 }
 
 fn emit_state_event(app: &AppHandle, event: &PaneDetachStateEvent) {

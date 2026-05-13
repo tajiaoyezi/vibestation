@@ -1,0 +1,301 @@
+/* MVP-17 Phase C · Pop to External dialog · Calm Studio modal */
+
+.vs-pop-to-external-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(8, 9, 12, 0.78);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: vs-pop-to-external-fade-in 200ms ease-out;
+}
+
+@keyframes vs-pop-to-external-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vs-pop-to-external-modal {
+  background: var(--vs-bg-elevated, #1a1c20);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  box-shadow:
+    0 12px 48px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 560px;
+  width: 100%;
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--vs-text-primary, #e8eaed);
+  font-family: var(--font-ui, system-ui);
+  animation: vs-pop-to-external-slide-up 220ms ease-out;
+}
+
+@keyframes vs-pop-to-external-slide-up {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.vs-pop-to-external-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.06));
+}
+
+.vs-pop-to-external-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.vs-pop-to-external-close {
+  background: transparent;
+  border: none;
+  color: var(--vs-text-secondary, #b3b6bd);
+  font-size: 22px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+
+.vs-pop-to-external-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--vs-text-primary, #e8eaed);
+}
+
+.vs-pop-to-external-error {
+  margin: 16px 28px 0;
+  padding: 10px 12px;
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid rgba(248, 81, 73, 0.4);
+  border-radius: 6px;
+  color: #f85149;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.vs-pop-to-external-rescan {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--vs-text-primary, #e8eaed);
+  cursor: pointer;
+}
+
+.vs-pop-to-external-body {
+  padding: 20px 28px 28px;
+  overflow-y: auto;
+}
+
+.vs-pop-to-external-loading,
+.vs-pop-to-external-empty {
+  font-size: 13px;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-pop-to-external-empty-hint {
+  font-size: 12px;
+  margin-top: 8px;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-pop-to-external-section {
+  margin-bottom: 20px;
+}
+
+.vs-pop-to-external-section-title {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-pop-to-external-term-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vs-pop-to-external-term {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.vs-pop-to-external-term:hover:not(.is-missing) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vs-pop-to-external-term.is-selected {
+  border-color: var(--vs-accent, #4f9eff);
+  background: rgba(79, 158, 255, 0.08);
+}
+
+.vs-pop-to-external-term.is-missing {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vs-pop-to-external-term input[type="radio"] {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.vs-pop-to-external-term-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.vs-pop-to-external-term-missing {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vs-pop-to-external-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  cursor: pointer;
+}
+
+.vs-pop-to-external-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.vs-pop-to-external-preview {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.vs-pop-to-external-preview-empty {
+  font-size: 13px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  font-style: italic;
+}
+
+.vs-pop-to-external-env-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.vs-pop-to-external-env-item {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  font-family: var(--font-mono, ui-monospace);
+}
+
+.vs-pop-to-external-env-key {
+  flex-shrink: 0;
+  width: 120px;
+  color: var(--vs-text-secondary, #b3b6bd);
+}
+
+.vs-pop-to-external-env-value {
+  color: var(--vs-text-primary, #e8eaed);
+  word-break: break-all;
+}
+
+.vs-pop-to-external-filtered-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--vs-text-secondary, #b3b6bd);
+  font-style: italic;
+}
+
+.vs-pop-to-external-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.vs-pop-to-external-actions button {
+  min-width: 96px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.vs-pop-to-external-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vs-pop-to-external-actions .vs-btn-primary {
+  background: var(--vs-accent, #4f9eff);
+  color: #fff;
+  border: 1px solid var(--vs-accent, #4f9eff);
+}
+
+.vs-pop-to-external-actions .vs-btn-primary:hover:not(:disabled) {
+  background: var(--vs-accent-hover, #3a8cf0);
+}
+
+.vs-pop-to-external-actions .vs-btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vs-text-primary, #e8eaed);
+  border: 1px solid var(--vs-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.vs-pop-to-external-actions .vs-btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}

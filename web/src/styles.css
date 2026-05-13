@@ -1897,6 +1897,151 @@ textarea {
   white-space: nowrap;
 }
 
+/* ─── MVP-17 Phase C · Pane Detach placeholder + mini-toolbar ─────── */
+
+.vs-pane-detached-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  background: var(--surface-2, oklch(25% 0.02 260));
+  border: 1px dashed var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--r-8, 8px);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.vs-pane-detached-placeholder:hover {
+  background: var(--surface-3, oklch(28% 0.02 260));
+}
+
+.vs-pane-detached-placeholder:focus-visible {
+  outline: 2px solid var(--accent, #4f9eff);
+  outline-offset: 2px;
+}
+
+.vs-pane-detached-placeholder__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2, 8px);
+  color: var(--text-3, #8b8f98);
+}
+
+.vs-pane-detached-placeholder__icon {
+  opacity: 0.6;
+}
+
+.vs-pane-detached-placeholder__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-2, #b3b6bd);
+}
+
+.vs-pane-detached-placeholder__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-4, #6b6f78);
+}
+
+/* detached window mini-toolbar */
+.vs-detached-window-mini-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 var(--space-3, 12px);
+  background: var(--surface-1, oklch(22% 0.02 260));
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  font-size: 13px;
+  color: var(--text-2, #b3b6bd);
+  user-select: none;
+}
+
+.vs-detached-window-mini-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.vs-detached-window-mini-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.vs-detached-window-mini-toolbar button {
+  padding: 2px 10px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--r-4, 4px);
+  color: var(--text-2, #b3b6bd);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.vs-detached-window-mini-toolbar button:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── MVP-17 Phase C · Pane Context Menu overlay ───────────────────── */
+
+.vs-pane-context-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.vs-pane-context-menu {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  min-width: 180px;
+  background: var(--surface-1, oklch(22% 0.02 260));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--r-6, 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  color: var(--text-2, #b3b6bd);
+}
+
+.vs-pane-context-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3, 12px);
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 80ms ease;
+}
+
+.vs-pane-context-menu-item:hover:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-1, #e8eaed);
+}
+
+.vs-pane-context-menu-item.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vs-pane-context-menu-shortcut {
+  font-size: 11px;
+  color: var(--text-4, #6b6f78);
+  font-family: var(--font-mono, ui-monospace);
+}
+
+.vs-pane-context-menu-separator {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--border, rgba(255, 255, 255, 0.08));
+  list-style: none;
+}
+
 .vs-git-log-parent {
   font-family: var(--font-mono);
   font-size: 0.6875rem;

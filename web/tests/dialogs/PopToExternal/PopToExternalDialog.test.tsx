@@ -19,7 +19,7 @@ const mockedListTerminals = vi.mocked(listTerminals);
 const mockedPreviewEnv = vi.mocked(previewEnv);
 const mockedLaunchTerminal = vi.mocked(launchTerminal);
 
-describe.skip("PopToExternalDialog", () => {
+describe("PopToExternalDialog", () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });

@@ -39,6 +39,12 @@ import { TelemetryOptInModal } from "./dialogs/TelemetryOptIn/TelemetryOptInModa
 import { ConfigImportDialog } from "./dialogs/ConfigImport";
 import { BranchSwitcher } from "./dialogs/BranchSwitcher/BranchSwitcher";
 import { MergeDialog } from "./dialogs/MergeDialog";
+import { PopToExternalDialog } from "./dialogs/PopToExternal/PopToExternalDialog";
+import {
+  popToExternalRequest,
+  setPopToExternalRequest,
+} from "./lib/external-term";
+import { initPaneDetachStateListener } from "./lib/pane-detach";
 import {
   ConflictBanner,
   type ConflictOperation,
@@ -946,6 +952,17 @@ const LayoutShell: Component<{
           />
         )}
       </Show>
+
+      {/* MVP-17 Phase C · Pop to External Dialog 顶层渲染 · 由 popToExternalRequest signal 驱动 */}
+      <Show when={popToExternalRequest()}>
+        {(request) => (
+          <PopToExternalDialog
+            open={true}
+            paneId={request().paneId}
+            onClose={() => setPopToExternalRequest(null)}
+          />
+        )}
+      </Show>
     </div>
   );
 };
@@ -1007,6 +1024,16 @@ const App: Component = () => {
     // 走 tauri-plugin-clipboard-manager IPC 调系统 NSPasteboard。
     // xterm focus 跳过 · 让 PaneTerminal attachCustomKeyEventHandler 自处理。
     document.addEventListener("keydown", handleClipboardKey);
+
+    // MVP-17 Phase C wiring · 订阅 backend pane_detach_state_changed 事件
+    // best-effort · 失败不阻塞 UI · listener 自动重连由 Tauri 处理
+    initPaneDetachStateListener()
+      .then((unlisten) => {
+        onCleanup(() => unlisten());
+      })
+      .catch((err) => {
+        console.warn("[mvp-17] initPaneDetachStateListener failed:", err);
+      });
   });
 
   onCleanup(() => {

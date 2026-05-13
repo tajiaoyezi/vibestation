@@ -38,6 +38,12 @@ import type {
   SplitDir,
 } from "../../bindings";
 import { useSettings } from "../../stores/settings";
+import {
+  createPaneContextMenu,
+  PaneContextMenuOverlay,
+} from "./PaneContextMenu";
+import { detachPane } from "../../lib/pane-detach";
+import { setPopToExternalRequest } from "../../lib/external-term";
 
 type XTermCursorStyle = "block" | "underline" | "bar";
 
@@ -153,6 +159,8 @@ const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const { settings } = useSettings();
   const [spawnError, setSpawnError] = createSignal<string | null>(null);
+  // MVP-17 Phase C wiring · 右键菜单 overlay state · 替代 backend native menu_show_terminal
+  const paneMenu = createPaneContextMenu();
   let hostRef: HTMLDivElement | undefined;
   let term: XTerm | undefined;
   let fitAddon: FitAddon | undefined;
@@ -555,6 +563,51 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       role="region"
       aria-label={`Terminal pane · ${props.shell}`}
       onClick={() => props.onClick?.(props.paneId)}
+      onContextMenu={(e) => {
+        // MVP-17 Phase C wiring · 右键菜单：Detach / Pop to External / Close
+        // 不抑制系统 xterm 选区 · xterm host 内的右键由 xterm 自处理（target 检测）
+        const target = e.target as Element | null;
+        if (
+          target?.closest?.(
+            ".xterm-rows, .xterm-screen, .xterm-helper-textarea",
+          )
+        ) {
+          return; // xterm 内容区 · 让 xterm 自处理（如复制选区）
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const paneId = props.paneId;
+        paneMenu.show(e.clientX, e.clientY, [
+          {
+            id: "pop-external",
+            label: "Pop to External…",
+            shortcut: "⌘⇧O",
+            onClick: () => setPopToExternalRequest({ paneId }),
+          },
+          {
+            id: "detach",
+            label: "Detach Pane",
+            shortcut: "⌘⇧D",
+            onClick: () => {
+              void detachPane({ paneId }).catch((err) => {
+                console.warn("[mvp-17] detachPane failed:", err);
+              });
+            },
+          },
+          {
+            id: "sep-1",
+            label: "",
+            separator: true,
+            onClick: () => {},
+          },
+          {
+            id: "close",
+            label: "Close",
+            shortcut: "⌘⌃W",
+            onClick: () => props.onClose?.(paneId),
+          },
+        ]);
+      }}
     >
       <div
         class="vs-pane-maximized-chip"
@@ -658,6 +711,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       {spawnError() ? (
         <div class="vs-pane-terminal-error">PTY 启动失败: {spawnError()}</div>
       ) : null}
+      {/* MVP-17 Phase C wiring · 右键菜单 overlay · 在 div 内不影响 stacking */}
+      <PaneContextMenuOverlay state={paneMenu.state} onHide={paneMenu.hide} />
     </div>
   );
 };

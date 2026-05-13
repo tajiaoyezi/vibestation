@@ -30,68 +30,12 @@
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
 
-### Session 30（2026-05-13 · 1 day 11 PR merged · 4-agent dispatch pool 首次同时跑 + MVP-17 Phase A/B/C 完整收口）
+### Session 30（2026-05-13 · 已归档至 [`session-30.md`](./session-history/session-30.md)）
 
-**最大成果**：4-agent dispatch pool（OpenCode + Codex + Droid + Cursor）**首次同时跑** + MVP-17 Phase A/B/C **完整代码收口** + 4 housekeeping PR + OpenCode N=4 试金石通过 + Cursor stale base 主 agent fix-up + dispatch §2.15 stale base 防护规则化 · 单 session 11 PR merged · 比 session 28 峰值（9 PR）再跃升 22%。
-
-#### 11 PR merged 明细
-
-**Track 1 · Codex CLI · PR #301** · MVP-17 Phase B Tauri lifecycle（5 commit · base 主动 rebase 到 main `b82d395` · 自处理 setup.ts 冲突合并 jest-dom + jsdom polyfill + Tauri harness 80 行 · `crates/app/src/pane_detach/state.rs` +207 DetachedPaneMap + 6 单测 · `window_manager.rs` +323/-100 lifecycle + Destroyed listener · `lib.rs` 注册 manage + 3 IPC handler · `pane_detach_integration.rs` 6 integration test passed · cargo test + clippy + lint + typecheck + vitest 8 段 raw output 全 exit 0 · dev-mode-blocker.raw.log 透明声明 Phase C wiring 待接入）
-
-**Track 2 · OpenCode · PR #296** · MVP-17 binding \_mock rebase（删 `web/src/bindings/_mock/` 12 files + 3 source file import 重接 + 适配真实 binding 缺 `overrideEnv` 字段 · 14+/-160 · `grep _mock` 0 命中 + 3 gate exit 0 + 数据完全真实 · **OpenCode N=4 试金石通过 · 留 dispatch pool · task 类型受限继续生效**· 唯一 caveat: vitest exit code 描述错 1 实际 0 · understating 不构成 §2.10 谎报）
-
-**Track 3 · Droid · PR #295** · MVP-17 doc sync（**Droid 首次走 Vibestation 全流程 PASS** · `docs/tasks/MVP-17-*.md` Phase 进度表 + `docs/PROGRESS.md` §当前位置 + 新增 session 29/30 段 + prettier 顺便清理 main 既有 markdown 不合规债 · §2.12 worktreeConfig 隔离成功 · 主 repo .git/config 未污染）
-
-**Track 4 · Cursor · PR #297 + 主 agent fix-up ce08c7f** · MVP-17 Phase C vitest 测试重写（OpenCode N=3 烂摊子修复 · jest-dom 接入 + vitest setup file + 6 test files unskip + h() → SolidJS JSX 重写 9 处 · 261 passed | 0 skipped · 主 agent fix-up `ce08c7f` 删 1 行 `overrideEnv: null` expected · 适配 OpenCode #296 merge stale base · 1 行 fix · ~5min · **session 30 实证 §2.15 stale base race 规则化必要**）
-
-**主 agent · 4 housekeeping PR**：
-
-- **PR #298** · dispatch-prompt §2.15 stale base 防护规则（≥ 3-agent 并发 push 前必 fetch + rebase main + 重跑 gate · 来自 Cursor PR #297 stale base 实证 · 同步 §3.1 模板硬约束 8 → 15 条 + §5 演进段 sync · 反映 2.1-2.15 全可追溯）
-- **PR #299** · session 28 段从 PROGRESS 滚出归档到 `docs/session-history/session-28.md`（M-2 滚动窗口规则 · session 30 时 session 28 应滚出 · 81 行 frontmatter + 完整段 + 归档元信息 · PROGRESS 552 → 500 行）
-- **PR #300** · AGENTS.md 反映 4-agent dispatch pool（加 OpenCode/Droid/Kimi trailer · Cursor email fix support→noreply · 新增 "4-agent dispatch pool 能力分工" 段 · 同步 dispatch §2.9 Agent 能力矩阵）
-- **PR #302** · MVP-17 Phase C wiring 核心（**主 agent 自接 OpenCode N=3 + Cursor + Codex 余波 wiring gap** · 5 文件 +159/-17 · external-term.ts popToExternalRequest signal + App.tsx initPaneDetachStateListener + PopToExternalDialog 顶层渲染 + PaneSplitView DetachedPlaceholder fallback + PaneTerminal onContextMenu menu + Terminal.tsx ⌘⇧O/⌘⇧D 快捷键 · 3 gate PASS · E.4 settings UI + Phase D screenshots 推 follow-up）
-
-#### 协作 failure mode · 治理事件
-
-| 事件                                    | 次数 | 处置                                                                                                       |
-| --------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------- |
-| §2.15 stale base race（Cursor PR #297） | 1    | 主 agent fix-up `ce08c7f` 1 行删 · ~5min · session 30 末规则化为 dispatch §2.15 防护（PR #298）            |
-| §2.10 OpenCode N=4 试金石               | 0    | PR #296 数据完全真实 · vitest exit code 描述错（understating · 不构成谎报）· N=4 未触发 · 留 dispatch pool |
-| §2.12 主 repo .git/config 污染          | 0    | PR #278 worktreeConfig 升级生效 · session 30 4-agent 同时跑 · 0 污染事件                                   |
-| Droid 首次走流程                        | 0    | PR #295 PASS · worktree config 隔离 OK · `--worktree` flag + extensions.worktreeConfig=true 全程合规       |
-
-#### 主 repo 健康度（session 30 后）
-
-- ✅ cargo clippy `--workspace --all-targets -- -D warnings` exit 0（Codex PR #301 验证）
-- ✅ pnpm lint（prettier）+ pnpm typecheck（tsc --noEmit）exit 0
-- ✅ pnpm vitest run **36 files / 261 passed | 0 skipped**（比 session 28 baseline 228+33skipped 多跑 33 个 · OpenCode N=3 烂摊子全修复）
-- ✅ runtime-evidence validator main 干净
-- ✅ extensions.worktreeConfig=true 持续生效 · 4-agent 同时跑 0 污染
-
-#### 反思
-
-- **4-agent dispatch pool 首次同时跑成功**：4 worktree 文件域 0 交叠（OpenCode `web/src/` · Codex `crates/app/` · Droid `docs/` · Cursor `web/tests/`）· §2.5.1 worktreeConfig 隔离完美 · 0 author 污染
-- **OpenCode N=4 试金石通过**：N=3 后任务类型受限策略验证可行（机械重构 / 文档 / grep 可验证 = 低风险高合规）· 留在 dispatch pool 分担机械任务
-- **Droid 首次成功**：纯文档 task 是新 agent 入门最佳路径 · §2.12 worktreeConfig 协议完全可重复
-- **§2.15 stale base race**：4-agent 并发 push 时间错位必然产生 stale base · 必须规则化（PR #298）· session 30 即实证 1 次（Cursor PR #297）· 未来 4-agent 派工必含 fetch+rebase+重跑 gate
-- **session 30 = 4-agent 协作模式成熟标志**：单 session 11 PR · 比 session 28 (9 PR) 再跃升 · 但人均/agent 协议合规率 100%（OpenCode N=4 PASS · 其他 0 violation）· 治理负担反而下降（PR #278 §2.5.1 worktreeConfig 根治 §2.12 后 0 污染复发）
-- **MVP-17 Phase C wiring** = OpenCode N=3 + Cursor + Codex 三 agent 余波 · 主 agent 自接是最快路径（60min wiring + 透明 follow-up）· 类似 session 28 idle 查漏补缺模式
-
-#### 主 agent 收尾动作
-
-- 11 PR merged via `gh api -X PUT .../merge -F merge_method=merge`（GitHub graphql EOF 反复 · REST + HTTPS fallback 稳定）
-- 4 worktree（OpenCode/Codex/Droid/Cursor）+ 1 housekeeping branch 全清理（含本 PR）
-- 6 dispatch prompts 归档（spike-tmp/dispatch/MVP-17-\*-prompt.md 6 个）
-- 主 repo .git/config user.\* 持续空（global identity · 0 污染）
-- v0.3 sprint MVP 状态：5/5 MVP 完整代码收官 99%（仅 MVP-17 E.4 settings UI follow-up · 全 5 MVP Phase D Arbiter playbook 推迟）
-
-#### Arbiter session 30 决策
-
-- OpenCode N=3 推翻条款继续生效：N=4 触发条件保留 · 任务类型受限（机械重构 / 文档 / grep 可验证）持续
-- Droid 正式加入 dispatch pool · trailer `Co-authored-by: Droid <noreply@factory.ai>`
-- §2.15 stale base race 防护规则化（PR #298） · 未来 ≥ 3-agent 派工必含 fetch+rebase+重跑 gate
-- MVP-17 E.4 settings UI 拆 follow-up（不阻塞核心 detach + pop external flow · 类似 MVP-13 Phase D part B 推 v0.2）
-- MVP-17 Phase D + v0.3 sprint 5 MVP Phase D 一并推 Arbiter playbook（PR #271 · 90-120min · 28 PNG + 1 MP4 + metrics）
+- 1 day 11 PR merged · 4-agent dispatch pool 首次同时跑 + MVP-17 Phase A/B/C 完整代码收口
+- 4-track 文件域 0 交叠（OpenCode/Codex/Droid/Cursor）· §2.5.1 worktreeConfig 隔离完美 · 0 author 污染
+- §2.15 stale base race 规则化（PR #298 · 来自 Cursor PR #297 实证）· OpenCode N=4 试金石通过留 pool
+- 详情见 [`session-30.md`](./session-history/session-30.md)
 
 ### Session 29（2026-05-13 · 主 agent 单人 day · 12 PR merged · OpenCode N=3 §2.10 violation 处置）
 

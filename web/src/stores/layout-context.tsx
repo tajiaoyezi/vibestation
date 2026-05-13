@@ -73,29 +73,13 @@ export const LayoutProvider: ParentComponent<{
     if (globalPersistTimer) clearTimeout(globalPersistTimer);
     globalPersistTimer = setTimeout(() => {
       const cur = layout();
-      const req: SettingsUpdateRequest = {
-        theme: null,
-        fontFamily: null,
-        fontSize: null,
-        defaultShell: null,
-        pasteProtection: null,
-        telemetryOptIn: null,
-        gitUserName: null,
-        gitUserEmail: null,
-        bgOpacity: null,
-        bgBlur: null,
-        windowPaddingX: null,
-        windowPaddingY: null,
-        cursorStyle: null,
-        cursorBlink: null,
-        unfocusedPaneOpacity: null,
-        ptyPoolEnabled: null,
-        ptyPoolSize: null,
-        primaryWidth: cur.primaryWidth,
-        secondaryWidth: cur.secondaryWidth,
-        bottomHeight: cur.bottomHeight,
-      };
-      invoke("settings_update", { req }).catch(() => {});
+      invoke("settings_update", {
+        req: {
+          primaryWidth: cur.primaryWidth,
+          secondaryWidth: cur.secondaryWidth,
+          bottomHeight: cur.bottomHeight,
+        } as SettingsUpdateRequest,
+      }).catch(() => {});
     }, 250);
   };
 

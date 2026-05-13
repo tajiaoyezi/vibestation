@@ -93,7 +93,6 @@ describe("PopToExternalDialog", () => {
       expect(mockedLaunchTerminal).toHaveBeenCalledWith({
         terminalId: "ghostty",
         paneId: "p1",
-        overrideEnv: null,
       });
     });
     expect(onClose).toHaveBeenCalled();

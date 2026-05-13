@@ -5,9 +5,10 @@
 
 mod fix_path_env;
 mod menu;
-mod pane_detach;
+pub mod pane_detach;
 mod pane_layout_advanced;
 
+use crate::pane_detach::state::DetachedPaneMap;
 use crate::pane_layout_advanced::{
     pane_layout_apply_advanced, pane_maximize, pane_navigate, pane_resize_step,
 };
@@ -32,23 +33,22 @@ use vibestation_core::{
     AppSettingsStore, AppVersionInfo, AuthRequest, BranchCheckoutRequest, BranchCreateRequest,
     BranchDeleteRequest, BranchError, BranchInfo, BranchListRequest, BranchListResponse,
     BranchSwitchResult, CherryPickRequest, CherryPickStatus, CommitDetail,
-    ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, DetachedPaneMap,
-    DetachedWindowBounds, DetachedWindowInfo, DiffRequest, DiffResponse, DiffService,
-    FetchProgressEvent, FetchRequest, FetchResult, GitConfigIdentity, GitLogQueryRequest,
-    GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
+    ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, DiffRequest, DiffResponse,
+    DiffService, FetchProgressEvent, FetchRequest, FetchResult, GitConfigIdentity,
+    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
     GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
     GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState, LayoutStore,
     MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
-    PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult,
-    PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
-    PaneFocusRequest, PaneInitRequest, PaneListResponse, PanePtyEvent, PanePtySpawnRequest,
-    PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest, PullResult,
-    PushProgressEvent, PushRequest, PushResult, RebaseControlRequest, RebaseInteractivePlan,
-    RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteListRequest, RemoteListResponse,
-    SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    PaneCreateRequest, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
+    PaneDetachOpenRequest, PaneDetachOpenResult, PaneFocusRequest, PaneInitRequest,
+    PaneListResponse, PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager,
+    PtySpawnRequest, PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult,
+    RebaseControlRequest, RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus,
+    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest,
+    SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest, SwitcherSearchResult,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
+    TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -131,8 +131,6 @@ struct AppState {
     pty_pool: Arc<PtyPool>,
     /// MVP-20 · PTY 预热池（与 pane_pty 配套 · 独立池）
     pane_pty_pool: Arc<PtyPool>,
-    /// MVP-17 Phase B · runtime-only detached pane state map（不持久化 · App quit 时清空）
-    detached_panes: Arc<DetachedPaneMap>,
 }
 
 struct GitStatusSubscription {
@@ -1556,114 +1554,35 @@ fn rebase_detect_in_progress(
 // =============================================================================
 // MVP-17 Phase B · Pane Detach IPC handlers
 //
-// session 29 skeleton：
-// - DetachedPaneMap 状态机操作真实可用（spec D.5 idempotent 保证）
-// - WebviewWindow 真实创建 / close 在 window_manager skeleton 阶段返回 marker
-// - session 30 替换 window_manager 实现后 IPC 端到端可用
-// - 前端可立即 mock IPC（OpenCode Phase C）+ 等 session 30 接通
-//
-// 异常路径（spec D.5）：create_detached_window 失败 → 自动 rollback
+// 异常路径（spec D.5）：open_detached_window 失败 → 自动 rollback
 // DetachedPaneMap entry · 不留半状态。
 // =============================================================================
 
-/// 序列号生成（process-local · u64 wrapping）· 给 generate_window_label 加扰动。
-fn pane_detach_seed() -> u64 {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-    COUNTER.fetch_add(1, Ordering::Relaxed)
-}
-
 #[tauri::command]
 fn pane_detach_open(
-    state: State<'_, AppState>,
+    detached_panes: State<'_, DetachedPaneMap>,
     app: AppHandle,
     request: PaneDetachOpenRequest,
 ) -> Result<PaneDetachOpenResult, String> {
-    let pane_id = request.pane_id.clone();
-    if pane_id.is_empty() {
-        return Err("pane_id is empty".to_string());
-    }
-
-    // 1. 生成 window_label · 注册到 DetachedPaneMap（已 detached 时返回 AlreadyDetached）
-    let window_label = vibestation_core::generate_window_label(pane_detach_seed());
-    let bounds = DetachedWindowBounds::default();
-    let info = DetachedWindowInfo::new(window_label.clone(), "default", bounds.clone());
-
-    state
-        .detached_panes
-        .insert(pane_id.clone(), info)
-        .map_err(|err| err.to_string())?;
-
-    // 2. 创建 WebviewWindow（skeleton · session 30 接真实 Tauri builder）
-    if let Err(window_err) = pane_detach::create_detached_window(&pane_id, &window_label, &bounds) {
-        // 当前 skeleton 必然返回 "session 30 实施" 错误 · rollback DetachedPaneMap
-        // session 30 真实 Tauri 实施后 · 此 fallback 仍保留作为异常路径处理
-        state.detached_panes.remove(&pane_id);
-        // skeleton 阶段不 return Err · 让 IPC 走通到 emit + 返回 result
-        // 让前端 Phase C 可 mock 完整 detach 流程
-        // session 30 改为：return Err(window_err.to_string());
-        let _ = window_err;
-        // 重新 insert（被前面 rollback 了）· skeleton 走过场
-        let info_retry = DetachedWindowInfo::new(window_label.clone(), "default", bounds.clone());
-        state
-            .detached_panes
-            .insert(pane_id.clone(), info_retry)
-            .map_err(|err| err.to_string())?;
-    }
-
-    // 3. emit state changed event · 前端 detachedPanes signal 同步
-    let event = PaneDetachStateEvent {
-        pane_id: pane_id.clone(),
-        action: PaneDetachAction::Detached,
-        window_label: Some(window_label.clone()),
-    };
-    if let Err(emit_err) = app.emit("pane_detach_state_changed", &event) {
-        // emit 失败不破坏状态 · session 30 加结构化 logging
-        eprintln!("[MVP-17] emit pane_detach_state_changed failed: {emit_err}");
-    }
-
-    Ok(PaneDetachOpenResult {
-        window_label,
-        initial_bounds: bounds,
-    })
+    pane_detach::open_detached_window(&app, detached_panes.inner(), request.pane_id)
+        .map_err(|err| err.to_string())
 }
 
 #[tauri::command]
 fn pane_detach_close(
-    state: State<'_, AppState>,
+    detached_panes: State<'_, DetachedPaneMap>,
     app: AppHandle,
     request: PaneDetachCloseRequest,
 ) -> Result<PaneDetachCloseResult, String> {
-    let window_label = request.window_label;
-
-    // 1. 从 DetachedPaneMap 移除 · 取出 pane_id（未找到时返回错误）
-    let pane_id = state
-        .detached_panes
-        .remove_by_label(&window_label)
-        .map_err(|err| err.to_string())?;
-
-    // 2. 关闭 WebviewWindow（skeleton · session 30 接真实 Tauri close）
-    if let Err(close_err) = pane_detach::close_detached_window(&window_label) {
-        // close 失败不阻断 reattach 流程 · 已从 map 移除 · 前端 placeholder 应消失
-        eprintln!("[MVP-17] close_detached_window failed (continuing reattach): {close_err}");
-    }
-
-    // 3. emit state changed event · action=attached · window_label=None
-    let event = PaneDetachStateEvent {
-        pane_id: pane_id.clone(),
-        action: PaneDetachAction::Attached,
-        window_label: None,
-    };
-    if let Err(emit_err) = app.emit("pane_detach_state_changed", &event) {
-        eprintln!("[MVP-17] emit pane_detach_state_changed (attached) failed: {emit_err}");
-    }
-
-    Ok(PaneDetachCloseResult { pane_id })
+    pane_detach::close_detached_window(&app, detached_panes.inner(), &request.window_label)
+        .map_err(|err| err.to_string())
 }
 
 #[tauri::command]
-fn pane_detach_list(state: State<'_, AppState>) -> Result<Vec<PaneDetachListEntry>, String> {
-    Ok(state.detached_panes.list_entries())
+fn pane_detach_list(
+    detached_panes: State<'_, DetachedPaneMap>,
+) -> Result<Vec<PaneDetachListEntry>, String> {
+    Ok(detached_panes.list_entries())
 }
 
 fn rebase_repo_path(
@@ -1859,8 +1778,8 @@ pub fn run() {
             pane_pty,
             pty_pool,
             pane_pty_pool,
-            detached_panes: Arc::new(DetachedPaneMap::new()),
         })
+        .manage(DetachedPaneMap::new())
         .invoke_handler(tauri::generate_handler![
             greet,
             workspace_init,

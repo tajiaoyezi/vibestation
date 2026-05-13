@@ -11,6 +11,9 @@ description = "Vibestation Tauri 2 启动层（app crate · MVP-02 workspace man
 name = "vibestation_app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+integration = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 ts-rs.workspace = true
@@ -27,6 +30,7 @@ vibestation-core = { path = "../core" }
 r2d2.workspace = true
 r2d2_sqlite.workspace = true
 chrono.workspace = true
+uuid.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

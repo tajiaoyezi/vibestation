@@ -1,18 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createSignal } from "solid-js";
-import type { PaneDetachOpenRequest } from "../bindings/_mock/PaneDetachOpenRequest";
-import type { PaneDetachOpenResult } from "../bindings/_mock/PaneDetachOpenResult";
-import type { PaneDetachCloseRequest } from "../bindings/_mock/PaneDetachCloseRequest";
-import type { PaneDetachCloseResult } from "../bindings/_mock/PaneDetachCloseResult";
-import type { PaneDetachListEntry } from "../bindings/_mock/PaneDetachListEntry";
-import type { PaneDetachStateEvent } from "../bindings/_mock/PaneDetachStateEvent";
+import type { PaneDetachOpenRequest } from "../bindings/PaneDetachOpenRequest";
+import type { PaneDetachOpenResult } from "../bindings/PaneDetachOpenResult";
+import type { PaneDetachCloseRequest } from "../bindings/PaneDetachCloseRequest";
+import type { PaneDetachCloseResult } from "../bindings/PaneDetachCloseResult";
+import type { PaneDetachListEntry } from "../bindings/PaneDetachListEntry";
+import type { PaneDetachStateEvent } from "../bindings/PaneDetachStateEvent";
 
 /**
  * MVP-17 Phase B · Pane Detach IPC wrapper + runtime state signal
- *
- * Phase A/B merge 后改 import 路径：
- *   "../bindings/_mock/PaneDetach*" → "../bindings/PaneDetach*"
  */
 
 // runtime-only Solid signal · paneId → windowLabel · App.tsx 监听

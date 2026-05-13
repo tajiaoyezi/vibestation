@@ -13,4 +13,7 @@ pub mod state;
 pub mod window_manager;
 
 #[allow(unused_imports)]
-pub use window_manager::{close_detached_window, create_detached_window, WindowManagerError};
+pub use window_manager::{
+    close_detached_window, handle_detached_window_destroyed, open_detached_window,
+    reattach_closed_window, WindowManagerError,
+};

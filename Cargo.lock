@@ -6557,6 +6557,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "ts-rs",
+ "uuid",
  "vibestation-core",
 ]
 

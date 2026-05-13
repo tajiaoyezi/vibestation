@@ -18,7 +18,7 @@
 
 ## 📍 当前阶段（一句话）
 
-**v0.1/v0.2/v0.3 sprint 全代码收官 · v0.3 future MVP-17 收尾中**（session 30 · 4-agent dispatch pool 同时跑 = 主 agent + Codex CLI + OpenCode + Droid + Cursor · Phase A done @ PR #291 · Phase B skeleton @ PR #285 + lifecycle in-progress · Phase C 源码 done @ PR #292 + 测试重写 @ PR #297 · 当前事实以 `docs/PROGRESS.md` 为准）。
+**v0.3 sprint 5/5 MVP 完整代码收官 99%**（session 30 末 · MVP-17 Phase A/B/C 完整收口 · Phase A @ PR #291 + Phase B @ PR #301 + Phase C 源码 @ PR #292 + 测试重写 @ PR #297 + wiring 核心 @ PR #302 · 仅 MVP-17 E.4 settings UI + 全 5 MVP Phase D Arbiter playbook 推迟 · 4-agent dispatch pool 首次同时跑实证 = OpenCode + Codex + Droid + Cursor · 当前事实以 `docs/PROGRESS.md` 为准）。
 
 ---
 

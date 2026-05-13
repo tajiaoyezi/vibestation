@@ -13,6 +13,8 @@ import { createMemo, Show, type Component } from "solid-js";
 import type { LayoutNode, PaneState, SplitDir } from "../../bindings";
 import { PaneSplitter } from "./PaneSplitter";
 import { PaneTerminal, type PaneTerminalApi } from "./PaneTerminal";
+import { DetachedPlaceholder } from "./DetachedPlaceholder";
+import { detachedPanes } from "../../lib/pane-detach";
 
 type PaneSplitViewProps = {
   layout: LayoutNode;
@@ -61,26 +63,39 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
   if (props.layout.kind !== "single") return null;
   const paneId = props.layout.paneId;
   const pane = createMemo(() => findPane(props.panes, paneId));
+  // MVP-17 Phase C wiring · 当 pane 已 detach 到独立 WebviewWindow · 原位置渲染 placeholder
+  // backend `pane_detach_state_changed` 事件驱动 `detachedPanes` signal · 跨 worktree 共享
+  const detachedLabel = createMemo(() => detachedPanes().get(paneId) ?? null);
 
   return (
     <Show when={pane()} fallback={<div class="vs-pane-missing" />}>
       {(p) => (
-        <PaneTerminal
-          paneId={paneId}
-          shell={p().shell}
-          cwd={p().cwd}
-          active={props.active}
-          focused={props.focusedPaneId === paneId}
-          maximized={props.maximizedPaneId === paneId}
-          onClick={props.onPaneClick}
-          onExit={props.onPaneExit}
-          onError={props.onPaneError}
-          onRegisterApi={props.onRegisterPaneApi}
-          onUnregisterApi={props.onUnregisterPaneApi}
-          onSplit={props.onPaneSplit}
-          onClose={props.onPaneClose}
-          onPasteRequest={props.onPanePasteRequest}
-        />
+        <Show
+          when={!detachedLabel()}
+          fallback={
+            <DetachedPlaceholder
+              paneId={paneId}
+              windowLabel={detachedLabel() ?? ""}
+            />
+          }
+        >
+          <PaneTerminal
+            paneId={paneId}
+            shell={p().shell}
+            cwd={p().cwd}
+            active={props.active}
+            focused={props.focusedPaneId === paneId}
+            maximized={props.maximizedPaneId === paneId}
+            onClick={props.onPaneClick}
+            onExit={props.onPaneExit}
+            onError={props.onPaneError}
+            onRegisterApi={props.onRegisterPaneApi}
+            onUnregisterApi={props.onUnregisterPaneApi}
+            onSplit={props.onPaneSplit}
+            onClose={props.onPaneClose}
+            onPasteRequest={props.onPanePasteRequest}
+          />
+        </Show>
       )}
     </Show>
   );

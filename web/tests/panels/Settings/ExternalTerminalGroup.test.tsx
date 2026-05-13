@@ -73,7 +73,8 @@ vi.mock("@tauri-apps/api/core", () => ({
           mockAppSettings.externalTermPreferred = req.externalTermPreferred;
         }
         if (req.externalTermDontAskAgain !== undefined) {
-          mockAppSettings.externalTermDontAskAgain = req.externalTermDontAskAgain;
+          mockAppSettings.externalTermDontAskAgain =
+            req.externalTermDontAskAgain;
         }
         return { ...mockAppSettings };
       }
@@ -101,10 +102,14 @@ describe("ExternalTerminalGroup", () => {
       screen.getByRole("option", { name: "Ask every time" }),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByRole("option", { name: "Ghostty" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Ghostty" }),
+      ).toBeInTheDocument();
     });
     expect(screen.getByRole("option", { name: "iTerm2" })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: "Nope" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Nope" }),
+    ).not.toBeInTheDocument();
   });
 
   it("selecting a terminal calls settings_update with externalTermPreferred", async () => {
@@ -112,7 +117,9 @@ describe("ExternalTerminalGroup", () => {
 
     const select = await screen.findByRole("combobox");
     await waitFor(() => {
-      expect(screen.getByRole("option", { name: "Ghostty" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Ghostty" }),
+      ).toBeInTheDocument();
     });
     vi.mocked(invoke).mockClear();
     fireEvent.change(select, { target: { value: "ghostty" } });

@@ -54,6 +54,10 @@ pub struct AppSettings {
     pub secondary_width: u32,
     #[ts(type = "number")]
     pub bottom_height: u32,
+    /// MVP-17 · 用户选择的默认外部终端 ID · None = 每次问
+    pub external_term_preferred: Option<String>,
+    /// MVP-17 · "Don't ask again" 状态 · true 时跳过 PopToExternalDialog
+    pub external_term_dont_ask_again: bool,
 }
 
 impl Default for AppSettings {
@@ -84,6 +88,8 @@ impl Default for AppSettings {
             primary_width: 236,
             secondary_width: 400,
             bottom_height: 240,
+            external_term_preferred: None,
+            external_term_dont_ask_again: false,
         }
     }
 }
@@ -112,6 +118,9 @@ pub struct SettingsUpdateRequest {
     pub primary_width: Option<u32>,
     pub secondary_width: Option<u32>,
     pub bottom_height: Option<u32>,
+    /// 外层 Some = 请求包含该字段 · 内层 None = 清空偏好（每次询问）
+    pub external_term_preferred: Option<Option<String>>,
+    pub external_term_dont_ask_again: Option<bool>,
 }
 
 fn get_parsed<T: std::str::FromStr>(pool: &DbPool, key: &str, default: &str) -> T
@@ -196,6 +205,9 @@ impl AppSettingsStore {
         let primary_width: u32 = get_parsed(pool, "primary_width", "236");
         let secondary_width: u32 = get_parsed(pool, "secondary_width", "400");
         let bottom_height: u32 = get_parsed(pool, "bottom_height", "240");
+        let external_term_preferred = get_optional_string(pool, "external_term_preferred");
+        let external_term_dont_ask_again: bool =
+            get_parsed(pool, "external_term_dont_ask_again", "false");
 
         AppSettings {
             theme,
@@ -218,6 +230,8 @@ impl AppSettingsStore {
             primary_width,
             secondary_width,
             bottom_height,
+            external_term_preferred,
+            external_term_dont_ask_again,
         }
     }
 
@@ -281,6 +295,16 @@ impl AppSettingsStore {
         }
         if let Some(v) = req.bottom_height {
             Self::set(pool, "bottom_height", &v.to_string())?;
+        }
+        if let Some(ref opt) = req.external_term_preferred {
+            Self::set(
+                pool,
+                "external_term_preferred",
+                opt.as_deref().unwrap_or(""),
+            )?;
+        }
+        if let Some(v) = req.external_term_dont_ask_again {
+            Self::set(pool, "external_term_dont_ask_again", &v.to_string())?;
         }
         Ok(())
     }
@@ -349,6 +373,9 @@ mod tests {
         // MVP-20 · PTY 预热池默认开 · 容量 1
         assert!(settings.pty_pool_enabled);
         assert_eq!(settings.pty_pool_size, 1);
+        // MVP-17 Phase E.4 · 外部终端偏好默认
+        assert!(settings.external_term_preferred.is_none());
+        assert!(!settings.external_term_dont_ask_again);
     }
 
     #[test]
@@ -365,6 +392,39 @@ mod tests {
         let s = AppSettingsStore::get_all(&pool);
         assert!(!s.pty_pool_enabled);
         assert_eq!(s.pty_pool_size, 3);
+    }
+
+    #[test]
+    fn external_term_settings_defaults_and_roundtrip() {
+        let (_dir, pool) = setup();
+        let s = AppSettingsStore::get_all(&pool);
+        assert!(s.external_term_preferred.is_none());
+        assert!(!s.external_term_dont_ask_again);
+
+        AppSettingsStore::update(
+            &pool,
+            &SettingsUpdateRequest {
+                external_term_preferred: Some(Some("ghostty".into())),
+                external_term_dont_ask_again: Some(true),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let s2 = AppSettingsStore::get_all(&pool);
+        assert_eq!(s2.external_term_preferred.as_deref(), Some("ghostty"));
+        assert!(s2.external_term_dont_ask_again);
+
+        AppSettingsStore::update(
+            &pool,
+            &SettingsUpdateRequest {
+                external_term_preferred: Some(None),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let s3 = AppSettingsStore::get_all(&pool);
+        assert!(s3.external_term_preferred.is_none());
+        assert!(s3.external_term_dont_ask_again);
     }
 
     #[test]

@@ -30,6 +30,9 @@ const DEFAULTS: AppSettings = {
   primaryWidth: 236,
   secondaryWidth: 400,
   bottomHeight: 240,
+  // MVP-17 · External Terminal preference
+  externalTermPreferred: null,
+  externalTermDontAskAgain: false,
 };
 
 const [settings, setSettings] = createStore<AppSettings>({ ...DEFAULTS });
@@ -124,6 +127,10 @@ export function useSettings() {
         req.ptyPoolEnabled = partial.ptyPoolEnabled;
       if (partial.ptyPoolSize !== undefined)
         req.ptyPoolSize = partial.ptyPoolSize;
+      if (partial.externalTermPreferred !== undefined)
+        req.externalTermPreferred = partial.externalTermPreferred;
+      if (partial.externalTermDontAskAgain !== undefined)
+        req.externalTermDontAskAgain = partial.externalTermDontAskAgain;
 
       try {
         const updated = await invoke<AppSettings>("settings_update", { req });

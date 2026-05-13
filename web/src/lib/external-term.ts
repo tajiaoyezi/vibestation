@@ -1,15 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ExternalTerminalInfo } from "../bindings/_mock/ExternalTerminalInfo";
-import type { ExternalTerminalLaunchRequest } from "../bindings/_mock/ExternalTerminalLaunchRequest";
-import type { ExternalTerminalLaunchResult } from "../bindings/_mock/ExternalTerminalLaunchResult";
-import type { EnvPreview } from "../bindings/_mock/EnvPreview";
+import type { ExternalTerminalInfo } from "../bindings/ExternalTerminalInfo";
+import type { ExternalTerminalLaunchRequest } from "../bindings/ExternalTerminalLaunchRequest";
+import type { ExternalTerminalLaunchResult } from "../bindings/ExternalTerminalLaunchResult";
+import type { EnvPreview } from "../bindings/EnvPreview";
 
-/**
- * MVP-17 Phase A · 外部终端 IPC wrapper
- *
- * Phase A/B merge 后改 import 路径：
- *   "../bindings/_mock/ExternalTerminalInfo" → "../bindings/ExternalTerminalInfo"
- */
+/** MVP-17 Phase A · 外部终端 IPC wrapper */
 
 export async function listTerminals(): Promise<ExternalTerminalInfo[]> {
   return invoke<ExternalTerminalInfo[]>("external_term_list");

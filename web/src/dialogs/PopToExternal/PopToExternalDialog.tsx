@@ -6,9 +6,9 @@ import {
   Show,
   type Component,
 } from "solid-js";
-import type { ExternalTerminalInfo } from "../../bindings/_mock/ExternalTerminalInfo";
-import type { ExternalTerminalLaunchRequest } from "../../bindings/_mock/ExternalTerminalLaunchRequest";
-import type { EnvPreview } from "../../bindings/_mock/EnvPreview";
+import type { ExternalTerminalInfo } from "../../bindings/ExternalTerminalInfo";
+import type { ExternalTerminalLaunchRequest } from "../../bindings/ExternalTerminalLaunchRequest";
+import type { EnvPreview } from "../../bindings/EnvPreview";
 import {
   listTerminals,
   previewEnv,
@@ -87,7 +87,6 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
       const request: ExternalTerminalLaunchRequest = {
         terminalId: termId,
         paneId: props.paneId,
-        overrideEnv: null,
       };
       const result = await launchTerminal(request);
       if (result.success) {

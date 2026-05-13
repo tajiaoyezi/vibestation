@@ -1,11 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   listTerminals,
   previewEnv,
   launchTerminal,
 } from "../../src/lib/external-term";
 
-describe.skip("external-term.ts · IPC wrapper", () => {
+describe("external-term.ts · IPC wrapper", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -18,7 +18,7 @@ describe.skip("external-term.ts · IPC wrapper", () => {
     });
 
     await listTerminals();
-    expect(invokeSpy).toHaveBeenCalledWith("external_term_list", undefined);
+    expect(invokeSpy).toHaveBeenCalledWith("external_term_list", {}, undefined);
   });
 
   it("previewEnv 传 paneId", async () => {
@@ -32,9 +32,11 @@ describe.skip("external-term.ts · IPC wrapper", () => {
     });
 
     await previewEnv("pane-123");
-    expect(invokeSpy).toHaveBeenCalledWith("external_term_preview_env", {
-      paneId: "pane-123",
-    });
+    expect(invokeSpy).toHaveBeenCalledWith(
+      "external_term_preview_env",
+      { paneId: "pane-123" },
+      undefined,
+    );
   });
 
   it("launchTerminal 传 request", async () => {
@@ -50,9 +52,11 @@ describe.skip("external-term.ts · IPC wrapper", () => {
       overrideEnv: null,
     };
     await launchTerminal(request);
-    expect(invokeSpy).toHaveBeenCalledWith("external_term_launch", {
-      request,
-    });
+    expect(invokeSpy).toHaveBeenCalledWith(
+      "external_term_launch",
+      { request },
+      undefined,
+    );
   });
 
   it("launchTerminal 失败时 throw", async () => {

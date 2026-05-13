@@ -1,10 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   matchesPopToExternalShortcut,
   matchesDetachPaneShortcut,
 } from "../../src/lib/mvp17-keyboard";
 
-describe.skip("mvp17-keyboard.ts · 快捷键匹配", () => {
+describe("mvp17-keyboard.ts · 快捷键匹配", () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, "platform", {
+      value: "MacIntel",
+      configurable: true,
+    });
+  });
+
   it("⌘⇧O 匹配 Pop to External", () => {
     const event = new KeyboardEvent("keydown", {
       key: "o",

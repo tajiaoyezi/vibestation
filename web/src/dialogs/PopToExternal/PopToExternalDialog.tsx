@@ -9,7 +9,11 @@ import {
 import type { ExternalTerminalInfo } from "../../bindings/_mock/ExternalTerminalInfo";
 import type { ExternalTerminalLaunchRequest } from "../../bindings/_mock/ExternalTerminalLaunchRequest";
 import type { EnvPreview } from "../../bindings/_mock/EnvPreview";
-import { listTerminals, previewEnv, launchTerminal } from "../../lib/external-term";
+import {
+  listTerminals,
+  previewEnv,
+  launchTerminal,
+} from "../../lib/external-term";
 
 import "./styles.css";
 
@@ -108,10 +112,7 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
       >
         <div class="vs-pop-to-external-modal">
           <div class="vs-pop-to-external-head">
-            <h2
-              id="vs-pop-to-external-title"
-              class="vs-pop-to-external-title"
-            >
+            <h2 id="vs-pop-to-external-title" class="vs-pop-to-external-title">
               Open in External Terminal
             </h2>
             <button
@@ -252,8 +253,7 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
                     when={launching()}
                     fallback={
                       <span>
-                        Open in{" "}
-                        {selectedTerminal()?.displayName ?? "Terminal"}
+                        Open in {selectedTerminal()?.displayName ?? "Terminal"}
                       </span>
                     }
                   >

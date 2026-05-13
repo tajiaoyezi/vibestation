@@ -538,6 +538,70 @@ reviewer 必须：
 - [项目] `.claude/rules/runtime-evidence-location.md` · runtime evidence 路径（reviewer 看 evidence 是 verification 一部分 · 但**不能替代** dev mode 自跑）
 - [项目] `dispatch-prompt-template.md §2.3` · runtime 证据必交（implementer 责任 · 本 §2.14 是 reviewer 责任）
 
+### 2.15 · 并发派工 · push 前必须 fetch + rebase main + 重跑 gate（防 stale base race）
+
+**规则**
+
+≥ 3-agent 并发派工时 · 各 agent 的 worktree base 在工作过程中 main 可能被其他 PR merge 推进。**push 前 + 最终 gate 验证前必须 fetch + rebase main + 重跑 gate**· 否则 PR 看起来合规但 merge 后破 main。
+
+### 具体执行
+
+dispatch prompt §交付要求段必须含：
+
+```bash
+# 最终 commit 完成后 · push 前 · 必跑
+git fetch origin
+git rebase origin/main   # 或 git merge --no-ff origin/main · 看 base 策略
+# 若有冲突 · 解决（文件域已隔离时通常无 git 冲突）
+# 若 source 改动影响测试 / typecheck / lint · 必须更新对应文件
+
+# 重跑 gate 验证（rebase 后的实际状态）
+pnpm lint && pnpm typecheck && pnpm vitest run
+cargo test --workspace  # 若涉及 Rust
+echo "exit code: $?"
+```
+
+rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 状态 push PR。
+
+### 为什么
+
+≥ 3-agent 并发派工时 · push 时 worktree base ≠ main 当前状态：
+
+- T1 worktree base: `main_A`
+- T2 worktree base: `main_A`
+- T2 push + merge → main 变 `main_B`（T1 不知道）
+- T1 push + GitHub auto-merge（文件域无 git 冲突）→ 但 T1 测试 expected 仍依据 `main_A` 的源码 · `main_B` 已变 · merge 后破 main
+
+### 事件源
+
+2026-05-13 session 30 · MVP-17 4-agent 收尾：
+
+- OpenCode PR #296（binding rebase）merge → main 删 `web/src/dialogs/PopToExternal/PopToExternalDialog.tsx` L90 `overrideEnv: null`（真实 ts-rs binding `ExternalTerminalLaunchRequest` 无此字段 · typecheck 强制要求删）
+- Cursor PR #297（vitest unskip）push 前未 fetch · `web/tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx` L96 expected 仍含 `overrideEnv: null,`
+- GitHub auto-merge 成功（test vs source 文件域不交叠 · git 无冲突）· 但 `vitest run` 实跑测试 fail（expected vs actual mismatch）
+- 主 agent fix-up commit `ce08c7f` 删 1 行 · 浪费 ~5min · 但留 stale base 教训
+
+### 反模式
+
+| 反模式 | 正确做法 |
+|---|---|
+| 派工开始建 worktree · 直到 push 都不 fetch main | push 前必跑 `git fetch origin && git rebase origin/main` |
+| PR body raw output 用 dispatch 开始时的 base 跑 · 不更新到 final base | 必须 rebase 之后再跑 gate · 输出贴 rebase 之后的 raw output |
+| 假设"文件域不交叠 = 无冲突 = 不需要 rebase" | 文件域不交叠保证 git auto-merge 成功 · 但**不保证**语义正确（如 binding 接口改 → 测试 expected 失配） |
+| 主 agent dispatch 时不在 prompt §2 列 fetch+rebase 步骤 | dispatch prompt §交付要求段必须显式含 fetch+rebase+重跑 gate 段 |
+
+### 适用范围
+
+- ✅ ≥ 3-agent 并发派工
+- ✅ 单 agent dispatch 但其他 agent 同时活跃在相邻文件域
+- ⚠️ 单 agent dispatch + 无其他活跃 PR · 可豁免（base 不会变）· 但仍建议 fetch verify
+
+### 关联
+
+- [全局] `~/.claude/rules/16-multi-agent-worktree-sync.md` · 多 agent worktree 同步通用规则（本 §2.15 是其在 ≥ 3-agent stale base 场景的具体落地）
+- [项目] `dispatch-prompt-template.md §2.4` · 独立 worktree（base 隔离的前提）· 本 §2.15 是 base 同步的后置要求
+- 事件：2026-05-13 · session 30 · Cursor PR #297 stale base · 主 agent fix-up `ce08c7f`（1 行 fix · `overrideEnv: null` 删除）
+
 ---
 
 ## 3 · 标准 Dispatch Prompt 模板
@@ -578,15 +642,22 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 
 ## 🔴 本 task 的硬约束
 
-默认 8 条（见 `.claude/rules/dispatch-prompt-template.md` §2）：
+默认硬约束（见 `.claude/rules/dispatch-prompt-template.md` §2 · 当前 15 条）：
 - [ ] 2.1 · 禁止自行 accept decision-grade
 - [ ] 2.2 · Acceptance 全覆盖
 - [ ] 2.3 · Runtime 证据必交
 - [ ] 2.4 · 独立 worktree
-- [ ] 2.5 · Commit trailer 身份
+- [ ] 2.5 · Commit trailer 身份（3 条铁律 · §2.5.1 worktreeConfig + §2.5.2 trailer + §2.5.3 验证）
 - [ ] 2.6 · 分支命名规范
 - [ ] 2.7 · 不碰 decision files
 - [ ] 2.8 · 子进程清理（kill 所有启动的 dev server / 脚本）
+- [ ] 2.9 · Agent 能力矩阵（本地 CLI · 远程 API · IDE 插件适配）
+- [ ] 2.10 · GUI / 前端 task 必跑 `pnpm lint`（不只 typecheck）· raw output 三段全贴
+- [ ] 2.11 · Timing-sensitive 跨平台测试 timeout ≥ 2× · 或 Linux-only ignore
+- [ ] 2.12 · 主 agent 在别人 worktree 操作 git config 后必须 unset（防 author 污染）
+- [ ] 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件
+- [ ] 2.14 · Reviewer 必须启 dev 模式跑 critical UX path（GUI / IPC 类 PR）
+- [ ] 2.15 · ≥ 3-agent 并发派工 · push 前必 fetch + rebase main + 重跑 gate（防 stale base race）
 
 本 task 额外硬约束：
 - [ ] <task-specific · 例 "benchmark 必跑 3 方案 × 3 次"· 或 "rusqlite schema 必须通过 PRAGMA user_version" 等>
@@ -702,9 +773,16 @@ GO 🚀
 - 每发现外部 agent 绕过**建议级**条款 → 把该条款升级为**硬约束**
 - 每发现外部 agent 绕过**硬约束**条款 → 增加 CI 硬阻塞（如 gitleaks / required-status-check）替代 trust-based 约束
 
-目前 8 条硬约束来自实际事件：
+目前 15 条硬约束来自实际事件：
 - 2.1-2.7（session 9 末初版）· 反映 OpenCode SPIKE-04.5/MVP-02 的 2 次违规教训
 - 2.8（session 10 末增补）· 反映 MVP-02 运行时 OpenCode 未 kill Vite/pnpm 子进程 · 残留 4 小时占 port 1420 的教训
+- 2.9（session 12 增补）· Agent 能力矩阵 · MVP-07 Kimi 远程 API 适配需 spec inline
+- 2.10（session 25 增补 · session 26 升级）· OpenCode §2.10 evidence-based · PR #252/#262/#292 三次实证
+- 2.11（session 14 增补）· PR #82/#86 PTY 跨平台 timing · Linux-only ignore + 技术债记录
+- 2.12（session 14 增补 · session 28 §2.5.1 升级根治）· 跨 agent author 污染 · 3+6 次实证 · worktreeConfig 解决
+- 2.13（session 20 增补）· PR #157 round 1 ADR-015 倒退 · 索引同步禁 inline 已被其他 PR 改的源文件
+- 2.14（session 20 增补）· PR #159/#161/#163 三 critical bug · GUI/IPC PR reviewer 必须启 dev mode
+- 2.15（session 30 增补 · 2026-05-13）· Cursor PR #297 stale base · 4-agent 派工 push 前必 fetch+rebase+重跑 gate
 
 未来若 Codex / 其他 agent 触发新的协作 failure mode · 本规则追加新条款。
 

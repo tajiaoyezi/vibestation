@@ -9,6 +9,7 @@
 //! event）将在 session 30 完成。本 session（29）落 skeleton + IPC handler stub ·
 //! 让 ts-rs binding 全 export · 前端 / Phase C OpenCode 可 mock IPC 开工。
 
+pub mod state;
 pub mod window_manager;
 
 #[allow(unused_imports)]

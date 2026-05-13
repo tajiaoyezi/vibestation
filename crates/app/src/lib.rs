@@ -5,7 +5,7 @@
 
 mod fix_path_env;
 mod menu;
-mod pane_detach;
+pub mod pane_detach;
 mod pane_layout_advanced;
 
 use crate::pane_layout_advanced::{

@@ -32,6 +32,12 @@ import type {
 } from "../../bindings";
 import { PaneSplitView } from "./PaneSplitView";
 import { paneSnapshots } from "./PaneTerminal";
+import {
+  matchesPopToExternalShortcut,
+  matchesDetachPaneShortcut,
+} from "../../lib/mvp17-keyboard";
+import { detachPane } from "../../lib/pane-detach";
+import { setPopToExternalRequest } from "../../lib/external-term";
 import { PasteConfirmDialog } from "./PasteConfirmDialog";
 import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
@@ -934,6 +940,38 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } else {
           showToast("Smart Layouts 仅支持 pane 模式 tab · 请新建 tab", "info");
         }
+      }
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    onCleanup(() =>
+      window.removeEventListener("keydown", handler, { capture: true }),
+    );
+  });
+
+  /**
+   * MVP-17 Phase C wiring · ⌘⇧O Pop to External · ⌘⇧D Detach Pane 快捷键。
+   * 仅 pane mode 生效 · 需要 focusedPaneId。pendingPaste 时不触发。
+   */
+  onMount(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (pendingPaste()) return;
+      const focusedPaneId = activeFocusedPaneId();
+      if (!focusedPaneId) return;
+
+      if (matchesPopToExternalShortcut(event)) {
+        event.preventDefault();
+        setPopToExternalRequest({ paneId: focusedPaneId });
+        return;
+      }
+
+      if (matchesDetachPaneShortcut(event)) {
+        event.preventDefault();
+        void detachPane({ paneId: focusedPaneId }).catch((err) => {
+          showToast(
+            `Detach Pane 失败: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        });
+        return;
       }
     };
     window.addEventListener("keydown", handler, { capture: true });

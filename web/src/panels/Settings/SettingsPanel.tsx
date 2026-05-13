@@ -1,5 +1,6 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import { AppearanceGroup } from "./AppearanceGroup";
+import { ExternalTerminalGroup } from "./ExternalTerminalGroup";
 import { TerminalGroup } from "./TerminalGroup";
 import { GitGroup } from "./GitGroup";
 import { PrivacyGroup } from "./PrivacyGroup";
@@ -21,6 +22,11 @@ type GroupDef = {
 const GROUPS: GroupDef[] = [
   { id: "appearance", title: "Appearance", component: AppearanceGroup },
   { id: "terminal", title: "Terminal", component: TerminalGroup },
+  {
+    id: "external-terminal",
+    title: "External Terminal",
+    component: ExternalTerminalGroup,
+  },
   { id: "git", title: "Git", component: GitGroup },
   { id: "privacy", title: "Privacy", component: PrivacyGroup },
 ];
@@ -29,6 +35,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
   const [expanded, setExpanded] = createSignal<Record<string, boolean>>({
     appearance: true,
     terminal: true,
+    "external-terminal": false,
     git: true,
     privacy: true,
   });

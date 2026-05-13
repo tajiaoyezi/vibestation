@@ -13,4 +13,12 @@ ptyPoolSize: number,
  * 全局 sidebar 宽度（像素）· 跨 workspace 共享 · 类似 VSCode/Cursor 设计 ·
  * 区别于 per-workspace LayoutState 的 open/close。
  */
-primaryWidth: number, secondaryWidth: number, bottomHeight: number, };
+primaryWidth: number, secondaryWidth: number, bottomHeight: number, 
+/**
+ * MVP-17 · 用户选择的默认外部终端 ID · None = 每次问
+ */
+externalTermPreferred: string | null, 
+/**
+ * MVP-17 · "Don't ask again" 状态 · true 时跳过 PopToExternalDialog
+ */
+externalTermDontAskAgain: boolean, };

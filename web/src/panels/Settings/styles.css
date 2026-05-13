@@ -484,3 +484,21 @@
 .vs-settings-help--warn {
   color: var(--danger);
 }
+
+/* MVP-17 Phase E.4 · External Terminal env whitelist（read-only） */
+.vs-settings-env-whitelist {
+  list-style: none;
+  margin: 0;
+  padding: 0.5em 0.75em;
+  background: var(--bg-2);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  max-height: 12em;
+  overflow-y: auto;
+}
+
+.vs-settings-env-whitelist li {
+  padding: 0.15em 0;
+  color: var(--text-2);
+}

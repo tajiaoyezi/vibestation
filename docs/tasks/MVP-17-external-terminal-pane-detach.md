@@ -55,12 +55,12 @@ reviewer: Claude Code · self-review（单人项目 v2-D.2 模式 · session 29 
 
 ## 🛠 实施进度
 
-| Phase | 范围 | 文件域 | 依赖 | 状态 | PR |
-|-------|------|--------|------|------|----|
-| **Phase A · Pop to External 终端识别 + 启动** | `crates/core/src/external_term/` 新模块：`detect.rs`（按 `TERM_PROGRAM` + `which` 探测 5 种终端）+ `launch.rs`（`open -a <App>` macOS / `gnome-terminal --` Linux · cwd + shell 传参）+ `env_filter.rs`（白名单 env 过滤 · 防 API key 泄漏）· 单元测试 13 detect + 10 env_filter + launch fixture · `crates/core/src/pty.rs` 加 `PtyManager::working_directory()` + `environment()` API（B.1 cwd + B.4 env preview 实施所需） | `crates/core/src/external_term/*` · `crates/core/src/lib.rs` · `crates/core/src/pty.rs` · `crates/app/src/lib.rs` · `crates/app/permissions/external_term.toml` · `crates/app/capabilities/default.json` · `crates/app/build.rs` | MVP-04 done | ✅ done @ PR #291 (Codex CLI · 3 commits · +1430/-1 · 16 文件 · macOS runtime dry-run 验证) | [#291](https://github.com/tajiaoyezi/vibestation/pull/291) |
-| **Phase B · Pane Detach WebviewWindow 生命周期** | `crates/core/src/pane_detach.rs`（业务逻辑 · IPC binding · 不依赖 Tauri）+ `crates/app/src/pane_detach/` 新模块：`window_manager.rs`（新建 WebviewWindow · label `pane-detach-<uuid-hex>` · close listener）· `DetachedPaneMap` runtime-only HashMap · 不持久化 · IPC `pane_detach_open` / `_close` / `_list` + **6 ts-rs binding 显式 export**（PaneDetachOpenRequest / Result / CloseRequest / Result / ListEntry / StateEvent）· 实际生成 **8 .ts 文件**（自动含 PaneDetachAction enum + DetachedWindowBounds nested struct）· 30 单测（18 core state machine + 6 app skeleton + 6 session 30 lifecycle）· **不动 `crates/core/src/panes.rs`**（LayoutNode schema 0 侵入 · 见 §数据模型修订记录） | `crates/core/src/pane_detach.rs` · `crates/app/src/pane_detach/*` · `crates/app/src/lib.rs` · `crates/app/permissions/pane_detach.toml` · `crates/app/capabilities/default.json` · `crates/app/build.rs` | MVP-14 done | 🟡 skeleton done @ PR #285 · session 30 完成 WebviewWindowBuilder + close listener + 异常路径 + 集成测试 | [#285](https://github.com/tajiaoyezi/vibestation/pull/285) skeleton |
-| **Phase C · UI + 快捷键 + 右键菜单 + 集成** | 右键菜单 "Pop to External" / "Detach Pane" 两项 · `⌘⇧O` (Pop) + `⌘⇧D` (Detach) 全局快捷键 · detached pane 在原位置显示 "Detached · click to bring back" placeholder · 第二 WebviewWindow 自带 mini-toolbar（pane_id + workspace 名 + "Reattach" 按钮）· 关闭 detached 重新挂载 PaneTerminal | `web/src/panels/Terminal/PaneContextMenu.tsx`（扩）· `web/src/panels/Terminal/DetachedPlaceholder.tsx`（新建）· `web/src/dialogs/PopToExternal/PopToExternalDialog.tsx`（新建 · 终端选择 + env 预览）· `web/src/lib/pane-detach.ts`（IPC 接通）· `web/src/lib/external-term.ts`（IPC 接通）· `web/src/styles.css`（placeholder 样式 + mini-toolbar） | Phase A + Phase B done | ⏳ ready | TBD |
-| **Phase D · runtime 证据 + GUI capture** | macOS + Linux 双平台各 5 张截图（Phase A 终端选择对话框 + env 预览 / Phase B detached window 显示 + reattach 按钮 / Phase C 右键菜单 + placeholder + 多 detached 共存）· 30s 录屏（Detach → 拖窗口到另一屏 → 关闭还原）· Acceptance §H runtime evidence + 内存释放量化（关闭 detached 后 ≤ 10MB 残留 · 通过 Activity Monitor / `ps -o rss=` 测）| `docs/runtime-evidence/mvp-17/phase-d/` | Phase C done | ⏳ deferred（Arbiter 自定时机 · 类似其他 v0.3 sprint MVP）| — |
+| Phase                                            | 范围                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 文件域                                                                                                                                                                                                                                                                                                                                               | 依赖                   | 状态                                                                                                                                                                                                                                                               | PR                                                                                                                      |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Phase A · Pop to External 终端识别 + 启动**    | `crates/core/src/external_term/` 新模块：`detect.rs`（按 `TERM_PROGRAM` + `which` 探测 5 种终端）+ `launch.rs`（`open -a <App>` macOS / `gnome-terminal --` Linux · cwd + shell 传参）+ `env_filter.rs`（白名单 env 过滤 · 防 API key 泄漏）· 单元测试 13 detect + 10 env_filter + launch fixture · `crates/core/src/pty.rs` 加 `PtyManager::working_directory()` + `environment()` API（B.1 cwd + B.4 env preview 实施所需）                                                                                                                                                                                                                                                                        | `crates/core/src/external_term/*` · `crates/core/src/lib.rs` · `crates/core/src/pty.rs` · `crates/app/src/lib.rs` · `crates/app/permissions/external_term.toml` · `crates/app/capabilities/default.json` · `crates/app/build.rs`                                                                                                                     | MVP-04 done            | ✅ done @ PR #291（Codex CLI · 3 commits · +1430/-1 · 16 文件 · macOS runtime dry-run 验证 · 11 ts-rs binding 完整落地）                                                                                                                                           | [#291](https://github.com/tajiaoyezi/vibestation/pull/291)                                                              |
+| **Phase B · Pane Detach WebviewWindow 生命周期** | `crates/core/src/pane_detach.rs`（业务逻辑 · IPC binding · 不依赖 Tauri）+ `crates/app/src/pane_detach/` 新模块：`window_manager.rs`（新建 WebviewWindow · label `pane-detach-<uuid-hex>` · close listener）· `DetachedPaneMap` runtime-only HashMap · 不持久化 · IPC `pane_detach_open` / `_close` / `_list` + **6 ts-rs binding 显式 export**（PaneDetachOpenRequest / Result / CloseRequest / Result / ListEntry / StateEvent）· 实际生成 **8 .ts 文件**（自动含 PaneDetachAction enum + DetachedWindowBounds nested struct）· 30 单测（18 core state machine + 6 app skeleton + 6 session 30 lifecycle）· **不动 `crates/core/src/panes.rs`**（LayoutNode schema 0 侵入 · 见 §数据模型修订记录） | `crates/core/src/pane_detach.rs` · `crates/app/src/pane_detach/*` · `crates/app/src/lib.rs` · `crates/app/permissions/pane_detach.toml` · `crates/app/capabilities/default.json` · `crates/app/build.rs`                                                                                                                                             | MVP-14 done            | 🟡 skeleton done @ PR #285 · **session 30 in-progress**（Codex CLI dispatch · worktree `/private/tmp/MVP-17-phase-B-work` HEAD `55b1642` · 待补 state.rs + window_manager close listener + 5 integration tests + 3 张 runtime evidence）                           | [#285](https://github.com/tajiaoyezi/vibestation/pull/285) skeleton                                                     |
+| **Phase C · UI + 快捷键 + 右键菜单 + 集成**      | 右键菜单 "Pop to External" / "Detach Pane" 两项 · `⌘⇧O` (Pop) + `⌘⇧D` (Detach) 全局快捷键 · detached pane 在原位置显示 "Detached · click to bring back" placeholder · 第二 WebviewWindow 自带 mini-toolbar（pane_id + workspace 名 + "Reattach" 按钮）· 关闭 detached 重新挂载 PaneTerminal                                                                                                                                                                                                                                                                                                                                                                                                          | `web/src/panels/Terminal/PaneContextMenu.tsx`（扩）· `web/src/panels/Terminal/DetachedPlaceholder.tsx`（新建）· `web/src/dialogs/PopToExternal/PopToExternalDialog.tsx`（新建 · 终端选择 + env 预览）· `web/src/lib/pane-detach.ts`（IPC 接通）· `web/src/lib/external-term.ts`（IPC 接通）· `web/src/styles.css`（placeholder 样式 + mini-toolbar） | Phase A + Phase B done | 🟡 partial done @ PR #292（OpenCode · 源码 UI + IPC wrapper · runtime OK）+ PR #294（主 agent fix-up · 6 test files `describe.skip` · 33 vitest tests 待 Cursor session 30 重写）· **OpenCode N=3 §2.10 violation 实证 · Arbiter 推翻永久转出 · N=4 触发条件激活** | [#292](https://github.com/tajiaoyezi/vibestation/pull/292) + [#294](https://github.com/tajiaoyezi/vibestation/pull/294) |
+| **Phase D · runtime 证据 + GUI capture**         | macOS + Linux 双平台各 5 张截图（Phase A 终端选择对话框 + env 预览 / Phase B detached window 显示 + reattach 按钮 / Phase C 右键菜单 + placeholder + 多 detached 共存）· 30s 录屏（Detach → 拖窗口到另一屏 → 关闭还原）· Acceptance §H runtime evidence + 内存释放量化（关闭 detached 后 ≤ 10MB 残留 · 通过 Activity Monitor / `ps -o rss=` 测）                                                                                                                                                                                                                                                                                                                                                     | `docs/runtime-evidence/mvp-17/phase-d/`                                                                                                                                                                                                                                                                                                              | Phase C done           | ⏳ deferred（Arbiter 自定时机 · 类似其他 v0.3 sprint MVP）                                                                                                                                                                                                         | —                                                                                                                       |
 
 ---
 
@@ -206,13 +206,13 @@ reviewer: Claude Code · self-review（单人项目 v2-D.2 模式 · session 29 
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 工具 | 覆盖率目标 |
-|------|------|------|------------|
-| 单元（Rust） | 终端检测 5 case + 命令构造 5 终端 × 2 平台 fixture + env 过滤 ≥ 8 case + WebviewWindow lifecycle state machine | `cargo test --workspace` | `external_term` mod ≥ 90% line cov · `pane_detach` mod ≥ 85% |
-| 单元（Frontend） | pane-detach.ts / external-term.ts IPC wrapper 错误路径 + DetachedPlaceholder 渲染 + PopToExternalDialog form state | `vitest` | 新增 ≥ 18 单测 |
-| 集成 | IPC contract pane_detach_open → close → reattach 状态机 · 含异常关闭 | `cargo test --features integration` | 5 integration test |
-| E2E | Playwright 模拟："detach pane → 拖窗口 → 关闭 → 验证主窗口 placeholder 消失 + PaneTerminal 在原位置 re-mount" 一气呵成 · "Pop to External" 弹对话框 + 选 Ghostty + 验证 spawn 命令（不真启 · mock 拦截 `open` 命令） | Playwright | 2 E2E（cross-platform） |
-| Runtime evidence | 5 PNG + 1 MP4（macOS） · Phase D capture · Linux Phase D part B 推 v0.4 跟 SPIKE-01 Phase C | manual | Arbiter 60-90 min |
+| 层次             | 范围                                                                                                                                                                                                                 | 工具                                | 覆盖率目标                                                   |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| 单元（Rust）     | 终端检测 5 case + 命令构造 5 终端 × 2 平台 fixture + env 过滤 ≥ 8 case + WebviewWindow lifecycle state machine                                                                                                       | `cargo test --workspace`            | `external_term` mod ≥ 90% line cov · `pane_detach` mod ≥ 85% |
+| 单元（Frontend） | pane-detach.ts / external-term.ts IPC wrapper 错误路径 + DetachedPlaceholder 渲染 + PopToExternalDialog form state                                                                                                   | `vitest`                            | 新增 ≥ 18 单测                                               |
+| 集成             | IPC contract pane_detach_open → close → reattach 状态机 · 含异常关闭                                                                                                                                                 | `cargo test --features integration` | 5 integration test                                           |
+| E2E              | Playwright 模拟："detach pane → 拖窗口 → 关闭 → 验证主窗口 placeholder 消失 + PaneTerminal 在原位置 re-mount" 一气呵成 · "Pop to External" 弹对话框 + 选 Ghostty + 验证 spawn 命令（不真启 · mock 拦截 `open` 命令） | Playwright                          | 2 E2E（cross-platform）                                      |
+| Runtime evidence | 5 PNG + 1 MP4（macOS） · Phase D capture · Linux Phase D part B 推 v0.4 跟 SPIKE-01 Phase C                                                                                                                          | manual                              | Arbiter 60-90 min                                            |
 
 ---
 
@@ -220,11 +220,11 @@ reviewer: Claude Code · self-review（单人项目 v2-D.2 模式 · session 29 
 
 ### app_settings 新增 KV（Phase C · 通过 MVP-10 settings UI 写）
 
-| key | type | default | 说明 |
-|---|---|---|---|
-| `external_term_preferred` | string \| null | null | 用户选择的默认外部终端 · null = 每次问 |
-| `external_term_dont_ask_again` | bool | false | "Don't ask again" 状态 · true 时跳过对话框 |
-| `pane_detach_default_size` | json | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
+| key                            | type           | default                      | 说明                                                                |
+| ------------------------------ | -------------- | ---------------------------- | ------------------------------------------------------------------- |
+| `external_term_preferred`      | string \| null | null                         | 用户选择的默认外部终端 · null = 每次问                              |
+| `external_term_dont_ask_again` | bool           | false                        | "Don't ask again" 状态 · true 时跳过对话框                          |
+| `pane_detach_default_size`     | json           | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
 
 ### Detach state · runtime-only map（**不动 panes.rs schema** · Phase B）
 
@@ -270,11 +270,11 @@ impl DetachedPaneMap {
 
 ### app_settings 新增 KV（Phase C · 通过 MVP-10 settings UI 写 · 唯一持久化项）
 
-| key | type | default | 说明 |
-|---|---|---|---|
-| `external_term_preferred` | string \| null | null | 用户选择的默认外部终端 · null = 每次问 |
-| `external_term_dont_ask_again` | bool | false | "Don't ask again" 状态 · true 时跳过对话框 |
-| `pane_detach_default_size` | json | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
+| key                            | type           | default                      | 说明                                                                |
+| ------------------------------ | -------------- | ---------------------------- | ------------------------------------------------------------------- |
+| `external_term_preferred`      | string \| null | null                         | 用户选择的默认外部终端 · null = 每次问                              |
+| `external_term_dont_ask_again` | bool           | false                        | "Don't ask again" 状态 · true 时跳过对话框                          |
+| `pane_detach_default_size`     | json           | `{"width":800,"height":600}` | detach window 默认大小（v0.3 不允许 UI 改 · 仅 settings 文件 edit） |
 
 **总结**：本 MVP 唯一 schema 变更是 `app_settings` KV 加 3 行（既有表 + 既有 IPC · 复用 MVP-10 已有写路径）· 0 DB migration · 0 LayoutNode binding 变更 · detached state 全 runtime。
 
@@ -286,50 +286,51 @@ impl DetachedPaneMap {
 
 ### G.1 本 MVP 新增 IPC binding 清单
 
-| # | Struct/Enum | 用途 | Phase |
-|---|---|---|---|
-| 1 | `ExternalTerminalInfo` | Phase A `external_term_list` 返回单个终端 info（id / name / icon_path? / detected） | A |
-| 2 | `ExternalTerminalLaunchRequest` | Phase A `external_term_launch` 入参（terminal_id + pane_id + override_env?） | A |
-| 3 | `ExternalTerminalLaunchResult` | Phase A `external_term_launch` 返回（success / failed_reason） | A |
-| 4 | `EnvPreview` | Phase A `external_term_preview_env` 返回（visible_entries: Vec\<EnvEntry\> + filtered_count: u32） | A |
-| 5 | `EnvEntry` | `EnvPreview` 内嵌（key + value_truncated: String 最长 40 char + is_sensitive_redacted: bool） | A |
-| 6 | `PaneDetachOpenRequest` | Phase B `pane_detach_open` 入参（pane_id） | B |
-| 7 | `PaneDetachOpenResult` | Phase B `pane_detach_open` 返回（window_label + initial_bounds: Rect） | B |
-| 8 | `PaneDetachCloseRequest` | Phase B `pane_detach_close` 入参（window_label） | B |
-| 9 | `PaneDetachCloseResult` | Phase B `pane_detach_close` 返回（pane_id reattached） | B |
-| 10 | `PaneDetachListEntry` | Phase B `pane_detach_list` 返回的单项（window_label + pane_id + bounds） | B |
-| 11 | `PaneDetachStateEvent` | Phase B 事件 payload（pane_detach_state_changed · pane_id + action: "detached" \| "attached" + window_label?: Option\<String\>） | B |
+| #   | Struct/Enum                     | 用途                                                                                                                             | Phase |
+| --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| 1   | `ExternalTerminalInfo`          | Phase A `external_term_list` 返回单个终端 info（id / name / icon_path? / detected）                                              | A     |
+| 2   | `ExternalTerminalLaunchRequest` | Phase A `external_term_launch` 入参（terminal_id + pane_id + override_env?）                                                     | A     |
+| 3   | `ExternalTerminalLaunchResult`  | Phase A `external_term_launch` 返回（success / failed_reason）                                                                   | A     |
+| 4   | `EnvPreview`                    | Phase A `external_term_preview_env` 返回（visible_entries: Vec\<EnvEntry\> + filtered_count: u32）                               | A     |
+| 5   | `EnvEntry`                      | `EnvPreview` 内嵌（key + value_truncated: String 最长 40 char + is_sensitive_redacted: bool）                                    | A     |
+| 6   | `PaneDetachOpenRequest`         | Phase B `pane_detach_open` 入参（pane_id）                                                                                       | B     |
+| 7   | `PaneDetachOpenResult`          | Phase B `pane_detach_open` 返回（window_label + initial_bounds: Rect）                                                           | B     |
+| 8   | `PaneDetachCloseRequest`        | Phase B `pane_detach_close` 入参（window_label）                                                                                 | B     |
+| 9   | `PaneDetachCloseResult`         | Phase B `pane_detach_close` 返回（pane_id reattached）                                                                           | B     |
+| 10  | `PaneDetachListEntry`           | Phase B `pane_detach_list` 返回的单项（window_label + pane_id + bounds）                                                         | B     |
+| 11  | `PaneDetachStateEvent`          | Phase B 事件 payload（pane_detach_state_changed · pane_id + action: "detached" \| "attached" + window_label?: Option\<String\>） | B     |
 
 共 **11 个新 binding**（原 12 · 修订移除 LayoutLeafState · 见 §数据模型变更修订记录 · detached state 改 runtime-only · 不扩 LayoutNode schema）。
 
 ### G.2 IPC command 清单
 
-| # | Command | 入参 | 返回 | Phase | Permission |
-|---|---|---|---|---|---|
-| 1 | `external_term_list` | `()` | `Vec<ExternalTerminalInfo>` | A | `allow-external-term-list` |
-| 2 | `external_term_preview_env` | `pane_id: PaneId` | `EnvPreview` | A | `allow-external-term-preview-env` |
-| 3 | `external_term_launch` | `ExternalTerminalLaunchRequest` | `ExternalTerminalLaunchResult` | A | `allow-external-term-launch` |
-| 4 | `pane_detach_open` | `PaneDetachOpenRequest` | `PaneDetachOpenResult` | B | `allow-pane-detach-open` |
-| 5 | `pane_detach_close` | `PaneDetachCloseRequest` | `PaneDetachCloseResult` | B | `allow-pane-detach-close` |
-| 6 | `pane_detach_list` | `()` | `Vec<PaneDetachListEntry>` | B | `allow-pane-detach-list` |
+| #   | Command                     | 入参                            | 返回                           | Phase | Permission                        |
+| --- | --------------------------- | ------------------------------- | ------------------------------ | ----- | --------------------------------- |
+| 1   | `external_term_list`        | `()`                            | `Vec<ExternalTerminalInfo>`    | A     | `allow-external-term-list`        |
+| 2   | `external_term_preview_env` | `pane_id: PaneId`               | `EnvPreview`                   | A     | `allow-external-term-preview-env` |
+| 3   | `external_term_launch`      | `ExternalTerminalLaunchRequest` | `ExternalTerminalLaunchResult` | A     | `allow-external-term-launch`      |
+| 4   | `pane_detach_open`          | `PaneDetachOpenRequest`         | `PaneDetachOpenResult`         | B     | `allow-pane-detach-open`          |
+| 5   | `pane_detach_close`         | `PaneDetachCloseRequest`        | `PaneDetachCloseResult`        | B     | `allow-pane-detach-close`         |
+| 6   | `pane_detach_list`          | `()`                            | `Vec<PaneDetachListEntry>`     | B     | `allow-pane-detach-list`          |
 
 共 6 个新 IPC + 6 permission（`permissions/external_term.toml` 3 个 + `permissions/pane_detach.toml` 3 个）。
 
 ### G.3 事件清单
 
-| # | Event 名 | Payload | 触发时机 |
-|---|---|---|---|
-| 1 | `pane_detach_state_changed` | `PaneDetachStateEvent` | detached window 创建 / 关闭 / 异常 close |
-| 2 | `external_term_launched` | `{ terminal_id: String, pane_id: PaneId }` | 外部终端成功启动后 emit · UI 关闭对话框 |
+| #   | Event 名                    | Payload                                    | 触发时机                                 |
+| --- | --------------------------- | ------------------------------------------ | ---------------------------------------- |
+| 1   | `pane_detach_state_changed` | `PaneDetachStateEvent`                     | detached window 创建 / 关闭 / 异常 close |
+| 2   | `external_term_launched`    | `{ terminal_id: String, pane_id: PaneId }` | 外部终端成功启动后 emit · UI 关闭对话框  |
 
 ### G.4 H2 regression proof（详化时实施 PR 验证）
 
 按 ADR-014 §H2 标准 6 步：
+
 1. 改 Rust struct 字段名 → 实施 PR cargo build 通过
-2. cargo build (ts-rs export) → bindings/*.ts 更新
+2. cargo build (ts-rs export) → bindings/\*.ts 更新
 3. 前端 caller 命中字段错 → pnpm typecheck fail
 4. 修复前端 caller → typecheck pass
-5. CI 验证：bindings/*.ts 是 git tracked · diff 显示前后变化
+5. CI 验证：bindings/\*.ts 是 git tracked · diff 显示前后变化
 6. 文档 link：实施 PR 在 spec §G.4 标记 "H2 proof done @ PR #XXX"
 
 ---
@@ -394,14 +395,14 @@ impl DetachedPaneMap {
 
 ## ⚠️ 风险（Risks）
 
-| ID | 风险 | 触发条件 | 缓解 | 严重度 |
-|---|---|---|---|---|
-| R1 | env 泄漏 API key | 用户在 shell `export OPENAI_API_KEY=...` 后 Pop to External | 黑名单层强制 redact `OPENAI` 字段名 · §H.3 + B.3 单测 | 🔴 high |
-| R2 | detached window 关闭 → Pane 状态丢失 | IPC channel race · close 事件先于 DetachedPaneMap 移除完成 | D.5 异常路径 IPC channel close listener + `DetachedPaneMap::remove` idempotent + 事件 retry once | 🟡 medium |
-| R3 | Pane Detach + Maximized 状态冲突 | MVP-14 ⌘Enter maximize 后再 detach | G.2 detach 前自动取消 maximize | 🟡 medium |
-| R4 | 多 detached window IPC 拥堵 | 5+ detached 并存 · 每个独立 IPC channel · main process 处理压力 | 当前 KISS · D.3 测 3 detached 稳态 OK · > 4 时 toast 警告 · v0.4 评估 channel multiplexing | 🟢 low |
-| R5 | macOS Gatekeeper 阻止 detached window | unsigned alpha build · macOS 13+ Gatekeeper 对 sub-window 二次询问 | 复用 MVP-10 §I.D Gatekeeper bypass 指引 · README 已有 | 🟢 low |
-| R6 | Linux Wayland detached 窗口失焦 | Wayland security model 不允许 raise window programmatically | C.1 仅默认 offset 创建 · 不强制 raise · 用户自己点 alt-tab | 🟢 low |
+| ID  | 风险                                  | 触发条件                                                           | 缓解                                                                                             | 严重度    |
+| --- | ------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------- |
+| R1  | env 泄漏 API key                      | 用户在 shell `export OPENAI_API_KEY=...` 后 Pop to External        | 黑名单层强制 redact `OPENAI` 字段名 · §H.3 + B.3 单测                                            | 🔴 high   |
+| R2  | detached window 关闭 → Pane 状态丢失  | IPC channel race · close 事件先于 DetachedPaneMap 移除完成         | D.5 异常路径 IPC channel close listener + `DetachedPaneMap::remove` idempotent + 事件 retry once | 🟡 medium |
+| R3  | Pane Detach + Maximized 状态冲突      | MVP-14 ⌘Enter maximize 后再 detach                                 | G.2 detach 前自动取消 maximize                                                                   | 🟡 medium |
+| R4  | 多 detached window IPC 拥堵           | 5+ detached 并存 · 每个独立 IPC channel · main process 处理压力    | 当前 KISS · D.3 测 3 detached 稳态 OK · > 4 时 toast 警告 · v0.4 评估 channel multiplexing       | 🟢 low    |
+| R5  | macOS Gatekeeper 阻止 detached window | unsigned alpha build · macOS 13+ Gatekeeper 对 sub-window 二次询问 | 复用 MVP-10 §I.D Gatekeeper bypass 指引 · README 已有                                            | 🟢 low    |
+| R6  | Linux Wayland detached 窗口失焦       | Wayland security model 不允许 raise window programmatically        | C.1 仅默认 offset 创建 · 不强制 raise · 用户自己点 alt-tab                                       | 🟢 low    |
 
 ---
 
@@ -444,20 +445,20 @@ impl DetachedPaneMap {
 
 按 MVP-14 / MVP-16 详化标准 12 项：
 
-| # | 项 | 状态 |
-|---|---|---|
-| 1 | 目标 / 背景清晰 | ✅ |
-| 2 | Phase 拆分（≥ 3 phase · 文件域 + 依赖明确） | ✅（A/B/C/D · 表内含文件域 + 依赖） |
-| 3 | Scope Do / Don't 边界清晰 | ✅ |
-| 4 | UI 引用（含截图归档目录） | ✅ |
-| 5 | Acceptance ≥ 25 项（A-H 8 节） | ✅（A.1-A.5 / B.1-B.5 / C.1-C.5 / D.1-D.5 / E.1-E.4 / F.1-F.3 / G.1-G.5 / H.1-H.5 = 37 项） |
-| 6 | 测试策略（单元 / 集成 / E2E / runtime） | ✅ |
-| 7 | 数据模型变更（含迁移） | ✅（serde default 兼容 · 无 DB migration） |
-| 8 | IPC contract（ts-rs binding ≥ 5） | ✅（12 binding + 6 IPC + 2 event） |
-| 9 | 决策锁定（≥ 3 H.x） | ✅（H.1-H.5 5 项） |
-| 10 | 风险表（R1-R5+） | ✅（R1-R6 6 项 · R1 high · R2/R3 medium · R4-R6 low） |
-| 11 | H2 regression proof 说明 | ✅（§G.4 引用 ADR-014） |
-| 12 | 自审四问 | ✅（见下） |
+| #   | 项                                          | 状态                                                                                        |
+| --- | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 1   | 目标 / 背景清晰                             | ✅                                                                                          |
+| 2   | Phase 拆分（≥ 3 phase · 文件域 + 依赖明确） | ✅（A/B/C/D · 表内含文件域 + 依赖）                                                         |
+| 3   | Scope Do / Don't 边界清晰                   | ✅                                                                                          |
+| 4   | UI 引用（含截图归档目录）                   | ✅                                                                                          |
+| 5   | Acceptance ≥ 25 项（A-H 8 节）              | ✅（A.1-A.5 / B.1-B.5 / C.1-C.5 / D.1-D.5 / E.1-E.4 / F.1-F.3 / G.1-G.5 / H.1-H.5 = 37 项） |
+| 6   | 测试策略（单元 / 集成 / E2E / runtime）     | ✅                                                                                          |
+| 7   | 数据模型变更（含迁移）                      | ✅（serde default 兼容 · 无 DB migration）                                                  |
+| 8   | IPC contract（ts-rs binding ≥ 5）           | ✅（12 binding + 6 IPC + 2 event）                                                          |
+| 9   | 决策锁定（≥ 3 H.x）                         | ✅（H.1-H.5 5 项）                                                                          |
+| 10  | 风险表（R1-R5+）                            | ✅（R1-R6 6 项 · R1 high · R2/R3 medium · R4-R6 low）                                       |
+| 11  | H2 regression proof 说明                    | ✅（§G.4 引用 ADR-014）                                                                     |
+| 12  | 自审四问                                    | ✅（见下）                                                                                  |
 
 **完成度**：12/12 = **100%**（建议 Arbiter approve PR 后翻 status: ready 翻转）。
 
@@ -474,18 +475,18 @@ impl DetachedPaneMap {
    - Pane 已 maximized → G.2 detach 前先取消 maximize
    - Pane 已 detached → G.3/G.4 no-op + toast
    - 全部 Pane 都 detached → G.5 主窗口空 layout · toast 提示
-   ✅
+     ✅
 3. **边界适用性**：
    - 平台：macOS 13+ + Ubuntu 24 (X11/Wayland) · Windows 推 v0.4（F.3 明示）
    - 终端：5 个（macOS 4 + Linux 4 · 交集 2）· 顺序明确 · 0 检测到也覆盖
    - 并发：detached 数 ≥ 3 稳定 · > 4 toast 警告（R4 缓解）
    - 状态机：Attached / Detached 2 态 · runtime-only `DetachedPaneMap` HashMap · 不持久化 · 0 LayoutNode schema 变更（D.2 + H.5 一致）
-   ✅
+     ✅
 4. **YAGNI**：
    - cross-window drag · global shortcut · detached menubar 独立 · detached 内分屏 · 双向同步 → 全部明示 don't do · 推 v0.4 / v1.0
    - state pool / persist detached state across restart → 明示 not now
    - 自定义 env 白名单 → 推 v0.4（read-only 显示 v0.3 已够用）
-   ✅
+     ✅
 
 ---
 

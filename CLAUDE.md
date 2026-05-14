@@ -37,10 +37,12 @@
         - **(b) Author push 翻转 commit 后 Reviewer 对最新 HEAD re-approve**（GitHub 分支保护应开启 "require approval from latest commit"）
       - 同规则适用于 spec PR 的 `draft → ready` 翻转（详见 `docs/tasks/README.md` 第 7 步）
    5. **合入后 CI 验证**（session 14 事件制度化 · 2026-04-21）· merge 后 5-10 min 内 · 每次必查合入 commit 的 CI 状态：
+
       ```bash
       gh api "repos/tajiaoyezi/vibestation/commits/$(git rev-parse HEAD)/check-runs" \
         --jq '.check_runs[] | "\(.conclusion // .status) · \(.name)"'
       ```
+
       - 任一 `conclusion=failure` → **立即开 fix PR**（例 PR #86 修 pty Linux ignore + prettier）· 不得拖到下一次 review 才发现
       - 原因：repo 未启 branch protection required check · `gh pr merge --auto` 遇 pending CI 会**瞬合**（分支保护不生效）· 合入后 CI 后 fail 会被淹没
       - 反模式：看 `gh pr checks <N>` 显示 `pending` 就 `--auto merge` 走人 · 不回头 check · 未来 agent 继承 failure status
@@ -52,29 +54,29 @@
 
 ## 🔒 决策状态表（不要重新讨论）
 
-分 3 档。**锁定依据**指向 `docs/implementation-plan.md` 具体章节（ADR 文件 `docs/adr/` 在 Phase 3 建立后替换为 ADR 路径）。
+分 3 档。**锁定依据**优先指向 `docs/adr/`；未建 ADR 的历史项继续指向 `docs/implementation-plan.md` / 原型 / 已落地 hook 源。
 
 ### A. 永久锁定（Decision locked · 除非写 ADR 推翻）
 
-| # | 决策 | 依据 |
-|---|------|------|
-| 1 | 许可证 = **Apache License 2.0**（不签 CLA）| `implementation-plan.md` §11 |
-| 2 | MVP 范围 = **B 折中方案**（保留配置导入 + commit + 基础 Diff + 单层 Pane；砍 push/pull/fetch + 自绘 rail graph）| `implementation-plan.md` §10.1 |
-| 3 | **AI-Aware Pane 联动** = **v1.0 vision**（README / landing / 所有对外宣传不得提及"Mission Control / AI session aware"）| `implementation-plan.md` §1.1 · §5.3 |
-| 4 | 视觉方向 = **Calm Studio**（对标 Linear/Zed/Raycast）| `design/directions/1-calm-studio.html` |
-| 5 | Cargo workspace = **2 crate**（`app` + `core`），v0.2 再按需拆 | `implementation-plan.md` §3.2 |
-| 6 | 前端栈 = **SolidJS + TypeScript + xterm.js**（不碰 Floem）| `implementation-plan.md` §3.1 |
-| 7 | Diff 渲染 = **自建**（`diff` crate + Canvas/HTML，**不用 Monaco**）| `implementation-plan.md` §3.1 |
-| 8 | 平台 MVP = **macOS + Ubuntu 24**，Windows 推到 v0.4 | `implementation-plan.md` §3.1 |
-| 9 | Tool Windows 默认状态 = **Primary Sidebar 展开 · Secondary + Bottom 收起**（与原型 `design/directions/1-calm-studio.html` `DEFAULT_STATE` 一致）| 原型 JS |
-| 10 | Telemetry = **默认关闭 + 首次启动弹 opt-in**（匿名 crash + 版本号 · GDPR/CCPA 合规）| `implementation-plan.md` §5.1 · R30 · [ADR-015](./docs/adr/ADR-015-telemetry-stack-sentry.md)（accepted @ 2026-04-26）|
-| 11 | Landing page 栈 = **Astro + 自建动效** | `implementation-plan.md` §12 |
-| 13 | Git 栈 = **写 `git2 0.20` · 读 `gix 0.70` 混用**（SPIKE-03 benchmark · 2026-04-19 accepted · B → A）| [ADR-007](./docs/adr/ADR-007-git-stack.md) · [SPIKE-03-report](./docs/spikes/SPIKE-03-report.md) |
-| 14 | 本地存储 = **`rusqlite` 0.31+ + r2d2_sqlite**（SPIKE-04 benchmark · 2026-04-19 accepted · redb 2.6.3 B.2 坏库检测 FAIL · supersede · SPIKE-04.5 B.1-5 全过 · A.3 方案(a) MVP 接受 220ms）| [ADR-005](./docs/adr/ADR-005-local-storage.md) · [SPIKE-04-report](./docs/spikes/SPIKE-04-report.md) · [SPIKE-04.5-report](./docs/spikes/SPIKE-04.5-report.md) |
-| 15 | PTY 方案 = **`portable-pty` + 共享读线程 + bounded mpsc + `drop-oldest`**（SPIKE-05 HOL/boundedness PASS · SPIKE-05.5 证明 visible throughput 瓶颈不在 reader）| [ADR-003](./docs/adr/ADR-003-pty-architecture.md) · [SPIKE-05-report](./docs/spikes/SPIKE-05-report.md) · [SPIKE-05.5-report](./docs/spikes/SPIKE-05.5-report.md) |
-| 18 | Runtime 证据路径 = **`docs/runtime-evidence/<task-id>/`**（MVP / feature · 进 git · Spike 走独立 4 样齐全归档）| [ADR-011](./docs/adr/ADR-011-runtime-evidence-location.md) · [`.claude/rules/runtime-evidence-location.md`](./.claude/rules/runtime-evidence-location.md) |
-| 19 | 桌面框架 = **Tauri 2**（**2026-04-25 session 19 双平台验证完成** · macOS Phase A 冷启动 202ms / 10 稳定 · Ubuntu Phase B X11 108ms + Wayland 107ms / 30 stable · IME fcitx5 conditional PASS · plugin smoke 全过 · ADR-006 accepted Ubuntu validated · fallback Electron 28+ 不再触发） | [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md) |
-| 20 | Branch protection 机械化 = **`.githooks/pre-push` + `package.json prepare`**（PR #145 · 2026-04-25 session 19 落地）· 每台机器 clone + `pnpm install` 自动配 `core.hooksPath = .githooks` · 直推 main 被本地 hook reject · `SKIP_BRANCH_PROTECT=1` Arbiter override · 无 husky 依赖 · v0.2 评估升级 GitHub Pro 或仓库公开补硬墙（branch protection + required reviewer + CODEOWNERS） | [`.githooks/pre-push`](./.githooks/pre-push) · [`package.json prepare`](./package.json) · CLAUDE.md L131 |
+| #   | 决策                                                                                                                                                                                                                                                                                                                                                                                  | 依据                                                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 许可证 = **Apache License 2.0**（不签 CLA）                                                                                                                                                                                                                                                                                                                                           | [ADR-001](./docs/adr/ADR-001-license-apache-2.0.md) · `implementation-plan.md` §11                                                                                |
+| 2   | MVP 范围 = **B 折中方案**（保留配置导入 + commit + 基础 Diff + 单层 Pane；砍 push/pull/fetch + 自绘 rail graph）                                                                                                                                                                                                                                                                      | [ADR-002](./docs/adr/ADR-002-mvp-scope-b-compromise.md) · `implementation-plan.md` §10.1                                                                          |
+| 3   | **AI-Aware Pane 联动** = **v1.0 vision**（README / landing / 所有对外宣传不得提及"Mission Control / AI session aware"）                                                                                                                                                                                                                                                               | [ADR-009](./docs/adr/ADR-009-ai-aware-v1-vision.md) · `implementation-plan.md` §1.1 · §5.3                                                                        |
+| 4   | 视觉方向 = **Calm Studio**（对标 Linear/Zed/Raycast）                                                                                                                                                                                                                                                                                                                                 | `design/directions/1-calm-studio.html`                                                                                                                            |
+| 5   | Cargo workspace = **2 crate**（`app` + `core`），v0.2 再按需拆                                                                                                                                                                                                                                                                                                                        | [ADR-010](./docs/adr/ADR-010-cargo-workspace-2-crate.md) · `implementation-plan.md` §3.2                                                                          |
+| 6   | 前端栈 = **SolidJS + TypeScript + xterm.js**（不碰 Floem）                                                                                                                                                                                                                                                                                                                            | [ADR-004](./docs/adr/ADR-004-frontend-stack.md) · `implementation-plan.md` §3.1                                                                                   |
+| 7   | Diff 渲染 = **自建**（`diff` crate + Canvas/HTML，**不用 Monaco**）                                                                                                                                                                                                                                                                                                                   | [ADR-008](./docs/adr/ADR-008-diff-renderer-custom.md) · `implementation-plan.md` §3.1                                                                             |
+| 8   | 平台 MVP = **macOS + Ubuntu 24**，Windows 推到 v0.4                                                                                                                                                                                                                                                                                                                                   | `implementation-plan.md` §3.1                                                                                                                                     |
+| 9   | Tool Windows 默认状态 = **Primary Sidebar 展开 · Secondary + Bottom 收起**（与原型 `design/directions/1-calm-studio.html` `DEFAULT_STATE` 一致）                                                                                                                                                                                                                                      | 原型 JS                                                                                                                                                           |
+| 10  | Telemetry = **默认关闭 + 首次启动弹 opt-in**（匿名 crash + 版本号 · GDPR/CCPA 合规）                                                                                                                                                                                                                                                                                                  | `implementation-plan.md` §5.1 · R30 · [ADR-015](./docs/adr/ADR-015-telemetry-stack-sentry.md)（accepted @ 2026-04-26）                                            |
+| 11  | Landing page 栈 = **Astro + 自建动效**                                                                                                                                                                                                                                                                                                                                                | `implementation-plan.md` §12                                                                                                                                      |
+| 13  | Git 栈 = **写 `git2 0.20` · 读 `gix 0.70` 混用**（SPIKE-03 benchmark · 2026-04-19 accepted · B → A）                                                                                                                                                                                                                                                                                  | [ADR-007](./docs/adr/ADR-007-git-stack.md) · [SPIKE-03-report](./docs/spikes/SPIKE-03-report.md)                                                                  |
+| 14  | 本地存储 = **`rusqlite` 0.31+ + r2d2_sqlite**（SPIKE-04 benchmark · 2026-04-19 accepted · redb 2.6.3 B.2 坏库检测 FAIL · supersede · SPIKE-04.5 B.1-5 全过 · A.3 方案(a) MVP 接受 220ms）                                                                                                                                                                                             | [ADR-005](./docs/adr/ADR-005-local-storage.md) · [SPIKE-04-report](./docs/spikes/SPIKE-04-report.md) · [SPIKE-04.5-report](./docs/spikes/SPIKE-04.5-report.md)    |
+| 15  | PTY 方案 = **`portable-pty` + 共享读线程 + bounded mpsc + `drop-oldest`**（SPIKE-05 HOL/boundedness PASS · SPIKE-05.5 证明 visible throughput 瓶颈不在 reader）                                                                                                                                                                                                                       | [ADR-003](./docs/adr/ADR-003-pty-architecture.md) · [SPIKE-05-report](./docs/spikes/SPIKE-05-report.md) · [SPIKE-05.5-report](./docs/spikes/SPIKE-05.5-report.md) |
+| 18  | Runtime 证据路径 = **`docs/runtime-evidence/<task-id>/`**（MVP / feature · 进 git · Spike 走独立 4 样齐全归档）                                                                                                                                                                                                                                                                       | [ADR-011](./docs/adr/ADR-011-runtime-evidence-location.md) · [`.claude/rules/runtime-evidence-location.md`](./.claude/rules/runtime-evidence-location.md)         |
+| 19  | 桌面框架 = **Tauri 2**（**2026-04-25 session 19 双平台验证完成** · macOS Phase A 冷启动 202ms / 10 稳定 · Ubuntu Phase B X11 108ms + Wayland 107ms / 30 stable · IME fcitx5 conditional PASS · plugin smoke 全过 · ADR-006 accepted Ubuntu validated · fallback Electron 28+ 不再触发）                                                                                               | [ADR-006](./docs/adr/ADR-006-desktop-framework.md) · [SPIKE-01-report](./docs/spikes/SPIKE-01-report.md) · [SPIKE-02-report](./docs/spikes/SPIKE-02-report.md)    |
+| 20  | Branch protection 机械化 = **`.githooks/pre-push` + `package.json prepare`**（PR #145 · 2026-04-25 session 19 落地）· 每台机器 clone + `pnpm install` 自动配 `core.hooksPath = .githooks` · 直推 main 被本地 hook reject · `SKIP_BRANCH_PROTECT=1` Arbiter override · 无 husky 依赖 · v0.2 评估升级 GitHub Pro 或仓库公开补硬墙（branch protection + required reviewer + CODEOWNERS） | [`.githooks/pre-push`](./.githooks/pre-push) · [`package.json prepare`](./package.json) · 本文件 §禁区                                                            |
 
 ### B. 默认已选 + Spike 后最终锁定
 
@@ -82,10 +84,10 @@
 
 ### C. 时间锁定，结果开放
 
-| # | 决策 | 时间点 | 候选 |
-|---|------|-------|------|
-| 16 | 项目域名 TLD | W10 附近 | `.app` / `.dev` / `.io` |
-| 17 | Logo 最终定稿 | v0.1 发布前 | `design/logos/wordmark-a.svg` + `mark.svg`（可能再补 combo）|
+| #   | 决策          | 时间点      | 候选                                                         |
+| --- | ------------- | ----------- | ------------------------------------------------------------ |
+| 16  | 项目域名 TLD  | W10 附近    | `.app` / `.dev` / `.io`                                      |
+| 17  | Logo 最终定稿 | v0.1 发布前 | `design/logos/wordmark-a.svg` + `mark.svg`（可能再补 combo） |
 
 ---
 
@@ -188,43 +190,42 @@ gh pr create
 
 ## 🤝 多 Agent 协作（简版）
 
-本项目欢迎任意 agent 工具（Claude Code / Codex / Cursor / Aider / OpenCode / Windsurf / Gemini / 自建 …）。**不绑定具体 agent 身份**。
+本项目欢迎任意 agent 工具（Claude Code / Codex CLI / Cursor / OpenCode / Droid / Kimi / Aider / Windsurf / Gemini / 自建 …）。**不绑定具体 agent 身份**。
 
-**当前阶段（代码实施期）规则**：
+**当前治理基线（v2-D.2 · ADR-012 + ADR-016）**：
 
-1. **禁止 push main**：任何变更走 feature 分支（命名 `<scope>/<slug>`，如 `docs/phase-2-tasks` · `feat/git-log`）+ PR + 独立评审
-2. **Commit trailer 标识 agent**：`Co-authored-by: <Agent Name> <email>`（例 `Co-authored-by: Claude Code <noreply@anthropic.com>` / `Co-authored-by: Codex CLI <noreply@openai.com>` / `Co-authored-by: OpenCode <noreply@opencode.ai>`）
-3. **PR description 必填**：`Implemented by: X · Reviewed by: Y`（列具体实例 ID）
-4. **独立评审 = 评审者 ≠ 原实现者**（具体是 Claude 实例 B / Codex / Cursor / 人类均可）
-5. **PR 冲突**：优先 rebase；冲突时**保留两方意图**；单值冲突（如 PROGRESS 的 Active branch）由 Arbiter（用户）仲裁
+1. **禁止 push main**：任何变更走 feature 分支（命名 `<scope>/<slug>`，如 `docs/phase-2-tasks` · `feat/git-log`）+ PR；人工 admin direct push 仅限事故恢复，并按 ADR-016 写 audit marker
+2. **Commit trailer 标识 agent**：`Co-authored-by: <Agent Name> <email>`（例 `Co-authored-by: Codex CLI <noreply@openai.com>` / `Co-authored-by: OpenCode <noreply@opencode.ai>` / `Co-authored-by: Cursor <noreply@cursor.com>`）
+3. **PR body trailer 必填**：`Implemented by` / `Reviewed by` / `Arbiter approval` 三行齐全；单人项目下 `Reviewed by` 可为 self-review 或 internal cross-review，GitHub UI self-approve 不可用
+4. **PR 冲突**：优先 rebase；冲突时**保留两方意图**；单值冲突（如 PROGRESS 的当前阶段摘要）由 Arbiter（用户）仲裁
+5. **≥ 3-agent 并发**：push 前必须 `git fetch origin && git rebase origin/main`，并重跑对应 gate（见 dispatch §2.15）
 
-**本规则为初版**，随 Phase 2-4 真实冲突场景迭代。不追求一次性完美。任务 claim 机制等复杂治理，**Phase 2 真遇到并发问题再加**。
+**session 31 协作 sink**：
+
+- **4-agent dispatch pool 已跑三轮**：v1.0 vision 4 spec 详化、M-2 archive / cleanup、docs README 升级均按文件域隔离执行；`extensions.worktreeConfig=true` + `git config --worktree` 继续作为身份隔离硬要求
+- **Cursor 双形态**：`cursor-agent` CLI 按本地 CLI 处理；Cursor IDE 内嵌 chat 按 IDE 插件处理，dispatch prompt 必须写明 `完工 = PR 链接生成 · 不允许停下问 user 是否 commit/push/PR`（PR #313 暴露首轮停在 commit 前）
+- **OpenCode N=4 受限策略闭合**：保留在机械重构 / 文档 sync / grep 可验证任务内；PR #311 的 markdown prettier understanding gap 已沉淀为 dispatch §2.10 显式 `npx prettier --check <markdown-file>`，PR #321 文档任务成功后继续留 pool
+- **Kimi 远程 API**：只派 spec review / draft 任务；prompt 必须附待审文件原文，不能只给本地路径
 
 ---
 
-## 🏁 当前可执行动作（session 19 · 4 track 并发派工 + MVP-11 规划）
+## 🏁 当前可执行动作（session 31 末 · v1.0 vision ready-gate 前）
 
-**代码已落地**（`crates/app/` + `crates/core/` + `web/` 已在仓库中）。`main` 当前已包含 `PR #106-#116`：session 18 共 11 PR merge · `MVP-04` Phase D shell 兼容 done · `MVP-05` Phase A storage prep · `MVP-08` Phase D fs watch + Phase E 4/5 runtime 证据 · `MVP-09` Phase A git2 写路径后端 · `MVP-10` Phase A 设置面板前端 · MVP-05/09/10 spec ready 加强（Kimi 主导）。
+**代码状态**：
 
-**v0.1 状态快照**（详见 `docs/PROGRESS.md`）：
+- **v0.1 / v0.2 / v0.3 sprint 完整代码 100% 收口**：v0.3 sprint MVP-12/13/14/15/16/17 已完成实施侧收口；MVP-21 v0.2 sprint 已 done；剩余是 Phase D GUI / DevTools / 视觉回归 / WCAG / 跨平台 capture 的 deferred playbook，不阻塞代码主线
+- **v1.0 vision 4 spec 详化完成，仍待 Arbiter approve flip ready**：MVP-18（611 行 · 48 checkbox · PR #309 · Codex CLI）、MVP-19（740 行 · 43 checkbox · PR #313 · Cursor）、MVP-20（647 行 · 25 checkbox + 12 sub · PR #312 · Droid）、SPIKE-07（611 行 · 43 checkbox · PR #311 · OpenCode）合计约 2609 行；在 approve flip 前不得当作 ready 实施任务
+- **session 31 housekeeping 已同步主索引 / schedule**：tasks README v1.0 spec 状态 PR #316、tasks README sprint overview PR #322、ADR README PR #318、runtime evidence README PR #320、spikes README PR #321、dispatch template §2.9/§2.10 sink PR #323、v0.2/v0.3 schedule PR #324 已在 main
+- **协作模式实证**：4-agent dispatch pool 连续 3 轮文件域 0 冲突运行；Cursor IDE 模式 `完工 = PR 链接` 试金石闭环；OpenCode N=4 受限策略经三次 audit 后以 PR #321 收口
 
-- MVP-02/03/04/07 done
-- MVP-05 ready · Phase A storage prep done · Phase B+ 待推进
-- MVP-06 ready · 未动（低优先）
-- MVP-08 ready · Phase A/B/C/D 全 done · Phase E 🟡 4/5（session 19 OpenCode fix-up）
-- MVP-09 ready · Phase A git_ops 后端 done（PR #116）· session 19 派 Phase B Status 面板接线（Kimi 远程独立电脑）
-- MVP-10 ready · Phase A 设置面板 done · session 19 派 Phase B Sentry Spike + ADR（Codex）
-- **MVP-11 draft**（Native Feel Quality · 对标 MUX0 · 治 "web 套壳" 观感）· 主 agent 起草 · 本分支 `docs/MVP-11-native-feel-draft` · 等 Arbiter 独立评审翻 `ready`
-- SPIKE-01/02 §A done · §B Ubuntu validated（PR #137-#139 · ADR-006 解除 caveat · X11 108ms + Wayland 107ms / 30 cold boot 0 fail · IME fcitx5 PASS）· SPIKE-06 §A done · §B Apple Dev **推 v0.2**（session 20 · 2026-04-26 决策 · v0.1 alpha unsigned 模式 + README Gatekeeper bypass 指引替代 · 不阻塞 v0.1 alpha 发版）
+**下一步候选**：
 
-**session 19 进行中的 4 track**（2026-04-25）：
+1. **v1.0 vision 4 spec approve flip ready**：Arbiter 审 MVP-18 / MVP-19 / MVP-20 / SPIKE-07，批准后由 reviewer / assigned agent 翻 `draft → ready`
+2. **Phase D capture playbook**：按 PR #271 跑 v0.3 sprint MVP-12/13/14/15/16/17 的 GUI / metrics / visual / accessibility capture；完成后统一翻相关 spec done
+3. **v1.0 implementation kickoff**：仅在第 1 项 ready-gate 通过且 Arbiter 明确选择 session 32 方向后启动，不提前承诺 timeline
+4. **deferred items 继续停在 Arbiter 自定时机**：MVP-04 §I 22 PNG + 2 MOV、MVP-05 / MVP-09 / MVP-13 / MVP-21 Phase D、MVP-10 §F.04 outbound network panel；触发条件仍是 Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段
 
-1. **Kimi（远程独立电脑）· MVP-09 Phase B** · Status 面板 Stage/Unstage 按钮 + CommitBar 新建 + 错误处理（IdentityMissing / DetachedHead / PreCommitHook）· dispatch prompt `spike-tmp/dispatch/MVP-09-phase-B-status-panel-kimi-remote-prompt.md`
-2. **OpenCode（本地 CLI）· MVP-08 Phase E fix-up** · 第 5 张 fs watch 录屏 + A.2/A.6/F.3 DevTools 量化 + Phase D 7 PNG 按 ADR-011 R3 重命名 · dispatch `spike-tmp/dispatch/MVP-08-phase-E-fixup-opencode-prompt.md`
-3. **Codex（本地 CLI）· MVP-10 Phase B Sentry Spike + ADR**（proposed）· §H.1.1 4 步验证 → ADR-XXX-telemetry-stack-sentry.md · 等 Arbiter approve 后派 Phase B 编码 · dispatch `spike-tmp/dispatch/MVP-10-phase-B-sentry-spike-codex-prompt.md`
-4. **主 agent · MVP-11 spec 起草 + Spike 笔记** · `docs/tasks/MVP-11-native-feel-quality.md`（本分支 draft）+ `spike-tmp/local-notes/MVP-11-vibrancy-spike-notes.md`（Tauri windowEffects 文档级 Spike 通过 · runtime 待 Phase 1 实施）
-
-详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)。
+详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)；任务索引与 v1.0 spec 行数见 [`docs/tasks/README.md`](./docs/tasks/README.md)。
 
 ---
 

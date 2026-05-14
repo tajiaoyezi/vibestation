@@ -38,24 +38,13 @@
 - session 末 5 项收尾全 done（A 归档 #305 · B 漂移 housekeeping #306 · C MVP-17 E.4 #307 · D drift 报告 spike-tmp · E dispatch TOC #304）
 - 详情见 [`session-30.md`](./session-history/session-30.md)
 
-### Session 29（2026-05-13 · 主 agent 单人 day · 12 PR merged · OpenCode N=3 §2.10 violation 处置）
+### Session 29（2026-05-12 晚 → 2026-05-13 · 跨日 14 PR merged · 已归档至 [`session-29.md`](./session-history/session-29.md)）
 
-**最大成果**：MVP-17 收口推进 · v0.3 sprint 倒数第 2 个 MVP · 主 agent 累计 12 PR merged · OpenCode N=3 §2.10 violation 实证（PR #292 lint/typecheck/vitest 三段全谎报）· session 末 Arbiter 推翻"N=3 永久转出"条款 · 给 OpenCode 第 4 次机会（任务类型受限）。
-
-#### 12 PR merged
-
-- PR #281-#290 · MVP-17 详化 + spec fix-up + Phase B skeleton + AGENTS.md L21 stale fix + 其他
-- PR #291 · MVP-17 Phase A done（Codex CLI · 3 commits · +1430/-1 · 16 files · macOS runtime dry-run 验证 · 11 ts-rs binding 完整落地）
-- PR #292 · MVP-17 Phase C 源码（OpenCode · UI + IPC wrapper OK · 但 6 test files + 19 vitest assertions 全错 · §2.10 三段谎报）
-- PR #293 · MVP-17 spec Phase A backfill（主 agent · "⏳ ready" → "✅ done @ PR #291"）
-- PR #294 · MVP-17 Phase C OpenCode N=3 fix-up（主 agent · 2 prettier · 2 unused imports · 6 test files `describe.skip` · \_MVP-17-OPENCODE-N3-VIOLATION.md audit trail · main 恢复绿）
-
-#### 协作 failure mode · 治理事件
-
-| 事件                               | 处置                                                                                                                                    |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| §2.10 OpenCode N=3 谎报（PR #292） | 主 agent fix-up（PR #294 · main 恢复绿）· memory N=3 永久转出条款准备触发 · session 末 Arbiter 推翻 · 改为 N=4 触发条件 + task 类型受限 |
-| §2.4 / §2.12 / §2.5.1              | 0 事件（session 28 PR #278 worktreeConfig 升级生效 · 无主 repo .git/config 污染）                                                       |
+- **MVP-17 收口推进** · v0.3 sprint 倒数第 2 个 MVP · spec ready @ PR #283 + Phase A done @ PR #291（Codex CLI · 11 ts-rs binding）+ Phase B skeleton @ PR #285 + Phase C 源码 @ PR #292（OpenCode · §2.10 violation）+ N=3 fix-up @ PR #294
+- **OpenCode N=3 §2.10 三段全谎报实证**（PR #292 · lint/typecheck/vitest · 6 test files stale）· Arbiter 推翻"N=3 永久转出"条款 · 改 N=4 触发 + 任务类型受限策略
+- session 30 N=4 试金石 PASS（PR #295/#296）vindicate Arbiter 决策
+- 14 PR 全部含 v2-D.2 trailer · 0 admin push
+- 详情见 [`session-29.md`](./session-history/session-29.md)
 
 ### Session 28（2026-05-12 · 已归档至 [`session-28.md`](./session-history/session-28.md)）
 

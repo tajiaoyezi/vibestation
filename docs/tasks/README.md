@@ -24,6 +24,94 @@
 
 ---
 
+## 🎯 Sprint 状态总览（session 31 末）
+
+### 总述（当前位置）
+
+截至 session 31 末，代码实施层面已经形成三段式状态：
+
+1. **v0.1 / v0.2 / v0.3 的核心代码主线均已达到 100% 收口**（以 `docs/PROGRESS.md` 当前阶段描述与本 README 索引状态为准）。
+2. **v1.0 vision 4 个任务（SPIKE-07 + MVP-18/19/20）已完成 spec 详化**，但 frontmatter 仍为 `draft`，等待 Arbiter approve 后统一翻 `ready`。
+3. **当前阻塞不在编码而在 capture**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动。
+
+这段总览用于“先看全局，再钻索引表”：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段。
+
+### v0.1 sprint 状态（MVP-01..11）
+
+| MVP    | Phase 完成度                                                                  | runtime evidence | 当前状态（以本 README + PROGRESS 为准） |
+| ------ | ----------------------------------------------------------------------------- | ---------------- | --------------------------------------- |
+| MVP-01 | A/B/C done                                                                    | 完整 ✅          | **done**                                |
+| MVP-02 | done                                                                          | 完整 ✅          | **done**                                |
+| MVP-03 | done                                                                          | 完整 ✅          | **done**                                |
+| MVP-04 | A/B/C/E/F done；D shell 兼容历史已收口；§I 22 PNG + 2 MOV 属 deferred capture | 部分 🟡          | **ready**（capture 待 Arbiter）         |
+| MVP-05 | A/B/C done；Phase D capture playbook 已 ready                                 | playbook ready   | **ready**（Phase D 待 Arbiter）         |
+| MVP-06 | parser 层 Phase A/A+ done；B IPC/UI deferred                                  | 已有实现证据     | **ready**                               |
+| MVP-07 | done                                                                          | 完整 ✅          | **done**                                |
+| MVP-08 | A-D done；E partial 历史项保留                                                | 完整 ✅          | **ready**                               |
+| MVP-09 | A/B/C done；Phase D 自动化已闭环，GUI 截图项 deferred                         | 完整 ✅          | **ready**                               |
+| MVP-10 | A/B done；§F.04 outbound panel 与 C/D/E packaging deferred                    | 部分 🟡          | **ready**                               |
+| MVP-11 | 5/5 phases done                                                               | 完整 ✅          | **done**                                |
+
+补充说明：
+
+- `ready` 在本仓库语义常用于“核心实现完成但仍保留 capture/翻转 gate”，并不等同“未实现”。
+- v0.1 剩余项主要是证据补齐，不是 feature gap。
+
+### v0.2 sprint 状态（MVP-22 / MVP-13 / MVP-21）
+
+| MVP    | 范围                         | Phase 完成度                          | 证据状态                   | 当前状态                 |
+| ------ | ---------------------------- | ------------------------------------- | -------------------------- | ------------------------ |
+| MVP-22 | PTY warm pool                | Phase A-D done                        | 完整 ✅                    | **done**                 |
+| MVP-13 | Branch CRUD + Fuzzy Switcher | 全 4 phase done；GUI capture deferred | 自动化 100%                | **ready**                |
+| MVP-21 | Push/Pull/Fetch              | Phase A/B/C/D done                    | GUI 部分 deferred 注记保留 | **done**（当前索引状态） |
+
+v0.2 解读口径：
+
+- MVP-22 与 MVP-21 已是 `done`。
+- MVP-13 处于“代码完成 + capture 待补”的 `ready` 状态。
+- 该组合与 PROGRESS “v0.2 主线代码完成、capture 待跑”结论一致。
+
+### v0.3 sprint 状态（MVP-12/13/14/15/16/17）
+
+| MVP    | 主题                            | 实施完成度（代码）       | Phase D capture                | 当前状态  |
+| ------ | ------------------------------- | ------------------------ | ------------------------------ | --------- |
+| MVP-12 | commit rail graph               | A/B/C 已完成             | 待 Arbiter（PR #271 playbook） | **ready** |
+| MVP-13 | branch CRUD（跨版本承接）       | 代码实现已完成           | 待 Arbiter                     | **ready** |
+| MVP-14 | pane advanced layout            | A/B/C 已完成             | 待 Arbiter                     | **ready** |
+| MVP-15 | diff syntax highlight           | A/B/C + D 自动化子项完成 | GUI/Perf capture 待跑          | **ready** |
+| MVP-16 | rebase/merge/cherry-pick        | A/B/C 已完成             | D 跨平台 capture 待跑          | **ready** |
+| MVP-17 | external terminal + pane detach | A/B/C/E.4 代码收口       | Phase D playbook deferred      | **ready** |
+
+v0.3 结论：
+
+- 6 个 MVP 的代码主线均已收口。
+- 状态仍保留 `ready`，主要由 Phase D capture 与 Arbiter 执行窗口决定。
+- “ready ≠ 未完成”在此阶段尤为重要，应结合 PROGRESS 的 deferred 清单解读。
+
+### v1.0 vision 状态（spec 详化批）
+
+| Task     | 主题                       | 当前状态  | 详化进展                  | PR 参考 |
+| -------- | -------------------------- | --------- | ------------------------- | ------- |
+| SPIKE-07 | CLI parser 验证（R1 gate） | **draft** | 详化完成（待 flip ready） | #311    |
+| MVP-18   | AI-Aware Pane 联动         | **draft** | 详化完成（待 flip ready） | #309    |
+| MVP-19   | session ↔ commit 绑定      | **draft** | 详化完成（待 flip ready） | #313    |
+| MVP-20   | 一键回滚（session revert） | **draft** | 详化完成（待 flip ready） | #312    |
+
+v1.0 vision 结论：
+
+- 当前不是实现阻塞，而是“spec 状态翻转 + SPIKE gate”的流程阻塞。
+- 4 个文档已具备 ready-candidate 密度，等待 Arbiter 决策窗口执行翻转。
+
+### 关联文档（从总览跳转）
+
+- v0.2 计划：`docs/v0.2-sprint-schedule.md`
+- v0.3 计划：`docs/v0.3-sprint-schedule.md`（若本地未同步，请以最新 main 为准）
+- 实时全局：`docs/PROGRESS.md`
+- 历史归档：`docs/session-history/`
+- capture 执行：`docs/playbooks/v0.3-sprint-capture-playbook.md`
+
+---
+
 ## 🔄 状态流转
 
 ```

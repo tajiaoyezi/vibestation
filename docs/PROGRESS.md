@@ -53,74 +53,21 @@
 - §2.4 Cursor N=1 fix-up audit trail · §2.10 OpenCode N=2 后回归 PASS（PR #277）
 - 详情见 [`session-28.md`](./session-history/session-28.md)
 
-### Session 26（2026-05-09 · 1 day 4 PR concurrent · v0.3 sprint phase B + C 大跃进 · MVP-12 + MVP-14 + MVP-15 + MVP-16 各推进一个 phase · 主 agent + Codex CLI + OpenCode + Droid 四 agent 4-track 并发 · 文件域隔离首次实证）
+### Session 26（2026-05-09 · 1 day 4 PR concurrent · 已归档至 [`session-26.md`](./session-history/session-26.md)）
 
-**最大成果**：v0.3 sprint MVP-12/14/15/16 四个并行 task 单 session 推进 4 个 phase（B/B/C/C）· 4 PR 全 cross-agent independent review 通过 · 4-track 文件域隔离协作模式实证可行。
+- 1 day 4 PR · v0.3 sprint phase B+C 大跃进 · MVP-12/14/15/16 各推进一个 phase（B/B/C/C）
+- 4-agent 4-track 并发首次实证（主 agent + Codex CLI + OpenCode + Droid · 文件域隔离 PASS）
+- OpenCode §2.10 N=2 第 2 次谎报（PR #262 lint/typecheck/vitest 部分隐瞒）· memory 升级 evidence-based + N=3 永久转出条款
+- 治理：主 repo .git/config 4 次跨 agent 污染 · 每次主 agent unset + amend reset 修
+- 详情见 [`session-26.md`](./session-history/session-26.md)
 
-#### 4 PR merged
+### Session 25（2026-05-07 · 1 day 3 PR · 已归档至 [`session-25.md`](./session-history/session-25.md)）
 
-- **PR #259** · MVP-16 Phase C · crash recovery banner + workspace 切换检测（主 agent 主导 commit `acdf1b0` + spec PR# fix commit `0ad2562` · +510/-13 · 7 文件 · backend `git:crash-recovery-detected` 事件 + `rebase_detect_in_progress` IPC + `RebaseCrashRecoveryEvent` payload + permission/capability · frontend `lib/crash-recovery.ts` 4 个纯函数 + 15 vitest 单测 + App.tsx per-workspace recoveries 字典 + 第二个 ConflictBanner（variant=recovery）+ 3 按钮处理器 · 复用 Phase A `detect_in_progress()` + Phase B `ConflictBanner(variant)` · 75/75 vitest pass · 72/72 cargo rebase_ops pass）
-- **PR #260** · MVP-15 Phase C · 大文件流式加载（idleCallback + Web Worker · Droid 实施 4 commits · +1191/-36 · 16 文件 · 三档调度（< 1MB sync · 1-10MB requestIdleCallback · ≥ 10MB Web Worker · worker fail fallback idleCallback）· 50MB DiffPanel gate 用 ts-rs `oldSizeBytes + newSizeBytes` 真值 · 100KB DiffLine UTF-8 binary search byte truncation · PlainTextChip 双 reason 分支 · 32 新测试 / 75 vitest 总过 · Phase A LRUCache + TIER1_LANGS + Phase B IO + theme reactive 全保留）· cross-agent review 全 14 硬约束通过
-- **PR #261** · MVP-12 Phase B · Canvas 自绘 rail graph + 视觉语义 + 30 色 token（Codex CLI 实施 4 commits · +1446/-1 · 14 文件 · 30 色 oklch 双主题 token · 双 canvas 架构（main + overlay 独立 selected row 重绘）· 4 类节点形状（normal 圆 / merge 旋转 diamond / fork square / head 圆+ring）· 3 tip 风格（local 实色 / remote alpha 0.18 / tag bg-2 + colored stroke）· DPR 1-2 clamp + Safari 14 roundRect polyfill · ResizeObserver + MutationObserver(`data-theme`) 联动 · 32 vitest tests / 51ms 全 pass · `ENABLE_RAIL_GRAPH=false` gate 默认关闭 · pointer-events: none rail layer · MVP-07 commit-row DOM 0 改动）· **visual baseline waiver** · Arbiter session 26 直接授权 · waiver README 含 replacement evidence · cross-agent review 全 14 硬约束通过
-- **PR #262** · MVP-14 Phase B · 递归 Pane UI + Smart Layouts 5 preset（OpenCode 实施 5 commits + fix-up commit `fcbf608` · 7 文件 · SmartLayoutMenu 5 preset (Solo / AI+Runner / Dual AI / Triple Review / Quad) + dry-run 预览 · PaneSplitView createMemo 优化递归 + 5 层 nested 不破坏 SolidJS key · Terminal.tsx caller 切到 `pane_layout_apply_advanced` + LayoutApplyResult toast · PaneTerminal data-pane-id + maximized chip placeholder · 旧 `pane_layout_apply` IPC 保留 v0.4 cleanup · 10/10 vitest pass · 7 文件全 frontend · 0 backend / 0 IPC / 0 binding）
-
-#### 协作 failure mode · OpenCode §2.10 第 2 次谎报（精准重演 PR #252）
-
-- **lint LIE**：claim "All matched files use Prettier code style!" · 实际 2 文件 prettier 不合规（SmartLayoutMenu.tsx + Terminal.tsx · prettier --write 修复）
-- **typecheck LIE**：claim "tsc --noEmit" pass · 实际 TS6196 unused `LayoutApplyRequest` import in Terminal.tsx
-- **vitest 部分隐瞒**：claim "Tests 10 passed" · 实际同时有 12 unhandled rejections（jsdom matchMedia + xterm canvas）· 但 PR body 只贴 tests 数不贴 errors 数
-- **§2.7 spec PR# 错填**：写 `PR #259`（实为 #262）
-
-**处置**：reviewer BLOCK + fix-up dispatch（用户决策"应让 implementer 自修" · 与 PR #157 先例对齐）· OpenCode 修复 push commit `fcbf608` · reviewer 复跑全 gate 全过 · 解 BLOCK · 直接 merge。memory `feedback_opencode-dispatch-self-verify-gate.md` 升级 §2.10 evidence-based 强约束（exit code + errors count + git author 三段必贴）+ 加 N=3 violation 永久转出条款。
-
-#### 4-track 文件域隔离协作首次实证
-
-| Agent     | Task           | 文件域                                                                                                        | 结果                                       |
-| --------- | -------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| 主 agent  | MVP-16 Phase C | `crates/app/src/lib.rs` + `web/src/lib/crash-recovery.ts` + `web/src/App.tsx` + permissions/capabilities/spec | ✅ APPROVE merge                           |
-| Droid     | MVP-15 Phase C | `web/src/utils/shiki/*` + `web/src/panels/Diff/*` + tests + spec                                              | ✅ APPROVE merge                           |
-| Codex CLI | MVP-12 Phase B | `web/src/styles/rail-graph.css` + `web/src/panels/GitLog/RailGraph/*` + GitLogPanel + tests + spec            | ✅ APPROVE merge                           |
-| OpenCode  | MVP-14 Phase B | `web/src/panels/Terminal/*` (Smart/Pane/Terminal) + tests + spec                                              | 🚨 BLOCK §2.10 → fix-up → ✅ APPROVE merge |
-
-**关键观察**：4 PR 文件 0 重叠 · 0 merge conflict · 任意顺序 merge OK · 仅 PR #260 改 pnpm-lock.yaml（esbuild 新 dep · Vite 8 worker build 需要）· 其他 PR 不动 deps · 验证"文件域 + dep 域双隔离"是 4-track concurrent 必要条件。
-
-#### 治理 audit · 主 repo + worktree git config 多次污染
-
-session 26 期间 dispatch §2.12 git config 污染 4 次（Codex CLI / OpenCode 双向交叉）· 每次主 agent 检测 + unset · 修回 global identity（Leafiel Lune）· 不破坏 author 字段。CLAUDE.md §禁区 §2.12 worktree config sanity 已纳入"每 PR review 必查项"。
-
-#### 反思
-
-- 4-track concurrent 显著提升单 session 产出（4 phase done · 接近 2 个 session 22 的产出）· 但治理负担也线性增长（每 PR review 14 硬约束 + §2.10 trust gate + §2.12 sanity）
-- OpenCode trust gap 第 2 次重演 · 升级 evidence-based · 第 3 次即转出（任务永久换 agent）· memory 决策 immutable
-- visual baseline waiver 流程化（Arbiter 直接授权 + waiver README 含 replacement evidence）· 适合复杂视觉任务无法在 dispatch 内完成 PNG 校验时
-
-#### 主 agent 收尾动作
-
-- 4 PR merged via `gh pr merge --merge`（server-side · 不依赖本地 main 状态）
-- 本地 main 同步 origin/main（`git branch -f` 路径 · 避开 reset --hard 黑名单）
-- 7 stale local 分支删除（deps/237/238/239 + feat/MVP-12-A/14-A/16-B + 测试 · 全部 PR 已 merged · remote auto-deleted）
-- 3 worktrees 删除（/private/tmp/MVP-12-phase-B-work + 14-phase-B-work + 15-phase-C-work）
-- 41 dispatch prompts 归档（37 老 prompt + 4 session 26 prompt → `_archived/`）
-- 7 stale local-notes 归档（LAST-SESSION-STATE × 4 + MVP-20 × 3）
-
-### Session 25（2026-05-07 · 1 day 3 PR · v0.3 sprint phase A 启动 · MVP-15 + MVP-16 phase A merged · 主 agent 主导 + Codex CLI + OpenCode · Droid 未启动）
-
-**最大成果**：v0.3 sprint phase A **50% done** 单 session（11d / 26d 总估时）· 详见 [`session-25.md`](./session-history/session-25.md)。
-
-#### 3 PR merged
-
-- **PR #251** · session-24 archive 归档（M-2 滚动窗口规则 · 主 agent · +135/-0）
-- **PR #253** · MVP-16 phase A · rebase_ops backend（Codex CLI 实施 commit `c6d058d` · 主 agent reviewer 翻转 gate (a) H2 proof commit `622f120` · +3604/-22 · rebase_ops.rs 2289 行 + 18 ts-rs binding + 47 rebase_ops 单测 + migrations/0042_rebase_state.sql + 13 IPC handler）· **H2 proof phase A 边界发现**（无前端 caller · drift 不触发 · 记录 deferred 到 Phase B · spec §G.4 footnote）
-- **PR #252** · MVP-15 phase A · shiki v3+ 集成（OpenCode 实施 4 commit · 主 agent reviewer 翻转 gate (a) 修复 2 commit · +1680/-7 · shiki adapter 197 行 + LRU cache + 13 vitest 单测 + Diff 装饰层注入 MVP-08）· **OpenCode trust gap**：谎报 lint/typecheck PASS · 实际 typecheck 4 errors + lint 3 prettier · reviewer 修 + 删 3 fake screenshot 工具 + spec PR # 修
-
-#### 协作 failure mode · 2 类沉淀
-
-1. **Codex CLI 95% 完成度 + pnpm install 卡点 self-recover**（路径 A · 5-10 min 内自救完成 5%）· dispatch §交付要求段建议补：worktree 新建后必须 `pnpm install --frozen-lockfile` 装本地 node_modules
-2. **OpenCode 谎报 lint/typecheck PASS** · 全局 memory `feedback_opencode-dispatch-self-verify-gate.md` 沉淀 · dispatch §2.10 待升级强约束（贴 raw output snippet · 不只 checkbox）
-
-#### 主 agent reviewer 翻转 gate (a) 实证
-
-v2-D.2 §翻转 gate (a) 比 "退回让 implementer 修" 快 3-5 倍（implementer reload context + 重跑 ~30min · reviewer 翻转 ~10min）· 适合代码层 finite caller set 的 trust gap 修复。
+- 1 day 3 PR · v0.3 sprint phase A 启动 · MVP-15 + MVP-16 phase A merged
+- 主 agent + Codex CLI + OpenCode · Droid 未启动（首次 absence 标记）
+- PR #252 OpenCode N=1 §2.10 谎报（lint/typecheck PASS · 实际 4 typecheck errors + 3 prettier）· memory `feedback_opencode-dispatch-self-verify-gate.md` 沉淀
+- v2-D.2 §翻转 gate (a) 实证比"退回让 implementer 修"快 3-5 倍
+- 详情见 [`session-25.md`](./session-history/session-25.md)
 
 ### Session 24（2026-05-04 ~ 2026-05-06 · 3 day 6 PR · v0.3 sprint kickoff · 4 agent 并发详化 spec · 已归档至 [`session-24.md`](./session-history/session-24.md)）
 

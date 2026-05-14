@@ -127,6 +127,68 @@
 - 本地存储 **redb 2** 默认 · rusqlite fallback · pending [SPIKE-04](docs/tasks/SPIKE-04-storage-benchmark.md)（[ADR-005](docs/adr/ADR-005-local-storage.md)）
 - PTY 架构 **portable-pty + 共享读线程 + mpsc** · 每 session 一线程 fallback · pending [SPIKE-05](docs/tasks/SPIKE-05-pty-multi-tab.md)（[ADR-003](docs/adr/ADR-003-pty-architecture.md)）
 
+### Added · v0.2 sprint 完整代码 100% 收口（session 21-23 · W13/W14）
+
+- **MVP-22 PTY 预热池 全 5 phase done**（session 22 · PR #189-#194）· cold spawn 800-1200ms → warm hit 0.09ms（~10000x 提速）· Codex CLI fast 2.5h · 5x 提速 · PTY pool lifecycle（spawn / recycle / cleanup）+ cd 注入（`default_cwd` / `requested_cwd` 双路径）+ Settings UI 开关 + spec 详化 707 行 · `PtyPoolManager` + `WarmPtyHandle` + `PtyPoolConfig` · 6 单元测试 + 3 集成测试
+- **MVP-13 分支 CRUD + Fuzzy Switcher 全 4 phase done**（session 23 · PR #220/#222/#224/#226）· Codex CLI fast 6h · 8x 提速 · branch_ops 后端（`create_branch` / `delete_branch` / `checkout_branch` / `rename_branch` / `list_branches` 5 IPC）+ 8 ts-rs bindings + Primary Sidebar branch tree UI（递归树 + context menu + 折叠状态持久化）+ Fuzzy Switcher modal（fuzzy search + keyboard navigation + ⌘⇧B 全局快捷键）+ runtime bench evidence（1000 分支列表 < 200ms）
+- **MVP-21 Git Push/Pull/Fetch Phase A/B/C/D done**（session 23+ · PR #228/#231/#233/#236）· Codex CLI fast 10x 提速 · git sync backend（`git_push` / `git_pull` / `git_fetch` 3 IPC + `NetworkOpError` 11 variants + `AuthMethod` 4 种认证）+ UI（progress modal + credential prompt + SSH host key TOFU 对话框 + status bar ahead/behind 指示器）+ runtime bench evidence · §D.7 secret form reset + AuthMethod manual `Debug` redact（防 credential leak）· 19 单元测试
+
+### Changed · v0.2 sprint 治理升级
+
+- **ADR-016 v2-D.1 → v2-D.2**（session 23 · PR #218）· admin override trailer 豁免 + 审计 marker 要求制度化 · 简化 merge 后 24h 补 PR comment 硬要求（session 12 实证 0% 合规 · 规则贬值）
+- **2 ID 冲突清理**（session 23 · PR #210/#212）· MVP-11 → MVP-21（Git Push/Pull/Fetch）/ MVP-20 → MVP-22（PTY 预热池）· v0.1 → v0.2/v1.0 命名空间冲突解 · 历史 trace 保留不动
+
+### Added · v0.3 sprint 完整代码 100% 收口（session 24-30 · ~10 days · 6 MVP）
+
+- **MVP-12 Canvas 自绘 rail graph**（PR #256 + 后续）· 30 色 oklch 分支颜色算法 · 双 canvas 分层（structure + detail）· 4 节点形状（commit / merge / tag / stash）· collapse 策略（线性链折叠）· `RailGraphRenderer` 153 行 + 21 单元测试
+- **MVP-14 Pane 高级布局**（PR #262 + 后续）· 5 preset Smart Layouts（Solo / Horizontal Split / Vertical Split / Triple / Quad）· 递归 `LayoutNode` tree · PaneSplitter 拖拽 60FPS · `PaneContextMenu` 右键菜单 · `DetachedPlaceholder` 弹窗状态 · 11 ts-rs binding
+- **MVP-15 Diff 语法高亮**（PR #252/#260/#275/#277）· shiki v3+ lazy load（首屏 < 50ms）· 大文件流式（> 1000 行分批渲染）· Web Worker fallback（主线程阻塞 < 16ms）· 30 语言 grammar · light/dark 双主题
+- **MVP-16 Rebase/Merge/Cherry-pick**（PR #253/#259）· 3-way conflict 解析 + 冲突标记高亮 · crash recovery banner（进程崩溃后状态恢复）· workspace 切换检测（防止跨 workspace 误操作）· 4 IPC commands + 6 ts-rs binding
+- **MVP-17 External Terminal + Pane Detach**（PR #291/#301/#302/#307）· macOS runtime dry-run（AppleScript + `open -a Terminal.app`）· 11 ts-rs binding（`ExternalTerminalLaunchRequest` 等）· detached pane 状态表 + WebviewWindow lifecycle · Phase A/B/C/E 完整代码 100% · binding rebase（PR #296）+ vitest 重写（PR #297）
+- **v0.3 sprint Phase D capture playbook 落地**（session 28 · PR #271）· 90-120 min Arbiter 主导 GUI capture · 6 MVP × ~28 GUI step + 1 MP4 + metrics · 标准化验收流程 · 取代 session 24-27 的 ad-hoc 截图模式
+- **runtime-evidence validator 工具化**（session 28 · PR #273）· `scripts/validate-runtime-evidence.mjs` 449 行（目录结构 + 文件存在 + 大小阈值 + 命名规范校验）· 9 vitest cases · `_VALIDATION-REPORT.md` 自动生成 · CI 接入 `runtime-evidence-validator` job
+
+### Changed · v0.3 sprint 协作模式升级
+
+- **4-agent dispatch pool 稳定运行**（session 26 首次实证 · session 28/30/31 多轮验证）· 文件域隔离协作（0 冲突）· Codex（Rust 后端 / Tauri lifecycle）· OpenCode（机械重构 / 文档 sync / grep 可验证）· Cursor（React/Solid 测试 / 复杂组件）· Droid（文档 / PROGRESS sync）· 能力矩阵分工制度化
+- **dispatch §2.5.1 worktreeConfig 升级**（session 28 · PR #278）· 根治跨 agent author 污染（PR #71/#82 错归 Kimi 教训）· `extensions.worktreeConfig = true` + `--worktree user.name/email` · commit 身份 3 铁律制度化
+- **dispatch §2.15 stale base race 规则化**（session 30 · PR #298）· Cursor PR #297 实证后制度化 · push 前 `git fetch origin && git rebase origin/main` 强制
+- **OpenCode N=4 受限策略确立**（session 30-31）· PR #311（SPIKE-07 详化 §2.10 understanding gap）· PR #316（tasks/README sync evidence 沉淀 gap）· PR #321（N=4 试金石 SUCCESS）· 机械文档类任务合规范围明确
+
+### Fixed · v0.2/v0.3 sprint
+
+- **MVP-17 Phase C 紧急修复**（session 30 · PR #294）· OpenCode N=3 §2.10 violation（binding rebase 后 `overrideEnv` 字段残留 → typecheck fail）· 主 agent 24h 内 fix-up · 规则：N≥3 触发受限策略
+- **MVP-17 Phase E.4 settings UI prettier fix-up**（session 30 · PR #307）· OpenCode PR #296 merge stale base（binding rebase 与 Phase C 并发）· `ExternalTerminalGroup.test.tsx` 格式化修复
+- **MVP-13 BranchTree UX polish**（session 24 · PR #244）· v0.1 GA quick wins · 分支树视觉优化 + 交互细节
+- **MVP-05 lifecycle 回归**（session 23 · PR #213）· `tabs` 表 `lifecycle_state` 字段缺失导致重启后 tab 状态丢失 · migration v7 补字段 + `LifecycleAwareTabsDao` 13 方法
+
+### Deprecated · v0.2/v0.3
+
+- **MVP-11 编号废弃**（session 23 · PR #210）· 原 MVP-11（Git Push/Pull/Fetch）→ 重命名为 MVP-21 · 解 v0.1 占位编号冲突 · `docs/tasks/MVP-11.md` 保留为 redirect 到 MVP-21
+- **MVP-20 编号废弃**（session 23 · PR #212）· 原 MVP-20（AI 一键回滚 v1.0 vision）与 session 22 实施的 MVP-20（PTY 预热池）同号冲突 → PTY 预热池重命名为 MVP-22 · `docs/tasks/MVP-20.md` 保留为 v1.0 vision 占位
+
+### Security · v0.2/v0.3
+
+- **MVP-21 AuthMethod Debug redact**（PR #236）· `AuthMethod::SshKey` / `Token` / `Password` 手动实现 `Debug`（`********` 替换真实值）· 防止 credential 在 log / panic / error message 中泄漏
+- **MVP-21 secret form reset**（PR #236 §D.7）· credential dialog 关闭后强制清空 form state · 防内存残留
+- **MVP-10 Telemetry PII 白名单**（PR #155/#158）· `before_send` 双层过滤 + SHA-256 panic hash · Sentry Rust SDK `default_integrations=false` + `send_default_pii=false`
+
+### Added · v1.0 vision 4 spec 详化完成（session 31 · 等 Arbiter approve flip ready）
+
+- **MVP-18 AI-Aware Pane 联动 spec 详化**（611 行 · 48 acceptance checkbox · 含 session↔pane 订阅 + build fail 反哺 + 一键回填 · Codex CLI · PR #309）
+- **MVP-19 AI session ↔ commit 自动绑定 spec 详化**（740 行 · 43 checkbox · 含 session 边界判定 + commit 元数据注入 + 回滚锚点 · Cursor · PR #313）
+- **MVP-20 AI 一键回滚 spec 详化**（647 行 · 25 top + 12 sub checkbox · 含 session 级 revert + 冲突检测 + 确认对话框 · Droid · PR #312）
+- **SPIKE-07 CLI 输出协议 parser 验证 spec 详化**（611 行 · 43 checkbox · 含 6 场景 × 2 CLI 测试矩阵 + IR 设计 + R1 降级门槛 · OpenCode + 主 agent fix-up · PR #311 + bd9f57d）
+- **v1.0 vision 4 spec 总 ~2609 行** · 完整可实施 spec · 等 SPIKE-07 PASS（R1 降级前置 · 解析准确率 ≥ 95%）+ Arbiter approve flip ready
+
+### Changed · session 31 docs README batch
+
+- **docs README 升级 batch**（session 31 · PR #318/#319/#320/#321）· 4 个 README 同步升级：
+  - ADR README（ADR-016 补 + status timeline + 决策表反查 · PR #318）
+  - session-history README（session 17-30 完整 timeline + archive 索引 · PR #319）
+  - runtime-evidence README 新建（25+ MVP 索引 + deferred 跟踪 · PR #320）
+  - spikes README（10 SPIKE 状态索引 + ADR/MVP 关联 + 4 样归档现状 · PR #321）
+
 ---
 
 ## [0.1.0] - 2026-04-XX · v0.1 GA

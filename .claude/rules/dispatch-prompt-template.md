@@ -256,11 +256,11 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 #### 三类 agent 对照
 
-| Agent 类型   | 代表                                                                                 | 本地文件           | git/shell   | prompt 策略                   |
-| ------------ | ------------------------------------------------------------------------------------ | ------------------ | ----------- | ----------------------------- |
-| **本地 CLI** | Codex CLI · OpenCode · Claude Code · Cursor · Aider · Windsurf · Droid（Factory.ai） | ✅ worktree + Bash | ✅ 完整     | **给路径即可**                |
-| **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek                       | ❌ 无本地          | ❌ 无 shell | **必须附文件原文**            |
-| **IDE 插件** | Trae / Kilo / Cursor 内嵌聊天 · Copilot Chat                                         | 🟡 依赖插件        | 🟡 部分     | **明确工具要求 + 附原文兜底** |
+| Agent 类型   | 代表                                                                                             | 本地文件           | git/shell   | prompt 策略                                                |
+| ------------ | ------------------------------------------------------------------------------------------------ | ------------------ | ----------- | ---------------------------------------------------------- |
+| **本地 CLI** | Codex CLI · OpenCode · Claude Code · `cursor-agent` CLI · Aider · Windsurf · Droid（Factory.ai） | ✅ worktree + Bash | ✅ 完整     | **给路径即可** · 默认端到端 commit + push + PR             |
+| **远程 API** | Kimi（Moonshot） · Claude API · OpenAI API · Gemini · DeepSeek                                   | ❌ 无本地          | ❌ 无 shell | **必须附文件原文**                                         |
+| **IDE 插件** | Trae / Kilo / **Cursor IDE 内嵌 chat** · Copilot Chat                                            | 🟡 依赖插件        | 🟡 部分     | **明确工具要求 + 附原文兜底 + 显式"完工 = PR 链接"硬约束** |
 
 #### 强制做法
 
@@ -285,14 +285,30 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 - 分支名（硬约束 2.6）
 - commit trailer（硬约束 2.5）
 
+**IDE 插件类（Cursor IDE 内嵌 / Copilot Chat / Trae / Kilo）专项约束**（session 31 PR #313 实证升级 · 2026-05-14）：
+
+IDE 插件类 agent 有 git/shell 能力但**默认行为 = 写完代码停下让 user 确认 commit**· 不会自动跑端到端 commit/push/PR 流程。dispatch prompt **必须**显式加：
+
+1. **完工标志硬约束**：`完工 = PR 链接生成 · 不允许停下问 user "是否要 commit/push/PR"`· 写在硬约束段独立列
+2. **端到端步骤硬要求**：必须 `git add + git commit + git fetch origin + git rebase origin/main + git push -u origin <branch> + gh pr create` 全跑 · 缺一即视为未完工
+3. **反模式禁示**：若 agent 之前 dispatch 出现"停下问 user"类似行为 · 在 prompt 顶部独立段 ⚠️ 警示"本次禁止重演"· 引 specific 上次 PR# 为证
+
+**Cursor 双形态区分**：
+
+- **`cursor-agent` CLI**（命令行工具）：归"本地 CLI"行 · 默认端到端
+- **Cursor IDE 内嵌 chat**（编辑器内置 AI）：归"IDE 插件"行 · 必须显式硬约束完工标志
+
+派发 Cursor 时必须**询问 user 当前使用哪种形态**· 或默认按"IDE 插件"行处理（安全 fallback）· 不能两种情况通用同一 prompt。
+
 #### 反模式
 
-| 反模式                                          | 真正该做                                            |
-| ----------------------------------------------- | --------------------------------------------------- |
-| 复制本地 agent 模板（只给路径）给远程 API agent | 按 agent 类型分支 · 远程 API 必须附原文             |
-| 假设所有 agent 都能 `git worktree add`          | 明确询问 / 默认无 · 双路径兼容                      |
-| 远程 API prompt 说 "参考 CLAUDE.md §X"          | 把 §X 关键段摘出来贴进 prompt                       |
-| 不在 meta 段声明 agent 类型                     | 每个 dispatch prompt 顶部必写一行 `Agent 类型：...` |
+| 反模式                                            | 真正该做                                            |
+| ------------------------------------------------- | --------------------------------------------------- |
+| 复制本地 agent 模板（只给路径）给远程 API agent   | 按 agent 类型分支 · 远程 API 必须附原文             |
+| 假设所有 agent 都能 `git worktree add`            | 明确询问 / 默认无 · 双路径兼容                      |
+| 远程 API prompt 说 "参考 CLAUDE.md §X"            | 把 §X 关键段摘出来贴进 prompt                       |
+| 不在 meta 段声明 agent 类型                       | 每个 dispatch prompt 顶部必写一行 `Agent 类型：...` |
+| 给 Cursor IDE 内嵌发本地 CLI 模板（缺完工硬约束） | 显式加 "完工 = PR 链接" 硬约束 + 端到端步骤         |
 
 #### 事件
 
@@ -303,12 +319,20 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 - 修复：prompt 从 167 行扩到 335 行 · 嵌入 MVP-07 spec 完整 140 行原文 + 双路径兼容
 - 根因：主 agent 对 MVP-04 Kimi 成功的 post-hoc 叙事错误 · 未验证真实机制（worktree access / 用户补发 / Kimi 工具 · 主 agent 不知道）· 本 §2.9 规则化
 
+**2026-05-14 · session 31 · Cursor IDE 内嵌模式 PR #313 踩坑**：
+
+- 主 agent 派 Cursor 做 MVP-19 spec 详化 · prompt 标 "Agent 类型：本地 CLI"· 实际 user 用 Cursor IDE 内嵌 chat（编辑器内置 AI · 非 `cursor-agent` CLI）
+- Cursor 写完 740 行 spec + 跑 `pnpm lint` + `pnpm -C web exec prettier --check ../docs/tasks/MVP-19-*.md` 全过 · 但**停在 commit 前**问 user "如果你要 · 我可以继续按你给的规范直接生成 commit message 与 PR body 草稿"
+- 主 agent 需要额外回合让 Cursor 继续跑 commit + push + PR · 浪费 1 个回合
+- 根因：dispatch prompt 把 `完工开 PR` 当软建议 · 没明示"完工 = PR 链接生成 · 不允许停下"· IDE 内嵌模式默认 = 安全停下 · 不像 CLI 自动跑完
+- 修复：§2.9 升级（IDE 插件类专项约束 + Cursor 双形态区分）· 后续 dispatch prompt 给 Cursor IDE 内嵌必须显式加完工硬约束 + 警示"上次 PR #313 教训防重演"
+
 #### 关联
 
 - [全局] `~/.claude/rules/17-dispatch-agent-capability-matrix.md` · 本节的上位通用规则
 - [项目] Kimi 协作记录：`spike-tmp/dispatch/MVP-04-kimi-prompt.md`（167 行 · 路径版 · 成功但不清楚机制）· `MVP-07-kimi-prompt.md`（335 行 · 原文版 · 确定成功）
 
-### 2.10 · GUI / 前端 task 必须跑 `pnpm lint`（不只 typecheck）
+### 2.10 · GUI / 前端 task 必须跑 `pnpm lint` · 文档 task 必须显式跑 markdown prettier check
 
 **规则**
 
@@ -317,23 +341,33 @@ Dispatch prompt 若涉及前端代码（`web/src/**` 或任何 SolidJS / React �
 - [ ] `pnpm lint` 本地跑过（预期 `Checking formatting... All matched files use Prettier code style!`）
 - [ ] `pnpm typecheck` 本地跑过（预期 `tsc --noEmit` 0 errors）
 
+Dispatch prompt 若涉及 markdown 文档详化 / archive / spec 改动（任何 `docs/**/*.md` 改动）· §Acceptance 必须含一条：
+
+- [ ] `npx prettier --check <markdown-file>` 本地跑过（**不是 `pnpm lint`**· `pnpm lint` scope = `web/src/**/*.{ts,tsx,css}` + `index.html` · **不含 markdown**）
+
 **缺任一 · BLOCK PR merge · 不是建议**。
 
 **为什么**
 
-CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettier --check） + `pnpm typecheck`（tsc --noEmit）。只做 typecheck 不做 lint · 本地 pass 但 CI fail（prettier 未格式化）。
+CI 的 `Frontend · pnpm lint + typecheck` job 跑两步：`pnpm lint`（prettier --check）+ `pnpm typecheck`（tsc --noEmit）。只做 typecheck 不做 lint · 本地 pass 但 CI fail（prettier 未格式化）。
+
+**`pnpm lint` ≠ markdown prettier check**（session 31 OpenCode N=4 understanding gap 实证）：`pnpm lint` 命令定义在 `web/package.json` · scope 是 `web/src/**/*.{ts,tsx,css}` + `web/index.html` · **不包括 `docs/**/\*.md`**。markdown 文档详化 task 必须显式跑 `npx prettier --check <markdown-file>` 才能验证 spec 是否被 prettier 格式化。如果 dispatch prompt 只要求"`pnpm lint`通过" · agent 字面执行后 markdown 实际未被检查 · 主 agent review 时跑`npx prettier --check` 必然 fail · 触发主 agent fix-up。
 
 **事件**
 
-2026-04-21 · PR #83（OpenCode MVP-07 Git Log）· OpenCode 在 CLI 自动化会话只跑 `pnpm typecheck`· 漏 `pnpm lint`· 5 前端文件（`SecondarySidebar.tsx` / `GitLog/*` / `styles.css`）未 prettier 格式化 · CI fail · 后续 PR #84/#85 继承 fail · 直到 PR #86 修复。
+**2026-04-21 · PR #83（OpenCode MVP-07 Git Log）**：OpenCode 在 CLI 自动化会话只跑 `pnpm typecheck`· 漏 `pnpm lint`· 5 前端文件（`SecondarySidebar.tsx` / `GitLog/*` / `styles.css`）未 prettier 格式化 · CI fail · 后续 PR #84/#85 继承 fail · 直到 PR #86 修复。
+
+**2026-05-14 · session 31 · PR #311 OpenCode SPIKE-07 详化 N=4 understanding gap**：OpenCode 按 prompt §交付要求段字面执行 `pnpm lint`· PR body claim "markdown prettier check 通过"· 但 `pnpm lint` 实际不含 markdown · spec 文件 `docs/tasks/SPIKE-07-cli-protocol-parser.md` 未被 prettier 格式化 · 主 agent 自验 `npx prettier --check` fail · fix-up commit `bd9f57d` 修复（+74 / -48 · 122 行格式化 · 0 内容改动）。判定为 understanding gap（非 willful 谎报）· 不触发 §2.10 N=5 永久转出 · 但本规则 §2.10 升级 markdown 显式 check 防重演。
 
 **反模式**
 
-| 反模式                                            | 正确做法                                                           |
-| ------------------------------------------------- | ------------------------------------------------------------------ |
-| Dispatch prompt 只列 `pnpm typecheck`             | 两条都列 · 缺一 BLOCK                                              |
-| 交付 agent 回报 "typecheck 过" 作为前端 gate 证据 | 必须同时显示 prettier `All matched files use Prettier code style!` |
-| 假设 `tsc --noEmit` pass 意味着前端 OK            | typecheck 只查类型 · 不查格式 · prettier 是独立 gate               |
+| 反模式                                                            | 正确做法                                                                                       |
+| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Dispatch prompt 只列 `pnpm typecheck`                             | 两条都列 · 缺一 BLOCK                                                                          |
+| 交付 agent 回报 "typecheck 过" 作为前端 gate 证据                 | 必须同时显示 prettier `All matched files use Prettier code style!`                             |
+| 假设 `tsc --noEmit` pass 意味着前端 OK                            | typecheck 只查类型 · 不查格式 · prettier 是独立 gate                                           |
+| **markdown 文档 task 用 `pnpm lint` 作为 prettier 通过证据**      | **必须用 `npx prettier --check <markdown-file>` 显式 check · `pnpm lint` scope 不含 markdown** |
+| 交付 agent 回报 "pnpm lint 通过" 作为 markdown 详化 task 完工证据 | 必须同时贴 `npx prettier --check <markdown-file>` raw output 最后 3 行                         |
 
 ### 2.11 · Timing-sensitive 跨平台测试 · timeout 必须 ≥ 本地最大运行时长 × 2 · 或 Linux-only ignore
 

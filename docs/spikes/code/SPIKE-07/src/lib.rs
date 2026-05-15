@@ -8,6 +8,7 @@
 //!
 //! 归档级原型 · 不重写为生产 parser（SPIKE-07 spec §C Don't.5）。
 
+pub mod assertions;
 pub mod cast;
 pub mod fixture;
 pub mod ir;

@@ -10,6 +10,7 @@
 ## 背景与问题
 
 Vibestation 的长期 vision 含 **AI-Aware 版本控制**：
+
 - 把一次 Claude / Codex CLI 对话识别为一个 "AI session"
 - session ↔ commit 自动绑定（MVP-19）
 - AI 构建失败反哺（build fail → parsed_issues 自动给 AI · MVP-18）
@@ -18,6 +19,7 @@ Vibestation 的长期 vision 含 **AI-Aware 版本控制**：
 这是 Vibestation 在红海赛道（Tower / Fork / GitKraken）的**差异化卖点**。
 
 但 AI-Aware 依赖 **R1**（Claude/Codex CLI 输出协议解析 · HIGH/HIGH）· **实机未验证前**：
+
 - parser 稳定性未知 → `parsed_issues` 可能全是垃圾 → AI 收到污染上下文 → "AI 噱头"差评
 - 对外"AI-Aware Mission Control"叙事若落不了地 → 声誉扣分
 
@@ -40,6 +42,7 @@ Vibestation 的长期 vision 含 **AI-Aware 版本控制**：
 **选择**：选项 C · **AI-Aware = v1.0 vision · README / landing / Twitter / Discord 完全不宣传**
 
 **硬约束**（`CLAUDE.md §禁区`）：
+
 - ❌ 禁止对外文案提及 `AI-Aware Pane` / `Mission Control` / `AI session aware`
 - ❌ README 首屏 · landing page · Twitter bio · Discord 描述 · v0.1 CHANGELOG · 均不得出现
 - ❌ v0.1 / v0.2 / v0.3 的 task spec（MVP-01..17）均不含 AI-Aware 实现
@@ -47,10 +50,12 @@ Vibestation 的长期 vision 含 **AI-Aware 版本控制**：
 - ✅ 允许：v1.0 开发启动后逐步揭晓（先博客 post · 再产品 announcement）
 
 **技术前提**（v1.0 正式实现前必做）：
+
 - **SPIKE-07** parser-oriented spike 必通过（基于 SPIKE-06 录制的 36+ 样本 · `parsed_issues` 解析准确率 ≥ 95%）
-- SPIKE-07 通过 → 写 `ADR-011-ai-aware-greenlight.md` · 才能启动 MVP-18/19/20 详化
+- SPIKE-07 通过 → 写 `ADR-017-ai-aware-greenlight.md` · 才能启动 MVP-18/19/20 详化（ADR-011 编号已被 `ADR-011-runtime-evidence-location.md` 占用 · 重编号至 ADR-017 · session 32）
 
 **理由**：
+
 1. **技术诚信**：R1 未消除前任何基于 parser 的功能都是"可能翻车" · 不宣传比"宣传后失败"损失小 10 倍
 2. **叙事节奏**：v1.0 作为升级故事 · 新老用户都有话题 · 比 "v0.1 就吹但做不到" 强
 3. **v0.1 已够差异化**：多 Tab 终端 + JetBrains 级 Git UI + Calm Studio 视觉 + Rust + 开源 · 五项叠加已有卖点
@@ -85,9 +90,10 @@ Vibestation 的长期 vision 含 **AI-Aware 版本控制**：
 - `CLAUDE.md` 决策表：#3（+ 禁区条款明确禁止对外提及）
 - 详细 spec：[MVP-18 AI-Aware Pane 联动](../tasks/MVP-18-ai-aware-pane-linking.md)· [MVP-19 session↔commit 绑定](../tasks/MVP-19-session-commit-binding.md)· [MVP-20 AI 一键回滚](../tasks/MVP-20-ai-one-click-rollback.md)
 - Spike：[SPIKE-06 CLI 实机](../tasks/SPIKE-06-cli-protocol-and-codesign.md)（录 36+ 样本）· SPIKE-07（未建 · parser 验证 · v1.0 前必做）
-- 未来 ADR：ADR-011 AI-Aware greenlight（待 SPIKE-07 通过后建）
+- 未来 ADR：ADR-017 AI-Aware greenlight（待 SPIKE-07 通过后建 · 原拟 ADR-011 · 编号已被占用 · session 32 重编号）
 
 ---
 
 **修订历史**：
+
 - 2026-04-18 · 初版 · Claude Code（Phase 3 · 把 Phase 1 锁定决策正式化为 ADR）

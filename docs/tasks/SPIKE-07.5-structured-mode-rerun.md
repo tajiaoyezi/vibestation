@@ -2,7 +2,8 @@
 id: SPIKE-07.5
 type: spike
 title: CLI 结构化模式重录重跑 spike（路径 A · R1 新 gate）
-status: draft
+status: ready
+status_note: "ready-gate APPROVE-WITH-NITS（#341 · 3 nit 修+re-reviewed）· Arbiter 2026-05-16 拍板 '批准 flip'（翻转 gate 选项 a · reviewer push 翻转 commit）· 实施（重录结构化 corpus + parser 适配 + 重跑 §F + 重判 §H）gated on Arbiter 自定执行窗口（API 预算 · 同 SPIKE-06 录制模式）· 前置 SPIKE-07 done ✅"
 owner:
 phase: v1.0-pre
 depends_on: ["SPIKE-07"]
@@ -14,12 +15,12 @@ blocked_note:
 estimate: 1d
 plan_ref: implementation-plan.md §5.3.6 · §9 R1 · §1.1
 risk_ref: R1
-reviewer:
+reviewer: "ready-gate（2026-05-16）= Claude Code 对抗性预审（基于 SPIKE-07 全 crate 实读）· verdict APPROVE-WITH-NITS · 3 nit 修+re-reviewed @ #341 · self-review v2-D.2 + Arbiter tajiaoyezi 拍板 '批准 flip'（翻转 gate 选项 a）"
 ---
 
 # SPIKE-07.5: CLI 结构化模式重录重跑（路径 A · R1 新 gate）
 
-> **状态**：`draft`（待独立 ready-gate 评审 → ready）
+> **状态**：`ready`（ready-gate APPROVE-WITH-NITS @ #341 · Arbiter 2026-05-16 拍板 flip · 实施待 Arbiter 自定执行窗口 · API 预算同 SPIKE-06）
 > **前置**：[SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（done · §H 路径 3 deferred）· [ADR-017](../adr/ADR-017-ai-aware-deferred.md)（accepted · 选定路径 A）
 > **阻塞**：MVP-18/19/20（AI-Aware 三件套 · v1.0 vision · 实施新前置 = 本 spike 实跑 PASS）
 > **战略依据**：ADR-017 §决策 5 路径 A · `implementation-plan.md §9 R1`

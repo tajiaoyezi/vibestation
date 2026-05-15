@@ -90,19 +90,20 @@ v0.3 结论：
 
 ### v1.0 vision 状态（spec 详化批）
 
-| Task     | 主题                       | 当前状态  | 详化进展                                                                                                                                 | PR 参考                   |
-| -------- | -------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| SPIKE-07 | CLI parser 验证（R1 gate） | **done**  | 实跑闭环：§H 路径 3 deferred · R1 保留 HIGH/HIGH · ADR-017 accepted（2026-05-16 Arbiter）· 后续路径 A → SPIKE-07.5（结构化模式重录重跑） | #311 · #328 · #331 · #338 |
-| MVP-18   | AI-Aware Pane 联动         | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）                                                                     | #309 · #330               |
-| MVP-19   | session ↔ commit 绑定      | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）                                                                           | #313 · #330               |
-| MVP-20   | 一键回滚（session revert） | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）                                                                           | #312 · #330               |
+| Task       | 主题                                      | 当前状态  | 详化进展                                                                                                                                                      | PR 参考                   |
+| ---------- | ----------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| SPIKE-07   | CLI parser 验证（R1 gate）                | **done**  | 实跑闭环：§H 路径 3 deferred · R1 保留 HIGH/HIGH · ADR-017 accepted（2026-05-16 Arbiter）· 后续路径 A → SPIKE-07.5（结构化模式重录重跑）                      | #311 · #328 · #331 · #338 |
+| SPIKE-07.5 | 结构化模式重录重跑（路径 A · 新 R1 gate） | **ready** | spec 详化 + ready-gate APPROVE-WITH-NITS（3 nit 修+re-reviewed）+ Arbiter flip 拍板（2026-05-16）· 实施待 Arbiter 自定执行窗口（API 预算 · 同 SPIKE-06 录制） | #340 · #341               |
+| MVP-18     | AI-Aware Pane 联动                        | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）                                                                                          | #309 · #330               |
+| MVP-19     | session ↔ commit 绑定                     | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）                                                                                                | #313 · #330               |
+| MVP-20     | 一键回滚（session revert）                | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）                                                                                                | #312 · #330               |
 
 v1.0 vision 结论：
 
-- v1.0 vision 4 spec 全部 `ready`（spec 层）· SPIKE-07 已 `done`（实跑 deferred · 见下）。实施链 SPIKE-07.5（路径 A 新 R1 gate）→ MVP-18 → 19 → 20。
+- MVP-18/19/20 spec 层 `ready` · SPIKE-07 `done`（实跑 deferred）· **SPIKE-07.5 `ready`**（ready-gate APPROVE-WITH-NITS @ #341 · Arbiter flip 拍板 2026-05-16 · 实施待 Arbiter 自定窗口）。实施链 SPIKE-07.5（路径 A 新 R1 gate）→ MVP-18 → 19 → 20。
 - **SPIKE-07 实跑结论（2026-05-16 · PR #338）**：§F 矩阵 24/36=66.7% · 0 panic · §H **路径 3 deferred** · R1 保留 HIGH/HIGH · [ADR-017](../adr/ADR-017-ai-aware-deferred.md) accepted（Arbiter 拍板）· deferral = corpus 方法论 artifact（SPIKE-06 录交互 TUI · 非 CLI headless 结构化模式）非 parser bug（4/6 场景 100% · 统一 IR 抽象可行 §E.4）· **后续路径 A**：新开 SPIKE-07.5 用 `claude -p --output-format stream-json` + `codex exec` 重录重跑（前置已实测确认 · 极可能翻盘）· MVP-18/19/20 实施前置改为 **SPIKE-07.5 实跑 PASS**。
 - SPIKE-07 ready 路径：ready-gate 预审 verdict=BLOCK → 3 High 修（PR #328：fixture 路径 / ADR-011→ADR-017 / 归档路径对齐项目规则）→ 独立 re-review APPROVE-WITH-NITS → threshold 收敛（§H 三路径钦定为 R1 降级 single source of truth · §E.3/E.5 降场景级诊断指标）+ 2 nit 修 + Arbiter approve flip（PR #331）。
-- 实际"能开工"前置 = **SPIKE-07.5 实跑 PASS**（SPIKE-07 已实跑 → §H 路径 3 deferred · 不解锁；路径 A 新开 SPIKE-07.5 结构化模式重录重跑 · 翻盘 R1 真降级才解锁）→ MVP-18 起依赖链逐个解锁。
+- 实际"能开工"前置 = **SPIKE-07.5 实跑 PASS**（SPIKE-07 已实跑 → §H 路径 3 deferred · 不解锁）。SPIKE-07.5 spec 已 `ready`（ready-gate @ #341）· **实跑 gated on Arbiter 自定执行窗口**（重录 36 结构化 corpus 消耗 API 预算 · 同 SPIKE-06 录制模式）· 翻盘 R1 真降级才解锁 → MVP-18 起依赖链逐个解锁。
 
 ### 关联文档（从总览跳转）
 

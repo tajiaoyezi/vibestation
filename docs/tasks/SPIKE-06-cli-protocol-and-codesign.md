@@ -103,6 +103,7 @@ reviewer:
 **A.5.1 · Raw captures 隔离**（Codex PR #10 F4 复核 · 修正假修复）
 
 > ⚠️ **原描述（PR #7）声称"`.gitignore` 已排除"但 repo 实际未加。PR #9 的 Codex 第 4 轮审查发现该矛盾 · 本次修正**：
+>
 > - `.gitignore` 真加了 `*.raw` / `spike-raw/` / `.spike-raw/`（本 PR 同 commit 落地）
 > - `~/.vibestation-spike-raw/` 是 home 目录 · **repo worktree 外 · gitignore 本就覆盖不到** · 原描述"仓库内 .gitignore 显式包含 home 路径"技术不可行，已删
 
@@ -114,6 +115,7 @@ reviewer:
 - [ ] 只 **脱敏后的派生文件** 进 `docs/spikes/` 和 `docs/spike-artifacts/`（派生文件**不得**以 `.raw` 结尾）
 
 **A.5.2 · 脱敏要求**（每个样本 commit 前完成）
+
 - [ ] 删除所有 **auth token / API key / JWT / session cookie**
 - [ ] 删除 **用户 prompt / CLI 输入** 中可能含 PII 的片段（邮箱、真实姓名、电话、身份证号）
 - [ ] 替换 **本地文件系统路径** 为 `/home/USER/...` 或 `/Users/USER/...` 占位
@@ -123,6 +125,7 @@ reviewer:
 **A.5.3 · 自动 secret scan**（SPIKE-06 实施时硬阻塞 · Codex R4 F4 + R5 F2 + R6 F2 复核 · **conditional on Phase 4 landing**）
 
 > ⚠️ **R6 F2 复核教训**：SPIKE-06 声明"CI 硬阻塞 gitleaks"的前提条件是 PR #11（Phase 4 基础设施）**已 merge 到 main**。在 PR #11 merge 前 · 这些 CI workflow 文件不存在 · 要求也不可能满足。解决方式：
+>
 > 1. 把 `phase-4-infra-landing` 写进 SPIKE-06 `depends_on`（frontmatter · 已加）
 > 2. 本节要求**按 Phase 4 是否落地分情况**（conditional）
 
@@ -162,6 +165,7 @@ gh api repos/tajiaoyezi/vibestation/branches/main/protection 2>/dev/null | jq '.
 **SPIKE-06 task 不应进入 in-progress** · 应 `status: blocked · blocked_by: ["phase-4-infra-landing"] · blocked_from: ready`。
 
 若特殊情况必须在 PR #11 之前实施（例如 Apple Dev Program 申请 · 不涉及样本录制）：
+
 - [ ] **只做 §B Apple Developer Program 副线**（不触发样本 / 脱敏 / secret-scan）
 - [ ] **禁止**在 §A（样本录制）做任何 commit · 直到 PR #11 merge
 - [ ] reviewer 明确在 PR 描述标注"仅 §B · 未触发 §A.5 要求"
@@ -175,6 +179,7 @@ gh api repos/tajiaoyezi/vibestation/branches/main/protection 2>/dev/null | jq '.
 - 不可：关闭 workflow / 强制 merge · 违反 `docs/BRANCH-PROTECTION.md` "禁止 bypass" 原则
 
 **A.5.4 · 样本真实性与脱敏平衡**
+
 - [ ] 脱敏**不能丢失协议结构信息**（例如 JWT 可以替换为 `eyJ...FAKE_JWT_STRUCTURE...` 保留格式 + 长度）
 - [ ] 脱敏**必须丢失敏感值**（JWT 的真实 claim / signature 不留）
 - [ ] 每个样本附脱敏清单：`{redacted_fields: ["api_key", "user_email", ...], replacement_strategy: "..."}`
@@ -225,6 +230,7 @@ macOS Dev Program（B）：
 **CLI 双失败** → 仅提供多 Tab 终端，不标榜 AI CLI 集成（README 措辞需修改）；R1 保留
 
 **R1 不下调规则**（Codex 加入）：
+
 - 本 Spike 不允许在任何产出文档里声明"R1 已消除"或"协议已清楚"
 - `CLAUDE.md` 的"⚠️ Claude CLI / Codex CLI 输出协议 Spike Day 5 前未经实机验证"**保留为"未经深度协议验证"**（即使改措辞也不能摘除警告）
 - R1 降级授权只能通过 SPIKE-07 的 ADR 完成
@@ -262,7 +268,7 @@ macOS Dev Program（B）：
 
 ## 🔗 相关
 
-- ADR：**暂不建 ADR**（CLI 协议 MVP 不锁；v1.0 前由 SPIKE-07 触发建 **ADR-011 AI-Aware greenlight**（或 deferred · 基于 SPIKE-07 结论） · 见 [ADR-009](../adr/ADR-009-ai-aware-v1-vision.md)）
+- ADR：**暂不建 ADR**（CLI 协议 MVP 不锁；v1.0 前由 SPIKE-07 触发建 **ADR-017 AI-Aware greenlight**（或 deferred · 基于 SPIKE-07 结论 · 原拟 ADR-011 · 编号已被占用 · session 32 重编号） · 见 [ADR-009](../adr/ADR-009-ai-aware-v1-vision.md)）
 - 对应 `CLAUDE.md` ⚠️ 条款：Claude CLI / Codex CLI 输出协议未经实机验证
 - `implementation-plan.md` 章节：§附录 A D6 · §9 R1 · §1.1 AI-Aware vision
 - 上游：SPIKE-05

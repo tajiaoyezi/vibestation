@@ -39,7 +39,9 @@ Cargo.lock 进 git（版本冻结 · 任何机器 byte-level 复现）。`target
   - `CliEvent`（MessageStart/Delta/End · Error · SessionMeta · Hook · Usage · ToolUse\* · **Unrecognized 强制兜底**）
   - `trait CliParser { fn cli_id() -> &str; fn parse(&ParseInput) -> ParseResult; }`
   - 契约：`parse` **不得 panic**；不认识的块包 `Unrecognized` 不丢弃；空输入返回空 vec
-- `src/lib.rs::parser::for_cli(cli)` — Phase A 返回 `StubParser`；Phase B 各 agent 把对应分支换成真 adapter
+- `src/parser/claude.rs` — **Phase B track 1 独占**（`ClaudeParser::parse` · 薄协议）· agent 只编辑本文件
+- `src/parser/codex.rs` — **Phase B track 2 独占**（`CodexParser::parse` · 厚结构）· agent 只编辑本文件
+- `src/lib.rs::parser::for_cli` — Phase A 已锁路由到 `ClaudeParser`/`CodexParser`（真实类型 · impl 由 Phase B 填）· **Phase B 不改 lib.rs**（文件域硬隔离 · 2 track 0 共享文件写 · 规避 §2.15 stale-base）
 - `src/bin/replay.rs` — Phase C harness（Phase B adapter 落地后**不改本文件**即出真实事件 · `catch_unwind` 兜底验证不 panic 契约）
 
 ## 关键结论溯源（Phase A 实测 · 喂 Phase D）

@@ -2,9 +2,9 @@
 id: SPIKE-07.5
 type: spike
 title: CLI 结构化模式重录重跑 spike（路径 A · R1 新 gate）
-status: ready
-status_note: "ready-gate APPROVE-WITH-NITS（#341 · 3 nit 修+re-reviewed）· Arbiter 2026-05-16 拍板 '批准 flip'（翻转 gate 选项 a · reviewer push 翻转 commit）· 实施（重录结构化 corpus + parser 适配 + 重跑 §F + 重判 §H）gated on Arbiter 自定执行窗口（API 预算 · 同 SPIKE-06 录制模式）· 前置 SPIKE-07 done ✅"
-owner:
+status: in-progress
+status_note: "ready-gate APPROVE-WITH-NITS @ #341 · Arbiter flip 拍板 @ #342 · Arbiter 2026-05-16 声明执行窗口（'开始'）→ 实跑 in-progress：probe 结构化模式 → 重录 corpus → 新 crate（复用 SPIKE-07 ir/assertions + 新 .jsonl loader + 结构化 parser）→ 重跑 §F → 重判 SPIKE-07 §H · 前置 SPIKE-07 done ✅"
+owner: Claude Code
 phase: v1.0-pre
 depends_on: ["SPIKE-07"]
 depends_on_notes: "SPIKE-07 = done（§H 路径 3 deferred · ADR-017 accepted 2026-05-16）· 本 spike 复用 SPIKE-07 已证 sound 的 CliEvent IR + CliParser trait + assertions/matrix harness（docs/spikes/code/SPIKE-07/）· SPIKE-06 corpus 仅作交互 TUI 基线对照（不复用其样本 · 本 spike 重录结构化模式新 corpus）"

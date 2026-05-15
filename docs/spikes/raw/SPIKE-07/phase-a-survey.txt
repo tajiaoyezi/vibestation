@@ -1,0 +1,14 @@
+# SPIKE-07 Phase A · 全 corpus 结构画像（cargo run --bin survey）
+# corpus = /Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation/docs/spikes/code/SPIKE-07/../../raw/SPIKE-06
+# 样本数 = 36 （期望 36）
+
+cli    scenario             tk     rawB   cleanB   #o exit ansi%  redF  structural markers
+------------------------------------------------------------------------------------------------------------------------
+claude auth_fail             1      127       42    3    1    67     0  apikey-err,exit-nonzero
+claude auth_fail             2      127       42    3    1    67     0  apikey-err,exit-nonzero
+claude auth_fail             3      127       42    4    1    67     0  apikey-err,exit-nonzero
+claude happy_path            1      238      213    3    0    11     0  
+claude happy_path            2      196      175    3    0    11     0  
+claude happy_path            3      211      205    4    0     3     0  
+claude interrupt_residual    1    32689    32683   38    0     1     1  
+claude interrupt_residual    2    32661    32763   40    0     0     1  

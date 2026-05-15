@@ -28,11 +28,11 @@
 
 ### 总述（当前位置）
 
-截至 session 31 末，代码实施层面已经形成三段式状态：
+截至 session 32，代码实施层面已经形成三段式状态：
 
 1. **v0.1 / v0.2 / v0.3 的核心代码主线均已达到 100% 收口**（以 `docs/PROGRESS.md` 当前阶段描述与本 README 索引状态为准）。
-2. **v1.0 vision 4 个任务（SPIKE-07 + MVP-18/19/20）已完成 spec 详化**，但 frontmatter 仍为 `draft`，等待 Arbiter approve 后统一翻 `ready`。
-3. **当前阻塞不在编码而在 capture**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动。
+2. **v1.0 vision · MVP-18/19/20 已 session 32 Arbiter approve flip `ready`**（spec 详化完成 · 实施仍 gated on 各自 depends_on done）；**SPIKE-07 仍 `draft`**（session 32 ready-gate 修 3 个 High 阻塞 @ PR #328 · 待 re-review → flip）。
+3. **当前阻塞不在编码而在 capture + SPIKE-07 gate**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动；MVP-18/19/20 实施前置 = SPIKE-07 PASS。
 
 这段总览用于“先看全局，再钻索引表”：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段。
 
@@ -90,17 +90,18 @@ v0.3 结论：
 
 ### v1.0 vision 状态（spec 详化批）
 
-| Task     | 主题                       | 当前状态  | 详化进展                  | PR 参考 |
-| -------- | -------------------------- | --------- | ------------------------- | ------- |
-| SPIKE-07 | CLI parser 验证（R1 gate） | **draft** | 详化完成（待 flip ready） | #311    |
-| MVP-18   | AI-Aware Pane 联动         | **draft** | 详化完成（待 flip ready） | #309    |
-| MVP-19   | session ↔ commit 绑定      | **draft** | 详化完成（待 flip ready） | #313    |
-| MVP-20   | 一键回滚（session revert） | **draft** | 详化完成（待 flip ready） | #312    |
+| Task     | 主题                       | 当前状态  | 详化进展                                                               | PR 参考     |
+| -------- | -------------------------- | --------- | ---------------------------------------------------------------------- | ----------- |
+| SPIKE-07 | CLI parser 验证（R1 gate） | **draft** | 详化完成 · session 32 ready-gate 修 3 个 High 阻塞 · 待 re-review flip | #311 · #328 |
+| MVP-18   | AI-Aware Pane 联动         | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）   | #309 · #330 |
+| MVP-19   | session ↔ commit 绑定      | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）         | #313 · #330 |
+| MVP-20   | 一键回滚（session revert） | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）         | #312 · #330 |
 
 v1.0 vision 结论：
 
-- 当前不是实现阻塞，而是“spec 状态翻转 + SPIKE gate”的流程阻塞。
-- 4 个文档已具备 ready-candidate 密度，等待 Arbiter 决策窗口执行翻转。
+- MVP-18/19/20 已 session 32 Arbiter approve flip `ready`（spec 层可认领 · 但实施被各自 `depends_on` 门控 · 链 MVP-18→19→20 + SPIKE-07 R1 gate）。
+- SPIKE-07 仍 `draft`：ready-gate 预审 verdict=BLOCK，3 个 High 阻塞已修（PR #328：fixture 路径 / ADR-011→ADR-017 / 归档路径对齐项目规则），待 re-review 确认后走翻转 gate flip `ready`。
+- 实际"能开工"前置 = SPIKE-07 PASS（R1 降级）→ 写 ADR-017 → MVP-18 起依赖链逐个解锁。
 
 ### 关联文档（从总览跳转）
 
@@ -247,9 +248,9 @@ draft ────────► ready ─────────────�
 | [MVP-15](./MVP-15-diff-syntax-highlight.md)         | Diff 语法高亮（shiki lazy load · 对齐 §W21）                        | **ready**（session 24 · OpenCode 详化 100% · 717 行 · 严格对齐 §W21 shiki · 0 新增 IPC binding · 主 agent cross-review + Arbiter approve · 等待认领）                                                                                                                                                                                                   | v0.3     | 4d   | MVP-08                   |
 | [MVP-16](./MVP-16-rebase-merge-cherrypick.md)       | Rebase / Merge / Cherry-pick（含交互式 + 冲突解决）                 | **ready**（session 24 · Claude Code 主 agent 详化 100% · 707 行 · 含 3-way conflict + crash recovery · self-review + Arbiter approve · 等待认领）                                                                                                                                                                                                       | v0.3     | 7d   | MVP-08 / MVP-09 / MVP-13 |
 | [MVP-17](./MVP-17-external-terminal-pane-detach.md) | Pop to External + Pane Detach                                       | **ready**（session 29 详化 100% PR #283/#284/#285 · Arbiter approve · Phase A done @ PR #291 · Phase B done @ PR #301 · Phase C wiring done @ PR #302 · 仅 E.4 settings UI follow-up + Phase D Arbiter playbook 推迟 · frontmatter 待 E.4 + Phase D 完成后翻 done）                                                                                     | v0.3     | 4d   | MVP-14                   |
-| [MVP-18](./MVP-18-ai-aware-pane-linking.md)         | **AI-Aware Pane 联动**（v1.0 vision · 对外禁提）                    | **draft**（session 31 详化完成 100% · 611 行 · 48 checkbox · Codex CLI 详化 PR #309 · 等 Arbiter approve flip ready）                                                                                                                                                                                                                                   | v1.0     | 15d  | MVP-14 · SPIKE-07        |
-| [MVP-19](./MVP-19-session-commit-binding.md)        | **AI session ↔ commit 自动绑定**（v1.0 vision）                     | **draft**（session 31 详化完成 100% · 740 行 · 43 checkbox · Cursor 详化 PR #313 · 等 Arbiter approve flip ready）                                                                                                                                                                                                                                      | v1.0     | 8d   | MVP-18                   |
-| [MVP-20](./MVP-20-ai-one-click-rollback.md)         | **AI 一键回滚（session 级 revert）**（v1.0 vision）                 | **draft**（session 31 详化完成 100% · 647 行 · 25 checkbox + 12 sub · Droid 详化 PR #312 · 等 Arbiter approve flip ready）                                                                                                                                                                                                                              | v1.0     | 6d   | MVP-19                   |
+| [MVP-18](./MVP-18-ai-aware-pane-linking.md)         | **AI-Aware Pane 联动**（v1.0 vision · 对外禁提）                    | **ready**（session 31 详化 100% · 611 行 · 48 checkbox · Codex CLI PR #309 · session 32 Arbiter approve flip + MVP-14 wording nit 修 PR #330 · 实施仍 gated on SPIKE-07 PASS + MVP-14 全 phase done）                                                                                                                                                   | v1.0     | 15d  | MVP-14 · SPIKE-07        |
+| [MVP-19](./MVP-19-session-commit-binding.md)        | **AI session ↔ commit 自动绑定**（v1.0 vision）                     | **ready**（session 31 详化 100% · 740 行 · 43 checkbox · Cursor PR #313 · session 32 Arbiter approve flip + §B/§H1 nit 修 PR #330 · 实施仍 gated on MVP-18 done）                                                                                                                                                                                       | v1.0     | 8d   | MVP-18                   |
+| [MVP-20](./MVP-20-ai-one-click-rollback.md)         | **AI 一键回滚（session 级 revert）**（v1.0 vision）                 | **ready**（session 31 详化 100% · 647 行 · 25 checkbox + 12 sub · Droid PR #312 · session 32 Arbiter approve flip + §B.2 三处接口锚定 + §H.7 nit 修 PR #330 · 实施仍 gated on MVP-19 done）                                                                                                                                                             | v1.0     | 6d   | MVP-19                   |
 
 > 占位 spec 用途：在 `<TYPE>-NN-<slug>` 编号连续性 + 依赖可视化上提前占位，v0.2 / v0.3 / v1.0 启动时按 kickoff 详化到实施 spec（补具体 UI 截图 / Acceptance 可量化门槛 / 数据模型细节）。
 >

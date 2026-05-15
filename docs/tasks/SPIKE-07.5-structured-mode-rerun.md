@@ -45,13 +45,15 @@ SPIKE-07 实测结论：§H 路径 3 deferred · 但**根因 = corpus 方法论 
 
 ### 与 SPIKE-07 的关系（复用 vs 新建）
 
-| 物料                           | SPIKE-07（done）                           | SPIKE-07.5 策略                                                                                       |
-| ------------------------------ | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| CliEvent IR + CliParser trait  | `docs/spikes/code/SPIKE-07/src/ir.rs` 已锁 | **复用 · 不改契约**（§E.4 已证两 CLI 共享同一 IR 可行）                                               |
-| assertions + matrix harness    | `src/assertions.rs` + `src/bin/matrix.rs`  | **复用**（§F 断言逻辑 + 36 样本矩阵 + §H 判定 harness · TDD 已验）                                    |
-| parser adapter（claude/codex） | TUI 屏幕重绘解析（薄/厚）                  | **新增结构化模式解析路径**（claude `stream-json` JSON-lines · codex `exec` 输出）                     |
-| corpus                         | SPIKE-06 36 条交互 TUI `.redacted.cast`    | **新录 36 条结构化模式样本** → `docs/spikes/raw/SPIKE-07.5/`（不复用 SPIKE-06）                       |
-| 代码目录                       | `docs/spikes/code/SPIKE-07/`               | **新建 `docs/spikes/code/SPIKE-07.5/`**（复用 SPIKE-07 IR/harness · 留 SPIKE-07 作 TUI 基线对照不动） |
+| 物料                                      | SPIKE-07（done）                                       | SPIKE-07.5 策略                                                                                                                                     |
+| ----------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ir.rs`（CliEvent IR + CliParser trait）  | `docs/spikes/code/SPIKE-07/src/ir.rs` 已锁             | **可复用 · 不改契约**（§E.4 已证两 CLI 共享同一 IR · format-agnostic）                                                                              |
+| `assertions.rs`（§F 断言）                | `src/assertions.rs`（吃 `&[CliEvent]`）                | **可复用 as-is**（断言纯函数 · 与样本格式无关 · TDD 已验 13 测试）                                                                                  |
+| `matrix.rs` harness 聚合逻辑              | `src/bin/matrix.rs`（场景/CLI/整体/§E.11/§H 判定）     | **结构可复用** · 但 corpus 加载入口须换（见下行）                                                                                                   |
+| `cast.rs` + `fixture.rs`（corpus loader） | asciinema **v3 `.cast`** 解码 + glob `*.redacted.cast` | **不可复用**（.cast 专用 · 结构化 corpus 是 JSON-lines）· SPIKE-07.5 **新写 `.structured.jsonl` loader**                                            |
+| parser adapter（claude/codex）            | TUI 屏幕重绘解析（薄/厚）                              | **新增结构化模式解析路径**（claude `stream-json` JSON-lines · codex `exec` 输出 · 复用 `CliParser` trait）                                          |
+| corpus                                    | SPIKE-06 36 条交互 TUI `.redacted.cast`                | **新录 36 条结构化模式样本** → `docs/spikes/raw/SPIKE-07.5/`（不复用 SPIKE-06）                                                                     |
+| 代码目录                                  | `docs/spikes/code/SPIKE-07/`                           | **新建 `docs/spikes/code/SPIKE-07.5/`**（复用 ir.rs+assertions.rs+matrix 聚合 · 新写 .jsonl loader + 结构化 parser · SPIKE-07 不动作 TUI 基线对照） |
 
 ### SPIKE-07 deferred 三类根因（本 spike 针对性消除）
 
@@ -69,10 +71,11 @@ SPIKE-07 实测结论：§H 路径 3 deferred · 但**根因 = corpus 方法论 
    - Claude：`claude -p --output-format stream-json --include-hook-events --include-partial-messages "<scenario prompt>"` · stdout 重定向捕获（非 PTY asciinema · 因结构化模式输出是 JSON-lines 非屏幕流）
    - Codex：`codex exec "<scenario prompt>"` 非交互 · stdout 捕获
    - 6 场景沿用 SPIKE-06 定义：happy_path / interrupt_residual / auth_fail / network_error / long_stream / mixed_ansi_json
+   - ⚠️ **`interrupt_residual` 结构化模式语义退化**（`claude -p` print-and-exit / `codex exec` 非交互 · 无交互 TUI 残帧概念）：本场景**重定义**为「流式输出中途 SIGTERM → 捕获已发的部分结构化事件序列 · 验 parser 优雅处理截断（不 panic · 末事件非悬空 start）」· **不**测 TUI 残帧解析。report 须显式记此语义差异（对齐 §risks #1 / §E fail #2）· §H 判定时该场景按重定义后的断言评估
    - 脱敏：沿用 SPIKE-06 脱敏纪律（删 token/key/JWT/PII/本地路径/git remote · 保协议结构占位）· 同名 `.redaction.json` sidecar
    - 命名：`{cli}_{scenario}_{take}.structured.jsonl`（区别于 SPIKE-06 `.redacted.cast`）
 2. **结构化模式 parser 适配**：在 `docs/spikes/code/SPIKE-07.5/` 复用 SPIKE-07 `CliEvent` IR + `CliParser` trait · 新增 claude `stream-json`（JSON-lines · 每行一 event · `--include-hook-events` 含 hook 生命周期）+ codex `exec` 输出解析
-3. **§F 矩阵重跑**：复用 SPIKE-07 `assertions.rs` + `matrix.rs`（§F 断言 + 12 case × 3 + §E.11 基线 + §H 判定）· 对结构化 corpus 跑
+3. **§F 矩阵重跑**：复用 SPIKE-07 `assertions.rs`（§F 断言纯函数 · as-is）+ `matrix.rs` 聚合逻辑（12 case×3 + §E.11 基线 + §H 判定）· **新写 `.structured.jsonl` corpus loader 替代 `cast.rs`+`fixture.rs`**（.cast 专用不可复用 · 见 §B 表）· 对结构化 corpus 跑
 4. **§H 三路径重判**：基于结构化 corpus 实测重走 SPIKE-07 §H（single source of truth）
 5. **报告**：`docs/spikes/SPIKE-07.5-report.md`（结构化 vs TUI corpus 对照 + 准确率 + §H 重判 + R1 proposal）
 
@@ -86,7 +89,9 @@ SPIKE-07 实测结论：§H 路径 3 deferred · 但**根因 = corpus 方法论 
 
 ---
 
-## §D · 通过标准（Pass Criteria）· §H 三路径（复用 SPIKE-07 single source of truth）
+## §D · 通过标准（Pass Criteria）· 复用 **SPIKE-07 §H** 三路径（R1 single source of truth）
+
+> 📌 消歧：「三路径」R1 判据始终指 **SPIKE-07 §H**（[`SPIKE-07-cli-protocol-parser.md`](./SPIKE-07-cli-protocol-parser.md) §H · session 32 Arbiter 钦定）。本 SPIKE-07.5 spec 自身的 `§H` 段是「交付物归档」（见下方），与 R1 判据无关。
 
 R1 降级判据 = SPIKE-07 §H 三路径（session 32 Arbiter 钦定 · 本 spike 沿用 · 对结构化 corpus 实测重判）：
 
@@ -122,7 +127,7 @@ R1 降级判据 = SPIKE-07 §H 三路径（session 32 Arbiter 钦定 · 本 spik
 - [ ] 36 条结构化 corpus 重录完成（6 场景 × 2 CLI × 3 take · `docs/spikes/raw/SPIKE-07.5/` · 进 git · 脱敏 + sidecar）
 - [ ] `docs/spikes/code/SPIKE-07.5/` 复用 SPIKE-07 IR/trait/harness · 新增结构化模式 parser · `cargo test` 全过 · clippy `-D warnings` · fmt clean
 - [ ] §F 矩阵对结构化 corpus 实跑 · 0 panic · 结果溯源 `docs/spikes/raw/SPIKE-07.5/matrix.json`
-- [ ] §H 三路径重判（逐路径核对 · 实测数字驱动 · 0 fabrication）
+- [ ] **SPIKE-07 §H** 三路径重判（逐路径核对 · 实测数字驱动 · 0 fabrication）
 - [ ] `docs/spikes/SPIKE-07.5-report.md`：结构化 vs TUI 对照 + 准确率 + §H 重判 + R1 proposal + 置信度 caveat
 - [ ] 新 ADR（若翻盘）proposed · §2.1 不自 accept · Arbiter 拍板
 - [ ] spike-delivery-checklist 3 样必交（report + code + raw 全进 git · 同 PR 原子归档）
@@ -131,6 +136,8 @@ R1 降级判据 = SPIKE-07 §H 三路径（session 32 Arbiter 钦定 · 本 spik
 ---
 
 ## §H · 交付物归档（3 样必交 · 对齐 `.claude/rules/spike-delivery-checklist.md`）
+
+> 📌 本 `§H` = SPIKE-07.5 交付物归档段。R1 降级判据的「§H 三路径」始终指 **SPIKE-07 §H**（见 §D 消歧）· 勿混。
 
 | #   | 物料     | 路径                               | 进 git |  级别   |
 | --- | -------- | ---------------------------------- | :----: | :-----: |

@@ -2,7 +2,7 @@
 id: SPIKE-07
 type: spike
 title: CLI 输出协议 parser 验证 spike（R1 降级前置）
-status: draft
+status: ready
 owner:
 phase: v1.0-pre
 depends_on: ["SPIKE-06"]
@@ -19,7 +19,7 @@ reviewer: OpenCode · self-review · §2.10 evidence-based
 
 # SPIKE-07: CLI 输出协议 parser 验证
 
-> **状态**：`draft`（v1.0-pre · **详化中**，非 MVP v0.1/v0.2/v0.3 范围）
+> **状态**：`ready`（v1.0-pre · session 32 ready-gate：3 个 High 阻塞修复 @ PR #328 · re-review APPROVE-WITH-NITS · threshold 收敛 + 2 nit 修 + Arbiter approve flip · 实施是 MVP-18/19/20 的 R1 gate 前置）
 > **依赖**：[SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md)（36+ 样本已录制 · PR #71）
 > **阻塞**：MVP-18/19/20（AI-Aware 三件套 · v1.0 vision）
 > **战略依据**：[`implementation-plan.md §5.3.6`](../implementation-plan.md) · [`§9 R1`](../implementation-plan.md)
@@ -251,7 +251,9 @@ pub enum ErrorKind {
 - [ ] 每样本至少生成 1 个 `CliEvent`（空输出视为异常，需人工审计）
 - [ ] `Unrecognized` 事件比例 ≤ 10%（总事件数中 ≤ 10% 为未识别）
 
-### E.3 · 准确率门槛
+### E.3 · 准确率门槛（场景级诊断指标 · informative）
+
+> 📊 **本节是诊断指标，不是 R1 降级判据**（session 32 Arbiter 钦定）。以下阈值用于 Phase D 报告的场景级分析（哪个场景弱、弱多少），帮助定位 parser 短板。**R1 降级 gate 的单一权威判据见 §H 三路径**；本节阈值与 §H 冲突时以 §H 为准。
 
 - [ ] Happy path 场景：解析正确率 ≥ 99%（message_start/delta/end 角色识别正确）
 - [ ] 失败路径场景（auth / network / 中断）：解析正确率 ≥ 95%（error kind 分类正确）
@@ -266,12 +268,14 @@ pub enum ErrorKind {
 - [ ] 若共享：给出统一 parser 的架构建议
 - [ ] 若独立：给出 adapter 层设计 + 维护成本估算
 
-### E.5 · R1 降级 proposal
+### E.5 · R1 降级 proposal（§H 三路径的口语化对照 · informative）
 
-- [ ] 若整体准确率 ≥ 99% → 建议 R1 降级到 LOW/LOW
-- [ ] 若整体准确率 ≥ 95% 但 < 99% → 建议 R1 降级到 MEDIUM/LOW
-- [ ] 若整体准确率 < 95% 或任一失败路径 < 90% → 建议 R1 保留
-- [ ] 若两 CLI 无法统一抽象 → 建议 R1 降级到 MEDIUM/LOW 但限制只支持一个 CLI
+> 📊 **本节是 §H 三路径的口语化对照，不是独立判据**（session 32 Arbiter 钦定）。正式 R1 降级结论**只依据 §H**；以下对照与 §H 冲突时以 §H 为准。Phase E 写 ADR-017 时按 §H 路径选 greenlight / single-cli / deferred 变体。
+
+- [ ] 对照 §H 路径 1（通过）→ ADR-017 greenlight · R1 降级到 MEDIUM/LOW（§H 路径 1 含整体加权 ≥ 96% + 各场景 ≥ 90% + 两 CLI 可统一）
+- [ ] 对照 §H 路径 2（部分通过 · 一 CLI 达标）→ ADR-017 single-cli · R1 降级到 MEDIUM/LOW 但只支持达标的 CLI
+- [ ] 对照 §H 路径 3（双失败）→ ADR-017 deferred · R1 保留
+- [ ] 诊断补充（informative · 不改 §H 判定）：整体准确率 ≥ 99% 时 report 可附「R1 可进一步降到 LOW/LOW」建议供 Arbiter 参考，但 gate 仍以 §H 路径 1 为准
 
 ### E.6 · 报告质量
 
@@ -362,6 +366,7 @@ pub enum ErrorKind {
 1. **任一场景准确率 < 90%** → R1 不能降级 · AI-Aware 全套推迟
    - 即使其他场景都达标，只要一个场景 < 90%，说明 parser 在边界条件下不可靠
    - 特别关注点：混合 ANSI-JSON 场景通常是最容易低于门槛的
+   - **与 §H 一致性**：本条 = §H 路径 1「各场景 ≥ 90%」的逆否（非独立阈值）· R1 降级 gate 判定以 §H single source of truth 为准
 
 2. **两 CLI 结构差异过大（无法统一抽象）** → 只能支持一个 CLI · README 措辞修改
    - "差异过大"的判定标准：IR 字段重合度 < 70%（即 30% 以上字段只能一个 CLI 用）
@@ -385,7 +390,9 @@ pub enum ErrorKind {
 
 ---
 
-## §H · Fallback 方案（3 路径）
+## §H · Fallback 方案（3 路径 · R1 降级 single source of truth）
+
+> 🔒 **本节是 R1 降级 decision-grade 单一权威判据（single source of truth · session 32 Arbiter 钦定）**。§E.3 / §E.5 为**场景级诊断指标（informative）**，写入 Phase D report 供分析，**不参与 R1 降级 gate 判定**。任何阈值边界带（如 mixed 场景实测落 90–95%）与本节冲突时——**一律以本节三路径为准**。Phase E 写 ADR-017 的降级结论只依据本节。
 
 保留占位中已有的 3 路径，各自实化操作：
 
@@ -480,14 +487,14 @@ review accept 必须在**同一个主 agent 动作内**完成：判定 Pass/Fail
 
 ## §K · 实施 Phase 拆分
 
-| Phase | 任务                                                 | 估时 | 阻塞项  | 产出                                                                                                      |
-| ----- | ---------------------------------------------------- | ---- | ------- | --------------------------------------------------------------------------------------------------------- |
-| A     | Fixture loader 实现：读取 SPIKE-06 样本 + 建立注册表 | 0.5d | 无      | fixture registry + 样本验证脚本                                                                           |
-| B     | Parser MVP：手写状态机解析 happy path（Claude 先）   | 0.5d | Phase A | Claude happy path 解析通过                                                                                |
-| C     | 6 场景断言：对 36+ 样本逐条跑断言 + 记录失败         | 0.5d | Phase B | 12 case × 3 样本 = 36 条结果                                                                              |
-| D     | 准确率统计 + 统一抽象分析 + 两 CLI 对比              | 0.5d | Phase C | 准确率数据表 + IR 差异清单                                                                                |
-| E     | ADR-017 起草（基于 Phase D 结论）                    | 0.5d | Phase D | ADR-017 草稿（3 种路径对应 3 个版本）                                                                     |
-| F     | 报告撰写 + 代码清理 + 归档                           | 0.5d | Phase E | `docs/spikes/SPIKE-07-report.md` + `docs/spikes/code/SPIKE-07/` + `docs/spikes/raw/SPIKE-07/`（3 样必交） |
+| Phase | 任务                                                 | 估时 | 阻塞项  | 产出                                                                                                                                                        |
+| ----- | ---------------------------------------------------- | ---- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | Fixture loader 实现：读取 SPIKE-06 样本 + 建立注册表 | 0.5d | 无      | fixture registry + 样本验证脚本                                                                                                                             |
+| B     | Parser MVP：手写状态机解析 happy path（Claude 先）   | 0.5d | Phase A | Claude happy path 解析通过                                                                                                                                  |
+| C     | 6 场景断言：对 36+ 样本逐条跑断言 + 记录失败         | 0.5d | Phase B | 12 case × 3 样本 = 36 条结果                                                                                                                                |
+| D     | 准确率统计 + 统一抽象分析 + 两 CLI 对比              | 0.5d | Phase C | 准确率数据表 + IR 差异清单                                                                                                                                  |
+| E     | ADR-017 起草（基于 Phase D 结论）                    | 0.5d | Phase D | ADR-017 草稿（§H 3 条 R1 判定路径 → greenlight/single-cli/deferred · 另 §M 含意外路径 D = parser crash/样本不真实 → 按 deferred 处理 · 与 §M outline 对齐） |
+| F     | 报告撰写 + 代码清理 + 归档                           | 0.5d | Phase E | `docs/spikes/SPIKE-07-report.md` + `docs/spikes/code/SPIKE-07/` + `docs/spikes/raw/SPIKE-07/`（3 样必交）                                                   |
 
 **合计**：3d（含 0.5d buffer）
 
@@ -528,8 +535,8 @@ review accept 必须在**同一个主 agent 动作内**完成：判定 Pass/Fail
 **Phase E · ADR-017 起草（0.5d）**：
 
 - 基于 Phase D 结论，按 §M 模板起草 ADR-017
-- 3 种路径对应 3 个 ADR 版本，只写与结论匹配的那个
-- 其余两个版本作为附录保留（供 reviewer 对比）
+- §H 3 条 R1 判定路径 → greenlight/single-cli/deferred 三变体（§M 另含意外路径 D = parser crash/样本不真实 → 按 deferred 处理）· 只写与结论匹配的那个
+- 其余变体作为附录保留（供 reviewer 对比）
 - ADR 需经独立评审 + Arbiter 拍板后才 accepted
 
 **Phase F · 报告 + 归档（0.5d）**：
@@ -583,7 +590,7 @@ SPIKE-07 基于 SPIKE-06 的 36+ 脱敏样本验证 parser 可行性，结果如
 - 更新 CLAUDE.md 决策表 #3
 
 ## 约束
-- Parser 原型代码归档到 spike-tmp/，v1.0 实施时重写生产级 parser
+- Parser 原型代码归档到 `docs/spikes/code/SPIKE-07/`（进 git · 见 §I 3 样必交）· v1.0 实施时重写生产级 parser
 - 持续监控 CLI 版本升级对 parser 的影响
 ```
 

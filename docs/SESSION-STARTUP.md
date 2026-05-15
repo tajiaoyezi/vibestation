@@ -29,7 +29,9 @@
 ## 🏁 今天立即能做的（按优先级 · session 29+ 视角）
 
 ### 选项 A · 接 MVP-17 Phase B 收尾（推荐 · session 30 主线）
+
 PR #285 已落地 skeleton · 剩余 Tauri WebviewWindow 真实 lifecycle：
+
 - `crates/app/src/pane_detach/window_manager.rs` 替换 skeleton return 为真实 `WebviewWindowBuilder`
 - close event listener 注册 · 异常关闭路径（kill -9 / IPC channel close · spec D.5）
 - WebviewWindow bounds 实时同步（拖动后取最新）
@@ -37,7 +39,9 @@ PR #285 已落地 skeleton · 剩余 Tauri WebviewWindow 真实 lifecycle：
 - worktree 已就位：`/private/tmp/MVP-17-phase-B-work`
 
 ### 选项 B · 跑 v0.3 sprint Phase D capture playbook（Arbiter 手工 · 90-120 min）
+
 PR #271 playbook 已就位 · 4 MVP × ~28 PNG + 1 MP4 + 4 metrics 一气呵成：
+
 - MVP-12 commit rail graph 截图
 - MVP-14 pane advanced layout 截图 + 30s 录屏
 - MVP-15 diff syntax highlight DevTools Performance + 视觉回归
@@ -45,11 +49,13 @@ PR #271 playbook 已就位 · 4 MVP × ~28 PNG + 1 MP4 + 4 metrics 一气呵成�
 - 跑完 4 MVP spec status: ready → done flip
 
 ### 选项 C · 等待 dispatch agent 完成（被动）
+
 - Codex CLI · MVP-17 Phase A external_term backend（worktree `/private/tmp/MVP-17-phase-A-work`）
 - OpenCode · MVP-17 Phase C frontend + mock IPC（worktree `/private/tmp/MVP-17-phase-C-work`）
 - PR 推送后由主 agent review + merge · 完成后接 selection A 集成
 
 ### 选项 D · 起新 v0.4+ spec（低优先 · 远期）
+
 - SPIKE-07 CLI parser draft → ready（v1.0-pre · 3d）
 - MVP-18/19/20 是 v1.0 vision · 严格按 CLAUDE.md 禁区不对外暴露 · 不主动详化（等 Arbiter 明确触发）
 
@@ -269,15 +275,16 @@ git2 读慢（Day 4）：
 
 ### Q5：为什么有 `AGENTS.md` / `CLAUDE.md` / 本文件三份？
 
-| 文件 | 读者 | 内容 |
-|------|------|------|
-| `AGENTS.md` | **任意 agent CLI**（Codex / Cursor / Aider / OpenCode / 自建 …）| 工具无关入口 · 极简 · 路由到 CLAUDE.md |
-| `CLAUDE.md` | **Agent**（Claude Code 自动加载 · 也是项目权威单文件入口）| 稳定规则 + 决策 + 禁区 + 命令速查 |
-| `SESSION-STARTUP.md` | **人类** | 当前阶段状态 + Playbook + FAQ |
+| 文件                 | 读者                                                             | 内容                                   |
+| -------------------- | ---------------------------------------------------------------- | -------------------------------------- |
+| `AGENTS.md`          | **任意 agent CLI**（Codex / Cursor / Aider / OpenCode / 自建 …） | 工具无关入口 · 极简 · 路由到 CLAUDE.md |
+| `CLAUDE.md`          | **Agent**（Claude Code 自动加载 · 也是项目权威单文件入口）       | 稳定规则 + 决策 + 禁区 + 命令速查      |
+| `SESSION-STARTUP.md` | **人类**                                                         | 当前阶段状态 + Playbook + FAQ          |
 
 ### Q6：每周投入 < 10 小时怎么办？
 
 触发 `implementation-plan.md` §10.5 **降级树**：
+
 - ≤ 15h：砍 iTerm2/Alacritty 配置导入（只留 Ghostty）、砍 Pane 分屏
 - ≤ 10h：仅保留多 Tab + Git Log/Status 只读
 - 连续 2 周 < 5h：hibernation，README 公开项目节奏

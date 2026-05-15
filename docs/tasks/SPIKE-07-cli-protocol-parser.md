@@ -39,7 +39,7 @@ reviewer: OpenCode · self-review · §2.10 evidence-based
 
 **本 Spike 通过后**：
 
-- 写 **ADR-011-ai-aware-greenlight.md** · R1 降级 proposal → accepted
+- 写 **ADR-017-ai-aware-greenlight.md** · R1 降级 proposal → accepted
 - 解锁 MVP-18/19/20 三件套的详化
 
 **本 Spike 不通过**：
@@ -67,24 +67,27 @@ SPIKE-06（W0-D6）已完成 §A 的 36+ 脱敏样本录制（PR #71）：
 - **6 场景**：Happy path / 中断残帧 / 认证失败 / 网络错误 / 长流式 / 混合 ANSI-JSON
 - **3 次重复**：每个场景 × 3 次录制（覆盖平台差异：mac/linux）
 - **脱敏标准**：删除 auth token / API key / JWT / PII / 本地路径 / git remote URL（保留协议结构占位，如 `eyJ...FAKE_JWT_STRUCTURE...`）
-- **存储位置**：`docs/spike-artifacts/SPIKE-06/`（脱敏后 · 进 repo）+ `~/.vibestation-spike-raw/SPIKE-06/`（原始未脱敏 · 不进 repo）
+- **存储位置**：`docs/spikes/raw/SPIKE-06/`（脱敏后 · **进 repo** · 含 `README.md` 索引）。注意：这是 SPIKE-06 实际归档位置（旧 spec 草稿曾写 `docs/spike-artifacts/SPIKE-06/`，该目录不存在 · 已对齐 `.claude/rules/spike-delivery-checklist.md` 的 raw 归档约定）
+- **样本格式**：每条录制是 **asciinema `.redacted.cast`**（JSON-lines 事件流 · 非纯 `.txt`）+ 同名 `.redaction.json` sidecar（记录被脱敏字段）。命名约定：`{cli}_{scenario}_{take}.redacted.cast`（下划线分隔 · 如 `claude_auth_fail_1.redacted.cast`）
 
-**样本结构示例**（Claude CLI · happy path · take-1）：
+**样本结构示例**（实际目录 · `ls docs/spikes/raw/SPIKE-06/`）：
 
 ```
-docs/spike-artifacts/SPIKE-06/
-├── claude/
-│   ├── happy-path-01.txt      # 启动 + 简单对话输出
-│   ├── happy-path-02.txt      # 同上 · macOS 录制
-│   ├── happy-path-03.txt      # 同上 · Linux 录制
-│   ├── interrupt-01.txt       # Ctrl+C 中断后残帧
-│   ├── auth-fail-01.txt       # 错误 token 导致的认证失败
-│   ├── network-error-01.txt   # 断网场景
-│   ├── long-stream-01.txt     # 10k+ token 响应片段
-│   └── mixed-ansi-json-01.txt # ANSI 颜色 + JSON 混合
-└── codex/
-    └── ...（同上 6 场景 × 3 次）
+docs/spikes/raw/SPIKE-06/
+├── README.md                              # 样本索引（fixture loader 应优先读此文件）
+├── claude_happy_path_1.redacted.cast      # Claude · happy path · take-1（asciinema 事件流）
+├── claude_happy_path_1.redaction.json     # take-1 脱敏字段记录 sidecar
+├── claude_happy_path_{2,3}.redacted.cast  # take-2/3（mac / linux 平台差异）
+├── claude_auth_fail_{1,2,3}.redacted.cast
+├── claude_network_error_{1,2,3}.redacted.cast
+├── claude_interrupt_residual_{1,2,3}.redacted.cast
+├── claude_long_stream_{1,2,3}.redacted.cast
+├── claude_mixed_ansi_json_{1,2,3}.redacted.cast
+├── codex_*_{1,2,3}.redacted.cast          # 同上 6 场景 × 3 次
+└── claude-version-0{1,2,3}.txt            # CLI 版本捕获（非样本 · loader 必须按 *.redacted.cast 过滤）
 ```
+
+> 场景 → 文件名映射：`happy_path` / `interrupt_residual` / `auth_fail` / `network_error` / `long_stream` / `mixed_ansi_json`（6 场景 × 2 CLI × 3 take = 36 条 `.redacted.cast`）。
 
 SPIKE-06 的结论严格区分为"CLI 能在 PTY 里运行"（结论 A）和"协议足够清楚可指导实现"（结论 B）。**结论 B 本 Spike 不验证，R1 保留**。SPIKE-07 是在 SPIKE-06 的样本基础上，回答"给定这些真实输出，能否稳定解析为结构化事件"。
 
@@ -96,7 +99,7 @@ SPIKE-06 的结论严格区分为"CLI 能在 PTY 里运行"（结论 A）和"协
 
 > AI-Aware = v1.0 vision · README / landing / Twitter / Discord 完全不宣传 · 直到 v1.0 真实落地再讲
 > 技术前提：SPIKE-07 parser-oriented spike 必通过（基于 SPIKE-06 录制的 36+ 样本 · parsed_issues 解析准确率 ≥ 95%）
-> SPIKE-07 通过 → 写 ADR-011-ai-aware-greenlight.md · 才能启动 MVP-18/19/20 详化
+> SPIKE-07 通过 → 写 ADR-017-ai-aware-greenlight.md · 才能启动 MVP-18/19/20 详化
 
 ADR-009 还规定：
 
@@ -104,13 +107,13 @@ ADR-009 还规定：
 - ✅ 允许：内部技术文档（ADR / implementation-plan / tasks/MVP-18..20）明确标注"v1.0 vision"
 - **R1 降级授权只能通过 SPIKE-07 的 ADR 完成**，SPIKE-06 无权下调 R1
 
-### 通过 / 不通过对应 ADR-011 路径
+### 通过 / 不通过对应 ADR-017 路径
 
-| 本 Spike 结果                            | ADR-011 文件名                   | 内容                                                    | 后续影响                                                            |
+| 本 Spike 结果                            | ADR-017 文件名                   | 内容                                                    | 后续影响                                                            |
 | ---------------------------------------- | -------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------- |
-| 通过（全指标达标）                       | `ADR-011-ai-aware-greenlight.md` | R1 降级到 MEDIUM/LOW · parser 可行 · v1.0 AI-Aware 开工 | MVP-18/19/20 详化解锁 · `CLAUDE.md` 决策表 #3 移除 ⚠️ 警告          |
-| 部分通过（一个 CLI 能 parse 另一个不能） | `ADR-011-ai-aware-single-cli.md` | 只支持能 parse 的那个 · README / landing 需说明         | MVP-18/19/20 详化解锁（仅限支持的 CLI）· 另一个 CLI 推到 v2         |
-| 双失败                                   | `ADR-011-ai-aware-deferred.md`   | R1 不降级 · AI-Aware 推迟到 v2+                         | MVP-18/19/20 status 保持 draft · `CLAUDE.md` 决策表 #3 保留 ⚠️ 警告 |
+| 通过（全指标达标）                       | `ADR-017-ai-aware-greenlight.md` | R1 降级到 MEDIUM/LOW · parser 可行 · v1.0 AI-Aware 开工 | MVP-18/19/20 详化解锁 · `CLAUDE.md` 决策表 #3 移除 ⚠️ 警告          |
+| 部分通过（一个 CLI 能 parse 另一个不能） | `ADR-017-ai-aware-single-cli.md` | 只支持能 parse 的那个 · README / landing 需说明         | MVP-18/19/20 详化解锁（仅限支持的 CLI）· 另一个 CLI 推到 v2         |
+| 双失败                                   | `ADR-017-ai-aware-deferred.md`   | R1 不降级 · AI-Aware 推迟到 v2+                         | MVP-18/19/20 status 保持 draft · `CLAUDE.md` 决策表 #3 保留 ⚠️ 警告 |
 
 ---
 
@@ -118,8 +121,8 @@ ADR-009 还规定：
 
 ### Do（必做）
 
-1. **Fixture loader**：读取 `docs/spike-artifacts/SPIKE-06/` 目录下的 36+ 脱敏样本文件，按 `{cli, scenario, take}` 三维索引建立 fixture 注册表
-2. **原型 parser 实现**：在 Rust `core` crate 或独立 `spike-tmp` 目录实现原型 parser（不锁死 parser 库，先用正则/状态机 combo，spike 实施时按实测选型）
+1. **Fixture loader**：读取 `docs/spikes/raw/SPIKE-06/` 目录下的 36 个 `*.redacted.cast` 样本（按 `*.redacted.cast` glob 过滤 · 跳过 `claude-version-*.txt` 等非样本文件），从文件名 `{cli}_{scenario}_{take}.redacted.cast` 解析 `{cli, scenario, take}` 三维索引建立 fixture 注册表；同名 `.redaction.json` sidecar 提供脱敏字段 metadata
+2. **原型 parser 实现**：在独立 `docs/spikes/code/SPIKE-07/` 目录实现原型 parser（不进 `crates/` · 不锁死 parser 库，先用正则/状态机 combo，spike 实施时按实测选型）
 3. **结构化事件解析**：从 CLI 原始输出流中提取以下事件类型：
    - `message_start` / `message_delta` / `message_end`
    - `role: user | assistant | system`
@@ -139,8 +142,8 @@ ADR-009 还规定：
 2. **MVP 集成**：MVP-04 多 Tab 终端集成 CLI 不依赖 parser，本 Spike 不改变 MVP 实现
 3. **第三方 CLI**：Gemini / 其他 CLI 不在范围内，v2+ 再评估
 4. **实时流式解析**：本 Spike 只测回放样本，不测 live stream 增量解析（留给 v1.0 实施时）
-5. **parser 长期维护**：原型代码用完即归档到 `spike-tmp/`，不 merge 到 main 的 `crates/`（避免技术债）
-6. **ADR-011 正式撰写**：spec 内可附 ADR outline 模板（§M），但 ADR-011 实际开 PR 是 spike 跑完后的事
+5. **parser 长期维护**：原型代码归档到 `docs/spikes/code/SPIKE-07/`（**进 git** · 证据级 · 见 `.claude/rules/spike-delivery-checklist.md` 3 样必交），不 merge 到 main 的 `crates/`（避免技术债 · 不重写为生产 parser）
+6. **ADR-017 正式撰写**：spec 内可附 ADR outline 模板（§M），但 ADR-017 实际开 PR 是 spike 跑完后的事
 
 ---
 
@@ -236,10 +239,10 @@ pub enum ErrorKind {
 
 ### E.1 · Fixture 回放
 
-- [ ] Fixture loader 能正确读取 `docs/spike-artifacts/SPIKE-06/` 全部 36+ 样本文件
-- [ ] 每个样本附 metadata：{cli, scenario, take, redacted_fields, original_size, redacted_size}
-- [ ] 样本格式统一为 UTF-8 文本文件，每行一条原始输出（或按 SPIKE-06 约定分隔）
-- [ ] Fixture 注册表能按 `cli=claude, scenario=auth-fail` 查询到所有匹配样本
+- [ ] Fixture loader 能正确读取 `docs/spikes/raw/SPIKE-06/` 全部 36 个 `*.redacted.cast` 样本（按 glob 过滤 · 跳过 `claude-version-*.txt`）
+- [ ] 每个样本附 metadata：{cli, scenario, take} 从文件名 `{cli}_{scenario}_{take}.redacted.cast` 解析，redacted_fields 从同名 `.redaction.json` sidecar 读取
+- [ ] 样本格式按 asciinema `.cast`（JSON-lines · `[timestamp, "o", data]` 事件）解析；loader 须能从 cast 事件流重组终端原始输出字节流
+- [ ] Fixture 注册表能按 `cli=claude, scenario=auth_fail` 查询到所有匹配样本（scenario 用下划线命名 · 对齐实际文件名）
 
 ### E.2 · Parser 覆盖率
 
@@ -279,7 +282,7 @@ pub enum ErrorKind {
 
 ### E.7 · 代码质量
 
-- [ ] 原型 parser 代码在 `spike-tmp/spike-07-parser/` 目录，不进 `crates/`
+- [ ] 原型 parser 代码在 `docs/spikes/code/SPIKE-07/` 目录（进 git · 含 `Cargo.toml` + `Cargo.lock` + `src/` + `README.md`），不进 `crates/`
 - [ ] 代码能独立编译运行（`cargo run --example replay-fixtures` 或等价）
 - [ ] 无 hardcoded 路径（fixture 路径通过 CLI 参数或 env 传入）
 - [ ] 无 secret / API key 硬编码
@@ -396,11 +399,11 @@ pub enum ErrorKind {
 
 **操作**：
 
-1. 写 `ADR-011-ai-aware-greenlight.md` · 提议 R1 降级到 MEDIUM/LOW（或 LOW/LOW）
+1. 写 `ADR-017-ai-aware-greenlight.md` · 提议 R1 降级到 MEDIUM/LOW（或 LOW/LOW）
 2. ADR accepted 后 → MVP-18/19/20 status 从 draft 翻 ready（由 main agent 操作，不自行 flip）
 3. 更新 `CLAUDE.md §决策表 #3`：移除 ⚠️ 警告
-4. 原型 parser 归档到 `spike-tmp/spike-07-parser/`（不进 main）
-5. 报告归档到 `docs/spikes/SPIKE-07-report.md`
+4. 原型 parser 归档到 `docs/spikes/code/SPIKE-07/`（进 git · 不进 `crates/`）
+5. 报告归档到 `docs/spikes/SPIKE-07-report.md` · raw 数据归档到 `docs/spikes/raw/SPIKE-07/`（3 样必交 · 见 §I）
 
 ### 路径 2 · 部分通过（一个 CLI 能 parse 另一个不能）
 
@@ -411,7 +414,7 @@ pub enum ErrorKind {
 
 **操作**：
 
-1. 写 `ADR-011-ai-aware-single-cli.md` · 提议只支持能 parse 的 CLI
+1. 写 `ADR-017-ai-aware-single-cli.md` · 提议只支持能 parse 的 CLI
 2. README / landing 需明确说明"AI-Aware 功能仅支持 X CLI"
 3. 另一个 CLI 的 parser 推到 v2 评估
 4. MVP-18/19/20 详化解锁（仅限支持的 CLI）
@@ -427,7 +430,7 @@ pub enum ErrorKind {
 
 **操作**：
 
-1. 写 `ADR-011-ai-aware-deferred.md` · 提议 R1 不降级 · AI-Aware 推迟到 v2+
+1. 写 `ADR-017-ai-aware-deferred.md` · 提议 R1 不降级 · AI-Aware 推迟到 v2+
 2. MVP-18/19/20 保持 draft 状态，不进入 in-progress
 3. `CLAUDE.md §决策表 #3` 保留 ⚠️ 警告（甚至加强措辞）
 4. v1.0 卖点回归"多 Tab 终端 + Git 工作台"（基础差异化）
@@ -435,25 +438,30 @@ pub enum ErrorKind {
 
 ---
 
-## §I · 4 样齐全归档（Spike Delivery Checklist）
+## §I · 交付物归档（3 样必交 + 1 推荐 · 对齐 `.claude/rules/spike-delivery-checklist.md`）
 
 > ⚠️ **详化阶段声明**：以下清单为 spike **跑完后**的归档要求。详化阶段只写清单模板，不实际产生交付物。
+> 归档位置严格对齐 [`.claude/rules/spike-delivery-checklist.md`](../../.claude/rules/spike-delivery-checklist.md) v2（ADR-013 冷备降级）· **3 样必交全进 git · 缺任一 accept 不成立**。
 
-参照 `docs/spikes/spike-delivery-checklist.md`（如存在）或 SPIKE-04/05/06 的归档模式：
+| #   | 物料                      | 路径                             | 进 git |  级别   | 说明                                                                                                                   |
+| --- | ------------------------- | -------------------------------- | :----: | :-----: | ---------------------------------------------------------------------------------------------------------------------- |
+| 1   | **决策文档**（report）    | `docs/spikes/SPIKE-07-report.md` |   ✅   | 🔴 必须 | 准确率数据表 + 统一抽象分析 + R1 降级 proposal · 每个数字必须 raw 可溯源                                               |
+| 2   | **实测源码**（code）      | `docs/spikes/code/SPIKE-07/`     |   ✅   | 🔴 必须 | 原型 parser + fixture loader + 测试脚本 · 含 `Cargo.toml` + `Cargo.lock` + `src/` + `README.md`（复现命令 + 结论溯源） |
+| 3   | **Raw 数据**              | `docs/spikes/raw/SPIKE-07/`      |   ✅   | 🔴 必须 | parser 对每条样本的完整输出日志 + 性能 profiling（JSON/log）+ `README.md` 字段索引                                     |
+| 4   | **冷备**（含 build 产物） | `spike-tmp/archive/SPIKE-07/`    |   ❌   | 🟡 推荐 | gitignored · 含 `target/` · 纯 Cargo + Cargo.lock 进 git 前提下可省（v2 · ADR-013 降级）                               |
 
-| #   | 交付物          | 路径                                 | 说明                                                   |
-| --- | --------------- | ------------------------------------ | ------------------------------------------------------ |
-| 1   | **Report**      | `docs/spikes/SPIKE-07-report.md`     | 准确率数据表 + 统一抽象分析 + R1 降级建议              |
-| 2   | **Code**        | `spike-tmp/spike-07-parser/`         | 原型 parser + fixture loader + 测试脚本                |
-| 3   | **Raw data**    | `~/.vibestation-spike-raw/SPIKE-07/` | 原始 parser 输出日志、性能 profiling 数据（不进 repo） |
-| 4   | **Cold backup** | 本地压缩包或云存储                   | parser 代码 + 报告 + fixture 快照的只读备份            |
+### accept 原子性（不可跨 session 拆分）
 
-**归档要求**：
+review accept 必须在**同一个主 agent 动作内**完成：判定 Pass/Fail → 决策文档入库 → 源码归档 `docs/spikes/code/SPIKE-07/` → raw 归档 `docs/spikes/raw/SPIKE-07/` → ADR-017 翻转 → spec done 翻转（独立评审后）。任一步骤中断 · session 结束前必须补全 · 不允许跨 session 遗留。反模式："先 accept · 明天再归档代码"。
 
-- [ ] Report 含所有原始数据表格（不可编辑的图片或 CSV attach）
-- [ ] Code 能在干净机器上 `cargo run --example replay-fixtures` 复现结果
-- [ ] Raw data 含 parser 对每条样本的完整输出（用于后续审计）
-- [ ] Cold backup 至少保留 1 年（到 v1.0 发布后）
+### Spike PR Test Plan 必填项（开 PR 时 body 必含 · 独立评审者逐项验证）
+
+- [ ] 决策文档 `docs/spikes/SPIKE-07-report.md` 已入库（🔴 必须）
+- [ ] 源码归档 `docs/spikes/code/SPIKE-07/` 已入库（含 `Cargo.lock` · 🔴 必须）
+- [ ] Raw 数据 `docs/spikes/raw/SPIKE-07/` 已入库（🔴 必须）
+- [ ] 冷备 `spike-tmp/archive/SPIKE-07/` 本地保留（🟡 推荐 · 纯 Cargo 可省）
+- [ ] Report 引用的每个数字都能在 raw 文件溯源（🔴 必须）
+- [ ] clone 本 repo 后 · 在 `docs/spikes/code/SPIKE-07/` `cargo run` 能复现 parser 结果（🔴 必须）
 
 ---
 
@@ -472,14 +480,14 @@ pub enum ErrorKind {
 
 ## §K · 实施 Phase 拆分
 
-| Phase | 任务                                                 | 估时 | 阻塞项  | 产出                                                 |
-| ----- | ---------------------------------------------------- | ---- | ------- | ---------------------------------------------------- |
-| A     | Fixture loader 实现：读取 SPIKE-06 样本 + 建立注册表 | 0.5d | 无      | fixture registry + 样本验证脚本                      |
-| B     | Parser MVP：手写状态机解析 happy path（Claude 先）   | 0.5d | Phase A | Claude happy path 解析通过                           |
-| C     | 6 场景断言：对 36+ 样本逐条跑断言 + 记录失败         | 0.5d | Phase B | 12 case × 3 样本 = 36 条结果                         |
-| D     | 准确率统计 + 统一抽象分析 + 两 CLI 对比              | 0.5d | Phase C | 准确率数据表 + IR 差异清单                           |
-| E     | ADR-011 起草（基于 Phase D 结论）                    | 0.5d | Phase D | ADR-011 草稿（3 种路径对应 3 个版本）                |
-| F     | 报告撰写 + 代码清理 + 归档                           | 0.5d | Phase E | `docs/spikes/SPIKE-07-report.md` + `spike-tmp/` 归档 |
+| Phase | 任务                                                 | 估时 | 阻塞项  | 产出                                                                                                      |
+| ----- | ---------------------------------------------------- | ---- | ------- | --------------------------------------------------------------------------------------------------------- |
+| A     | Fixture loader 实现：读取 SPIKE-06 样本 + 建立注册表 | 0.5d | 无      | fixture registry + 样本验证脚本                                                                           |
+| B     | Parser MVP：手写状态机解析 happy path（Claude 先）   | 0.5d | Phase A | Claude happy path 解析通过                                                                                |
+| C     | 6 场景断言：对 36+ 样本逐条跑断言 + 记录失败         | 0.5d | Phase B | 12 case × 3 样本 = 36 条结果                                                                              |
+| D     | 准确率统计 + 统一抽象分析 + 两 CLI 对比              | 0.5d | Phase C | 准确率数据表 + IR 差异清单                                                                                |
+| E     | ADR-017 起草（基于 Phase D 结论）                    | 0.5d | Phase D | ADR-017 草稿（3 种路径对应 3 个版本）                                                                     |
+| F     | 报告撰写 + 代码清理 + 归档                           | 0.5d | Phase E | `docs/spikes/SPIKE-07-report.md` + `docs/spikes/code/SPIKE-07/` + `docs/spikes/raw/SPIKE-07/`（3 样必交） |
 
 **合计**：3d（含 0.5d buffer）
 
@@ -487,8 +495,8 @@ pub enum ErrorKind {
 
 **Phase A · Fixture loader（0.5d）**：
 
-- 读取 `docs/spike-artifacts/SPIKE-06/` 目录树
-- 按文件名约定解析 metadata：`{cli}-{scenario}-{take}.txt`
+- 读取 `docs/spikes/raw/SPIKE-06/` 目录树（按 `*.redacted.cast` glob 过滤）
+- 按文件名约定解析 metadata：`{cli}_{scenario}_{take}.redacted.cast`（下划线分隔 · asciinema cast 格式）+ 同名 `.redaction.json` sidecar
 - 建立 `FixtureRegistry` 数据结构：`HashMap<(CLI, Scenario), Vec<Fixture>>`
 - 每个 `Fixture` 含：path, cli, scenario, take, raw_content, metadata
 - 输出：fixture registry + 验证脚本（确认 36 条全部可读）
@@ -517,9 +525,9 @@ pub enum ErrorKind {
 - 判定统一抽象可行性，给出工程建议
 - 输出：准确率数据表 + IR 差异清单 + R1 降级建议草稿
 
-**Phase E · ADR-011 起草（0.5d）**：
+**Phase E · ADR-017 起草（0.5d）**：
 
-- 基于 Phase D 结论，按 §M 模板起草 ADR-011
+- 基于 Phase D 结论，按 §M 模板起草 ADR-017
 - 3 种路径对应 3 个 ADR 版本，只写与结论匹配的那个
 - 其余两个版本作为附录保留（供 reviewer 对比）
 - ADR 需经独立评审 + Arbiter 拍板后才 accepted
@@ -527,9 +535,9 @@ pub enum ErrorKind {
 **Phase F · 报告 + 归档（0.5d）**：
 
 - 撰写 `docs/spikes/SPIKE-07-report.md`
-- 清理 `spike-tmp/spike-07-parser/` 代码（加 README + 运行说明）
-- 生成 raw data 归档（parser 输出日志 + profiling 数据）
-- 创建 cold backup（压缩包）
+- 归档 `docs/spikes/code/SPIKE-07/` 代码（进 git · 加 `README.md` + `Cargo.lock` + 运行说明）
+- 生成 raw data 归档到 `docs/spikes/raw/SPIKE-07/`（进 git · parser 输出日志 + profiling + `README.md` 索引）
+- 创建 cold backup `spike-tmp/archive/SPIKE-07/`（🟡 推荐 · gitignored · 纯 Cargo 可省）
 
 **风险缓冲**：
 
@@ -551,16 +559,16 @@ pub enum ErrorKind {
 
 ---
 
-## §M · ADR-011 起草模板（spec 内附 outline）
+## §M · ADR-017 起草模板（spec 内附 outline）
 
-> ⚠️ **详化阶段声明**：以下为 ADR-011 的起草用 outline，ADR-011 实际开 PR 是 spike 跑完后的事。本 section 只提供模板。
+> ⚠️ **详化阶段声明**：以下为 ADR-017 的起草用 outline，ADR-017 实际开 PR 是 spike 跑完后的事。本 section 只提供模板。
 
-### ADR-011 outline（4 路径对应）
+### ADR-017 outline（4 路径对应）
 
 **路径 A · 通过（greenlight）**：
 
 ```
-# ADR-011: AI-Aware v1.0 greenlight
+# ADR-017: AI-Aware v1.0 greenlight
 
 ## 状态：proposed → accepted（需独立评审 + Arbiter 拍板）
 
@@ -588,7 +596,7 @@ SPIKE-07 基于 SPIKE-06 的 36+ 脱敏样本验证 parser 可行性，结果如
 **路径 D · 意外（parser crash / 样本不真实）**：
 
 ```
-# ADR-011: AI-Aware v1.0 deferred — 技术前提不满足
+# ADR-017: AI-Aware v1.0 deferred — 技术前提不满足
 
 ## 状态：proposed → accepted
 
@@ -624,7 +632,7 @@ SPIKE-07 遇到 [parser crash / 样本不真实 / 其他意外]，无法得出�
 4. **YAGNI**：
    - 不做完整 AI-Aware 实现（MVP-18/19/20 范围）✅
    - 不做第三方 CLI 支持（v2+ 评估）✅
-   - 不写 ADR-011 正文（spike 跑完后的事）✅
+   - 不写 ADR-017 正文（spike 跑完后的事）✅
    - 不锁死 parser crate 选型（spike 实施时按实测定）✅
 
 ---
@@ -634,4 +642,4 @@ SPIKE-07 遇到 [parser crash / 样本不真实 / 其他意外]，无法得出�
 > 1. 递归完备性：主线 parser + 副线 R1 降级 proposal 都覆盖 ✅
 > 2. 反向场景：3 条 fallback 路径 + 5 条风险 mitigation 都覆盖 ✅
 > 3. 边界适用性：详化阶段 vs spike 实施阶段边界清楚 ✅
-> 4. YAGNI：不做生产级 parser、不做 ADR-011 正文、不 flip status ✅
+> 4. YAGNI：不做生产级 parser、不做 ADR-017 正文、不 flip status ✅

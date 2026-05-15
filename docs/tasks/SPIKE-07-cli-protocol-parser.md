@@ -2,8 +2,8 @@
 id: SPIKE-07
 type: spike
 title: CLI 输出协议 parser 验证 spike（R1 降级前置）
-status: ready
-owner:
+status: in-progress
+owner: Claude Code
 phase: v1.0-pre
 depends_on: ["SPIKE-06"]
 depends_on_notes: "SPIKE-06 = §A CLI 脱敏样本（36 条 · done · PR #71 · 本 Spike 的 parser 直接用这 36 条样本做 corpus）· §B codesign/notarization 不是 SPIKE-07 前置（SPIKE-07 是纯 parser 验证 · 无需签名打包）· SPIKE-06 现 status: blocked 只是 §B 卡 Apple Dev · 不阻塞 SPIKE-07 v1.0 开工 · 同 MVP-04 depends_on_notes 模式 · session 13 X-1 补"

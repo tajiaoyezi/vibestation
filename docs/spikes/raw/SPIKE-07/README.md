@@ -6,12 +6,13 @@
 
 ## 文件索引
 
-| 文件                      | 阶段 | 来源命令（在 `docs/spikes/code/SPIKE-07/`）  | 内容                                                                                       |
-| ------------------------- | ---- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `phase-a-survey.txt`      | A    | `cargo run --bin survey`                     | 全 36 样本结构画像：cli×scenario×take · rawB/cleanB/#o-events/exit/ansi%/redF + 矩阵完整性 |
-| `phase-a-replay-stub.txt` | A    | `cargo run --bin replay`（Phase A 版）       | Phase A StubParser 端到端：events/unrecognized/panic 汇总（验收点 0 panic）                |
-| `phase-c-matrix.md`       | C    | `cargo run --bin matrix`                     | §F 测试矩阵 markdown 全量：场景/CLI/整体正确率 + §E.11 基线 + 36 逐样本 + 12 FAIL 明细     |
-| `phase-c-matrix.json`     | C    | `SPIKE07_JSON=<path> cargo run --bin matrix` | 同上机器可读（report 每数字溯源此文件）                                                    |
+| 文件                         | 阶段             | 来源命令（在 `docs/spikes/code/SPIKE-07/`）         | 内容                                                                                                                                  |
+| ---------------------------- | ---------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `phase-a-survey.txt`         | A                | `cargo run --bin survey`                            | 全 36 样本结构画像：cli×scenario×take · rawB/cleanB/#o-events/exit/ansi%/redF + 矩阵完整性                                            |
+| `phase-a-replay-stub.txt`    | A                | `cargo run --bin replay`（Phase A 版）              | Phase A StubParser 端到端：events/unrecognized/panic 汇总（验收点 0 panic）                                                           |
+| `phase-c-matrix.md`          | C                | `cargo run --bin matrix`                            | §F 测试矩阵 markdown 全量：场景/CLI/整体正确率 + §E.11 基线 + 36 逐样本 + 12 FAIL 明细                                                |
+| `phase-c-matrix.json`        | C                | `SPIKE07_JSON=<path> cargo run --bin matrix`        | 同上机器可读（report 每数字溯源此文件）                                                                                               |
+| `path-a-cli-modes-recon.txt` | E（路径 A 调研） | `claude --help` / `codex --help` 实测（2026-05-16） | 两 CLI 结构化输出模式实测证据（claude `--output-format stream-json` · codex `exec`）· 证 deferred = corpus 方法论 artifact 非前提推翻 |
 
 ## phase-c-matrix.json 字段索引（report 数字溯源 · §E.6）
 

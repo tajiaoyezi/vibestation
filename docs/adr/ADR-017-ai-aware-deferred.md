@@ -48,7 +48,7 @@ SPIKE-07 spec §H（session 32 Arbiter 钦定为 R1 降级 single source of trut
 3. **`CLAUDE.md` 决策表 #3 ⚠️ 警告保留** —— 不移除（对外文案继续不得提及 AI-Aware / Mission Control · 维持 ADR-009 禁区）。
 4. **v1.0 卖点回归基础差异化**：多 Tab 终端 + JetBrains 级 Git 工作台（不依赖 AI-Aware）。
 5. **后续路径（供 Arbiter 选 · 不在本 ADR 强制）**：
-   - 选项 A（主 agent 推荐先做）：调研 CLI 是否有 headless / 结构化输出模式（`claude --output-format json`？codex 非 TTY 模式？）· 若有则重录 SPIKE-06 corpus → 重跑 SPIKE-07（parser+IR 架构已 sound · 可能翻盘）· 成本 0.5-1d
+   - 选项 A（主 agent 推荐先做 · **前置 2026-05-16 已实测确认**）：~~调研 CLI 是否有~~ 两 CLI **均已确认有** headless / 结构化输出模式（实测 `docs/spikes/raw/SPIKE-07/path-a-cli-modes-recon.txt`：claude `-p --output-format stream-json --include-hook-events` · codex `exec` 非交互）· 重录 SPIKE-06 corpus 用结构化模式 → 重跑 SPIKE-07（parser+IR 架构已 sound · **前置成立 · 极可能翻盘** deferred → greenlight/single-cli）· 成本 0.5-1d
    - 选项 B：接受 AI-Aware 需启发式终端态推断（fragile）· 推 v2 评估
    - 选项 C：v1.0 直接不含 AI-Aware（本 ADR deferred 默认路径）
 
@@ -56,7 +56,7 @@ SPIKE-07 spec §H（session 32 Arbiter 钦定为 R1 降级 single source of trut
 
 - SPIKE-07 原型代码归档 `docs/spikes/code/SPIKE-07/`（进 git · 见 spike-delivery-checklist 3 样必交）· 不进 `crates/` · v1.0/v2 实施时重写生产 parser
 - 本 ADR 为 **proposed** · 需独立评审 + Arbiter 拍板 → accepted 后方生效（CLAUDE.md A 栏变更流程 · §2.1 主 agent 不自 accept）
-- 若未来选项 A 调研发现 CLI 有结构化输出模式 · 应新开 SPIKE-07.5（或 SPIKE-07 续）重测 · 届时本 ADR 可被新 ADR supersede
+- 选项 A 调研**已于 2026-05-16 完成**：两 CLI 均确认有结构化输出模式（见 report §路径 A 调研结果 + raw `path-a-cli-modes-recon.txt`）· 若 Arbiter 选 A · 应新开 SPIKE-07.5（或 SPIKE-07 续）按结构化模式重录 corpus 重测 · 届时本 ADR 可被新 ADR supersede
 
 ## 后果（Consequences）
 
@@ -69,8 +69,8 @@ SPIKE-07 spec §H（session 32 Arbiter 钦定为 R1 降级 single source of trut
 **负面 / 风险**：
 
 - AI-Aware 作为差异化卖点推迟 · v1.0 竞争力依赖基础体验打磨
-- 若选项 A 调研发现 CLI 无任何结构化输出模式 · AI-Aware 可能长期 deferred（v2 也难）
-- corpus 重录（选项 A）需回 SPIKE-06 流程 · 额外成本
+- ~~若选项 A 调研发现 CLI 无任何结构化输出模式 · AI-Aware 可能长期 deferred~~ —— **此风险 2026-05-16 已排除**（两 CLI 均确认有结构化模式 · 见 report §路径 A 调研结果）
+- corpus 重录（选项 A）需回 SPIKE-06 流程 · 额外成本（0.5-1d）· 但前置已确认 · 投入回报明确
 
 **对 R1 监控**：CLI 版本升级后若协议更结构化（如官方加 `--json` 输出模式）· 触发 SPIKE-07 重评 · 重走 §H 三路径。
 
@@ -80,5 +80,5 @@ SPIKE-07 spec §H（session 32 Arbiter 钦定为 R1 降级 single source of trut
 
 - [ ] 独立评审确认实测数据无 fabrication（溯源 `phase-c-matrix.json`）
 - [ ] Arbiter 确认 §H 路径 3 判定正确（路径 1/2 已逐条排除）
-- [ ] Arbiter 选定后续路径（A 调研 / B v2 / C v1.0 不含）
+- [ ] Arbiter 选定后续路径（**A 前置已确认成立 2026-05-16 · 主 agent 强化推荐 A** / B v2 / C v1.0 不含）
 - [ ] 状态翻 proposed → accepted（独立评审 · 非作者自 flip · CLAUDE.md A 栏流程）

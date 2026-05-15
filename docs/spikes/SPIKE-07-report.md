@@ -149,6 +149,26 @@ deferred **不是因为 parser 实现差**：
 
 主 agent 推荐：**先 A 调研**（成本低 · 若 CLI 有 headless JSON 模式则 parser+IR 架构已 sound · 可能翻盘）→ 否则 C。最终由 Arbiter 拍板，ADR-017 当前按 deferred（路径 C）起草 proposed。
 
+### 路径 A 调研结果（2026-05-16 · session 32 续 · 证据 `docs/spikes/raw/SPIKE-07/path-a-cli-modes-recon.txt`）
+
+> ⚠️ **本节不改 §H verdict**：§H 路径 3 deferred 是对 **SPIKE-06 当前 corpus**（交互 TUI 录制）的诚实判定 · 不改写。本节是路径 A 前置调研的实测结果 · 为 Arbiter 拍板提供更强证据。
+
+路径 A 的前置假设（"CLI 是否有 headless/结构化输出模式"）**已实测确认成立**：
+
+| CLI    | SPIKE-06 录制时 | 实测（2026-05-16） | 结构化输出模式（实测 `--help`）                                                                                                              |
+| ------ | --------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude | 2.1.114         | 2.1.142            | `-p/--print` + `--output-format stream-json`（realtime 流式 JSON）+ `--include-hook-events` + `--include-partial-messages` + `--json-schema` |
+| Codex  | 0.121.0         | 0.130.0            | `exec`（Run Codex non-interactively）+ `remote-control`（headless app-server）+ `exec-server`                                                |
+
+**decision-grade 含义**（供 Arbiter 拍板）：
+
+- SPIKE-06 录的是两 CLI 的**交互 TUI 模式**（raw PTY 屏幕重绘）—— 这正是 long_stream 0%（claude 142-300KB 重绘 blob）+ mixed_ansi_json 0%（无机器 JSON）的根因
+- 两 CLI **均显式提供** AI-Aware 所需的结构化机器协议（claude `--output-format stream-json` + `--include-hook-events` 几乎是为 AI-Aware 量身定制；codex `exec` 非交互）
+- 故 §H deferred 的根因 = **corpus 方法论 artifact（录错了模式）· 不是 AI-Aware 产品前提被推翻**。parser+IR 架构已证 sound（§E.4 + happy/auth/network 100%）
+- 路径 A（重录 SPIKE-06 用 `claude -p --output-format stream-json` + `codex exec` → 重跑 SPIKE-07）的**前置已确认成立** · 极可能将 deferred 翻盘为 greenlight/single-cli
+
+**强化建议**：主 agent 仍不自定 · 但基于上述实测 · 路径 A 不再是"若 CLI 有"的不确定选项 · 而是**前置已验证成立的高确定性翻盘路径** · 路径 C（接受 deferred 为终局）证据上已弱于路径 A。Arbiter 拍板 ADR-017 时建议据此选 A。
+
 ---
 
 ## 置信度与 caveat（§E.6）

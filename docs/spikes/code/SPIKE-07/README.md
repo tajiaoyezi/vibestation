@@ -12,21 +12,23 @@
 
 ## 阶段状态
 
-| Phase   | 范围                                                                                                                  | 状态                               |
-| ------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **A**   | corpus 画像 + cast v3 解码 + fixture loader + CliEvent IR 契约 + CliParser trait + StubParser + survey/replay harness | ✅ **本次完成** · 主 agent 单做    |
-| **B**   | `parser::claude`（薄协议 adapter）+ `parser::codex`（厚结构 adapter）实现 `CliParser`                                 | ⏳ dispatch 2 路并行（文件域隔离） |
-| **C**   | §F 测试矩阵 36 样本逐条断言                                                                                           | 主 agent 收                        |
-| **D**   | 准确率统计 + 统一抽象（Claude 薄 vs Codex 厚）                                                                        | 主 agent · decision-grade          |
-| **E/F** | §H 三路径判定 → ADR-017 + report + 4 样齐全                                                                           | 主 agent + Arbiter                 |
+| Phase   | 范围                                                                                                                  | 状态                                       |
+| ------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| **A**   | corpus 画像 + cast v3 解码 + fixture loader + CliEvent IR 契约 + CliParser trait + StubParser + survey/replay harness | ✅ merged PR #333                          |
+| **B**   | `parser::claude`（薄协议 adapter）+ `parser::codex`（厚结构 adapter）实现 `CliParser`                                 | ✅ merged PR #334（claude）/ #335（codex） |
+| **C**   | §F 测试矩阵 36 样本逐条断言（`src/assertions.rs` + `src/bin/matrix.rs`）                                              | ✅ 主 agent · 24/36 PASS · 0 panic         |
+| **D**   | 准确率统计 + 统一抽象（Claude 薄 vs Codex 厚）                                                                        | ✅ 主 agent · 见 report §Phase D           |
+| **E/F** | §H 三路径判定 → ADR-017 + report + 3 样齐全                                                                           | ✅ §H 路径 3 deferred · ADR-017 proposed   |
 
 ## 复现命令
 
 ```bash
 cd docs/spikes/code/SPIKE-07
-cargo test                    # 13 tests · 含真实 36 corpus 完整矩阵集成 test
+cargo test                    # 39 tests · 含真实 36 corpus 完整矩阵集成 test
 cargo run --bin survey        # 全 36 样本结构画像 → docs/spikes/raw/SPIKE-07/phase-a-survey.txt
-cargo run --bin replay        # 端到端 harness（Phase A = StubParser · 验收点 0 panic）
+cargo run --bin replay        # 端到端 harness（真 adapter 落地后出真实事件 · 0 panic 契约）
+cargo run --bin matrix        # Phase C §F 测试矩阵 → docs/spikes/raw/SPIKE-07/phase-c-matrix.md
+SPIKE07_JSON=/tmp/m.json cargo run --bin matrix   # 另写机器可读 JSON（report 数字溯源）
 ```
 
 Cargo.lock 进 git（版本冻结 · 任何机器 byte-level 复现）。`target/` gitignored。
@@ -51,7 +53,14 @@ Phase A survey（`docs/spikes/raw/SPIKE-07/phase-a-survey.txt`）已定量证实
 - **Claude CLI = 薄协议**：`happy_path` 196–238B 纯 assistant 文本 + exit 0 · `auth_fail` 127B "Invalid API key" + exit 1 · **无 session id / 无 role marker / 无 hook**；错误靠文本模式 + exit≠0 识别
 - **Codex CLI = 厚结构**：`session id:` 显式输出 · `user`/`codex` role marker 行 · `hook:` 生命周期 · `tokens used` footer
 - **corpus 质量风险**（命中 spec §G fail #4）：claude `interrupt_residual`/`long_stream`/`mixed_ansi_json` 32–300KB 且 **exit 0**（名为 interrupt 却未中断）· codex `interrupt_residual_1` 339KB/exit 143（真 SIGTERM）但 take 2/3 仅 2KB/exit 0 · 跨 take 方差极大 → Phase D 必须显式记此 caveat
-- 推论：统一抽象**必走 adapter 层**（共享 `CliEvent` IR + 两个 CLI-specific parser），非单一共享 parser。最终 §H 路径由 Phase D 实测准确率定，本 README 不预判结论。
+- 推论：统一抽象**必走 adapter 层**（共享 `CliEvent` IR + 两个 CLI-specific parser），非单一共享 parser。
+
+### Phase C/D 实测结论（溯源 `docs/spikes/raw/SPIKE-07/phase-c-matrix.json` · 详见 report）
+
+- **整体 24/36 = 66.7% · 0 panic**；happy/auth/network/interrupt 4/6 场景 100%；long_stream/mixed_ansi_json 0%
+- **§H 路径 3 · deferred**（R1 保留 HIGH/HIGH · 不降级）—— 12 FAIL **无一 parser bug**：claude long_stream = TUI 屏幕重绘 blob（corpus 质量）· codex long_stream 实际 92-93% 解析成功（§F 95% 阈值对厚协议失配 · 差 2-3pp）· mixed_ansi_json 两 CLI 不发机器 JSON（协议现实）
+- **§E.4 统一抽象可行**（正面）：两 adapter 共享单一 `CliEvent` IR · 核心 5 变体 100% 重合 · §G fail #2 不触发
+- ADR-017 proposed（待独立评审 + Arbiter 拍板 · 主 agent §2.1 不自 accept）
 
 ## 设计决策（留 Phase B 实测）
 

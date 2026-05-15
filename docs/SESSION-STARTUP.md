@@ -53,6 +53,8 @@ PR #271 playbook 已就位 · 4 MVP × ~28 PNG + 1 MP4 + 4 metrics 一气呵成�
 - SPIKE-07 CLI parser draft → ready（v1.0-pre · 3d）
 - MVP-18/19/20 是 v1.0 vision · 严格按 CLAUDE.md 禁区不对外暴露 · 不主动详化（等 Arbiter 明确触发）
 
+> ⚠️ **已过时（session 32）**：SPIKE-07 已 `in-progress`（Phase A done @ PR #333 · Phase B 实跑中）· MVP-18/19/20 已 `ready`（PR #330）· 现状见 [`docs/tasks/README.md`](./tasks/README.md)。选项 D 此段仅存历史引导语义。
+
 ---
 
 ## 📖 上手流程（phase-aware）

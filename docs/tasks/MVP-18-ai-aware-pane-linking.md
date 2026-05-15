@@ -2,7 +2,7 @@
 id: MVP-18
 type: mvp
 title: AI-Aware Pane 联动（订阅 + 失败反哺）
-status: draft
+status: ready
 owner:
 phase: v1.0
 depends_on: ["MVP-14", "SPIKE-07"]
@@ -18,8 +18,8 @@ reviewer: Codex CLI · self-review
 
 # MVP-18: AI-Aware Pane 联动
 
-> **状态**：`draft`（v1.0 vision · spec 已详化为 ready-candidate；最终 `ready` 翻转由 Arbiter approve 后主 agent 独立提交）
-> **依赖**：[MVP-14](./MVP-14-pane-advanced-layout.md)（Pane 高级布局已就绪）+ [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（CLI 协议 parser 验证必须 PASS 后才能实施）
+> **状态**：`ready`（v1.0 vision · spec 详化完成 · session 32 Arbiter approve flip · 实施仍 gated on SPIKE-07 PASS + MVP-14 全 phase done）
+> **依赖**：[MVP-14](./MVP-14-pane-advanced-layout.md)（Phase A/B 已就绪：LayoutNode schema / Pane identity / workspace 隔离 —— 本 MVP 只复用这些；MVP-14 Phase C/D 与本 MVP 解耦）+ [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（CLI 协议 parser 验证必须 PASS 后才能实施）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · [`implementation-plan.md §5.3.6`](../implementation-plan.md) · [`implementation-plan.md §1.1`](../implementation-plan.md)
 > **详化时间**：2026-05-14 session 31 · Codex CLI self-review（单人项目 v2-D.2 模式）
 > **对外叙事边界**：内部 task / ADR / implementation plan 可讨论本能力；公开 README / landing / release / 社交文案在功能真实落地前只允许使用脱敏代号 `v1.0 vision feature X`，不得展开具体能力。

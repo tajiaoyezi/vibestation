@@ -2,7 +2,8 @@
 id: SPIKE-07
 type: spike
 title: CLI 输出协议 parser 验证 spike（R1 降级前置）
-status: in-progress
+status: done
+status_note: "spike 已跑完（Phase A-F · PR #333/#334/#335/#338）· §H 路径 3 deferred · R1 保留 HIGH/HIGH · ADR-017 accepted（2026-05-16 Arbiter 拍板）· 后续路径 A → 新开 SPIKE-07.5（结构化模式重录重跑）· MVP-18/19/20 实施前置改为 SPIKE-07.5 实跑 PASS"
 owner: Claude Code
 phase: v1.0-pre
 depends_on: ["SPIKE-06"]
@@ -14,7 +15,7 @@ blocked_note:
 estimate: 3d
 plan_ref: implementation-plan.md §5.3.6 · §9 R1 · §1.1
 risk_ref: R1
-reviewer: OpenCode · self-review · §2.10 evidence-based
+reviewer: "ready-gate（session 32）= OpenCode self-review §2.10 · done-flip（2026-05-16）= Claude Code self-review v2-D.2 + Arbiter tajiaoyezi 拍板 '按照推荐执行'（ADR-017 accepted · 路径 A）"
 ---
 
 # SPIKE-07: CLI 输出协议 parser 验证

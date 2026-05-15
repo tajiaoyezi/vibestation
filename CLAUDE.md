@@ -209,19 +209,20 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（session 32 末 · v1.0 vision ready-gate 已通过）
+## 🏁 当前可执行动作（session 32 续 · 2026-05-16 · SPIKE-07 实跑 deferred · ADR-017 accepted · 路径 A → SPIKE-07.5）
 
 **代码状态**：
 
 - **v0.1 / v0.2 / v0.3 sprint 完整代码 100% 收口**：v0.3 sprint MVP-12/13/14/15/16/17 已完成实施侧收口；MVP-21 v0.2 sprint 已 done；剩余是 Phase D GUI / DevTools / 视觉回归 / WCAG / 跨平台 capture 的 deferred playbook，不阻塞代码主线
 - **v1.0 vision 4 spec ready-gate 已通过（session 32）**：SPIKE-07 + MVP-18 + MVP-19 + MVP-20 frontmatter 均 `status: ready`。路径：4-agent 并行预审 + 主 agent 跨 spec 核实 → 决策表 → Arbiter approve。SPIKE-07 verdict=BLOCK（3 High：fixture 路径 / ADR-011→ADR-017 编号冲突 / 归档路径违反 spike-delivery-checklist）→ PR #328 修 → 独立 re-review APPROVE-WITH-NITS → threshold 收敛（§H 三路径钦定为 R1 降级 single source of truth · §E.3/E.5 降场景级诊断指标）+ PR #331 flip。MVP-18/19/20 APPROVE-WITH-NITS → PR #330 flip + nit 修（MVP-14 wording / §B 接口锚定 / §H.7 软 gate 澄清）
-- **session 32 = 3 PR merged**：#328 SPIKE-07 ready-gate 修 · #330 MVP-18/19/20 flip+nit · #331 SPIKE-07 flip+threshold 收敛（#329 是无关 dispatch-rule PR · 非本 session）
+- **SPIKE-07 实跑已闭环（2026-05-16 · session 32 续）**：Phase A-F 全跑（PR #333/#334/#335/#338）· §F 矩阵实测 24/36=66.7% · 0 panic · **§H 路径 3 deferred** · R1 **保留 HIGH/HIGH**（不降级）· [ADR-017](./docs/adr/ADR-017-ai-aware-deferred.md) **accepted**（2026-05-16 Arbiter 拍板 "按照推荐执行"）· deferral 根因 = corpus 方法论 artifact（SPIKE-06 录交互 TUI 非 CLI headless 结构化模式）非 parser bug（4/6 场景 100% · 统一 IR 抽象可行）· **后续路径 A 选定** → 新开 **SPIKE-07.5**（结构化模式重录重跑 · 前置已实测确认 · 极可能翻盘）· SPIKE-07 spec status → done
+- **session 32 = 4+ PR merged**：#328 SPIKE-07 ready-gate 修 · #330 MVP-18/19/20 flip+nit · #331 SPIKE-07 flip+threshold 收敛 · #338 SPIKE-07 实跑 Phase C/D/E/F + ADR-017（#329 是无关 dispatch-rule PR）
 
-**下一步候选**（v1.0 vision 4 spec 已 ready · 实施前置 = SPIKE-07 实跑 PASS）：
+**下一步候选**（v1.0 vision 4 spec 已 ready · 实施前置改为 **SPIKE-07.5 实跑 PASS**）：
 
-1. **SPIKE-07 实跑**（R1 gate · 3d estimate）：基于 SPIKE-06 36 `.redacted.cast` 实现原型 parser → §H 三路径判定 → 产出 `docs/spikes/SPIKE-07-report.md` + ADR-017（greenlight/single-cli/deferred）→ R1 降级。**这是 MVP-18/19/20 实施的唯一前置**（spec ready ≠ spike 已跑）
+1. **SPIKE-07.5 实跑**（新 R1 gate · 路径 A · ADR-017 accepted 后置）：用 `claude -p --output-format stream-json --include-hook-events` + `codex exec` 重录 SPIKE-06 corpus（结构化模式 · 非交互 TUI）→ 复用 SPIKE-07 parser+IR（已证 sound）重跑 §F 矩阵 → 重走 §H 三路径。**这是 MVP-18/19/20 实施的新唯一前置**（SPIKE-07 已 deferred · SPIKE-07.5 翻盘才解锁）
 2. **Phase D capture playbook**：按 PR #271 跑 v0.3 sprint MVP-12/13/14/15/16/17 的 GUI / metrics / visual / accessibility capture；完成后统一翻相关 spec done
-3. **v1.0 implementation kickoff**：仅在第 1 项 SPIKE-07 实跑 PASS（R1 降级 · ADR-017 accepted）后，按依赖链 MVP-18 → 19 → 20 逐个认领；Arbiter 明确选择方向后启动，不提前承诺 timeline
+3. **v1.0 implementation kickoff**：仅在 SPIKE-07.5 实跑 PASS（R1 真降级 · 新 ADR supersede ADR-017）后，按依赖链 MVP-18 → 19 → 20 逐个认领；Arbiter 明确选择方向后启动，不提前承诺 timeline
 4. **deferred items 继续停在 Arbiter 自定时机**：MVP-04 §I 22 PNG + 2 MOV、MVP-05 / MVP-09 / MVP-13 / MVP-21 Phase D、MVP-10 §F.04 outbound network panel；触发条件仍是 Arbiter 主动声明"开始跑 capture"或 v0.2 GA 候选阶段
 
 详细阶段 / 进度 / 卡点见 [`docs/PROGRESS.md`](./docs/PROGRESS.md)；任务索引与 v1.0 spec 行数见 [`docs/tasks/README.md`](./docs/tasks/README.md)。

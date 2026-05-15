@@ -1,0 +1,42 @@
+# SPIKE-07 replay harness · 36 样本
+# Phase A = StubParser（全 Unrecognized · 仅证明管道连贯）
+
+claude auth_fail            1  events=  1 unrec=100%  {"unrecognized": 1}
+claude auth_fail            2  events=  1 unrec=100%  {"unrecognized": 1}
+claude auth_fail            3  events=  1 unrec=100%  {"unrecognized": 1}
+claude happy_path           1  events=  1 unrec=100%  {"unrecognized": 1}
+claude happy_path           2  events=  1 unrec=100%  {"unrecognized": 1}
+claude happy_path           3  events=  1 unrec=100%  {"unrecognized": 1}
+claude interrupt_residual   1  events=  1 unrec=100%  {"unrecognized": 1}
+claude interrupt_residual   2  events=  1 unrec=100%  {"unrecognized": 1}
+claude interrupt_residual   3  events=  1 unrec=100%  {"unrecognized": 1}
+claude long_stream          1  events=  1 unrec=100%  {"unrecognized": 1}
+claude long_stream          2  events=  1 unrec=100%  {"unrecognized": 1}
+claude long_stream          3  events=  1 unrec=100%  {"unrecognized": 1}
+claude mixed_ansi_json      1  events=  1 unrec=100%  {"unrecognized": 1}
+claude mixed_ansi_json      2  events=  1 unrec=100%  {"unrecognized": 1}
+claude mixed_ansi_json      3  events=  1 unrec=100%  {"unrecognized": 1}
+claude network_error        1  events=  1 unrec=100%  {"unrecognized": 1}
+claude network_error        2  events=  1 unrec=100%  {"unrecognized": 1}
+claude network_error        3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  auth_fail            1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  auth_fail            2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  auth_fail            3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  happy_path           1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  happy_path           2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  happy_path           3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  interrupt_residual   1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  interrupt_residual   2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  interrupt_residual   3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  long_stream          1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  long_stream          2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  long_stream          3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  mixed_ansi_json      1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  mixed_ansi_json      2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  mixed_ansi_json      3  events=  1 unrec=100%  {"unrecognized": 1}
+codex  network_error        1  events=  1 unrec=100%  {"unrecognized": 1}
+codex  network_error        2  events=  1 unrec=100%  {"unrecognized": 1}
+codex  network_error        3  events=  1 unrec=100%  {"unrecognized": 1}
+
+## 汇总  events=36  unrecognized=36 (100%)  panics=0
+✓ 管道连贯 · 0 panic（Phase A 验收点）

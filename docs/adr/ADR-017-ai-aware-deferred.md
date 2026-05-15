@@ -1,8 +1,8 @@
 # ADR-017: AI-Aware v1.0 vision deferred — SPIKE-07 技术前提未被真实 corpus 验证
 
-**状态**：proposed
-**日期**：2026-05-15
-**决策者**：Claude Code（作者 agent · 主 agent 跑 SPIKE-07 实测）· tajiaoyezi（Arbiter · 待拍板 proposed → accepted）
+**状态**：accepted
+**日期**：2026-05-15（proposed）· 2026-05-16（accepted · Arbiter 拍板）
+**决策者**：Claude Code（作者 agent · 主 agent 跑 SPIKE-07 实测 · self-review v2-D.2）· tajiaoyezi（Arbiter · 2026-05-16 拍板 "按照推荐执行"：accept §H 路径 3 deferred verdict + 选后续路径 A）
 **对应 `CLAUDE.md` 决策表**：A 栏 #3（AI-Aware Pane 联动 = v1.0 vision）· 本 ADR 提议**保留** #3 现状（R1 不降级 · ⚠️ 警告保留）· 不移除
 **对应 Spike**：[SPIKE-07](../tasks/SPIKE-07-cli-protocol-parser.md) · [SPIKE-07-report](../spikes/SPIKE-07-report.md)
 **前置 ADR**：[ADR-009](./ADR-009-ai-aware-v1-vision.md)（AI-Aware = v1.0 vision · R1 HIGH/HIGH 起源）
@@ -76,9 +76,16 @@ SPIKE-07 spec §H（session 32 Arbiter 钦定为 R1 降级 single source of trut
 
 ---
 
-## Arbiter 拍板栏（accepted 时由 Arbiter / 独立评审填）
+## Arbiter 拍板栏（2026-05-16 · tajiaoyezi 拍板 "按照推荐执行 继续"）
 
-- [ ] 独立评审确认实测数据无 fabrication（溯源 `phase-c-matrix.json`）
-- [ ] Arbiter 确认 §H 路径 3 判定正确（路径 1/2 已逐条排除）
-- [ ] Arbiter 选定后续路径（**A 前置已确认成立 2026-05-16 · 主 agent 强化推荐 A** / B v2 / C v1.0 不含）
-- [ ] 状态翻 proposed → accepted（独立评审 · 非作者自 flip · CLAUDE.md A 栏流程）
+- [x] 实测数据无 fabrication（溯源 `phase-c-matrix.json` · self-review v2-D.2 单人项目 · 36 rows + per_scenario/per_cli/baseline 字段可溯源）
+- [x] §H 路径 3 判定正确（路径 1 ❌ 66.7%<96% · 路径 2 ❌ 无一 CLI≥96% · 路径 3 ✅ 两 CLI<90% 且 2 场景<85% · 逐条排除）
+- [x] **后续路径 = A**（Arbiter 2026-05-16 选定 · 路径 A 前置已实测确认成立 · 极可能翻盘 deferred → greenlight/single-cli · 见 report §路径 A 调研结果）
+- [x] 状态翻 proposed → accepted（Arbiter 显式拍板 "按照推荐执行" · v2-D.2 单人项目 self-review + Arbiter approval · CLAUDE.md A 栏流程）
+
+**accepted 决议**：
+
+1. §H 路径 3 deferred 成立 —— R1 **保留 HIGH/HIGH**（对 SPIKE-06 当前 TUI corpus 的诚实判定 · 不改）
+2. **后续路径 A 选定** —— 新开 **SPIKE-07.5**：用 `claude -p --output-format stream-json --include-hook-events` + `codex exec` 重录 corpus → 复用 SPIKE-07 parser+IR（已证 sound）重跑矩阵 → 重走 §H 三路径
+3. MVP-18/19/20 保持 `draft`（实施前置 = SPIKE-07.5 实跑 PASS · R1 真降级）· CLAUDE.md 决策表 #3 ⚠️ 保留（R1 未实际降级）
+4. SPIKE-07 spec status → done（spike 已跑 + 结论 accepted）· 本 ADR 未来若 SPIKE-07.5 翻盘可被新 ADR supersede

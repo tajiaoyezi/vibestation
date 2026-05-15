@@ -2,7 +2,7 @@
 id: MVP-19
 type: mvp
 title: AI session ↔ commit 自动绑定
-status: draft
+status: ready
 owner:
 phase: v1.0
 depends_on: ["MVP-18"]
@@ -18,7 +18,7 @@ reviewer: Cursor · self-review
 
 # MVP-19: AI session ↔ commit 自动绑定
 
-> **状态**：`draft`（**v1.0 vision**，README / landing 完全不宣传）
+> **状态**：`ready`（**v1.0 vision** · session 32 Arbiter approve flip · README / landing 完全不宣传 · 实施仍 gated on MVP-18 done）
 > **依赖**：MVP-18（pane 联动能力上游）
 > **战略依据**：[`implementation-plan.md §10.1 砍到 v1.0`](../implementation-plan.md) · [`§5.3.6`](../implementation-plan.md)
 > **详化时间**：2026-05-14 session 31 · Cursor self-review（单人项目 v2-D.2）
@@ -70,7 +70,7 @@ R1（CLI 协议解析可行性）由 SPIKE-07 管理，本 spec 详化不替代 
 
 与 MVP-18 的关系：
 
-- MVP-18 给出可订阅的 pane 事件流和基础 session 语义触发点。
+- MVP-18 给出可订阅的 pane 事件流和基础 session 语义触发点。具体订阅哪些 MVP-18 event/binding（如 `pane:trigger` / `pane:build-failed` / `pane:linked`）映射为 session 边界，在实施期 Phase A 对接时按 MVP-18 §K 实际 contract 固化（**已知接口对齐点 · 非 spec 详化阻塞** · session 32 ready-gate 预审记录）。
 - MVP-19 把这些事件抽象成 session 生命周期（start/end/idle/clear/manual split）并持久化。
 - 若 MVP-18 后续字段调整，MVP-19 通过 ts-rs binding 同步，不允许前后端平行定义。
 
@@ -425,18 +425,18 @@ CREATE INDEX idx_session_commit_links_state
 
 ## §H. 决策表
 
-| 决策项                                    | 状态                   | Owner                 | 理由                                        | 备注                             |
-| ----------------------------------------- | ---------------------- | --------------------- | ------------------------------------------- | -------------------------------- |
-| H1. 本 spec 可先于实现详化                | Accepted for spec only | Cursor self-review    | 详化不等于实现，不需要提前给出 runtime 结论 | 保持 `status:draft`              |
-| H2. MVP-19 实施需等待 SPIKE-07 可执行输入 | Pending                | OpenCode + Arbiter    | R1 仍是上游 gate                            | **留 SPIKE-07 决策**             |
-| H3. 绑定算法采用多信号评分而非单时间窗口  | Accepted               | MVP-19 implementer    | 纯时间窗口误判率高                          | 评分细则在实现阶段固化           |
-| H4. 低置信关联默认 pending                | Accepted               | MVP-19 implementer    | 防止 silent wrong binding                   | 用户可手动确认                   |
-| H5. 解绑不硬删除，必须保留审计            | Accepted               | MVP-19 implementer    | 回滚与审计依赖历史                          | link_state 流转                  |
-| H6. public narrative 仅用脱敏代号         | Accepted               | All agents            | 对外边界约束                                | 内部 docs 可详述                 |
-| H7. idle cutoff 默认值先给保守值          | Pending tune           | Arbiter + implementer | 需真实 usage 校准                           | **留 v1.0 启动后 idle 阈值微调** |
-| H8. 单 commit 主关联唯一                  | Accepted               | MVP-19 implementer    | 避免 UI 混乱与回滚歧义                      | `is_primary` 唯一索引            |
-| H9. 脱敏失败时禁止回落明文                | Accepted               | Security gate         | 防泄漏优先于可见性                          | 显示 redacted warning            |
-| H10. 不做跨 workspace 聚合                | Accepted               | Product scope         | 降低复杂度与泄漏面                          | v2+ 再评估                       |
+| 决策项                                    | 状态                                            | Owner                 | 理由                                        | 备注                                                                   |
+| ----------------------------------------- | ----------------------------------------------- | --------------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
+| H1. 本 spec 可先于实现详化                | Accepted（spec 详化范围内 · 不含 runtime 结论） | Cursor self-review    | 详化不等于实现，不需要提前给出 runtime 结论 | session 32 Arbiter approve flip `ready`（实施仍 gated on MVP-18 done） |
+| H2. MVP-19 实施需等待 SPIKE-07 可执行输入 | Pending                                         | OpenCode + Arbiter    | R1 仍是上游 gate                            | **留 SPIKE-07 决策**                                                   |
+| H3. 绑定算法采用多信号评分而非单时间窗口  | Accepted                                        | MVP-19 implementer    | 纯时间窗口误判率高                          | 评分细则在实现阶段固化                                                 |
+| H4. 低置信关联默认 pending                | Accepted                                        | MVP-19 implementer    | 防止 silent wrong binding                   | 用户可手动确认                                                         |
+| H5. 解绑不硬删除，必须保留审计            | Accepted                                        | MVP-19 implementer    | 回滚与审计依赖历史                          | link_state 流转                                                        |
+| H6. public narrative 仅用脱敏代号         | Accepted                                        | All agents            | 对外边界约束                                | 内部 docs 可详述                                                       |
+| H7. idle cutoff 默认值先给保守值          | Pending tune                                    | Arbiter + implementer | 需真实 usage 校准                           | **留 v1.0 启动后 idle 阈值微调**                                       |
+| H8. 单 commit 主关联唯一                  | Accepted                                        | MVP-19 implementer    | 避免 UI 混乱与回滚歧义                      | `is_primary` 唯一索引                                                  |
+| H9. 脱敏失败时禁止回落明文                | Accepted                                        | Security gate         | 防泄漏优先于可见性                          | 显示 redacted warning                                                  |
+| H10. 不做跨 workspace 聚合                | Accepted                                        | Product scope         | 降低复杂度与泄漏面                          | v2+ 再评估                                                             |
 
 ## §I. 实施 Phase 拆分（8d）
 

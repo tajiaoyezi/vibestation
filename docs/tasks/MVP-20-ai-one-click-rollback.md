@@ -2,7 +2,7 @@
 id: MVP-20
 type: mvp
 title: AI 一键回滚（session 级 revert）
-status: draft
+status: ready
 owner:
 phase: v1.0
 depends_on: ["MVP-19", "MVP-16"]
@@ -18,8 +18,8 @@ reviewer: Droid · self-review
 
 # MVP-20: AI 一键回滚（session 级 revert）
 
-> **状态**：`draft`（**v1.0 vision**，README / landing 完全不宣传 · 详化完成 · 等主 agent 翻 ready）
-> **依赖**：MVP-19（session ↔ commit 绑定 · v1.0 · 并行详化中 by Cursor）+ MVP-16（rebase / merge / cherry-pick 冲突解决器 · v0.3 ready · 冲突场景直接复用）
+> **状态**：`ready`（**v1.0 vision** · session 32 Arbiter approve flip · README / landing 完全不宣传 · 实施仍 gated on MVP-19 done · 依赖链 MVP-18→19→20 最末端）
+> **依赖**：MVP-19（session ↔ commit 绑定 · v1.0 ready）+ MVP-16（rebase / merge / cherry-pick 冲突解决器 · v0.3 ready · 冲突场景直接复用）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · [`§5.3.6`](../implementation-plan.md) · [`§1.1`](../implementation-plan.md)
 
 ---
@@ -50,11 +50,11 @@ reviewer: Droid · self-review
 
 ### B.2 上游依赖：MVP-19 session 边界识别准确率
 
-MVP-20 的核心前提是 **MVP-19 的 session ↔ commit 关联正确率 ≥ 95%**（MVP-19 spec `§Acceptance` 门槛）。如果准确率不达标，"一键回滚整个 session"可能误 revert 不该回滚的 commit。
+MVP-20 的核心前提是 **MVP-19 的 session ↔ commit 关联正确率达标**（MVP-19 `§Acceptance` E3.3 标的 `>= 95%` 为**目标 · 以 MVP-19 实施期 benchmark 报告为准 · 非硬 gate**，见 §H.7）。如果准确率不达标，"一键回滚整个 session"可能误 revert 不该回滚的 commit。
 
-MVP-20 不自行实现 session 识别逻辑——直接消费 MVP-19 的 `ai_sessions` 表和 `session_commit_links` 表，调用 MVP-19 暴露的 IPC API 查询 session 内所有 commit SHA。
+MVP-20 不自行实现 session 识别逻辑——直接消费 MVP-19 的 `ai_sessions` 表和 `session_commit_links` 表，调用 MVP-19 `session:get-detail` IPC（返回 `SessionDetailResult` · 期望含 `commits[].sha` / `confidence` / `link_state` / `auto_bound`；MVP-19 §K 无"按 session 查全部 commit SHA"的专用命令，`session:get-detail` 是接口锚点）查询 session 内所有 commit SHA。
 
-**硬依赖**：MVP-19 `session_commit_links` 表 `auto_bound: bool` + `confidence: f32` 字段。MVP-20 在执行 revert 前，仅处理 `confidence ≥ 0.9` 且 `auto_bound = true` 或用户手动确认绑定的 commit，其余低置信度 commit 在预览 diff 中高亮警告（不强制包含）。
+**硬依赖**：MVP-19 `session_commit_links` 表 `auto_bound`（DB `INTEGER` · Rust 侧 `bool` 映射）+ `confidence`（DB `REAL` · Rust 侧 `f32` 映射）+ `link_state` 字段。MVP-20 在执行 revert 前，**仅消费 `link_state ∈ {confirmed_auto, confirmed_manual}` 或（`pending` 且 `confidence ≥ 0.9` 且 `auto_bound = true`）的 commit**，排除 `unlinked` / `superseded` / `stale`；其余低置信度 commit 在预览 diff 中高亮警告（不强制包含）。手动确认绑定的 commit 等价于 `confirmed_manual`。
 
 ### B.3 SPIKE-07 的关系
 
@@ -341,17 +341,17 @@ DiffSummary; // { files_changed, insertions, deletions }（MVP-08 已有 · 复�
 
 ## §H 决策表
 
-| #   | 决策点                                     | 当前状态                                                                                    | 备注                                     |
-| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| H.1 | revert vs reset 策略                       | **锁定：revert only**（CLAUDE.md 禁区）                                                     | reset --hard 永远不提供 UI 入口          |
-| H.2 | 低置信度 commit 处理                       | **锁定：默认不包含 · 用户可勾选**                                                           | confidence < 0.9 高亮警告 · 不强制       |
-| H.3 | 冲突解决 UI 复用 vs 自建                   | **锁定：复用 MVP-16**（不重新发明轮子）                                                     | `ConflictBanner` + `Diff/3way/` 直接复用 |
-| H.4 | abort 后的状态恢复策略                     | **锁定：`Repository::cleanup_state()` + 已完成 revert 的反向 revert**                       | 同 MVP-16 §H.2 策略                      |
-| H.5 | 二次确认方式                               | **锁定：输入 session ID 确认**（仿 GitHub repo delete 确认模式）                            | 防止误触 · 附录 B 文案                   |
-| H.6 | SPIKE-07 决策                              | **待 SPIKE-07 完成**（MVP-19 session 边界识别方案确认后再 lock）                            | MVP-20 对 SPIKE-07 路径不预设            |
-| H.7 | MVP-19 session 边界准确率结果              | **待 MVP-19 详化完成 + 实施验证**（≥ 95% 目标确认后 unlock）                                | 低于 95% 时本 task 阻塞                  |
-| H.8 | 部分 revert（只回滚 N of M commit）        | **推 v2+**（v1.0 只做全部 revert）                                                          | 用户可通过 MVP-16 cherry-pick 手动操作   |
-| H.9 | crash recovery（app 崩溃中断 revert 序列） | **v1.0 实施 Phase D**：检测 `REVERT_HEAD` + `rollback_ops` DB in_progress 记录 → 重启后提示 | 复用 MVP-16 crash recovery 模式          |
+| #   | 决策点                                     | 当前状态                                                                                    | 备注                                                                      |
+| --- | ------------------------------------------ | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| H.1 | revert vs reset 策略                       | **锁定：revert only**（CLAUDE.md 禁区）                                                     | reset --hard 永远不提供 UI 入口                                           |
+| H.2 | 低置信度 commit 处理                       | **锁定：默认不包含 · 用户可勾选**                                                           | confidence < 0.9 高亮警告 · 不强制                                        |
+| H.3 | 冲突解决 UI 复用 vs 自建                   | **锁定：复用 MVP-16**（不重新发明轮子）                                                     | `ConflictBanner` + `Diff/3way/` 直接复用                                  |
+| H.4 | abort 后的状态恢复策略                     | **锁定：`Repository::cleanup_state()` + 已完成 revert 的反向 revert**                       | 同 MVP-16 §H.2 策略                                                       |
+| H.5 | 二次确认方式                               | **锁定：输入 session ID 确认**（仿 GitHub repo delete 确认模式）                            | 防止误触 · 附录 B 文案                                                    |
+| H.6 | SPIKE-07 决策                              | **待 SPIKE-07 完成**（MVP-19 session 边界识别方案确认后再 lock）                            | MVP-20 对 SPIKE-07 路径不预设                                             |
+| H.7 | MVP-19 session 边界准确率结果              | **待 MVP-19 实施期 benchmark 报告**（MVP-19 E3.3 `>= 95%` 为目标 · 非硬 gate）              | 低于 95% 时**由 Arbiter 决策** block 或降 confidence 阈值（非自动 block） |
+| H.8 | 部分 revert（只回滚 N of M commit）        | **推 v2+**（v1.0 只做全部 revert）                                                          | 用户可通过 MVP-16 cherry-pick 手动操作                                    |
+| H.9 | crash recovery（app 崩溃中断 revert 序列） | **v1.0 实施 Phase D**：检测 `REVERT_HEAD` + `rollback_ops` DB in_progress 记录 → 重启后提示 | 复用 MVP-16 crash recovery 模式                                           |
 
 ---
 

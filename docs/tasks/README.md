@@ -31,8 +31,8 @@
 截至 session 32，代码实施层面已经形成三段式状态：
 
 1. **v0.1 / v0.2 / v0.3 的核心代码主线均已达到 100% 收口**（以 `docs/PROGRESS.md` 当前阶段描述与本 README 索引状态为准）。
-2. **v1.0 vision · MVP-18/19/20 已 session 32 Arbiter approve flip `ready`**（spec 详化完成 · 实施仍 gated on 各自 depends_on done）；**SPIKE-07 仍 `draft`**（session 32 ready-gate 修 3 个 High 阻塞 @ PR #328 · 待 re-review → flip）。
-3. **当前阻塞不在编码而在 capture + SPIKE-07 gate**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动；MVP-18/19/20 实施前置 = SPIKE-07 PASS。
+2. **v1.0 vision 4 spec（SPIKE-07 + MVP-18/19/20）已 session 32 Arbiter approve 全部 flip `ready`**（spec 详化完成 · 实施仍 gated on 各自 depends_on done）。SPIKE-07：3 High 修 @ PR #328 → re-review APPROVE-WITH-NITS → threshold 收敛 + flip @ PR #331。
+3. **当前阻塞不在编码而在 capture + SPIKE-07 实跑**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动；MVP-18/19/20 实施前置 = SPIKE-07 **实跑 PASS**（spec ready ≠ spike 已跑 · R1 降级需 SPIKE-07 实施产出 ADR-017）。
 
 这段总览用于“先看全局，再钻索引表”：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段。
 
@@ -90,18 +90,18 @@ v0.3 结论：
 
 ### v1.0 vision 状态（spec 详化批）
 
-| Task     | 主题                       | 当前状态  | 详化进展                                                               | PR 参考     |
-| -------- | -------------------------- | --------- | ---------------------------------------------------------------------- | ----------- |
-| SPIKE-07 | CLI parser 验证（R1 gate） | **draft** | 详化完成 · session 32 ready-gate 修 3 个 High 阻塞 · 待 re-review flip | #311 · #328 |
-| MVP-18   | AI-Aware Pane 联动         | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）   | #309 · #330 |
-| MVP-19   | session ↔ commit 绑定      | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）         | #313 · #330 |
-| MVP-20   | 一键回滚（session revert） | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）         | #312 · #330 |
+| Task     | 主题                       | 当前状态  | 详化进展                                                                                               | PR 参考            |
+| -------- | -------------------------- | --------- | ------------------------------------------------------------------------------------------------------ | ------------------ |
+| SPIKE-07 | CLI parser 验证（R1 gate） | **ready** | session 32 ready-gate：3 High 修 → re-review APPROVE-WITH-NITS → threshold 收敛 + Arbiter approve flip | #311 · #328 · #331 |
+| MVP-18   | AI-Aware Pane 联动         | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）                                   | #309 · #330        |
+| MVP-19   | session ↔ commit 绑定      | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）                                         | #313 · #330        |
+| MVP-20   | 一键回滚（session revert） | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）                                         | #312 · #330        |
 
 v1.0 vision 结论：
 
-- MVP-18/19/20 已 session 32 Arbiter approve flip `ready`（spec 层可认领 · 但实施被各自 `depends_on` 门控 · 链 MVP-18→19→20 + SPIKE-07 R1 gate）。
-- SPIKE-07 仍 `draft`：ready-gate 预审 verdict=BLOCK，3 个 High 阻塞已修（PR #328：fixture 路径 / ADR-011→ADR-017 / 归档路径对齐项目规则），待 re-review 确认后走翻转 gate flip `ready`。
-- 实际"能开工"前置 = SPIKE-07 PASS（R1 降级）→ 写 ADR-017 → MVP-18 起依赖链逐个解锁。
+- v1.0 vision 4 spec 全部 `ready`（spec 层可认领 · 但实施被各自 `depends_on` 门控 · 链 SPIKE-07 → MVP-18 → 19 → 20）。
+- SPIKE-07 ready 路径：ready-gate 预审 verdict=BLOCK → 3 High 修（PR #328：fixture 路径 / ADR-011→ADR-017 / 归档路径对齐项目规则）→ 独立 re-review APPROVE-WITH-NITS → threshold 收敛（§H 三路径钦定为 R1 降级 single source of truth · §E.3/E.5 降场景级诊断指标）+ 2 nit 修 + Arbiter approve flip（PR #331）。
+- 实际"能开工"前置 = SPIKE-07 **实跑 PASS**（spec ready ≠ spike 已跑 · 需 SPIKE-07 实施产出 ADR-017 R1 降级）→ MVP-18 起依赖链逐个解锁。
 
 ### 关联文档（从总览跳转）
 
@@ -207,18 +207,18 @@ draft ────────► ready ─────────────�
 
 ### SPIKE（W0 周，硬依赖 Spike W0 启动）
 
-| ID                                                            | 标题                                                                   | 状态                                                                                                                                                   | 估时 | 依赖                             | 风险             |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | -------------------------------- | ---------------- |
-| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md)           | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）                   | **done**（Phase A macOS PR #20 · Phase B Ubuntu PR #137 · session 19 · X11 108ms / Wayland 107ms / 30 stable · ADR-006 升级 Ubuntu validated PR #138） | 1d   | —                                | R12              |
-| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md)              | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）                     | **done**（Phase A macOS PR #22 · Phase B Ubuntu PR #137 · v0.1 GA 双平台路径解锁）                                                                     | 1d   | SPIKE-01                         | **R12 CRITICAL** |
-| [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md)             | git2 读 log + gix 对比 benchmark（linux kernel）                       | done                                                                                                                                                   | 1d   | SPIKE-02                         | R3               |
-| [SPIKE-04](./SPIKE-04-storage-benchmark.md)                   | redb 2 vs rusqlite benchmark + git2 写 commit                          | done                                                                                                                                                   | 1d   | SPIKE-02                         | R27              |
-| [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md)    | rusqlite 数据安全 B.1-5 + A.3 性能补测                                 | done                                                                                                                                                   | 1d   | SPIKE-04                         | R27              |
-| [SPIKE-05](./SPIKE-05-pty-multi-tab.md)                       | portable-pty 单读 + mpsc + xterm 4-Tab 压测                            | done                                                                                                                                                   | 1d   | SPIKE-02                         | —                |
-| [SPIKE-05.5](./SPIKE-05.5-pty-visible-throughput-fallback.md) | PTY visible throughput + per-session fallback 对照                     | done                                                                                                                                                   | 1d   | SPIKE-05                         | —                |
-| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md)           | Claude CLI / Codex CLI 实机 + macOS Dev Program                        | blocked（§A done · PR #38 harness + PR #71 36 样本 · R1 保留 · §B 等 Apple Dev Program 申请 · audit H2 @ 2026-04-21）                                  | 1d   | SPIKE-05 · phase-4-infra-landing | R1               |
-| [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)                 | CLI 输出协议 parser 验证（**占位** · v1.0-pre · R1 降级前置）          | **draft**（session 31 详化完成 100% · 611 行 · 43 checkbox · OpenCode 详化 PR #311 · 等 Arbiter approve flip ready）                                   | 3d   | SPIKE-06                         | R1               |
-| [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md)            | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化） | done                                                                                                                                                   | 2d   | MVP-02                           | —                |
+| ID                                                            | 标题                                                                   | 状态                                                                                                                                                                                                                        | 估时 | 依赖                             | 风险             |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------- | ---------------- |
+| [SPIKE-01](./SPIKE-01-tauri-three-platform-boot.md)           | Tauri 2 三平台空壳启动（mac + Ubuntu Wayland + X11）                   | **done**（Phase A macOS PR #20 · Phase B Ubuntu PR #137 · session 19 · X11 108ms / Wayland 107ms / 30 stable · ADR-006 升级 Ubuntu validated PR #138）                                                                      | 1d   | —                                | R12              |
+| [SPIKE-02](./SPIKE-02-tauri-hard-pass-matrix.md)              | Tauri 硬通过矩阵 + Electron fallback（若 D1 失败）                     | **done**（Phase A macOS PR #22 · Phase B Ubuntu PR #137 · v0.1 GA 双平台路径解锁）                                                                                                                                          | 1d   | SPIKE-01                         | **R12 CRITICAL** |
+| [SPIKE-03](./SPIKE-03-git2-gix-read-benchmark.md)             | git2 读 log + gix 对比 benchmark（linux kernel）                       | done                                                                                                                                                                                                                        | 1d   | SPIKE-02                         | R3               |
+| [SPIKE-04](./SPIKE-04-storage-benchmark.md)                   | redb 2 vs rusqlite benchmark + git2 写 commit                          | done                                                                                                                                                                                                                        | 1d   | SPIKE-02                         | R27              |
+| [SPIKE-04.5](./SPIKE-04.5-rusqlite-safety-verification.md)    | rusqlite 数据安全 B.1-5 + A.3 性能补测                                 | done                                                                                                                                                                                                                        | 1d   | SPIKE-04                         | R27              |
+| [SPIKE-05](./SPIKE-05-pty-multi-tab.md)                       | portable-pty 单读 + mpsc + xterm 4-Tab 压测                            | done                                                                                                                                                                                                                        | 1d   | SPIKE-02                         | —                |
+| [SPIKE-05.5](./SPIKE-05.5-pty-visible-throughput-fallback.md) | PTY visible throughput + per-session fallback 对照                     | done                                                                                                                                                                                                                        | 1d   | SPIKE-05                         | —                |
+| [SPIKE-06](./SPIKE-06-cli-protocol-and-codesign.md)           | Claude CLI / Codex CLI 实机 + macOS Dev Program                        | blocked（§A done · PR #38 harness + PR #71 36 样本 · R1 保留 · §B 等 Apple Dev Program 申请 · audit H2 @ 2026-04-21）                                                                                                       | 1d   | SPIKE-05 · phase-4-infra-landing | R1               |
+| [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)                 | CLI 输出协议 parser 验证（v1.0-pre · R1 降级前置 · R1 gate）           | **ready**（session 31 详化 100% · OpenCode PR #311 · session 32 ready-gate：3 High 修 @ PR #328 · re-review APPROVE-WITH-NITS · threshold 收敛（§H 三路径权威 · §E.3/E.5 降诊断）+ 2 nit + Arbiter approve flip @ PR #331） | 3d   | SPIKE-06                         | R1               |
+| [SPIKE-08](./SPIKE-08-e2e-and-contract-harness.md)            | E2E + IPC contract 双层防御 harness 选型 + POC（H2 后 rule 15 制度化） | done                                                                                                                                                                                                                        | 2d   | MVP-02                           | —                |
 
 ### MVP（v0.1 范围 · B 折中方案）
 

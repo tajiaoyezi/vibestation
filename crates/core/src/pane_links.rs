@@ -136,15 +136,21 @@ pub enum PaneLinkError {
     PaneNotFound(String),
     #[error("link not found: {0}")]
     LinkNotFound(String),
+    #[error("parser bridge unavailable: {0}")]
+    ParserUnavailable(String),
+    #[error("parser timed out: {0}")]
+    ParserTimeout(String),
+    #[error("prompt sanitization failed: {0}")]
+    PromptSanitizationFailed(String),
+    #[error("database error: {0}")]
+    DbError(String),
     #[error("unsupported cli kind: {0}")]
     UnsupportedCliKind(String),
-    #[error("database error: {0}")]
-    Db(String),
 }
 
 impl From<DbError> for PaneLinkError {
     fn from(e: DbError) -> Self {
-        PaneLinkError::Db(e.to_string())
+        PaneLinkError::DbError(e.to_string())
     }
 }
 
@@ -336,7 +342,7 @@ impl PaneLinkDao {
                  WHERE id = ?2",
                 rusqlite::params![now, soft.id],
             )
-            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+            .map_err(|e| PaneLinkError::DbError(e.to_string()))?;
             return Self::get(pool, &req.workspace_id, &soft.id);
         }
 
@@ -361,9 +367,9 @@ impl PaneLinkDao {
             rusqlite::Error::SqliteFailure(ref err, _)
                 if err.code == rusqlite::ErrorCode::ConstraintViolation =>
             {
-                PaneLinkError::Db(format!("constraint violation inserting pane_link: {e}"))
+                PaneLinkError::DbError(format!("constraint violation inserting pane_link: {e}"))
             }
-            other => PaneLinkError::Db(other.to_string()),
+            other => PaneLinkError::DbError(other.to_string()),
         })?;
 
         Ok(PaneLink {
@@ -499,7 +505,7 @@ impl PaneLinkDao {
             rusqlite::Error::QueryReturnedNoRows => {
                 PaneLinkError::LinkNotFound(link_id.to_string())
             }
-            other => PaneLinkError::Db(other.to_string()),
+            other => PaneLinkError::DbError(other.to_string()),
         })
     }
 
@@ -517,7 +523,7 @@ impl PaneLinkDao {
                  WHERE workspace_id = ?2 AND id = ?3 AND deleted_at IS NULL",
                 rusqlite::params![now, req.workspace_id, req.link_id],
             )
-            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+            .map_err(|e| PaneLinkError::DbError(e.to_string()))?;
         Ok(PaneUnlinkResult {
             link_id: req.link_id.clone(),
             removed: n > 0,
@@ -537,7 +543,7 @@ impl PaneLinkDao {
                  WHERE workspace_id = ?3 AND id = ?4 AND deleted_at IS NULL",
                 rusqlite::params![req.enabled as i64, now, req.workspace_id, req.link_id],
             )
-            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+            .map_err(|e| PaneLinkError::DbError(e.to_string()))?;
         if n == 0 {
             return Err(PaneLinkError::LinkNotFound(req.link_id.clone()));
         }
@@ -685,6 +691,57 @@ mod tests {
             PaneLinkError::InvalidParentPaneType.to_string(),
             "parent pane is not an AI pane"
         );
+    }
+
+    #[test]
+    fn pane_link_error_k5_has_all_ten_stable_variants() {
+        // §K.5 stable variant 契约 = 10 个变体 · 每个 machine 可读 kind +
+        // 人类可读 message。ParserUnavailable / ParserTimeout /
+        // PromptSanitizationFailed 是 parser-bridge 边界变体（#345
+        // parser_bridge::ParserBridgeError → 此 canonical enum 的 IPC 边界
+        // map 目标 · A1 单一 owner）。DbError 对齐 spec §K.5 命名（非 Db）。
+        let cases: [(PaneLinkError, &str); 10] = [
+            (PaneLinkError::CrossWorkspaceDenied, "crossWorkspaceDenied"),
+            (
+                PaneLinkError::InvalidParentPaneType,
+                "invalidParentPaneType",
+            ),
+            (PaneLinkError::InvalidChildPaneType, "invalidChildPaneType"),
+            (PaneLinkError::PaneNotFound("p".into()), "paneNotFound"),
+            (PaneLinkError::LinkNotFound("l".into()), "linkNotFound"),
+            (
+                PaneLinkError::ParserUnavailable("bridge unreachable".into()),
+                "parserUnavailable",
+            ),
+            (
+                PaneLinkError::ParserTimeout("exceeded 2s".into()),
+                "parserTimeout",
+            ),
+            (
+                PaneLinkError::PromptSanitizationFailed("redaction failed".into()),
+                "promptSanitizationFailed",
+            ),
+            (PaneLinkError::DbError("disk full".into()), "dbError"),
+            (
+                PaneLinkError::UnsupportedCliKind("fish".into()),
+                "unsupportedCliKind",
+            ),
+        ];
+        for (err, expected_kind) in &cases {
+            let json = serde_json::to_string(err).unwrap();
+            assert!(
+                json.contains(&format!("\"kind\":\"{expected_kind}\"")),
+                "§K.5 variant must serialize machine kind '{expected_kind}', got {json}"
+            );
+            assert!(
+                !err.to_string().is_empty(),
+                "§K.5 variant '{expected_kind}' must carry human-readable message"
+            );
+        }
+        // parser-bridge 边界变体 detail 透传（#345 ParserBridgeError.message → detail）
+        assert!(PaneLinkError::ParserTimeout("exceeded 2s".into())
+            .to_string()
+            .contains("exceeded 2s"));
     }
 
     // ── DAO list / get / unlink / set_enabled §E B.6/B.7/F.1 ───────

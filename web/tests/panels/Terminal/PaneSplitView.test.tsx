@@ -8,6 +8,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, cleanup } from "@solidjs/testing-library";
 import { PaneSplitView } from "../../../src/panels/Terminal/PaneSplitView";
+import { PaneLinksProvider } from "../../../src/stores/paneLinks-context";
+import { PaneDraftsProvider } from "../../../src/stores/paneDrafts-context";
 import type { LayoutNode, PaneState } from "../../../src/bindings";
 
 // 5 层嵌套 fixture: H(A, V(B, H(C, V(D, E))))
@@ -80,13 +82,18 @@ describe("PaneSplitView", () => {
     const panes = createPanes(5);
 
     const { container } = render(() => (
-      <PaneSplitView
-        layout={layout}
-        panes={panes}
-        active={true}
-        focusedPaneId={null}
-        onPaneClick={() => {}}
-      />
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={layout}
+            panes={panes}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId={null}
+            onPaneClick={() => {}}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
     ));
 
     // 验证 5 个 leaf pane 都有 data-pane-id
@@ -117,13 +124,18 @@ describe("PaneSplitView", () => {
     const panes = createPanes(3);
 
     const { container } = render(() => (
-      <PaneSplitView
-        layout={layout}
-        panes={panes}
-        active={true}
-        focusedPaneId={null}
-        onPaneClick={() => {}}
-      />
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={layout}
+            panes={panes}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId={null}
+            onPaneClick={() => {}}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
     ));
 
     // 根 split 是 horizontal
@@ -145,14 +157,19 @@ describe("PaneSplitView", () => {
     const onDragEnd = vi.fn();
 
     const { container } = render(() => (
-      <PaneSplitView
-        layout={layout}
-        panes={panes}
-        active={true}
-        focusedPaneId={null}
-        onPaneClick={() => {}}
-        onSplitterDragEnd={onDragEnd}
-      />
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={layout}
+            panes={panes}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId={null}
+            onPaneClick={() => {}}
+            onSplitterDragEnd={onDragEnd}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
     ));
 
     // 找到所有 splitter

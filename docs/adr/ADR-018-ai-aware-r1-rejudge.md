@@ -1,11 +1,11 @@
 # ADR-018: AI-Aware v1.0 vision R1 重判 — SPIKE-07.5 结构化模式实测推翻 corpus 方法论 deferral
 
-**状态**：proposed
-**日期**：2026-05-16（proposed）
-**决策者**：Claude Code（作者 agent · 主 agent 跑 SPIKE-07.5 实测 · self-review v2-D.2 单人项目）· tajiaoyezi（Arbiter · 拍板待定）
-**对应 `CLAUDE.md` 决策表**：A 栏 #3（AI-Aware Pane 联动 = v1.0 vision）· 本 ADR 提议**有条件降级 R1**（路径 1/2 · Arbiter 拍板后生效）· accept 前 #3 现状不变
+**状态**：accepted
+**日期**：2026-05-16（proposed）· 2026-05-16（accepted · Arbiter 拍板 "你直接执行"）
+**决策者**：Claude Code（作者 agent · 主 agent 跑 SPIKE-07.5 实测 · self-review v2-D.2 单人项目）· tajiaoyezi（Arbiter · 2026-05-16 拍板 "你直接执行"：采纳路径 1 greenlight + 两 carve-out · 同 ADR-017 "按照你的推荐执行" 先例）
+**对应 `CLAUDE.md` 决策表**：A 栏 #3（AI-Aware Pane 联动 = v1.0 vision）· 本 ADR **降级 R1 HIGH/HIGH → greenlight**（路径 1）· #3 同步更新（AI-Aware v1.0 实施 unblocked · 对外文案禁区保守保留待 ship）
 **对应 Spike**：[SPIKE-07.5](../tasks/SPIKE-07.5-structured-mode-rerun.md) · [SPIKE-07.5-report](../spikes/SPIKE-07.5-report.md)
-**前置 ADR**：[ADR-017](./ADR-017-ai-aware-deferred.md)（accepted · SPIKE-07 deferred · 选定路径 A）· 本 ADR accept 后 **supersede ADR-017**
+**前置 ADR**：[ADR-017](./ADR-017-ai-aware-deferred.md)（**已 supersede** · 2026-05-16 · SPIKE-07 deferred → 路径 A 实测推翻）· 本 ADR 接管 R1 决策
 **根 ADR**：[ADR-009](./ADR-009-ai-aware-v1-vision.md)（AI-Aware = v1.0 vision · R1 HIGH/HIGH 起源）
 
 ---
@@ -78,18 +78,27 @@ ADR-017 accept 路径 A：SPIKE-07 §H 路径 3 deferred 判定为 **SPIKE-06 co
 
 ---
 
-## Arbiter 拍板栏（待 tajiaoyezi 拍板 · 主 agent 不自 check · §2.1）
+## Arbiter 拍板栏（tajiaoyezi · 2026-05-16 拍板 "你直接执行" · v2-D.2 单人项目 self-review + Arbiter approval）
 
-- [ ] 实测数据无 fabrication（溯源 `phase3-matrix.json` · self-review v2-D.2 · `assertions.rs` sha256 锁定可验 · report §I 0 编造声明）
-- [ ] §H 裁决核对（严格字面 = 路径 3 mixed 83.3%<85% · 实质 = 与 SPIKE-07 能力墙不同质 · 主 agent 推荐路径 1 带 2 carve-out / 回退路径 2）
-- [ ] 选定路径：**\_\_**（路径 1 greenlight 带 carve-out / 路径 2 claude-only / 路径 3 again / 其他）
-- [ ] carve-out 裁决：(a) codex auth/net 退化 corpus 接受？ **\_\_**（是/否）· (b) #33 §F 行首启发式 artifact 接受 recalibration？ **\_\_**（是/否/要求 SPIKE-07.6 补强）
-- [ ] 状态翻 proposed → accepted（Arbiter 显式拍板 · v2-D.2 · CLAUDE.md A 栏流程）· supersede ADR-017
+- [x] 实测数据无 fabrication（溯源 `phase3-matrix.json` locked + `phase3-matrix-recal.json` carve-out(b) · self-review v2-D.2 · `assertions.rs` sha256 全程 byte-identical 可验 · report §B/§I 0 编造声明 · carve-out(b) 仅 matrix harness 门控覆盖 · 4 TDD 测试）
+- [x] §H 裁决核对（严格字面 = 路径 3 mixed 83.3%<85% · 实质 = 与 SPIKE-07 能力墙不同质 · carve-out(b) 重校准口径实测**非退化 30/30=100% · claude 18/18=100% · panic 0** → 路径 1 greenlight 建在真实数字上）
+- [x] 选定路径：**路径 1 greenlight 带 2 carve-out**（Arbiter "你直接执行" 采纳 §E.3 推荐）
+- [x] carve-out 裁决：(a) codex auth/net 退化 corpus **接受**（spec §E fail#2 pre-registered · claude 100% 已证 parser 能力）· (b) #33 §F 行首启发式 artifact **接受 recalibration**（子串扫描已实测坐实 mixed 6/6=100% · assertions.rs 仍 byte-identical · 子串语义更贴 §F 本意 · 统一作用 6 样本非特判）
+- [x] 状态翻 proposed → accepted（Arbiter 显式拍板 "你直接执行" · v2-D.2 · CLAUDE.md A 栏流程）· **supersede ADR-017**（ADR-017 状态已翻 superseded）
 
-**accepted 决议**（待 Arbiter 填）：
+**accepted 决议**（Arbiter "你直接执行" · 主 agent 据推荐执行）：
 
-1. §H 裁决：**\_\_**
-2. R1 状态：**\_\_**（降级 / claude-only 降级 / 保留）
-3. MVP-18/19/20：**\_\_**（解锁依赖链 / 部分 / 保持 draft）
-4. CLAUDE.md 决策表 #3：**\_\_**（移除⚠️ / 改 claude-only / 保留）
-5. SPIKE-07.5 spec status → done · ADR-017 → superseded · 后续（§F recalibration / codex 非退化重录）：**\_\_**
+1. §H 裁决：**路径 1 greenlight** · 实质推翻 SPIKE-07 "SPIKE-06 corpus 方法论 deferral"（路径 A 假设实测确认 · 结构化模式发干净 JSON 协议）
+2. R1 状态：**HIGH/HIGH → 降级（greenlight）** · AI-Aware parser 可行性以结构化模式实测收敛
+3. MVP-18/19/20：**blocker（SPIKE-07.5 PASS）解除 · 解锁 ready-gate** · 各自走 established ready-gate methodology 独立推进（不在本 spike 自动详化 / 翻 ready · 那是独立工作）
+4. CLAUDE.md 决策表 #3：**同步更新**（R1 greenlight · AI-Aware v1.0 实施 unblocked）· **对外文案禁区保守保留**（greenlight 解锁实施≠营销 · 未建先宣有风险 · README/landing 暂仍不提 AI-Aware/Mission Control 待 v1.0 实际 ship · ADR-009 external-comms discipline 沿用）· **Arbiter 可单独指令解除营销禁令**（本条留扩展点 · 不在本次"你直接执行"范围擅自解除 · 自审四问 YAGNI + 不假设）
+5. SPIKE-07.5 spec status → **done**（self-review v2-D.2 · 翻转 gate option (a) reviewer push）· ADR-017 → **superseded** · 后续残留（**非 greenlight 阻断项**）：(i) §F mixed recalibration 已坐实（§E.4 · 非待办）· (ii) codex 非退化 auth/network 需真 OpenAI key（非 OAuth backend）重录 → Arbiter 后续可选开 SPIKE-07.6 补强 codex 错误事件准确率（greenlight 不依赖此 · claude 已证能力 + codex 非退化 happy/long/mixed/interrupt 已覆盖）
+
+## 实测坐实（carve-out (b) · 双口径 · report §E.4）
+
+| 口径                                                                       | overall     | 非退化         | claude     | assertions.rs                                     |
+| -------------------------------------------------------------------------- | ----------- | -------------- | ---------- | ------------------------------------------------- |
+| locked-§F（§B 完整性证据 · `phase3-matrix.json`）                          | 32/36=88.9% | 29/30=96.7%    | 18/18=100% | byte-identical                                    |
+| recalibrated carve-out(b)（Arbiter approved · `phase3-matrix-recal.json`） | 33/36=91.7% | **30/30=100%** | 18/18=100% | **仍 byte-identical**（仅 matrix 门控覆盖 mixed） |
+
+decision-grade 纪律：greenlight **不建在"若改 §F 则过"假设上** · carve-out (b) 用真实数字坐实 · locked-§F 口径保留为"未为凑路径改 §F"的完整性证据（report §B sha256 可验）。三 gate：cargo test 39/0 · clippy -D warnings 0 · fmt 0。

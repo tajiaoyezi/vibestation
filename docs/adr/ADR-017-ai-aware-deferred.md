@@ -1,7 +1,7 @@
 # ADR-017: AI-Aware v1.0 vision deferred — SPIKE-07 技术前提未被真实 corpus 验证
 
-**状态**：accepted
-**日期**：2026-05-15（proposed）· 2026-05-16（accepted · Arbiter 拍板）
+**状态**：superseded（by [ADR-018](./ADR-018-ai-aware-r1-rejudge.md) · 2026-05-16 · SPIKE-07.5 路径 A 结构化模式实测推翻"SPIKE-06 corpus 方法论 deferral"· R1 HIGH/HIGH → greenlight 降级 · Arbiter "你直接执行" accepted）
+**日期**：2026-05-15（proposed）· 2026-05-16（accepted · Arbiter 拍板）· 2026-05-16（superseded · ADR-018）
 **决策者**：Claude Code（作者 agent · 主 agent 跑 SPIKE-07 实测 · self-review v2-D.2）· tajiaoyezi（Arbiter · 2026-05-16 拍板 "按照推荐执行"：accept §H 路径 3 deferred verdict + 选后续路径 A）
 **对应 `CLAUDE.md` 决策表**：A 栏 #3（AI-Aware Pane 联动 = v1.0 vision）· 本 ADR 提议**保留** #3 现状（R1 不降级 · ⚠️ 警告保留）· 不移除
 **对应 Spike**：[SPIKE-07](../tasks/SPIKE-07-cli-protocol-parser.md) · [SPIKE-07-report](../spikes/SPIKE-07-report.md)

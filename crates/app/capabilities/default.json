@@ -106,6 +106,10 @@
     "allow-pane-detach-open",
     "allow-pane-detach-close",
     "allow-pane-detach-list",
+    "allow-pane-link-create",
+    "allow-pane-link-unlink",
+    "allow-pane-links-list",
+    "allow-pane-link-set-enabled",
     "dialog:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text"

@@ -6,31 +6,32 @@
 >
 > **关联全局规则**：`~/.claude/rules/13-cross-agent-delivery.md` · `~/.claude/rules/15-runtime-verification-gate.md`
 >
-> 📎 **审计附录**：每条硬约束的完整「事件」叙述 / 完整「反模式」对照表 / 详细「为什么」 / 参考实现历史 / 15 条来源时间线 → [`docs/dispatch-incidents.md`](../../docs/dispatch-incidents.md)（**不进 auto-load · 进 git** · 写 dispatch 时按需查 · 拆分依据见该文件头）。本正文保留**规则 + 具体做法 + code + 速查表 + 模板**，照此即可写合规 prompt，无需翻附录。
+> 📎 **审计附录**：每条硬约束的完整「事件」叙述 / 完整「反模式」对照表 / 详细「为什么」 / 参考实现历史 / 16 条来源时间线 → [`docs/dispatch-incidents.md`](../../docs/dispatch-incidents.md)（**不进 auto-load · 进 git** · 写 dispatch 时按需查 · 拆分依据见该文件头）。本正文保留**规则 + 具体做法 + code + 速查表 + 模板**，照此即可写合规 prompt，无需翻附录。
 
 ---
 
-## 0 · 目录 · 15 条硬约束速查
+## 0 · 目录 · 16 条硬约束速查
 
 ### §2 硬约束速查表
 
-| 条款                                                                                                                         | 一句话约束                                                                    | 事件源（session）         |
-| ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------- |
-| [2.1 禁自行 accept decision](#21--禁止自行-accept-decision-grade-结论)                                                       | 不动 CLAUDE.md / ADR / spec status · 只能建议                                 | OpenCode SPIKE-04.5（s9） |
-| [2.2 Acceptance 全覆盖](#22--acceptance-全覆盖不得简化)                                                                      | spec checkbox 必须逐项 `[x]` 或 explicit skip                                 | s9 初版                   |
-| [2.3 Runtime 证据必交](#23--runtime-证据必交按-task-层级区分)                                                                | Spike → 4 样齐全 · MVP → 3 张截图 · chore/docs → CI 即可                      | ADR-011（s10）            |
-| [2.4 独立 worktree](#24--独立-worktree--不得在主-working-tree-开-agent-任务分支)                                             | `git worktree add /private/tmp/<task-id>-work` · 不开主 working tree          | OpenCode MVP-02（s10）    |
-| [2.5 Commit 身份](#25--commit-身份标识3-条硬约束--缺一即-block-merge)                                                        | 3 铁律：(a) `--worktree` config + (b) trailer + (c) verify                    | s14 + s28 6+ 次实证       |
-| [2.6 分支命名](#26--分支命名规范)                                                                                            | `feat/<id>` · `spike/<id>` · `fix/<scope>` · `docs/<topic>` · `chore/<scope>` | s9 初版                   |
-| [2.7 不碰 decision files](#27--不碰-decision-files除非明确授权)                                                              | 默认禁 CLAUDE.md / ADR / 其他 spec · 必须明示授权                             | s9 初版                   |
-| [2.8 子进程清理](#28--子进程清理--任务结束前必须-kill-所有启动的后台进程)                                                    | dev server / Vite / PTY task 结束前 kill · 防 port orphan                     | OpenCode MVP-02（s10）    |
-| [2.9 Agent 能力矩阵](#29--agent-能力矩阵--本地-agent-vs-远程-api-agent-适配)                                                 | 本地 CLI / 远程 API / IDE 插件分三类适配 prompt 结构                          | Kimi MVP-07（s12）        |
-| [2.10 lint + raw output](#210--gui--前端-task-必须跑-pnpm-lintdont-只-typecheck)                                             | 前端 task 跑 `pnpm lint` + `pnpm typecheck` + raw output 三段全贴             | OpenCode N=3（s25-26）    |
-| [2.11 Cross-platform timeout](#211--timing-sensitive-跨平台测试--timeout-必须--本地最大运行时长--2--或-linux-only-ignore)    | timeout ≥ 本地最大 × 2 · 或 Linux-only ignore + 技术债                        | Codex PR #82（s14）       |
-| [2.12 git config unset](#212--主-agent-在别人-worktree-操作-git-config-后必须-unset防跨-agent-author-污染)                   | worktree 后 unset · 主 repo 不留 local config 污染                            | s14 + s28 6+ 次实证       |
-| [2.13 索引同步禁 inline](#213--索引同步类-prompt-禁止-inline-已被其他-pr-修改的源文件)                                       | 用 `git checkout origin/main` 拿真相 · 不 inline 原文                         | Kimi U2 ADR-015（s20）    |
-| [2.14 Reviewer dev mode](#214--reviewer-必须启-dev-模式跑-critical-ux-path-gui--ipc-类-pr--不只看-rust-测试--ts-rs-contract) | GUI / IPC 类 PR · reviewer 启 dev mode 跑 critical UX path                    | PR #159/#161/#163（s20）  |
-| [2.15 stale base race](#215--并发派工--push-前必须-fetch--rebase-main--重跑-gate防-stale-base-race)                          | ≥ 3-agent 并发 · push 前必 fetch + rebase main + 重跑 gate                    | Cursor PR #297（s30）     |
+| 条款                                                                                                                         | 一句话约束                                                                           | 事件源（session）                 |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------- |
+| [2.1 禁自行 accept decision](#21--禁止自行-accept-decision-grade-结论)                                                       | 不动 CLAUDE.md / ADR / spec status · 只能建议                                        | OpenCode SPIKE-04.5（s9）         |
+| [2.2 Acceptance 全覆盖](#22--acceptance-全覆盖不得简化)                                                                      | spec checkbox 必须逐项 `[x]` 或 explicit skip                                        | s9 初版                           |
+| [2.3 Runtime 证据必交](#23--runtime-证据必交按-task-层级区分)                                                                | Spike → 4 样齐全 · MVP → 3 张截图 · chore/docs → CI 即可                             | ADR-011（s10）                    |
+| [2.4 独立 worktree](#24--独立-worktree--不得在主-working-tree-开-agent-任务分支)                                             | `git worktree add /private/tmp/<task-id>-work` · 不开主 working tree                 | OpenCode MVP-02（s10）            |
+| [2.5 Commit 身份](#25--commit-身份标识3-条硬约束--缺一即-block-merge)                                                        | 3 铁律：(a) `--worktree` config + (b) trailer + (c) verify                           | s14 + s28 6+ 次实证               |
+| [2.6 分支命名](#26--分支命名规范)                                                                                            | `feat/<id>` · `spike/<id>` · `fix/<scope>` · `docs/<topic>` · `chore/<scope>`        | s9 初版                           |
+| [2.7 不碰 decision files](#27--不碰-decision-files除非明确授权)                                                              | 默认禁 CLAUDE.md / ADR / 其他 spec · 必须明示授权                                    | s9 初版                           |
+| [2.8 子进程清理](#28--子进程清理--任务结束前必须-kill-所有启动的后台进程)                                                    | dev server / Vite / PTY task 结束前 kill · 防 port orphan                            | OpenCode MVP-02（s10）            |
+| [2.9 Agent 能力矩阵](#29--agent-能力矩阵--本地-agent-vs-远程-api-agent-适配)                                                 | 本地 CLI / 远程 API / IDE 插件分三类适配 prompt 结构                                 | Kimi MVP-07（s12）                |
+| [2.10 lint + raw output](#210--gui--前端-task-必须跑-pnpm-lintdont-只-typecheck)                                             | 前端 task 跑 `pnpm lint` + `pnpm typecheck` + raw output 三段全贴                    | OpenCode N=3（s25-26）            |
+| [2.11 Cross-platform timeout](#211--timing-sensitive-跨平台测试--timeout-必须--本地最大运行时长--2--或-linux-only-ignore)    | timeout ≥ 本地最大 × 2 · 或 Linux-only ignore + 技术债                               | Codex PR #82（s14）               |
+| [2.12 git config unset](#212--主-agent-在别人-worktree-操作-git-config-后必须-unset防跨-agent-author-污染)                   | worktree 后 unset · 主 repo 不留 local config 污染                                   | s14 + s28 6+ 次实证               |
+| [2.13 索引同步禁 inline](#213--索引同步类-prompt-禁止-inline-已被其他-pr-修改的源文件)                                       | 用 `git checkout origin/main` 拿真相 · 不 inline 原文                                | Kimi U2 ADR-015（s20）            |
+| [2.14 Reviewer dev mode](#214--reviewer-必须启-dev-模式跑-critical-ux-path-gui--ipc-类-pr--不只看-rust-测试--ts-rs-contract) | GUI / IPC 类 PR · reviewer 启 dev mode 跑 critical UX path                           | PR #159/#161/#163（s20）          |
+| [2.15 stale base race](#215--并发派工--push-前必须-fetch--rebase-main--重跑-gate防-stale-base-race)                          | ≥ 3-agent 并发 · push 前必 fetch + rebase main + 重跑 gate                           | Cursor PR #297（s30）             |
+| [2.16 codegen/contract carve-out](#216--codegen-产物--共享-contract-shape-文件域-carve-out)                                  | 文件域隔离须显式说明 codegen 产物归属(Rust PR 提交) + 共享 contract shape resolution | MVP-18 #345/#351/#354/#353（s32） |
 
 ---
 
@@ -49,7 +50,7 @@ Dispatch prompt 里的协作要求 **必须区分**：
 
 ## 2 · 默认硬约束清单（所有 dispatch 必含）
 
-除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 15 条默认是硬约束（详见 [§0 速查表](#0--目录--15-条硬约束速查)）：
+除非任务性质明确豁免（需 prompt 中说明豁免理由）· 以下 16 条默认是硬约束（详见 [§0 速查表](#0--目录--16-条硬约束速查)）：
 
 ### 2.1 · 禁止自行 accept decision-grade 结论
 
@@ -412,6 +413,27 @@ rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 
 
 ---
 
+### 2.16 · codegen 产物 + 共享 contract shape · 文件域 carve-out（防 codegen 漏提交 / shape 静默错形）
+
+多 agent 文件域隔离派工（如 Codex=Rust · Cursor=web）· dispatch prompt 涉及 **build.rs/ts-rs codegen** 或 **store/seam 切 canonical binding** 时 · 必须显式说明两类跨域共享物 · 否则执行 agent 在矛盾/缺失指令下做本地正确但全局不合规选择 → §2.14 BLOCK（MVP-18 已 4 例同根）。
+
+**必须显式包含**：
+
+1. **codegen 产物归属**：若 task 改 build.rs/ts-rs 触发器 · 明写"生成的 binding/产物（含 `web/src/bindings/*.ts` + `index.ts`）由生成它的 Rust 侧 PR 提交 · 是 codegen 产物非 web agent 手写域 · 参 #344 先例"· **不能笼统"绝不改 web/"**（会把 codegen 产物误锁出 Rust agent 域 → 没人提交 → main 不一致 + 下游断链）
+2. **验证措辞**：要"提交"就写"git add + commit 这些 .ts + git ls-files 证 tracked"· **不能只写"ls 证生成"**（ls 是 gate 输出 ≠ 交付 · #354 踩坑）
+3. **shared-contract shape resolution**：store/seam 切 canonical binding 时 · 明指**用哪个形状的 binding**（如 DB-row `PaneLink` vs event `PaneLinkedEvent`）· 形状不匹配时明写"派生 local view-model 保留 enum 富信息 · 不坍缩"（#353 踩坑：盲切 DB-row binding 把 status enum 坍缩成 bool · typecheck 过但语义静默错形）
+4. **主 agent review-prep 预判前置**：主 agent §2.14 review-prep 若已预判某形状/归属坑 · 必须把该预判写进 dispatch prompt · 不能只留内部 prep（#353：prep 预言"不盲换 @/bindings/PaneLink"但只留内部 · Cursor 没看到）
+
+**适用范围**：
+
+- ✅ 任何改 build.rs/ts-rs export / codegen 触发器的 task（codegen 产物归属条款必含）
+- ✅ 任何 store/seam 切 canonical binding 的前端 task（shape resolution 必含）
+- ⚠️ 纯单域 task 无 codegen / 无 contract 切换 · 不触发本条
+
+> 📎 4 例同根事件（#345 §K.5 / #351 ADR# / #354 codegen / #353 shape）/ 反模式表 / 根因归属判则 / 关联 → [dispatch-incidents.md §2.16](../../docs/dispatch-incidents.md#ev-2-16)
+
+---
+
 ## 3 · 标准 Dispatch Prompt 模板
 
 ### 3.0 · 文件命名规范（audit M2 · 2026-04-21）
@@ -450,7 +472,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 
 ## 🔴 本 task 的硬约束
 
-默认硬约束（见 `.claude/rules/dispatch-prompt-template.md` §2 · 当前 15 条）：
+默认硬约束（见 `.claude/rules/dispatch-prompt-template.md` §2 · 当前 16 条）：
 
 - [ ] 2.1 · 禁止自行 accept decision-grade
 - [ ] 2.2 · Acceptance 全覆盖
@@ -467,6 +489,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 - [ ] 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件
 - [ ] 2.14 · Reviewer 必须启 dev 模式跑 critical UX path（GUI / IPC 类 PR）
 - [ ] 2.15 · ≥ 3-agent 并发派工 · push 前必 fetch + rebase main + 重跑 gate（防 stale base race）
+- [ ] 2.16 · codegen 产物归属 + 共享 contract shape resolution（涉 build.rs/ts-rs 或 store 切 binding 时）
 
 本 task 额外硬约束：
 
@@ -487,7 +510,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 
 🔴 硬约束（违反即 BLOCK PR merge · 不是建议）
 
-<从上面 15 条 + task-specific 翻译成 prompt 语言 · 简洁列出>
+<从上面 16 条 + task-specific 翻译成 prompt 语言 · 简洁列出>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -535,7 +558,7 @@ dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-估时 <X>d · 完工开 PR · 主 agent 按 spec §Acceptance 逐条 review + 硬约束 15 条 check · 违反任一不得 merge。
+估时 <X>d · 完工开 PR · 主 agent 按 spec §Acceptance 逐条 review + 硬约束 16 条 check · 违反任一不得 merge。
 
 GO 🚀
 \`\`\`
@@ -546,7 +569,7 @@ GO 🚀
 
 1. 复制上面 ``` 内容 · 整段发给 <Agent>
 2. Agent 应建独立 worktree · commit · push · 开 PR
-3. PR 开出后我按硬约束 15 条 + spec Acceptance 做 review
+3. PR 开出后我按硬约束 16 条 + spec Acceptance 做 review
 ````
 
 ---
@@ -575,7 +598,7 @@ GO 🚀
 
 未来若 Codex / 其他 agent 触发新的协作 failure mode · 本规则追加新条款（规则正文落本文件 · 对应事件 / 反模式落附录 · 二者同步）。
 
-> 📎 15 条硬约束的完整来源时间线（每条事件源 + session）→ [dispatch-incidents.md §5](../../docs/dispatch-incidents.md#ev-5)
+> 📎 16 条硬约束的完整来源时间线（每条事件源 + session）→ [dispatch-incidents.md §5](../../docs/dispatch-incidents.md#ev-5)
 
 ---
 
@@ -584,7 +607,7 @@ GO 🚀
 - **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/\*"）· 所以未来 agent 修本规则需明确授权 ✅ · 附录 `docs/dispatch-incidents.md` 不在 `.claude/rules/` · 不受 2.7 约束（属普通 docs · 但演进时须与本正文同步，见 §5）✅
 - **反向场景**：规则不遵守 → 第三次违规 → 触发 CI 硬阻塞升级路径（见 §5）✅
 - **边界适用性**：适用所有 dispatch（Spike / MVP / chore）· chore 可豁免 2.3（明示在 prompt）· 2.8 适用所有启动后台进程的 task · 纯文档 task 不触发 ✅
-- **YAGNI**：15 条都来自真实事件 / 真实风险 · 无投机条款 ✅
+- **YAGNI**：16 条都来自真实事件 / 真实风险 · 无投机条款 ✅
 
 ---
 

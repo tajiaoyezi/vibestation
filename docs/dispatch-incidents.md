@@ -325,6 +325,41 @@ status: proposed
 
 ---
 
+<a id="ev-2-16"></a>
+
+## §2.16 codegen/contract carve-out · 为什么 / 4 例事件 / 反模式 / 关联
+
+### 为什么
+
+文件域隔离（§2.4/§2.7）防"两 agent 改同一手写文件"· 但两类跨域共享物未覆盖：(1) build.rs/ts-rs codegen 产物物理在 web/src/bindings/（看似 web 域）实是生成它的 Rust PR 产物（build.rs header "Do NOT edit manually" · #344 先例提交）; (2) 同概念多形状 binding（DB-row struct vs event struct）· dispatch 说"切 @/bindings/X"不指形状 → 盲选 → typecheck 过但语义静默错形。
+
+### 4 例同根事件 · 2026-05-16 session 32 续 · MVP-18 4-agent 并行
+
+| PR   | 失败                                                                   | 根因（均主 agent dispatch · 执行 agent 零违规）                                   |
+| ---- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| #345 | §K.5 PaneLinkError 同名 `#[ts(export)]` 碰撞 A1                        | dispatch 未明 canonical 单一 owner                                                |
+| #351 | ADR 编号 019/020 撞 README 未来占位预留                                | dispatch 写死编号未查预留表（另见 ev-related）                                    |
+| #354 | build.rs 生成 6 binding + index.ts 未提交（HIGH BLOCK）                | dispatch HC「绝不改 web/」+ binding 验证框定为「ls 证生成」当 gate 输出非「提交」 |
+| #353 | store 把 PaneLinkStatus 坍缩成 enabled:bool · stale 不可区分（MEDIUM） | dispatch「切 @/bindings/PaneLink」未指 DB-row vs event 形状不匹配                 |
+
+### 反模式
+
+| 反模式                                                    | 正确                                                                  |
+| --------------------------------------------------------- | --------------------------------------------------------------------- |
+| dispatch 笼统"绝不改 web/" 把 codegen 产物锁出 Rust agent | 显式 carve-out："生成的 binding 由本 Rust PR 提交 · 非 web 域"        |
+| binding 验证写"ls 证生成"                                 | 写"git add+commit + git ls-files 证 tracked"                          |
+| "切 @/bindings/X" 不指形状                                | 明指 DB-row vs event binding · 不匹配则"派生 local view-model 不坍缩" |
+| 主 agent prep 预判坑只留内部                              | 预判必须前置写进 dispatch prompt                                      |
+| BLOCK 归咎执行 agent                                      | 先判根因归属 · dispatch 缺则主 agent 担 · 执行 agent 试金石不扣分     |
+
+### 关联
+
+- 项目 memory：`feedback_dispatch-codegen-contract-carveout`（案例召回）· `feedback_adr-number-dispatch-reservation-table`（#351 编号子类）
+- 同则：dispatch 错不归咎执行 agent（#345/#351/#354/#353 执行侧均零违规 · 根因 100% 主 agent dispatch 精度）
+- 上位：本规则 §5 演进机制（新 failure mode 追加条款 · 正文+附录同步）
+
+---
+
 <a id="ev-4"></a>
 
 ## §4 参考实现
@@ -357,9 +392,9 @@ status: proposed
 
 <a id="ev-5"></a>
 
-## §5 规则来源时间线（15 条硬约束的事件溯源）
+## §5 规则来源时间线（16 条硬约束的事件溯源）
 
-目前 15 条硬约束来自实际事件：
+目前 16 条硬约束来自实际事件：
 
 - 2.1-2.7（session 9 末初版）· 反映 OpenCode SPIKE-04.5/MVP-02 的 2 次违规教训
 - 2.8（session 10 末增补）· 反映 MVP-02 运行时 OpenCode 未 kill Vite/pnpm 子进程 · 残留 4 小时占 port 1420 的教训
@@ -370,6 +405,7 @@ status: proposed
 - 2.13（session 20 增补）· PR #157 round 1 ADR-015 倒退 · 索引同步禁 inline 已被其他 PR 改的源文件
 - 2.14（session 20 增补）· PR #159/#161/#163 三 critical bug · GUI/IPC PR reviewer 必须启 dev mode
 - 2.15（session 30 增补 · 2026-05-13）· Cursor PR #297 stale base · 4-agent 派工 push 前必 fetch+rebase+重跑 gate
+- 2.16（session 32 续 · 2026-05-16）· MVP-18 4-agent 并行 · #345/#351/#354/#353 四例 codegen 产物归属 + 共享 contract shape 精度不足 · 新增 §2.16 carve-out 条款
 
 未来若 Codex / 其他 agent 触发新的协作 failure mode · 规范正文 §5 追加新条款 · 本时间线同步追加一行。
 

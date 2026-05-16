@@ -5,10 +5,10 @@
  * Shows the parent pane label and link kind.
  */
 import { type Component, Show } from "solid-js";
-import type { PaneLink } from "../../bindings";
+import type { PaneLinkView } from "../../stores/paneLinks";
 
 export type RunnerSourceBadgeProps = {
-  link: PaneLink;
+  link: PaneLinkView;
   parentLabel?: string;
 };
 
@@ -16,11 +16,11 @@ export const RunnerSourceBadge: Component<RunnerSourceBadgeProps> = (props) => {
   const label = () => props.parentLabel ?? "Agent";
 
   return (
-    <Show when={props.link.enabled}>
+    <Show when={props.link.status === "enabled"}>
       <span
         class="vs-runner-source-badge"
         role="status"
-        aria-label={`Linked to ${label()} · failure feedback ${props.link.enabled ? "active" : "paused"}`}
+        aria-label={`Linked to ${label()} · failure feedback ${props.link.status === "enabled" ? "active" : "paused"}`}
       >
         <svg
           class="vs-runner-source-badge-icon"

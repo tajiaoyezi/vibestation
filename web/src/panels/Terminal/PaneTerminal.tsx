@@ -27,6 +27,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  For,
   onCleanup,
   onMount,
   Show,
@@ -56,6 +57,11 @@ import {
   PaneLinkCreateMenu,
   type PaneLinkCreateRequest,
 } from "./PaneLinkCreateMenu";
+import { usePaneDrafts } from "../../stores/paneDrafts-context";
+import { FailureCallout } from "./FailureCallout";
+import { PaneDraftComposer } from "./PaneDraftComposer";
+import { buildPreviewRequest } from "./paneFailurePreview";
+import type { PaneFailureCallout } from "../../stores/paneLinks";
 
 type XTermCursorStyle = "block" | "underline" | "bar";
 
@@ -179,6 +185,32 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   // ── MVP-18 Wave 2 · pane linking integration ──────────────────────────────
   const paneLinks = usePaneLinks();
   const linkSel = paneLinks.selectorsFor(() => props.workspaceId);
+  const paneDrafts = usePaneDrafts();
+  // Failure callouts surface on the AI *parent* pane that receives the feedback.
+  const myFailureCallouts = createMemo(() =>
+    linkSel.failureCallouts().filter((c) => c.parentPaneId === props.paneId),
+  );
+  const handleInsertFailure = (callout: PaneFailureCallout) => {
+    void paneLinks
+      .previewPrompt(buildPreviewRequest(callout))
+      .then((result) => {
+        // D.2 / D.5 — insertFragment appends to the parent pane draft, or
+        // raises a merge-preview that PaneDraftComposer renders reactively.
+        paneDrafts.insertFragment(callout.parentPaneId, result.promptFragment);
+      })
+      .catch((err: unknown) => {
+        console.warn("[mvp-18] previewPrompt failed:", err);
+      });
+  };
+  const handleDismissCallout = (commandRunId: string) => {
+    paneLinks.store.dismissCallout(props.workspaceId, commandRunId);
+  };
+  const handleSendDraft = (_paneId: string, text: string) => {
+    if (text === "") return;
+    // Flush the composed draft into this (AI) pane's PTY stdin, then clear it.
+    term?.paste(text);
+    paneDrafts.clearDraft(props.paneId);
+  };
   const [linkManageOpen, setLinkManageOpen] = createSignal(false);
   const [linkCreateOpen, setLinkCreateOpen] = createSignal(false);
 
@@ -843,6 +875,23 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         error={paneLinks.store.lastError}
         onDismiss={() => paneLinks.store.clearError()}
       />
+      {/* MVP-18 Wave 2-3 · failure feedback + draft composer on the AI parent pane */}
+      <Show when={linkRole() === "parent"}>
+        <For each={myFailureCallouts()}>
+          {(callout) => (
+            <FailureCallout
+              callout={callout}
+              onDismiss={handleDismissCallout}
+              onInsert={handleInsertFailure}
+            />
+          )}
+        </For>
+        <PaneDraftComposer
+          paneId={props.paneId}
+          drafts={paneDrafts}
+          onSend={handleSendDraft}
+        />
+      </Show>
     </div>
   );
 };

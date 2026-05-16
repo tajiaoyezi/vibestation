@@ -19,6 +19,8 @@ import { detachedPanes } from "../../lib/pane-detach";
 type PaneSplitViewProps = {
   layout: LayoutNode;
   panes: PaneState[];
+  /** MVP-18 Wave 2 · scope pane-link selectors + create requests to this workspace. */
+  workspaceId: string;
   active: boolean;
   focusedPaneId: string | null;
   /**
@@ -83,6 +85,8 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
             paneId={paneId}
             shell={p().shell}
             cwd={p().cwd}
+            workspaceId={props.workspaceId}
+            siblingPanes={props.panes.filter((sp) => sp.paneId !== paneId)}
             active={props.active}
             focused={props.focusedPaneId === paneId}
             maximized={props.maximizedPaneId === paneId}
@@ -121,6 +125,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
         <PaneSplitView
           layout={split.first}
           panes={props.panes}
+          workspaceId={props.workspaceId}
           active={props.active}
           focusedPaneId={props.focusedPaneId}
           maximizedPaneId={props.maximizedPaneId}
@@ -145,6 +150,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
         <PaneSplitView
           layout={split.second}
           panes={props.panes}
+          workspaceId={props.workspaceId}
           active={props.active}
           focusedPaneId={props.focusedPaneId}
           maximizedPaneId={props.maximizedPaneId}

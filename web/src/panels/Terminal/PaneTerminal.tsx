@@ -25,15 +25,18 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import {
   createEffect,
+  createMemo,
   createSignal,
   onCleanup,
   onMount,
+  Show,
   type Component,
 } from "solid-js";
 import type {
   PanePtyExitedEvent,
   PanePtySpawnRequest,
   PanePtyStdoutEvent,
+  PaneState,
   SpawnResult,
   SplitDir,
 } from "../../bindings";
@@ -44,6 +47,15 @@ import {
 } from "./PaneContextMenu";
 import { detachPane } from "../../lib/pane-detach";
 import { setPopToExternalRequest } from "../../lib/external-term";
+import { usePaneLinks } from "../../stores/paneLinks-context";
+import { PaneLinkChip } from "./PaneLinkChip";
+import { RunnerSourceBadge } from "./RunnerSourceBadge";
+import { LinkManagePopover } from "./LinkManagePopover";
+import { PaneLinkErrorState } from "./PaneLinkErrorState";
+import {
+  PaneLinkCreateMenu,
+  type PaneLinkCreateRequest,
+} from "./PaneLinkCreateMenu";
 
 type XTermCursorStyle = "block" | "underline" | "bar";
 
@@ -75,6 +87,10 @@ type PaneTerminalProps = {
   paneId: string;
   shell: string;
   cwd: string;
+  /** MVP-18 Wave 2 · scope pane-link selectors / create requests to this workspace. */
+  workspaceId: string;
+  /** MVP-18 Wave 2 · other panes in the tab · candidate AI parents for link create. */
+  siblingPanes: PaneState[];
   active: boolean;
   focused: boolean;
   /**
@@ -159,6 +175,69 @@ const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const { settings } = useSettings();
   const [spawnError, setSpawnError] = createSignal<string | null>(null);
+
+  // ── MVP-18 Wave 2 · pane linking integration ──────────────────────────────
+  const paneLinks = usePaneLinks();
+  const linkSel = paneLinks.selectorsFor(() => props.workspaceId);
+  const [linkManageOpen, setLinkManageOpen] = createSignal(false);
+  const [linkCreateOpen, setLinkCreateOpen] = createSignal(false);
+
+  // Chip must reflect any lifecycle status (enabled / disabled / stale), so use
+  // the raw workspace links, not the active-filtered linkForPane selector.
+  const myLink = createMemo(() =>
+    linkSel
+      .links()
+      .find(
+        (l) =>
+          l.parentPaneId === props.paneId || l.childPaneId === props.paneId,
+      ),
+  );
+  const linkRole = (): "parent" | "child" | null => {
+    const link = myLink();
+    if (!link) return null;
+    return link.parentPaneId === props.paneId ? "parent" : "child";
+  };
+  const myLinks = createMemo(() =>
+    linkSel
+      .links()
+      .filter(
+        (l) =>
+          l.parentPaneId === props.paneId || l.childPaneId === props.paneId,
+      ),
+  );
+  const candidatePanes = createMemo(() =>
+    props.siblingPanes.map((p) => ({
+      paneId: p.paneId,
+      label: `${p.shell.split("/").pop() || p.shell} — ${p.cwd}`,
+    })),
+  );
+
+  const handleCreateLink = (req: PaneLinkCreateRequest) => {
+    void paneLinks
+      .createLink({ workspaceId: props.workspaceId, ...req })
+      .then(() => setLinkCreateOpen(false))
+      .catch((err: unknown) => {
+        // Recoverable errors are designed to arrive via pane:link-error, which
+        // the backend does not emit yet (MVP-18 escalate · see review-prep);
+        // surface in console until that lands so the failure is not silent.
+        console.warn("[mvp-18] createLink failed:", err);
+      });
+  };
+  const handleToggleEnabled = (linkId: string, enabled: boolean) => {
+    void paneLinks
+      .setEnabled({ workspaceId: props.workspaceId, linkId, enabled })
+      .catch((err: unknown) => {
+        console.warn("[mvp-18] setEnabled failed:", err);
+      });
+  };
+  const handleUnlink = (linkId: string) => {
+    void paneLinks
+      .unlink({ workspaceId: props.workspaceId, linkId })
+      .catch((err: unknown) => {
+        console.warn("[mvp-18] unlink failed:", err);
+      });
+  };
+  // ──────────────────────────────────────────────────────────────────────────
   // MVP-17 Phase C wiring · 右键菜单 overlay state · 替代 backend native menu_show_terminal
   const paneMenu = createPaneContextMenu();
   let hostRef: HTMLDivElement | undefined;
@@ -616,6 +695,34 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       />
       <div ref={hostRef} class="vs-pane-terminal-host" />
       <div class="vs-pane-actions" data-pane-actions>
+        <Show when={myLink()}>
+          {(link) => (
+            <PaneLinkChip
+              link={link()}
+              role={linkRole() ?? "child"}
+              onClick={() => setLinkManageOpen(true)}
+            />
+          )}
+        </Show>
+        <button
+          type="button"
+          class="vs-pane-action-btn"
+          title="链接 Pane 失败反馈到 AI Pane"
+          aria-label="Link pane failures to an AI pane"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLinkCreateOpen(true);
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M6.5 9.5a2.5 2.5 0 0 1 0-3.5l2-2a2.5 2.5 0 0 1 3.5 3.5l-1 1M9.5 6.5a2.5 2.5 0 0 1 0 3.5l-2 2a2.5 2.5 0 0 1-3.5-3.5l1-1"
+              stroke="currentColor"
+              stroke-width="1.3"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
         <button
           type="button"
           class="vs-pane-action-btn"
@@ -713,6 +820,29 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       ) : null}
       {/* MVP-17 Phase C wiring · 右键菜单 overlay · 在 div 内不影响 stacking */}
       <PaneContextMenuOverlay state={paneMenu.state} onHide={paneMenu.hide} />
+      {/* MVP-18 Wave 2 · pane link UX overlays */}
+      <Show when={linkRole() === "child" ? myLink() : null}>
+        {(link) => <RunnerSourceBadge link={link()} />}
+      </Show>
+      <LinkManagePopover
+        open={linkManageOpen()}
+        links={myLinks()}
+        currentPaneId={props.paneId}
+        onClose={() => setLinkManageOpen(false)}
+        onToggleEnabled={handleToggleEnabled}
+        onUnlink={handleUnlink}
+      />
+      <PaneLinkCreateMenu
+        open={linkCreateOpen()}
+        currentPaneId={props.paneId}
+        candidatePanes={candidatePanes()}
+        onClose={() => setLinkCreateOpen(false)}
+        onCreate={handleCreateLink}
+      />
+      <PaneLinkErrorState
+        error={paneLinks.store.lastError}
+        onDismiss={() => paneLinks.store.clearError()}
+      />
     </div>
   );
 };

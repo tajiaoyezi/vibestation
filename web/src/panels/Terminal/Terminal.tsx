@@ -1557,6 +1557,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
                           <PaneSplitView
                             layout={list().layout}
                             panes={list().panes}
+                            workspaceId={currentTab().workspaceId}
                             active={tabActive()}
                             focusedPaneId={list().focusedPaneId}
                             maximizedPaneId={maximizedId()}

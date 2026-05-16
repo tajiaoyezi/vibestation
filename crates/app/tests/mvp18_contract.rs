@@ -12,12 +12,13 @@
 //! 本文件只 import vibestation_core（crates/app 依赖）。
 //! 不改 src / 不碰 web / 不重生成 binding（HC-C2）。
 
+use vibestation_app_lib::pane_link_error_event;
 use vibestation_core::pane_failure::{
     build_failure_events, PaneFailureSource, PaneFailureTriggerReason,
 };
 use vibestation_core::pane_links::{
-    validate_link_request, PaneKind, PaneLink, PaneLinkError, PaneLinkErrorEvent, PaneLinkKind,
-    PaneLinkRequest, PaneLinkStatus, PaneLinkedEvent,
+    validate_link_request, PaneKind, PaneLink, PaneLinkError, PaneLinkKind, PaneLinkRequest,
+    PaneLinkStatus, PaneLinkedEvent,
 };
 
 // ── §1 命令注册名审计 ────────────────────────────────────────────────────────
@@ -130,28 +131,42 @@ fn contract_event_name_pane_build_failed_matches_spec_k2() {
     assert_eq!(PANE_BUILD_FAILED_EVENT, "pane:build-failed");
 }
 
-/// §K.2 `pane:link-error` gap 审计：struct 存在 + binding 生成，但 **事件未被 emit**。
-/// 审计结论（ESCALATE）：`PaneLinkErrorEvent` 的 binding
-/// `web/src/bindings/PaneLinkErrorEvent.ts` 已生成，但 `crates/app/src/lib.rs`
-/// 中无任何 `app.emit("pane:link-error", ...)` 调用。
-/// 实现仅通过 command 返回 `Err(String)` 传递错误，未按 spec §K.2 作为独立 event emit。
-/// 前端 Wave 1 不能 subscribe `pane:link-error` 接收异步错误。
+/// §K.2 `pane:link-error`：recoverable create/unlink/trigger error 必须以事件形式
+/// 额外通知前端，同时保留同步 command rejection。
 #[test]
-fn contract_event_pane_link_error_struct_exists_but_gap_known_escalate() {
-    // 类型层面：PaneLinkErrorEvent 可构造（binding 层已存在）
-    let event = PaneLinkErrorEvent {
-        workspace_id: "ws-audit".to_string(),
-        error: PaneLinkError::CrossWorkspaceDenied,
-    };
+fn contract_event_pane_link_error_emitted_on_recoverable_error() {
+    let event = pane_link_error_event("ws-audit", PaneLinkError::CrossWorkspaceDenied);
     assert_eq!(event.workspace_id, "ws-audit");
+    assert_eq!(event.error, PaneLinkError::CrossWorkspaceDenied);
+
     // 检验 error 字段序列化含 machine kind（§K.5）
     let json = serde_json::to_string(&event.error).unwrap();
     assert!(
         json.contains("crossWorkspaceDenied"),
         "error kind must be camelCase machine-readable: {json}"
     );
-    // AUDIT GAP: 无测试可验证 lib.rs 真实 emit（私有函数 · 无 pub 接口）。
-    // 见 PR body audit group 3 gap 描述。
+
+    let payload_json = serde_json::to_string(&event).unwrap();
+    assert!(
+        payload_json.contains("workspaceId"),
+        "payload must keep generated binding camelCase: {payload_json}"
+    );
+
+    // Source-level contract audit：lib.rs 必须有真实 emit helper；防再次退化成
+    // "struct exists but never emit"。
+    let lib_rs = include_str!("../src/lib.rs");
+    assert!(
+        lib_rs.contains("const PANE_LINK_ERROR_EVENT: &str = \"pane:link-error\";"),
+        "lib.rs must define the pane:link-error event const"
+    );
+    assert!(
+        lib_rs.contains("app.emit(") && lib_rs.contains("PANE_LINK_ERROR_EVENT"),
+        "lib.rs must actually emit pane:link-error"
+    );
+    assert!(
+        lib_rs.matches("emit_pane_link_error(").count() >= 4,
+        "recoverable command/trigger paths must call emit_pane_link_error"
+    );
 }
 
 /// §K.4 `PaneBuildFailedEvent` payload 完整性：`truncatedCount`/`redactionCount` 字段存在。

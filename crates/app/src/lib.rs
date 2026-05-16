@@ -42,16 +42,17 @@ use vibestation_core::{
     PaneCreateRequest, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
     PaneDetachOpenRequest, PaneDetachOpenResult, PaneFailurePreviewRequest,
     PaneFailurePreviewResult, PaneFailureSource, PaneFailureTriggerReason, PaneFocusRequest,
-    PaneInitRequest, PaneLinkDao, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest,
-    PaneLinkStatus, PaneLinkedEvent, PaneLinksListRequest, PaneLinksListResult, PaneListResponse,
-    PanePtyEvent, PanePtySpawnRequest, PaneUnlinkRequest, PaneUnlinkResult, PanesDao, PtyEvent,
-    PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest, PullResult, PushProgressEvent,
-    PushRequest, PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseOpError,
-    RebaseStartRequest, RebaseStatus, RemoteListRequest, RemoteListResponse, SetGitIdentityRequest,
-    SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest,
-    SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
-    TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
-    WorkspaceMetadata, WorkspaceStore,
+    PaneInitRequest, PaneLinkDao, PaneLinkError, PaneLinkErrorEvent, PaneLinkRequest,
+    PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
+    PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PanePtyEvent, PanePtySpawnRequest,
+    PaneUnlinkRequest, PaneUnlinkResult, PanesDao, PtyEvent, PtyEventReceiver, PtyManager,
+    PtySpawnRequest, PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult,
+    RebaseControlRequest, RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus,
+    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest,
+    SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest, SwitcherSearchResult,
+    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
+    TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
+    WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -69,6 +70,7 @@ const GIT_CRASH_RECOVERY_EVENT: &str = "git:crash-recovery-detected";
 const EXTERNAL_TERM_LAUNCHED_EVENT: &str = "external_term_launched";
 const PANE_TRIGGER_EVENT: &str = "pane:trigger";
 const PANE_BUILD_FAILED_EVENT: &str = "pane:build-failed";
+const PANE_LINK_ERROR_EVENT: &str = "pane:link-error";
 const PANE_FAILURE_OUTPUT_LIMIT: usize = 16 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
@@ -117,6 +119,23 @@ struct RebaseCrashRecoveryEvent {
     branch: Option<String>,
     current_step: u32,
     total_steps: u32,
+}
+
+pub fn pane_link_error_event(
+    workspace_id: impl Into<String>,
+    error: PaneLinkError,
+) -> PaneLinkErrorEvent {
+    PaneLinkErrorEvent {
+        workspace_id: workspace_id.into(),
+        error,
+    }
+}
+
+fn emit_pane_link_error(app: &AppHandle, workspace_id: &str, error: PaneLinkError) {
+    let _ = app.emit(
+        PANE_LINK_ERROR_EVENT,
+        pane_link_error_event(workspace_id, error),
+    );
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -983,12 +1002,18 @@ fn emit_pane_failure_feedback(app: &AppHandle, payload: &vibestation_core::PaneP
         return;
     };
     let Ok((workspace_id, persisted_cwd)) = pane_workspace_and_cwd(pool, &payload.pane_id) else {
+        // Without a workspace id the UI cannot route pane:link-error safely; skip
+        // emit rather than producing a global or mis-scoped banner.
         clear_pane_failure_context(&state, &payload.pane_id);
         return;
     };
-    let Ok(links) = PaneLinkDao::list_by_workspace(pool, &workspace_id) else {
-        clear_pane_failure_context(&state, &payload.pane_id);
-        return;
+    let links = match PaneLinkDao::list_by_workspace(pool, &workspace_id) {
+        Ok(links) => links,
+        Err(error) => {
+            emit_pane_link_error(app, &workspace_id, error);
+            clear_pane_failure_context(&state, &payload.pane_id);
+            return;
+        }
     };
     let target_links = links
         .into_iter()
@@ -1776,14 +1801,20 @@ fn pane_link(
     // 活跃重复 · 与 §E B.4 幂等仅针对 enabled 重复一致）。桌面串行 IPC ·
     // list→create TOCTOU 可忽略。DAO 未来非破坏式暴露该信号后可去此预查。
     let existing = PaneLinkDao::list_by_workspace(pool, &req.workspace_id)
-        .map_err(|e| e.to_string())?
+        .map_err(|e| {
+            emit_pane_link_error(&app, &req.workspace_id, e.clone());
+            e.to_string()
+        })?
         .into_iter()
         .any(|l| {
             l.parent_pane_id == req.parent_pane_id
                 && l.child_pane_id == req.child_pane_id
                 && l.link_kind == req.link_kind
         });
-    let link = PaneLinkDao::create(pool, &req).map_err(|e| e.to_string())?;
+    let link = PaneLinkDao::create(pool, &req).map_err(|e| {
+        emit_pane_link_error(&app, &req.workspace_id, e.clone());
+        e.to_string()
+    })?;
     let _ = app.emit(
         "pane:linked",
         PaneLinkedEvent::from_link(&link, PaneLinkStatus::Enabled),
@@ -1804,7 +1835,10 @@ fn pane_unlink(
     let pool = guard.as_ref().ok_or("database not initialized")?;
     // 软删前取 link 以便 emit 完整 PaneLinkedEvent（unlink 后 get 不可见）。
     let link = PaneLinkDao::get(pool, &req.workspace_id, &req.link_id).ok();
-    let result = PaneLinkDao::unlink(pool, &req).map_err(|e| e.to_string())?;
+    let result = PaneLinkDao::unlink(pool, &req).map_err(|e| {
+        emit_pane_link_error(&app, &req.workspace_id, e.clone());
+        e.to_string()
+    })?;
     if result.removed {
         if let Some(link) = link {
             let _ = app.emit(
@@ -1836,7 +1870,10 @@ fn pane_links_set_enabled(
 ) -> Result<PaneLinkResult, String> {
     let guard = state.pool.lock().map_err(|e| e.to_string())?;
     let pool = guard.as_ref().ok_or("database not initialized")?;
-    let link = PaneLinkDao::set_enabled(pool, &req).map_err(|e| e.to_string())?;
+    let link = PaneLinkDao::set_enabled(pool, &req).map_err(|e| {
+        emit_pane_link_error(&app, &req.workspace_id, e.clone());
+        e.to_string()
+    })?;
     let status = if link.enabled {
         PaneLinkStatus::Enabled
     } else {
@@ -1851,9 +1888,13 @@ fn pane_links_set_enabled(
 
 #[tauri::command]
 fn pane_failure_preview_prompt(
+    app: AppHandle,
     req: PaneFailurePreviewRequest,
 ) -> Result<PaneFailurePreviewResult, String> {
-    preview_failure_prompt(&req).map_err(|e| e.to_string())
+    preview_failure_prompt(&req).map_err(|e| {
+        emit_pane_link_error(&app, &req.workspace_id, e.clone());
+        e.to_string()
+    })
 }
 
 fn rebase_repo_path(

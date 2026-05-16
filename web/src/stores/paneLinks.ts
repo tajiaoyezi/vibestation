@@ -1,6 +1,7 @@
 import { createMemo, type Accessor } from "solid-js";
 import { createStore } from "solid-js/store";
 import type {
+  PaneBuildFailedEvent,
   PaneLink,
   PaneLinkStatus,
   PaneLinkedEvent,
@@ -8,29 +9,21 @@ import type {
   PaneLinkErrorEvent,
 } from "../bindings";
 
+export type { PaneBuildFailedEvent } from "../bindings";
+
 /**
- * Phase C placeholder · PaneBuildFailedEvent is not yet in bindings (Codex domain).
- * This local type mirrors spec §K.2 shape · will be replaced by real binding when
- * Phase C merges.
+ * Store view-model · Wave-3 (#353 design-debt fix).
+ *
+ * The DB-row `PaneLink` binding collapses link lifecycle into `enabled: boolean`,
+ * which makes a runtime-`stale` link (child pane closed) indistinguishable from a
+ * user-`disabled` link. The store is driven exclusively by `PaneLinkedEvent` and the
+ * local `markChildStale` call, both of which carry the full §K.6 `PaneLinkStatus`
+ * lifecycle. We therefore model the store on `status` as the single source of truth
+ * and drop the lossy `enabled` boolean entirely — `status === "enabled"` is the
+ * derived "actively giving feedback" predicate everywhere downstream.
  */
-export type PaneBuildFailedEvent = {
-  workspaceId: string;
-  linkId: string;
-  parentPaneId: string;
-  childPaneId: string;
-  commandRunId: string;
-  exitCode: number | null;
-  rawExcerpt: string;
-  parsedIssues: Array<{
-    severity: "error" | "warning" | "info";
-    file: string | null;
-    line: number | null;
-    column: number | null;
-    message: string;
-  }>;
-  parserConfidence: number;
-  fallbackMode: "structured" | "rawText";
-  occurredAt: number;
+export type PaneLinkView = Omit<PaneLink, "enabled"> & {
+  status: PaneLinkStatus;
 };
 
 export interface PaneFailureCallout {
@@ -51,7 +44,7 @@ export interface PaneFailureCallout {
 export const FAILURE_BACKLOG_CAP = 5;
 
 export interface PaneLinksStore {
-  linksByWorkspace: Record<string, PaneLink[]>;
+  linksByWorkspace: Record<string, PaneLinkView[]>;
   failureCalloutsByWorkspace: Record<string, PaneFailureCallout[]>;
   lastError: PaneLinkError | null;
   applyLinkedEvent: (event: PaneLinkedEvent) => void;
@@ -63,21 +56,22 @@ export interface PaneLinksStore {
   createWorkspaceScopedSelectors: (
     workspaceId: Accessor<string | null | undefined>,
   ) => {
-    links: Accessor<PaneLink[]>;
+    links: Accessor<PaneLinkView[]>;
     failureCallouts: Accessor<PaneFailureCallout[]>;
-    activeLinks: Accessor<PaneLink[]>;
-    linkForPane: (paneId: string) => PaneLink | undefined;
-    parentLinkForChild: (childPaneId: string) => PaneLink | undefined;
+    activeLinks: Accessor<PaneLinkView[]>;
+    linkForPane: (paneId: string) => PaneLinkView | undefined;
+    parentLinkForChild: (childPaneId: string) => PaneLinkView | undefined;
   };
 }
 
-function statusToEnabled(status: PaneLinkStatus): boolean {
-  return status === "enabled";
+/** §K.6 · a link is "actively giving feedback" iff its lifecycle status is enabled. */
+export function isLinkActive(link: PaneLinkView): boolean {
+  return link.status === "enabled";
 }
 
 export function createPaneLinksStore(): PaneLinksStore {
   const [linksByWorkspace, setLinksByWorkspace] = createStore<
-    Record<string, PaneLink[]>
+    Record<string, PaneLinkView[]>
   >({});
   const [failureCalloutsByWorkspace, setFailureCalloutsByWorkspace] =
     createStore<Record<string, PaneFailureCallout[]>>({});
@@ -96,13 +90,13 @@ export function createPaneLinksStore(): PaneLinksStore {
       const next = [...prev];
       const existingIndex = next.findIndex((link) => link.id === event.linkId);
 
-      const updated: PaneLink = {
+      const updated: PaneLinkView = {
         id: event.linkId,
         workspaceId: event.workspaceId,
         parentPaneId: event.parentPaneId,
         childPaneId: event.childPaneId,
         linkKind: event.linkKind,
-        enabled: statusToEnabled(event.status),
+        status: event.status,
         fallbackMode: "structured",
         createdBy: "user",
         createdAt: event.updatedAt,
@@ -171,8 +165,8 @@ export function createPaneLinksStore(): PaneLinksStore {
 
     setLinksByWorkspace(workspaceId, (prev = []) =>
       prev.map((link) =>
-        link.childPaneId === childPaneId && link.enabled
-          ? { ...link, enabled: false }
+        link.childPaneId === childPaneId && link.status === "enabled"
+          ? { ...link, status: "stale" as const }
           : link,
       ),
     );
@@ -189,7 +183,7 @@ export function createPaneLinksStore(): PaneLinksStore {
   const createWorkspaceScopedSelectors = (
     workspaceId: Accessor<string | null | undefined>,
   ) => {
-    const links = createMemo<PaneLink[]>(() => {
+    const links = createMemo<PaneLinkView[]>(() => {
       const id = workspaceId();
       if (!id) return [];
       return linksByWorkspace[id] ?? [];
@@ -201,19 +195,23 @@ export function createPaneLinksStore(): PaneLinksStore {
       return failureCalloutsByWorkspace[id] ?? [];
     });
 
-    const activeLinks = createMemo<PaneLink[]>(() =>
-      links().filter((link) => link.enabled),
+    const activeLinks = createMemo<PaneLinkView[]>(() =>
+      links().filter(isLinkActive),
     );
 
-    const linkForPane = (paneId: string): PaneLink | undefined =>
+    const linkForPane = (paneId: string): PaneLinkView | undefined =>
       links().find(
         (link) =>
           (link.parentPaneId === paneId || link.childPaneId === paneId) &&
-          link.enabled,
+          isLinkActive(link),
       );
 
-    const parentLinkForChild = (childPaneId: string): PaneLink | undefined =>
-      links().find((link) => link.childPaneId === childPaneId && link.enabled);
+    const parentLinkForChild = (
+      childPaneId: string,
+    ): PaneLinkView | undefined =>
+      links().find(
+        (link) => link.childPaneId === childPaneId && isLinkActive(link),
+      );
 
     return {
       links,

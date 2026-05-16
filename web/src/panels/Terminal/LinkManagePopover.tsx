@@ -5,21 +5,24 @@
  * Opens from PaneLinkChip (D.1) click.
  */
 import { type Component, For, Show, createSignal, onCleanup } from "solid-js";
-import type { PaneLink } from "../../bindings";
+import type { PaneLinkView } from "../../stores/paneLinks";
 
 export type LinkManagePopoverProps = {
   open: boolean;
-  links: PaneLink[];
+  links: PaneLinkView[];
   currentPaneId: string;
   onClose: () => void;
   onToggleEnabled?: (linkId: string, enabled: boolean) => void;
   onUnlink?: (linkId: string) => void;
 };
 
-const roleFor = (link: PaneLink, currentPaneId: string): "parent" | "child" =>
+const roleFor = (
+  link: PaneLinkView,
+  currentPaneId: string,
+): "parent" | "child" =>
   link.parentPaneId === currentPaneId ? "parent" : "child";
 
-const targetIdFor = (link: PaneLink, currentPaneId: string): string =>
+const targetIdFor = (link: PaneLinkView, currentPaneId: string): string =>
   link.parentPaneId === currentPaneId ? link.childPaneId : link.parentPaneId;
 
 export const LinkManagePopover: Component<LinkManagePopoverProps> = (props) => {
@@ -115,7 +118,7 @@ export const LinkManagePopover: Component<LinkManagePopoverProps> = (props) => {
                 return (
                   <li
                     class="vs-link-manage-popover-item"
-                    aria-label={`Link ${link.id}: ${role()} → ${targetId()} · ${link.enabled ? "enabled" : "disabled"}`}
+                    aria-label={`Link ${link.id}: ${role()} → ${targetId()} · ${link.status}`}
                   >
                     <span class="vs-link-manage-popover-item-info">
                       <span class="vs-link-manage-popover-item-role">
@@ -130,14 +133,17 @@ export const LinkManagePopover: Component<LinkManagePopoverProps> = (props) => {
                         type="button"
                         class="vs-link-manage-popover-toggle"
                         role="switch"
-                        aria-checked={link.enabled}
-                        aria-label={`${link.enabled ? "Disable" : "Enable"} link`}
+                        aria-checked={link.status === "enabled"}
+                        aria-label={`${link.status === "enabled" ? "Disable" : "Enable"} link`}
                         onClick={() =>
-                          props.onToggleEnabled?.(link.id, !link.enabled)
+                          props.onToggleEnabled?.(
+                            link.id,
+                            link.status !== "enabled",
+                          )
                         }
                       >
                         <span
-                          class={`vs-link-manage-toggle-track ${link.enabled ? "is-on" : ""}`}
+                          class={`vs-link-manage-toggle-track ${link.status === "enabled" ? "is-on" : ""}`}
                         >
                           <span class="vs-link-manage-toggle-thumb" />
                         </span>

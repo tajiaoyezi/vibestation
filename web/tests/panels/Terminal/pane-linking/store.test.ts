@@ -45,6 +45,8 @@ function failedEvent(
     parserConfidence: 0.98,
     fallbackMode: "structured",
     occurredAt: 1760000000200,
+    truncatedCount: 0,
+    redactionCount: 0,
     ...overrides,
   };
 }
@@ -54,10 +56,10 @@ describe("paneLinks store", () => {
     const store = createPaneLinksStore();
     store.applyLinkedEvent(linkedEvent());
     expect(store.linksByWorkspace["workspace-a"]).toHaveLength(1);
-    expect(store.linksByWorkspace["workspace-a"][0]?.enabled).toBe(true);
+    expect(store.linksByWorkspace["workspace-a"][0]?.status).toBe("enabled");
 
     store.applyLinkedEvent(linkedEvent({ status: "disabled", updatedAt: 2 }));
-    expect(store.linksByWorkspace["workspace-a"][0]?.enabled).toBe(false);
+    expect(store.linksByWorkspace["workspace-a"][0]?.status).toBe("disabled");
 
     store.applyLinkedEvent(linkedEvent({ status: "removed", updatedAt: 3 }));
     expect(store.linksByWorkspace["workspace-a"]).toHaveLength(0);
@@ -110,18 +112,49 @@ describe("paneLinks store", () => {
     expect(
       store.linksByWorkspace["workspace-a"].find(
         (link) => link.id === "link-a",
-      )?.enabled,
-    ).toBe(false);
+      )?.status,
+    ).toBe("stale");
     expect(
       store.linksByWorkspace["workspace-a"].find(
         (link) => link.id === "link-b",
-      )?.enabled,
-    ).toBe(true);
+      )?.status,
+    ).toBe("enabled");
     expect(
       store.linksByWorkspace["workspace-b"].find(
         (link) => link.id === "link-c",
-      )?.enabled,
-    ).toBe(true);
+      )?.status,
+    ).toBe("enabled");
+  });
+
+  it("distinguishes stale from disabled · #353 design-debt fix (F.2/K.6)", () => {
+    const store = createPaneLinksStore();
+    store.applyLinkedEvent(
+      linkedEvent({ linkId: "to-disable", childPaneId: "pane-d" }),
+    );
+    store.applyLinkedEvent(
+      linkedEvent({ linkId: "to-stale", childPaneId: "pane-s" }),
+    );
+
+    // user explicitly disables one link
+    store.applyLinkedEvent(
+      linkedEvent({
+        linkId: "to-disable",
+        childPaneId: "pane-d",
+        status: "disabled",
+        updatedAt: 2,
+      }),
+    );
+    // the other link's child pane closes → runtime stale (not user intent)
+    store.markChildStale("workspace-a", "pane-s");
+
+    const links = store.linksByWorkspace["workspace-a"];
+    const disabled = links.find((link) => link.id === "to-disable");
+    const stale = links.find((link) => link.id === "to-stale");
+
+    expect(disabled?.status).toBe("disabled");
+    expect(stale?.status).toBe("stale");
+    // the core MEDIUM debt: stale MUST NOT collapse into the same state as disabled
+    expect(stale?.status).not.toBe(disabled?.status);
   });
 
   it("deduplicates repeated failures by commandRunId + failureHash (D.6)", () => {

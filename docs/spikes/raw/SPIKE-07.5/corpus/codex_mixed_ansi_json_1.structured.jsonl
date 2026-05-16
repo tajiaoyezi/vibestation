@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"<REDACTED_UUID>"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"\\033[31m红\\033[0m\n{\"lang\":\"zh\",\"ok\":true}"}}
+{"type":"turn.completed","usage":{"input_tokens":25120,"cached_input_tokens":6528,"output_tokens":538,"reasoning_output_tokens":516}}

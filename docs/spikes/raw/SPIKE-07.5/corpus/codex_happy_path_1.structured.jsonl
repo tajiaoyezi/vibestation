@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"<REDACTED_UUID>"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"Git rebase 是把当前分支的提交“挪到”另一个分支最新提交之后重新应用，用来整理提交历史并保持线性。"}}
+{"type":"turn.completed","usage":{"input_tokens":25089,"cached_input_tokens":6528,"output_tokens":86,"reasoning_output_tokens":51}}

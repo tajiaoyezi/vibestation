@@ -148,6 +148,116 @@ impl From<DbError> for PaneLinkError {
     }
 }
 
+/// §K.1 `PaneLinkResult` · `pane:link` / `set_enabled` 响应。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinkResult {
+    pub link: PaneLink,
+    /// §E B.4：命中已有 link 返回 true（幂等）· 新建 false。
+    pub already_existed: bool,
+}
+
+/// §K.1 `PaneUnlinkRequest`。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneUnlinkRequest {
+    pub workspace_id: String,
+    pub link_id: String,
+}
+
+/// §K.1 `PaneUnlinkResult`。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneUnlinkResult {
+    pub link_id: String,
+    /// 首次软删 true · 本就不存在 / 已删 false（幂等）。
+    pub removed: bool,
+}
+
+/// §K.1 `PaneLinksListRequest`。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinksListRequest {
+    pub workspace_id: String,
+}
+
+/// §K.1 `PaneLinksListResult`。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinksListResult {
+    pub links: Vec<PaneLink>,
+}
+
+/// §K.1 `PaneLinkSetEnabledRequest` · §C 临时暂停/恢复（不删关系）。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinkSetEnabledRequest {
+    pub workspace_id: String,
+    pub link_id: String,
+    pub enabled: bool,
+}
+
+/// §K.2 `PaneLinkedEvent` · §K.6 例。link created/enabled/disabled/stale/removed。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinkedEvent {
+    pub workspace_id: String,
+    pub link_id: String,
+    pub parent_pane_id: String,
+    pub child_pane_id: String,
+    pub link_kind: PaneLinkKind,
+    pub status: PaneLinkStatus,
+    #[ts(type = "number")]
+    pub updated_at: i64,
+}
+
+impl PaneLinkedEvent {
+    /// 由 link 行 + 目标状态构造（IPC 层 emit 用）。
+    pub fn from_link(link: &PaneLink, status: PaneLinkStatus) -> Self {
+        PaneLinkedEvent {
+            workspace_id: link.workspace_id.clone(),
+            link_id: link.id.clone(),
+            parent_pane_id: link.parent_pane_id.clone(),
+            child_pane_id: link.child_pane_id.clone(),
+            link_kind: link.link_kind,
+            status,
+            updated_at: link.updated_at,
+        }
+    }
+}
+
+/// §K.2 `PaneTriggerEvent` · §K.6 例。被订阅 child Pane 失败触发源记录。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneTriggerEvent {
+    pub workspace_id: String,
+    pub child_pane_id: String,
+    pub command_run_id: String,
+    /// §C.55：`exitCode` / `signal` / `watchRerun` / `manualRerun`。
+    pub reason: String,
+    pub exit_code: Option<i32>,
+    pub command: String,
+    #[ts(type = "number")]
+    pub occurred_at: i64,
+}
+
+/// §K.2 `PaneLinkErrorEvent` · recoverable create/unlink/trigger 错误通知前端。
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct PaneLinkErrorEvent {
+    pub workspace_id: String,
+    pub error: PaneLinkError,
+}
+
 /// 纯验证器（§E B.1/B.2/B.3）。`parent_*`/`child_*` 由调用方（IPC 层）从 live
 /// pane registry 解析得到；本函数不触 DB / registry，便于 §F core unit 单测。
 ///
@@ -203,14 +313,31 @@ impl PaneLinkDao {
         })
     }
 
-    /// §E B.4：已存在同 `(workspace_id, parent_pane_id, child_pane_id, link_kind)`
-    /// 且未软删的 link → 返回它（幂等 · 不插重复行）；否则插入新行。
-    /// migrate_v8 的 `UNIQUE(...)` 作 DB 层 backstop（双保险）。
+    /// §E B.4 / §B.7 交互：
+    /// - 同 `(workspace_id, parent_pane_id, child_pane_id, link_kind)` 且**未软删** →
+    ///   返回已有（幂等 · 不插重复行 · §B.4）。
+    /// - 同元组但**已软删**（unlink 过）→ **复活**该行（清 `deleted_at` · `enabled=1`
+    ///   · bump `updated_at`，保留 `created_at`/审计），而非插新行。根因：migrate_v8
+    ///   的 `UNIQUE(...)` 是无条件约束（不看 `deleted_at`），软删后直接 INSERT 同元组
+    ///   必撞约束；复活语义与该 schema 自洽且审计更优（同 schema 不改 · 不破冻结契约）。
+    /// - 无任何同元组行 → 插入新行。
     pub fn create(pool: &DbPool, req: &PaneLinkRequest) -> Result<PaneLink, PaneLinkError> {
         let conn = pool.get().map_err(DbError::from)?;
 
         if let Some(existing) = Self::find_active(&conn, req)? {
             return Ok(existing);
+        }
+
+        // 软删行复活（§B.7 unlink → 同元组 re-link）· 保留 created_at。
+        if let Some(soft) = Self::find_soft_deleted(&conn, req)? {
+            let now = chrono::Utc::now().timestamp_millis();
+            conn.execute(
+                "UPDATE pane_links SET deleted_at = NULL, enabled = 1, updated_at = ?1
+                 WHERE id = ?2",
+                rusqlite::params![now, soft.id],
+            )
+            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+            return Self::get(pool, &req.workspace_id, &soft.id);
         }
 
         let id = Uuid::new_v4().to_string();
@@ -286,6 +413,135 @@ impl PaneLinkDao {
             Some(r) => Ok(Some(r.map_err(DbError::from)?)),
             None => Ok(None),
         }
+    }
+
+    /// 查同 unique tuple 的**已软删** link（`deleted_at IS NOT NULL`）。无条件
+    /// `UNIQUE(...)` 保证每元组至多一行 · 故至多一条软删行（用于 create 复活路径）。
+    fn find_soft_deleted(
+        conn: &rusqlite::Connection,
+        req: &PaneLinkRequest,
+    ) -> Result<Option<PaneLink>, PaneLinkError> {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, workspace_id, parent_pane_id, child_pane_id, link_kind,
+                        enabled, fallback_mode, created_by, created_at, updated_at,
+                        last_triggered_at
+                 FROM pane_links
+                 WHERE workspace_id = ?1 AND parent_pane_id = ?2
+                   AND child_pane_id = ?3 AND link_kind = ?4
+                   AND deleted_at IS NOT NULL
+                 LIMIT 1",
+            )
+            .map_err(DbError::from)?;
+        let mut rows = stmt
+            .query_map(
+                rusqlite::params![
+                    req.workspace_id,
+                    req.parent_pane_id,
+                    req.child_pane_id,
+                    req.link_kind.as_db_str(),
+                ],
+                Self::row_to_link,
+            )
+            .map_err(DbError::from)?;
+        match rows.next() {
+            Some(r) => Ok(Some(r.map_err(DbError::from)?)),
+            None => Ok(None),
+        }
+    }
+
+    const SELECT_COLS: &'static str =
+        "id, workspace_id, parent_pane_id, child_pane_id, link_kind, \
+         enabled, fallback_mode, created_by, created_at, updated_at, last_triggered_at";
+
+    /// §E B.6 / §F.1：列当前 workspace 未软删 link（enabled + disabled 都列 ·
+    /// §D.4 manage links 视图需要看到 disabled 行）。最近触发优先排序。
+    pub fn list_by_workspace(
+        pool: &DbPool,
+        workspace_id: &str,
+    ) -> Result<Vec<PaneLink>, PaneLinkError> {
+        let conn = pool.get().map_err(DbError::from)?;
+        let sql = format!(
+            "SELECT {} FROM pane_links
+             WHERE workspace_id = ?1 AND deleted_at IS NULL
+             ORDER BY COALESCE(last_triggered_at, created_at) DESC, rowid ASC",
+            Self::SELECT_COLS
+        );
+        let mut stmt = conn.prepare(&sql).map_err(DbError::from)?;
+        let rows = stmt
+            .query_map([workspace_id], Self::row_to_link)
+            .map_err(DbError::from)?;
+        let mut out = Vec::new();
+        for r in rows {
+            out.push(r.map_err(DbError::from)?);
+        }
+        Ok(out)
+    }
+
+    /// 取单 link（workspace-scoped · 未软删）· 不存在 → `LinkNotFound`。
+    pub fn get(
+        pool: &DbPool,
+        workspace_id: &str,
+        link_id: &str,
+    ) -> Result<PaneLink, PaneLinkError> {
+        let conn = pool.get().map_err(DbError::from)?;
+        let sql = format!(
+            "SELECT {} FROM pane_links
+             WHERE workspace_id = ?1 AND id = ?2 AND deleted_at IS NULL",
+            Self::SELECT_COLS
+        );
+        conn.query_row(
+            &sql,
+            rusqlite::params![workspace_id, link_id],
+            Self::row_to_link,
+        )
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => {
+                PaneLinkError::LinkNotFound(link_id.to_string())
+            }
+            other => PaneLinkError::Db(other.to_string()),
+        })
+    }
+
+    /// §E B.7：unlink = **软删**（set `deleted_at`）· 不物理删（审计 / 可恢复语义 ·
+    /// §G.1 deleted_at）。幂等：首次软删 `removed=true`；本就不存在/已删 `false`。
+    pub fn unlink(
+        pool: &DbPool,
+        req: &PaneUnlinkRequest,
+    ) -> Result<PaneUnlinkResult, PaneLinkError> {
+        let conn = pool.get().map_err(DbError::from)?;
+        let now = chrono::Utc::now().timestamp_millis();
+        let n = conn
+            .execute(
+                "UPDATE pane_links SET deleted_at = ?1, updated_at = ?1
+                 WHERE workspace_id = ?2 AND id = ?3 AND deleted_at IS NULL",
+                rusqlite::params![now, req.workspace_id, req.link_id],
+            )
+            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+        Ok(PaneUnlinkResult {
+            link_id: req.link_id.clone(),
+            removed: n > 0,
+        })
+    }
+
+    /// §C 临时暂停 / 恢复（`enabled` 0/1 · 不删关系）。link 不存在 → `LinkNotFound`。
+    pub fn set_enabled(
+        pool: &DbPool,
+        req: &PaneLinkSetEnabledRequest,
+    ) -> Result<PaneLink, PaneLinkError> {
+        let conn = pool.get().map_err(DbError::from)?;
+        let now = chrono::Utc::now().timestamp_millis();
+        let n = conn
+            .execute(
+                "UPDATE pane_links SET enabled = ?1, updated_at = ?2
+                 WHERE workspace_id = ?3 AND id = ?4 AND deleted_at IS NULL",
+                rusqlite::params![req.enabled as i64, now, req.workspace_id, req.link_id],
+            )
+            .map_err(|e| PaneLinkError::Db(e.to_string()))?;
+        if n == 0 {
+            return Err(PaneLinkError::LinkNotFound(req.link_id.clone()));
+        }
+        Self::get(pool, &req.workspace_id, &req.link_id)
     }
 }
 
@@ -429,5 +685,152 @@ mod tests {
             PaneLinkError::InvalidParentPaneType.to_string(),
             "parent pane is not an AI pane"
         );
+    }
+
+    // ── DAO list / get / unlink / set_enabled §E B.6/B.7/F.1 ───────
+
+    #[test]
+    fn list_by_workspace_only_current_ws_excludes_softdeleted_f1() {
+        let (_d, pool, ws) = setup();
+        let a = PaneLinkDao::create(&pool, &req(&ws)).unwrap();
+        let mut r2 = req(&ws);
+        r2.child_pane_id = "runner-2".to_string();
+        let b = PaneLinkDao::create(&pool, &r2).unwrap();
+
+        let listed = PaneLinkDao::list_by_workspace(&pool, &ws).unwrap();
+        assert_eq!(listed.len(), 2);
+
+        // 软删 a → list 应只剩 b（§B.7 软删不出现在 list）
+        PaneLinkDao::unlink(
+            &pool,
+            &PaneUnlinkRequest {
+                workspace_id: ws.clone(),
+                link_id: a.id.clone(),
+            },
+        )
+        .unwrap();
+        let listed2 = PaneLinkDao::list_by_workspace(&pool, &ws).unwrap();
+        assert_eq!(listed2.len(), 1);
+        assert_eq!(listed2[0].id, b.id);
+
+        // 别的 workspace 查不到本 workspace 的 link（§F.1 硬边界）
+        assert!(PaneLinkDao::list_by_workspace(&pool, "other-ws")
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn unlink_softdeletes_and_is_idempotent_b7() {
+        let (_d, pool, ws) = setup();
+        let link = PaneLinkDao::create(&pool, &req(&ws)).unwrap();
+        let ureq = PaneUnlinkRequest {
+            workspace_id: ws.clone(),
+            link_id: link.id.clone(),
+        };
+
+        let r1 = PaneLinkDao::unlink(&pool, &ureq).unwrap();
+        assert!(r1.removed, "首次软删 removed=true");
+        // 软删后 get 不可见 → LinkNotFound
+        assert_eq!(
+            PaneLinkDao::get(&pool, &ws, &link.id),
+            Err(PaneLinkError::LinkNotFound(link.id.clone()))
+        );
+        // 物理行仍在（审计 · deleted_at 非 NULL）· 未被 DELETE
+        let still_there: i64 = pool
+            .get()
+            .unwrap()
+            .query_row(
+                "SELECT count(*) FROM pane_links WHERE id = ?1 AND deleted_at IS NOT NULL",
+                [&link.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(still_there, 1, "软删保留物理行（审计）非物理 DELETE");
+        // 再 unlink 同 id → 幂等 removed=false
+        let r2 = PaneLinkDao::unlink(&pool, &ureq).unwrap();
+        assert!(!r2.removed, "重复 unlink 幂等 removed=false");
+
+        // §B.7×§B.4 交互：软删后同元组 re-create = **复活原行**（非插新行 ·
+        // 与无条件 UNIQUE 自洽 · 保留 created_at 审计）。
+        let revived = PaneLinkDao::create(&pool, &req(&ws)).unwrap();
+        assert_eq!(revived.id, link.id, "软删后 re-link 复活原行（同 id）");
+        assert!(revived.enabled, "复活后 enabled=true");
+        assert_eq!(
+            revived.created_at, link.created_at,
+            "复活保留原 created_at（审计）"
+        );
+        assert!(
+            revived.updated_at >= link.updated_at,
+            "复活 bump updated_at"
+        );
+        // 复活后重新可见（deleted_at 已清）
+        assert_eq!(PaneLinkDao::get(&pool, &ws, &link.id).unwrap().id, link.id);
+        let cnt: i64 = pool
+            .get()
+            .unwrap()
+            .query_row("SELECT count(*) FROM pane_links", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(cnt, 1, "复活非插新行 · 物理仍 1 行");
+    }
+
+    #[test]
+    fn set_enabled_toggles_persists_and_missing_is_linknotfound() {
+        let (_d, pool, ws) = setup();
+        let link = PaneLinkDao::create(&pool, &req(&ws)).unwrap();
+        assert!(link.enabled);
+
+        let disabled = PaneLinkDao::set_enabled(
+            &pool,
+            &PaneLinkSetEnabledRequest {
+                workspace_id: ws.clone(),
+                link_id: link.id.clone(),
+                enabled: false,
+            },
+        )
+        .unwrap();
+        assert!(!disabled.enabled);
+        // 持久化：重新 get 仍 disabled · 关系未删（§C 暂停不删）
+        assert!(!PaneLinkDao::get(&pool, &ws, &link.id).unwrap().enabled);
+
+        let reenabled = PaneLinkDao::set_enabled(
+            &pool,
+            &PaneLinkSetEnabledRequest {
+                workspace_id: ws.clone(),
+                link_id: link.id.clone(),
+                enabled: true,
+            },
+        )
+        .unwrap();
+        assert!(reenabled.enabled);
+
+        // 不存在 link → LinkNotFound
+        assert_eq!(
+            PaneLinkDao::set_enabled(
+                &pool,
+                &PaneLinkSetEnabledRequest {
+                    workspace_id: ws.clone(),
+                    link_id: "no-such".to_string(),
+                    enabled: false,
+                },
+            ),
+            Err(PaneLinkError::LinkNotFound("no-such".to_string()))
+        );
+    }
+
+    #[test]
+    fn pane_linked_event_from_link_maps_fields_k6() {
+        let (_d, pool, ws) = setup();
+        let link = PaneLinkDao::create(&pool, &req(&ws)).unwrap();
+        let ev = PaneLinkedEvent::from_link(&link, PaneLinkStatus::Enabled);
+        assert_eq!(ev.workspace_id, link.workspace_id);
+        assert_eq!(ev.link_id, link.id);
+        assert_eq!(ev.parent_pane_id, "ai-pane");
+        assert_eq!(ev.child_pane_id, "runner-pane");
+        assert_eq!(ev.link_kind, PaneLinkKind::FailureFeedback);
+        assert_eq!(ev.status, PaneLinkStatus::Enabled);
+        assert_eq!(ev.updated_at, link.updated_at);
+        // §K.6：序列化含 camelCase machine 字段
+        let j = serde_json::to_string(&ev).unwrap();
+        assert!(j.contains("workspaceId") && j.contains("linkKind"));
     }
 }

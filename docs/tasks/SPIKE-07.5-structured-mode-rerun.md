@@ -2,8 +2,8 @@
 id: SPIKE-07.5
 type: spike
 title: CLI 结构化模式重录重跑 spike（路径 A · R1 新 gate）
-status: in-progress
-status_note: "ready-gate APPROVE-WITH-NITS @ #341 · Arbiter flip 拍板 @ #342 · Arbiter 2026-05-16 声明执行窗口（'开始'）→ 实跑 in-progress：probe 结构化模式 → 重录 corpus → 新 crate（复用 SPIKE-07 ir/assertions + 新 .jsonl loader + 结构化 parser）→ 重跑 §F → 重判 SPIKE-07 §H · 前置 SPIKE-07 done ✅"
+status: done
+status_note: "实跑闭环 @ PR #343（probe→重录 36 corpus→redact v2 根因修复→crate 复用 SPIKE-07 ir/assertions byte-identical+新 jsonl loader+结构化 parser→§F 矩阵→§H 重判）· 实测 locked-§F 非退化 29/30=96.7% · carve-out(b) 重校准非退化 30/30=100% · claude 18/18=100% · panic 0 · 三 gate 全绿 · §H = 路径 1 greenlight · Arbiter tajiaoyezi 2026-05-16 拍板 '你直接执行' accepted（ADR-018 accepted · supersede ADR-017 · R1 HIGH/HIGH→降级 · MVP-18/19/20 解锁 ready-gate）"
 owner: Claude Code
 phase: v1.0-pre
 depends_on: ["SPIKE-07"]
@@ -15,14 +15,14 @@ blocked_note:
 estimate: 1d
 plan_ref: implementation-plan.md §5.3.6 · §9 R1 · §1.1
 risk_ref: R1
-reviewer: "ready-gate（2026-05-16）= Claude Code 对抗性预审（基于 SPIKE-07 全 crate 实读）· verdict APPROVE-WITH-NITS · 3 nit 修+re-reviewed @ #341 · self-review v2-D.2 + Arbiter tajiaoyezi 拍板 '批准 flip'（翻转 gate 选项 a）"
+reviewer: "ready-gate（2026-05-16）= Claude Code 对抗性预审 · APPROVE-WITH-NITS · 3 nit 修+re-reviewed @ #341 · Arbiter '批准 flip'。done-gate（2026-05-16 @ PR #343）= Claude Code self-review v2-D.2（实跑闭环 · 4 FAIL 全根因系统调试 · assertions.rs sha256 byte-identical 防凑数 · carve-out(b) 真实数字坐实 · report §I 0 编造声明）+ Arbiter tajiaoyezi 拍板 '你直接执行' accepted · 翻转 gate 选项 (a) reviewer push"
 ---
 
 # SPIKE-07.5: CLI 结构化模式重录重跑（路径 A · R1 新 gate）
 
-> **状态**：`ready`（ready-gate APPROVE-WITH-NITS @ #341 · Arbiter 2026-05-16 拍板 flip · 实施待 Arbiter 自定执行窗口 · API 预算同 SPIKE-06）
-> **前置**：[SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（done · §H 路径 3 deferred）· [ADR-017](../adr/ADR-017-ai-aware-deferred.md)（accepted · 选定路径 A）
-> **阻塞**：MVP-18/19/20（AI-Aware 三件套 · v1.0 vision · 实施新前置 = 本 spike 实跑 PASS）
+> **状态**：`done`（实跑闭环 @ PR #343 · §H = 路径 1 greenlight · Arbiter "你直接执行" accepted 2026-05-16 · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted）
+> **前置**：[SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（done · §H 路径 3 deferred）· [ADR-017](../adr/ADR-017-ai-aware-deferred.md)（**superseded by ADR-018** · 路径 A 实测推翻 deferral）
+> **阻塞解除**：MVP-18/19/20（R1 greenlight · blocker = 本 spike PASS 已满足 · 各自走 established ready-gate methodology 独立推进）
 > **战略依据**：ADR-017 §决策 5 路径 A · `implementation-plan.md §9 R1`
 
 ---

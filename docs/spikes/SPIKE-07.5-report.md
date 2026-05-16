@@ -10,7 +10,7 @@
 
 **路径 A 假设实锤成立**：claude / codex **结构化模式**（`stream-json` / `exec --json`）输出干净行分隔 JSON 机器协议，统一 `CliEvent` IR 抽象**可行且高保真**——claude **18/18=100%（六场景全过）** · 非退化 **29/30=96.7%** · **panic 0**。SPIKE-07 §H 路径 3 deferred 被实测确认为 **SPIKE-06 corpus 方法论 artifact**（录的是交互 TUI 屏幕重绘 · 非结构化协议），与 ADR-017 推断一致。
 
-**§H 三路径裁决（SPIKE-07 §H single source of truth · 严格字面 + 实质并陈 · Arbiter 拍板）**：见 §H。主 agent 推荐 **路径 1 greenlight（带 2 项已根因的 carve-out）**，保守回退 **路径 2（claude 无条件 greenlight）**。**本报告不自行 accept**（§2.1 · CLAUDE.md A 栏 ADR 流程）。
+**§H 三路径裁决 = 路径 1 greenlight · Arbiter ACCEPTED**（tajiaoyezi · 2026-05-16 · 拍板原话 "你直接执行" · v2-D.2 单人项目 self-review + Arbiter approval · 同 ADR-017 "按照你的推荐执行" 先例）。carve-out (b) **已用真实数字坐实**（§E.4）：重校准口径（assertions.rs 仍 byte-identical · 仅 matrix 覆盖 mixed）**非退化 30/30=100% · overall 33/36=91.7%**。R1 **HIGH/HIGH → 降级**（[ADR-018](./adr/ADR-018-ai-aware-r1-rejudge.md) accepted · supersede ADR-017）· MVP-18/19/20 解锁 ready-gate。
 
 ---
 
@@ -124,7 +124,7 @@ codex 0.130.0 用 ChatGPT OAuth backend（`chatgpt.com/backend-api/codex`）· *
 
 **实质**：路径 A 假设（结构化模式发可解析协议 · SPIKE-06 TUI 才是 artifact）**被实测确认**。SPIKE-07.5 与 SPIKE-07 的 deferral **不同质**。
 
-### E.3 · 主 agent 推荐（**proposed · 非 accept** · §2.1 / A 栏）
+### E.3 · 主 agent 推荐（提出时 proposed · **已由 §E.4 Arbiter ACCEPTED** · §2.1 / A 栏）
 
 **首选 · 路径 1 greenlight**，conditional on Arbiter 接受 2 项已根因 carve-out：
 
@@ -138,6 +138,19 @@ codex 0.130.0 用 ChatGPT OAuth backend（`chatgpt.com/backend-api/codex`）· *
 **不推荐 路径 3 again**：会把"§F 行首启发式 vs 模型内联 fence 格式"这一校准 nuance 误判为与 SPIKE-07"能力墙"同质 deferral —— 与实测实质矛盾（§E.2）。
 
 裁决归属：§H single-source 不允许主 agent 自行重定阈值 / 自行 recalibrate 锁定 §F → **Arbiter 拍板**（ADR-018 · §2.1 · CLAUDE.md A 栏）。
+
+### E.4 · Arbiter 拍板 + carve-out (b) 真实数字坐实（2026-05-16）
+
+**Arbiter 拍板**：tajiaoyezi · 2026-05-16 · 原话 **"你直接执行"**（接 §E.3 推荐之后 · 语义同 ADR-017 "按照你的推荐执行" 先例 · v2-D.2 单人项目 self-review + Arbiter approval · CLAUDE.md A 栏流程）= **采纳路径 1 greenlight + 两 carve-out**。
+
+**carve-out (b) 不建在假设上 · 用真实数字坐实**（决策级纪律：项目最大决策不能靠"若改 §F 则过"）。`assertions.rs` **全程 byte-identical 不改**（§B sha256 不破）· 仅 `bin/matrix.rs` 加 `SPIKE075_RECAL=1` 门控：mixed_ansi_json 断言由**行首启发式**换**子串 JSON 可恢复扫描**（统一作用 6 个 mixed 样本 · 非特判 #33 · 4 TDD 测试含边界）· 双口径并报：
+
+| 口径                                                                           | overall     | 非退化         | claude     | 三 gate                      |
+| ------------------------------------------------------------------------------ | ----------- | -------------- | ---------- | ---------------------------- |
+| **locked-§F**（byte-identical · §B 证明未为凑改 §F · `phase3-matrix.json`）    | 32/36=88.9% | 29/30=96.7%    | 18/18=100% | test 39/0 · clippy 0 · fmt 0 |
+| **recalibrated carve-out(b)**（Arbiter approved · `phase3-matrix-recal.json`） | 33/36=91.7% | **30/30=100%** | 18/18=100% | 同上                         |
+
+重校准口径下：**非退化每场景 100% · panic 0 · 统一 IR 实证** → **路径 1 greenlight 成立在实测数字上**（非 conditional 推理）。locked-§F 口径如实保留为"未为凑路径改 §F"的完整性证据（§B/§I）。两 raw JSON 均进 git 可溯源（§H manifest）。
 
 ---
 
@@ -162,12 +175,12 @@ parser 结构化 error-detection 91.7% 仅比关键字基线高 +2.8pp（SPIKE-0
 
 ## H · spike-delivery-checklist 3 样必交 manifest
 
-| #          | 物料                                                                                                         | 位置            | 状态 |
-| ---------- | ------------------------------------------------------------------------------------------------------------ | --------------- | ---- |
-| 1 决策文档 | `docs/spikes/SPIKE-07.5-report.md`（本文件）                                                                 | ✅ 进 git       |
-| 2 实测源码 | `docs/spikes/code/SPIKE-07.5/`（Cargo.toml+Cargo.lock+src · 39 测试过 · clippy/fmt 0）                       | ✅ 进 git       |
-| 3 Raw 数据 | `docs/spikes/raw/SPIKE-07.5/`（probe/ + corpus/ 36 jsonl+36 sidecar+recording-summary + phase3-matrix.json） | ✅ 进 git       |
-| 4 冷备     | 纯 Cargo + Cargo.lock 进 git · `cargo build` 可复现 → ADR-013 v2 可省（非 3 场景）                           | 🟡 省略（合规） |
+| #          | 物料                                                                                                                                                                | 位置            | 状态 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | ---- |
+| 1 决策文档 | `docs/spikes/SPIKE-07.5-report.md`（本文件）                                                                                                                        | ✅ 进 git       |
+| 2 实测源码 | `docs/spikes/code/SPIKE-07.5/`（Cargo.toml+Cargo.lock+src · 39 测试过 · clippy/fmt 0）                                                                              | ✅ 进 git       |
+| 3 Raw 数据 | `docs/spikes/raw/SPIKE-07.5/`（probe/ + corpus/ 36 jsonl+36 sidecar+recording-summary + phase3-matrix.json **locked** + phase3-matrix-recal.json **carve-out(b)**） | ✅ 进 git       |
+| 4 冷备     | 纯 Cargo + Cargo.lock 进 git · `cargo build` 可复现 → ADR-013 v2 可省（非 3 场景）                                                                                  | 🟡 省略（合规） |
 
 复现：`cd docs/spikes/code/SPIKE-07.5 && cargo test && SPIKE075_JSON=/tmp/x.json cargo run --bin matrix`。
 报告每数字 ↔ `phase3-matrix.json` 字段：overall=`overall_accuracy` · 非退化=`nondegenerate_accuracy` · 场景=`per_scenario[].accuracy` · CLI=`per_cli[].accuracy` · FAIL=`rows[].sample_pass==false` · 基线=`baseline`。
@@ -180,12 +193,11 @@ parser 结构化 error-detection 91.7% 仅比关键字基线高 +2.8pp（SPIKE-0
 
 ---
 
-## J · 后续（全部 Arbiter-gated · 主 agent 不自行推进）
+## J · Arbiter 拍板后已执行（2026-05-16 · "你直接执行"）
 
-- **ADR-018**（proposed · 见 [`docs/adr/ADR-018-*`](./adr/ADR-018-ai-aware-r1-rejudge.md)）：§H 裁决 + R1 降级 proposed + supersede ADR-017 · **Arbiter 拍板**
-- 若 Arbiter accept 路径 1/2：SPIKE-07.5 spec `done` 翻转 · CLAUDE.md 决策表 #3 更新 · MVP-18/19/20 解锁依赖链 —— **均 Arbiter 明确后**
-- §F mixed recalibration（子串扫描）+ 真 OpenAI key 重录 codex auth/network —— ADR-018 conditional · Arbiter 决定是否要求 SPIKE-07.6 补强或接受 carve-out
-
-```
-
-```
+- **ADR-018 accepted**（[`docs/adr/ADR-018-ai-aware-r1-rejudge.md`](./adr/ADR-018-ai-aware-r1-rejudge.md)）：路径 1 greenlight · R1 HIGH/HIGH → 降级 · **supersede ADR-017**（ADR-017 → superseded）
+- **SPIKE-07.5 spec → done**（reviewer self-review v2-D.2 · 翻转 gate option (a) reviewer push）
+- **CLAUDE.md 决策表 #3 + implementation-plan.md 同步**（A 栏 sync · R1 greenlight · AI-Aware v1.0 实施 unblocked · MVP-18/19/20 解锁 ready-gate）
+- **对外文案禁区保守保留**：greenlight 解锁**实施**非营销 · 未建先宣有风险 · README/landing 暂仍不提 AI-Aware（待 v1.0 实际 ship）· Arbiter 可单独指令解除（ADR-018 决议 4 记录）
+- **carve-out (b) §F recalibration 已坐实**（§E.4 · 真实数字 · 非待办）· codex 非退化重录（真 OpenAI key）= ADR-018 §G 残留 · Arbiter 后续可选 SPIKE-07.6 补强（不阻断 greenlight）
+- **MVP-18/19/20**：blocker 解除 · 各自走 established ready-gate methodology 独立推进（不在本 spike 自动详化/翻 ready）

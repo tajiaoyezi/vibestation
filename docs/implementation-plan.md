@@ -14,20 +14,20 @@
 
 相比 v1，本版做了结构性升级而非小修补。核心修改如下：
 
-| 维度 | v1 | v2 |
-|------|----|----|
-| 许可证 | MIT | **Apache 2.0**（无 CLA）|
-| Tauri 决策 | "已敲定" | **默认 + Spike Day 2 硬通过 + Electron 28+ 保底** |
-| Cargo workspace | 4 crate | **2 crate（app + core）**，v0.2 再拆 |
-| git2 + gix 混用 | 同时上 | **默认 git2，gix 在 Spike Day 3 benchmark 后评估读路径再引入** |
-| rusqlite 持久化 | "已锁定" | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5 · redb 2.6.3 B.2 坏库检测 FAIL superseded） |
-| AI-Aware Pane 叙事 | 核心卖点 | **v1.0 vision；README / landing 完全移除，MVP 不宣传** |
-| MVP 工期 | 10 周 | **12 周**（20% buffer） |
-| v1.0 总工期 | 24-25 周 | **28-30 周** |
-| 风险登记 | 20 条 | **30 条**（新增 R21-R30）|
-| MVP 功能范围 | 全套 | **B 折中**：砍 Push/Pull/Fetch + 自绘 rail graph + 复杂 Diff |
-| 社区 KPI | stars 数字 | **信号指标**（HN 首页 / r/rust 100 upvotes / 博客提及）|
-| 章节数量 | 12 | **14**（新增 §13 安全边界、§14 分发运营）|
+| 维度               | v1         | v2                                                                                                               |
+| ------------------ | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| 许可证             | MIT        | **Apache 2.0**（无 CLA）                                                                                         |
+| Tauri 决策         | "已敲定"   | **默认 + Spike Day 2 硬通过 + Electron 28+ 保底**                                                                |
+| Cargo workspace    | 4 crate    | **2 crate（app + core）**，v0.2 再拆                                                                             |
+| git2 + gix 混用    | 同时上     | **默认 git2，gix 在 Spike Day 3 benchmark 后评估读路径再引入**                                                   |
+| rusqlite 持久化    | "已锁定"   | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5 · redb 2.6.3 B.2 坏库检测 FAIL superseded） |
+| AI-Aware Pane 叙事 | 核心卖点   | **v1.0 vision；README / landing 完全移除，MVP 不宣传**                                                           |
+| MVP 工期           | 10 周      | **12 周**（20% buffer）                                                                                          |
+| v1.0 总工期        | 24-25 周   | **28-30 周**                                                                                                     |
+| 风险登记           | 20 条      | **30 条**（新增 R21-R30）                                                                                        |
+| MVP 功能范围       | 全套       | **B 折中**：砍 Push/Pull/Fetch + 自绘 rail graph + 复杂 Diff                                                     |
+| 社区 KPI           | stars 数字 | **信号指标**（HN 首页 / r/rust 100 upvotes / 博客提及）                                                          |
+| 章节数量           | 12         | **14**（新增 §13 安全边界、§14 分发运营）                                                                        |
 
 ---
 
@@ -42,16 +42,19 @@
 ### 1.2 目标用户画像
 
 **Persona A：独立开发者 Alice（35 岁，全栈）**
+
 - 日常同时跑 3-5 个副业项目，每个项目开 1-2 个 Claude CLI 窗口做 pair coding
 - 痛点：iTerm2 的 Tab 切来切去，忘了哪个窗口在改哪个仓库；Claude 改完代码要手动切 IDE 看 diff
 - 使用场景：早上打开 Vibestation，工作区里列着 5 个项目，每个项目的当前分支、未提交文件数一目了然。点进某个项目看到 Git Status 面板列着已修改文件，审阅 Diff 后勾选文件一键 commit。
 
 **Persona B：团队技术负责人 Bob（42 岁，架构师）**
+
 - 维护 monorepo（单仓 50 万 commit），同时带 3 个团队成员
 - 痛点：JetBrains 的 Git 面板好用但启动慢 30 秒，终端不在同一个窗口；code review 时在 Claude CLI 跑完修改又要切 GitKraken 看提交图
 - 使用场景：在 Vibestation 里打开 monorepo，Git Log 列表瞬时加载（MVP 无 rail 自绘，分支信息用标签贴呈现），右侧多 Tab 终端同时跑 `cargo test` 和 Claude CLI 重构助手。
 
 **Persona C：重度 vibe coder Carol（28 岁，前端）**
+
 - 全程 CLI 派，不用 IDE，偏好 Ghostty + tmux，要求键盘驱动
 - 痛点：桌面 Git 客户端都太 GUI 化（SourceTree、Fork），命令行版 gitui 又没有多 Tab 终端集成
 - 使用场景：Vibestation 导入 Ghostty 配置（字体/主题/按键），键盘快捷键覆盖 95% 操作，多 Tab 里 Claude + Codex + zsh + vim 并行工作。
@@ -80,19 +83,19 @@
 
 ## 2. 竞品对比矩阵
 
-| 能力 | Warp | Ghostty | iTerm2 | CodexMonitor | Claude Desktop | Codex Desktop | JetBrains | Zed | Cursor | **Vibestation MVP** |
-|------|------|---------|--------|--------------|----------------|---------------|-----------|-----|--------|---------------------|
-| 多项目 Tab | 块级 Tab | 标签 | 标签 | Workspace | 无 | 无 | Project 窗口 | Worktree | Project 窗口 | ✅ 工作区 + 多 Tab |
-| 多 CLI 支持 | ✅ | ✅ | ✅ | 仅 Codex | ❌ | 仅 Codex | 嵌入式终端 | 嵌入式终端 | 嵌入式终端 | ✅ zsh/bash + Claude/Codex |
-| Git Log 视图 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 强 | ✅ 中 | ✅ 中 | ✅ 列表 + 分支标签（MVP 无 rail 图） |
-| Git Commit 操作 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 强 | ✅ 中 | ✅ 弱 | ✅ 简化版（勾文件 + 消息 + amend）|
-| Push/Pull/Fetch | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 强 | ✅ 中 | ✅ 中 | ❌ v0.2 |
-| Diff 渲染 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 强 | ✅ 中 | ✅ 中 | ✅ 基础行对比（v0.3 升级）|
-| 终端配置导入 | 自有 | 自有 | 自有 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ Ghostty/iTerm2/Alacritty |
-| Pane 分屏 | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ 最多 1 层嵌套（4 Pane）|
-| 跨平台 | mac+linux+win | mac+linux | mac | 全平台 | 全平台 | mac+linux | 全平台 | 全平台 | 全平台 | mac+ubuntu（v1.0 前）|
-| 包体积 | ~200MB | ~50MB | ~30MB | ~40MB | ~150MB | ~120MB | ~1GB+ | ~150MB | ~300MB+ | <30MB（目标，Tauri）/ <80MB（Electron fallback）|
-| 开源 | ❌ 商业 | ✅ MIT | 免费闭源 | ✅ MIT | ❌ 商业 | ✅ Apache | ❌ 商业 | ✅ GPL | ❌ 商业 | ✅ **Apache 2.0** |
+| 能力            | Warp          | Ghostty   | iTerm2   | CodexMonitor | Claude Desktop | Codex Desktop | JetBrains    | Zed        | Cursor       | **Vibestation MVP**                              |
+| --------------- | ------------- | --------- | -------- | ------------ | -------------- | ------------- | ------------ | ---------- | ------------ | ------------------------------------------------ |
+| 多项目 Tab      | 块级 Tab      | 标签      | 标签     | Workspace    | 无             | 无            | Project 窗口 | Worktree   | Project 窗口 | ✅ 工作区 + 多 Tab                               |
+| 多 CLI 支持     | ✅            | ✅        | ✅       | 仅 Codex     | ❌             | 仅 Codex      | 嵌入式终端   | 嵌入式终端 | 嵌入式终端   | ✅ zsh/bash + Claude/Codex                       |
+| Git Log 视图    | ❌            | ❌        | ❌       | ❌           | ❌             | ❌            | ✅ 强        | ✅ 中      | ✅ 中        | ✅ 列表 + 分支标签（MVP 无 rail 图）             |
+| Git Commit 操作 | ❌            | ❌        | ❌       | ❌           | ❌             | ❌            | ✅ 强        | ✅ 中      | ✅ 弱        | ✅ 简化版（勾文件 + 消息 + amend）               |
+| Push/Pull/Fetch | ❌            | ❌        | ❌       | ❌           | ❌             | ❌            | ✅ 强        | ✅ 中      | ✅ 中        | ❌ v0.2                                          |
+| Diff 渲染       | ❌            | ❌        | ❌       | ❌           | ❌             | ❌            | ✅ 强        | ✅ 中      | ✅ 中        | ✅ 基础行对比（v0.3 升级）                       |
+| 终端配置导入    | 自有          | 自有      | 自有     | ❌           | ❌             | ❌            | ❌           | ❌         | ❌           | ✅ Ghostty/iTerm2/Alacritty                      |
+| Pane 分屏       | ✅            | ✅        | ✅       | ❌           | ❌             | ❌            | ✅           | ✅         | ✅           | ✅ 最多 1 层嵌套（4 Pane）                       |
+| 跨平台          | mac+linux+win | mac+linux | mac      | 全平台       | 全平台         | mac+linux     | 全平台       | 全平台     | 全平台       | mac+ubuntu（v1.0 前）                            |
+| 包体积          | ~200MB        | ~50MB     | ~30MB    | ~40MB        | ~150MB         | ~120MB        | ~1GB+        | ~150MB     | ~300MB+      | <30MB（目标，Tauri）/ <80MB（Electron fallback） |
+| 开源            | ❌ 商业       | ✅ MIT    | 免费闭源 | ✅ MIT       | ❌ 商业        | ✅ Apache     | ❌ 商业      | ✅ GPL     | ❌ 商业      | ✅ **Apache 2.0**                                |
 
 **象限定位**：横轴「Git 深度」、纵轴「终端整合度」。
 
@@ -106,18 +109,18 @@
 
 ### 3.1 技术栈决策
 
-| 层 | 决策 | 锁定状态 | 备选 / fallback |
-|----|------|----------|------------------|
-| 桌面框架 | **Tauri 2** | **锁定**（2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B pending caveat · ADR-006 accepted · CLAUDE.md A 栏 #19） | Electron 28+（Ubuntu Phase B 任一硬指标失败切回）|
-| 前端 | SolidJS + TypeScript + Vite | 锁定 | - |
-| 终端渲染 | xterm.js 5.5 | 锁定 | alacritty_terminal（v1.x 评估）|
-| PTY | portable-pty + 共享读线程 + mpsc + drop-oldest | **锁定**（2026-04-19 session 10 · SPIKE-05/05.5 · ADR-003 accepted · CLAUDE.md A 栏 #15） | - |
-| Git 写 | git2 (vendored libgit2) | 锁定 | - |
-| Git 读 | **gix 0.70**（读切 gix · 写保留 git2 · gix log -100 warm P99 比 git2 快 1973×） | **锁定**（2026-04-19 session 10 · SPIKE-03 · ADR-007 accepted · CLAUDE.md A 栏 #13） | 纯 git2 保底 |
-| 持久化 | **rusqlite 0.31+ + r2d2_sqlite**（redb 2.6.3 B.2 坏库检测 FAIL superseded） | **锁定**（2026-04-19 session 10 · SPIKE-04 + 04.5 · ADR-005 accepted · CLAUDE.md A 栏 #14） | - |
-| CSS | 原生 CSS + oklch token | 锁定 | - |
-| 构建 | Cargo workspace + pnpm | 锁定 | - |
-| 许可证 | **Apache 2.0** | 锁定 | - |
+| 层       | 决策                                                                            | 锁定状态                                                                                                                             | 备选 / fallback                                   |
+| -------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| 桌面框架 | **Tauri 2**                                                                     | **锁定**（2026-04-19 session 10 末 · macOS Phase A 强 PASS · Ubuntu Phase B pending caveat · ADR-006 accepted · CLAUDE.md A 栏 #19） | Electron 28+（Ubuntu Phase B 任一硬指标失败切回） |
+| 前端     | SolidJS + TypeScript + Vite                                                     | 锁定                                                                                                                                 | -                                                 |
+| 终端渲染 | xterm.js 5.5                                                                    | 锁定                                                                                                                                 | alacritty_terminal（v1.x 评估）                   |
+| PTY      | portable-pty + 共享读线程 + mpsc + drop-oldest                                  | **锁定**（2026-04-19 session 10 · SPIKE-05/05.5 · ADR-003 accepted · CLAUDE.md A 栏 #15）                                            | -                                                 |
+| Git 写   | git2 (vendored libgit2)                                                         | 锁定                                                                                                                                 | -                                                 |
+| Git 读   | **gix 0.70**（读切 gix · 写保留 git2 · gix log -100 warm P99 比 git2 快 1973×） | **锁定**（2026-04-19 session 10 · SPIKE-03 · ADR-007 accepted · CLAUDE.md A 栏 #13）                                                 | 纯 git2 保底                                      |
+| 持久化   | **rusqlite 0.31+ + r2d2_sqlite**（redb 2.6.3 B.2 坏库检测 FAIL superseded）     | **锁定**（2026-04-19 session 10 · SPIKE-04 + 04.5 · ADR-005 accepted · CLAUDE.md A 栏 #14）                                          | -                                                 |
+| CSS      | 原生 CSS + oklch token                                                          | 锁定                                                                                                                                 | -                                                 |
+| 构建     | Cargo workspace + pnpm                                                          | 锁定                                                                                                                                 | -                                                 |
+| 许可证   | **Apache 2.0**                                                                  | 锁定                                                                                                                                 | -                                                 |
 
 #### 3.1.0 §3.1 changelog（session 10 末 · 2026-04-19）
 
@@ -135,14 +138,14 @@ Session 10 Spike W0 macOS 全过后 · §3.1 表格 6 处锁定状态更新：
 
 必须在 Ubuntu 24 Wayland + X11 + macOS 15 三台机器上全部通过，否则 Day 3 切 Electron 28+：
 
-| 判据 | 通过条件 |
-|------|----------|
-| 冷启动窗口显示 | < 2s（mac）/ < 3s（linux）|
-| 窗口不白屏、不闪退 | 连续启动 10 次零失败 |
-| IME 输入（中文/日文）| 不丢字、光标位置正确 |
-| 剪贴板 copy/paste | Wayland + X11 均工作 |
-| WebView bundle 大小 | dmg < 30MB / AppImage < 40MB |
-| 关键 Tauri plugin 可用 | `tauri-plugin-clipboard-manager`、`tauri-plugin-fs`、`tauri-plugin-updater`（Day 2 至少 smoke test）|
+| 判据                   | 通过条件                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| 冷启动窗口显示         | < 2s（mac）/ < 3s（linux）                                                                           |
+| 窗口不白屏、不闪退     | 连续启动 10 次零失败                                                                                 |
+| IME 输入（中文/日文）  | 不丢字、光标位置正确                                                                                 |
+| 剪贴板 copy/paste      | Wayland + X11 均工作                                                                                 |
+| WebView bundle 大小    | dmg < 30MB / AppImage < 40MB                                                                         |
+| 关键 Tauri plugin 可用 | `tauri-plugin-clipboard-manager`、`tauri-plugin-fs`、`tauri-plugin-updater`（Day 2 至少 smoke test） |
 
 任何一项失败 → 启动 Day 3 Electron 28+ spike（1 天），通过则切 Electron，文档 §3-4 全部回退。
 
@@ -187,10 +190,10 @@ Session 10 Spike W0 macOS 全过后 · §3.1 表格 6 处锁定状态更新：
 
 v1 的 4-crate（app / core / git / pty-proxy）对单人项目过度工程。v2 合并为 **2 crate**：
 
-| Crate | 职责 | 关键依赖 | 禁止 |
-|-------|------|----------|------|
-| `vibestation-app` | Tauri 入口、IPC 路由、事件广播、AppState 组装 | `tauri`、`tokio`、`tracing` | - |
-| `vibestation-core` | 业务模型 + Git + PTY + 持久化 + 事件总线一体 | `serde`、`rusqlite` + `r2d2_sqlite`、`git2`、`gix 0.70`、`portable-pty`、`notify` | `tauri`（纯逻辑层）|
+| Crate              | 职责                                          | 关键依赖                                                                          | 禁止                |
+| ------------------ | --------------------------------------------- | --------------------------------------------------------------------------------- | ------------------- |
+| `vibestation-app`  | Tauri 入口、IPC 路由、事件广播、AppState 组装 | `tauri`、`tokio`、`tracing`                                                       | -                   |
+| `vibestation-core` | 业务模型 + Git + PTY + 持久化 + 事件总线一体  | `serde`、`rusqlite` + `r2d2_sqlite`、`git2`、`gix 0.70`、`portable-pty`、`notify` | `tauri`（纯逻辑层） |
 
 **拆分触发条件**：当以下任一情况发生时，把 `core` 拆为 `core / git / pty-proxy`：
 
@@ -239,6 +242,7 @@ v1 的 4-crate（app / core / git / pty-proxy）对单人项目过度工程。v2
 ```
 
 关键节拍：
+
 - ①-⑥ 是终端路径（毫秒级，xterm 直接 write）
 - ③-⑧ 是 Git 路径（debounce 300ms，避免 AI 连续改 10 个文件刷屏）
 - 两条路径独立不阻塞，即使 git status 慢也不影响终端流畅
@@ -504,23 +508,25 @@ pub struct UserSession {
 ```
 
 > **v2 变更说明**：
+>
 > - `GitRepository.gix_repo` 改为 `Option<gix::Repository>`，Spike Day 3 benchmark 后决定是否引入。MVP 默认 `None`，所有读路径走 `git2`。
 > - `CommitNode.rail` 改为 `Option<u16>`，MVP 不计算 rail 索引（无自绘 rail 图）。
 
 ### 5.2 持久化分类
 
-| 数据 | 存储 | 理由 |
-|------|------|------|
-| `AppConfig` | TOML 文件（`~/.config/vibestation/config.toml`）| 用户可编辑 |
-| `Workspace` 列表 | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5） | 高频读写 |
-| `TerminalProfile` | 同上 + 源文件路径引用 | 支持重新同步 |
-| `UserSession` | 单行 | 崩溃恢复 |
-| `TerminalSession` 运行时 | 纯内存 `HashMap<Id, Arc<TerminalSession>>` | PTY 资源不可序列化 |
-| `GitRepository` 运行时 | 纯内存 `HashMap<RepoId, GitRepository>` | 句柄不可序列化 |
-| `CommitNode` 缓存 | 纯内存 LRU（容量 10k）| 切 Tab 时避免重算 |
-| `FileDiff` | 不缓存 | 每次按需计算 |
+| 数据                     | 存储                                                                   | 理由               |
+| ------------------------ | ---------------------------------------------------------------------- | ------------------ |
+| `AppConfig`              | TOML 文件（`~/.config/vibestation/config.toml`）                       | 用户可编辑         |
+| `Workspace` 列表         | **rusqlite 0.31+ + r2d2_sqlite**（ADR-005 accepted · SPIKE-04 + 04.5） | 高频读写           |
+| `TerminalProfile`        | 同上 + 源文件路径引用                                                  | 支持重新同步       |
+| `UserSession`            | 单行                                                                   | 崩溃恢复           |
+| `TerminalSession` 运行时 | 纯内存 `HashMap<Id, Arc<TerminalSession>>`                             | PTY 资源不可序列化 |
+| `GitRepository` 运行时   | 纯内存 `HashMap<RepoId, GitRepository>`                                | 句柄不可序列化     |
+| `CommitNode` 缓存        | 纯内存 LRU（容量 10k）                                                 | 切 Tab 时避免重算  |
+| `FileDiff`               | 不缓存                                                                 | 每次按需计算       |
 
 **redb vs rusqlite 决策（v2 未锁定）**：
+
 - Spike Week 0 Day 4 追加半天：分别用 redb 和 rusqlite 跑相同场景（10 个 workspace × 100 个 profile × 10k terminal 快照）
 - 对比指标：写入延迟 P99、读取延迟 P99、磁盘占用、损坏恢复能力、crash-consistency
 - redb 有显著优势（P99 优于 20%）才锁定 redb；否则用 rusqlite（更成熟、更多工具链）
@@ -566,11 +572,13 @@ Workspace（项目容器）
 **收起**：Secondary Sidebar（Git Log 400px）· Bottom Panel（Problems/Output/Diff 240px）
 
 **切换快捷键**：
+
 - `⌘B` — toggle Primary Sidebar（左栏）
 - `⌘9` — toggle Secondary Sidebar（Git Log，**致敬 JetBrains ⌘9**）
 - `⌘J` — toggle Bottom Panel（VSCode 风）
 
 > **设计依据与权衡**：
+>
 > - Primary 展开 → 用户首次打开就看到 "workspace 切换" 这个核心卖点；否则面对纯终端不知道怎么多项目管理
 > - Secondary + Bottom 收起 → 保持视觉干净，避免 Codex 批评的 "UI chrome 过重"
 > - Codex 2026-04-18 评审建议"全收起"，但权衡后保留此折中（workspace 即时可见 > 绝对干净）
@@ -618,13 +626,13 @@ pub enum PaneContent {
 
 #### 5.3.4 Smart Layouts 预设库（v2 合并）
 
-| 布局名 | 结构 | 用途 | MVP |
-|-------|------|------|-----|
-| **Solo**（默认）| 单 Leaf | 单终端，Git 面板收起 | ✅ |
-| **AI + Runner**（v2 合并 Watch/Test）| H(0.55, ClaudeCli \| TaskRunner[用户自定义 cmd]) | 左 Claude、右运行任意命令（cargo watch / pytest / npm run dev / `pnpm test -- --watch`）| ✅ |
-| **Dual AI** | H(0.5, ClaudeCli \| CodexCli) | 对比双 agent | v0.2 |
-| **Triple Review** | H(0.5, ClaudeCli \| V(0.5, TaskRunner \| LogFollower)) | 左 AI、右上 run、右下 log | v0.2 |
-| **Quad** | 2×2 | 完全自定义 | v0.2 |
+| 布局名                                | 结构                                                   | 用途                                                                                     | MVP  |
+| ------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ---- |
+| **Solo**（默认）                      | 单 Leaf                                                | 单终端，Git 面板收起                                                                     | ✅   |
+| **AI + Runner**（v2 合并 Watch/Test） | H(0.55, ClaudeCli \| TaskRunner[用户自定义 cmd])       | 左 Claude、右运行任意命令（cargo watch / pytest / npm run dev / `pnpm test -- --watch`） | ✅   |
+| **Dual AI**                           | H(0.5, ClaudeCli \| CodexCli)                          | 对比双 agent                                                                             | v0.2 |
+| **Triple Review**                     | H(0.5, ClaudeCli \| V(0.5, TaskRunner \| LogFollower)) | 左 AI、右上 run、右下 log                                                                | v0.2 |
+| **Quad**                              | 2×2                                                    | 完全自定义                                                                               | v0.2 |
 
 > v2 去除了 v1 的 "AI + Watch" / "AI + Test" 两个预设（codex 指出这只是同一 H-split + 不同命令，不是两种布局）。统一为 "AI + Runner"，命令由用户自行输入（含常见一键模板：cargo watch、pytest、npm run dev、jest --watch 等）。
 
@@ -644,22 +652,22 @@ root.right.leaf = { type = "task-runner", cmd = "cargo watch -c -x test" }
 
 v1 原型在三处快捷键冲突上被 codex 指出问题：⌘K 同时被标 Command Palette 和 Git Commit；⌘D 同时代表 Pane Split 和 Diff；⌘W 抢占 macOS 关闭标签。v2 修订：
 
-| 动作 | 快捷键 | 备注 |
-|------|--------|------|
-| Command Palette | `⌘K` | 唯一用途（v1 冲突解决）|
-| Git Commit 面板 | `⌘⇧K` | 从 ⌘K 改到 ⌘⇧K |
-| 分屏（右）| `⌘\` | 对齐 iTerm2，不占用 ⌘D |
-| 分屏（下）| `⌘⇧\` | 同上 |
-| Diff 视图 | `⌘D` | 回归 macOS 常用 |
-| 关闭 Pane | `⌘⌃W` | 避开 macOS 默认 ⌘W 关窗 |
-| 关闭 Tab | `⌘W` | 保留 macOS 默认语义 |
-| 跳邻居 | `⌘⌥ ←/→/↑/↓` | 方向键切焦点（v0.2）|
-| 最大化 | `⌘Enter` | 临时全屏，再按恢复（v0.2）|
-| 调整大小 | `⌘⌃ ←→↑↓` | 10% 步进 |
-| 弹为独立窗口 | `⌘⇧O` | Detach（v0.3+）|
-| Smart Layouts | `⌘0…⌘5` | 快速套预设 |
-| 唤起 Git 面板 | `⌘1` | v2 新增（默认收起后需要快捷键唤出）|
-| 唤起 Workspace 面板 | `⌘2` | 同上 |
+| 动作                | 快捷键       | 备注                                |
+| ------------------- | ------------ | ----------------------------------- |
+| Command Palette     | `⌘K`         | 唯一用途（v1 冲突解决）             |
+| Git Commit 面板     | `⌘⇧K`        | 从 ⌘K 改到 ⌘⇧K                      |
+| 分屏（右）          | `⌘\`         | 对齐 iTerm2，不占用 ⌘D              |
+| 分屏（下）          | `⌘⇧\`        | 同上                                |
+| Diff 视图           | `⌘D`         | 回归 macOS 常用                     |
+| 关闭 Pane           | `⌘⌃W`        | 避开 macOS 默认 ⌘W 关窗             |
+| 关闭 Tab            | `⌘W`         | 保留 macOS 默认语义                 |
+| 跳邻居              | `⌘⌥ ←/→/↑/↓` | 方向键切焦点（v0.2）                |
+| 最大化              | `⌘Enter`     | 临时全屏，再按恢复（v0.2）          |
+| 调整大小            | `⌘⌃ ←→↑↓`    | 10% 步进                            |
+| 弹为独立窗口        | `⌘⇧O`        | Detach（v0.3+）                     |
+| Smart Layouts       | `⌘0…⌘5`      | 快速套预设                          |
+| 唤起 Git 面板       | `⌘1`         | v2 新增（默认收起后需要快捷键唤出） |
+| 唤起 Workspace 面板 | `⌘2`         | 同上                                |
 
 #### 5.3.6 AI-Aware Pane 联动（v2：v1.0 vision，MVP 不实现、README 不宣传）
 
@@ -707,6 +715,7 @@ AI-Aware Pane 联动作为 v1.0 的升级故事设计保留，但：
 #### 5.3.8 MVP 范围（v2 收紧）
 
 **MVP 必做**：
+
 - Tab 基础（创建 / 关闭 / 切换）
 - 单 Pane（Solo 布局，默认）
 - 水平 / 垂直分屏，**最多 1 层嵌套**（最多 4 个 Pane）
@@ -715,16 +724,19 @@ AI-Aware Pane 联动作为 v1.0 的升级故事设计保留，但：
 - 预设布局 2 种：**Solo / AI + Runner**
 
 **推到 v0.2**：
+
 - 任意嵌套（2 层以上）
 - Dual AI / Triple Review / Quad 预设
 - 方向键跳邻居、最大化（⌘Enter）
 
 **推到 v0.3**：
+
 - 弹为独立窗口（Detach）
 - 非 CLI 类 Pane 内容：DiffViewer / LogFollower
 - 自定义 Smart Layouts 保存到 TOML
 
 **推到 v1.0**：
+
 - **AI-Aware Pane 联动（订阅 + 失败反哺）**
 
 #### 5.3.9 实现要点与风险
@@ -743,6 +755,7 @@ AI-Aware Pane 联动作为 v1.0 的升级故事设计保留，但：
 ### 6.1 命名原则
 
 遵循调研 §4.4 五条原则：
+
 - **命名空间**：`terminal:*` / `git:*` / `workspace:*` / `pane:*` / `layout:*` / `config:*` / `profile:*`
 - **命令 = 请求-响应**，**事件 = 单向广播**
 - **错误统一 `Result<T, String>`**
@@ -752,6 +765,7 @@ AI-Aware Pane 联动作为 v1.0 的升级故事设计保留，但：
 ### 6.2 核心命令清单
 
 #### Workspace（7 个）
+
 ```rust
 workspace_list() -> Result<Vec<Workspace>, String>
 workspace_create(name, root_path) -> Result<Workspace, String>
@@ -763,6 +777,7 @@ workspace_set_layout(id, layout) -> Result<(), String>
 ```
 
 #### Terminal（9 个）
+
 ```rust
 terminal_create(workspace_id, profile_id, cwd, shell) -> Result<TerminalSessionId, String>
 terminal_write(id, data) -> Result<(), String>
@@ -778,6 +793,7 @@ terminal_restore_buffer(id, snapshot) -> Result<(), String>
 #### Git（MVP 10 个 + v0.2 扩展 + v0.3 扩展）
 
 **MVP（v0.1）**：
+
 ```rust
 git_open_repo(path) -> Result<RepoId, String>
 git_close_repo(id) -> Result<(), String>
@@ -793,6 +809,7 @@ git_branch_list(id) -> Result<Vec<BranchInfo>, String>    // 只读列表
 ```
 
 **v0.2 新增**：
+
 ```rust
 git_branch_create(id, name, from) -> Result<(), String>
 git_branch_checkout(id, name) -> Result<(), String>
@@ -802,6 +819,7 @@ git_fetch(id, remote) -> Result<TaskId, String>
 ```
 
 **v0.3 新增**：
+
 ```rust
 git_reset(id, oid, mode) -> Result<(), String>
 git_rebase(id, onto, interactive) -> Result<TaskId, String>
@@ -812,6 +830,7 @@ git_cherrypick(id, oid) -> Result<(), String>
 > **v2 MVP 调整**：v1 把 Push/Pull/Fetch 塞进 MVP，Codex 指出这会让 MVP 工期失控。v2 MVP 只保留只读 Git + Commit，写远端操作推迟到 v0.2。
 
 #### Pane / Layout（10 个）
+
 ```rust
 pane_split(pane_id, direction, content_type) -> Result<PaneId, String>
 pane_close(pane_id) -> Result<(), String>
@@ -826,6 +845,7 @@ layout_list() -> Result<Vec<LayoutPreset>, String>
 ```
 
 #### Config / Profile（6 个）
+
 ```rust
 config_get() -> Result<AppConfig, String>
 config_set(config) -> Result<(), String>
@@ -836,12 +856,14 @@ profile_set_default(id) -> Result<(), String>
 ```
 
 #### 通用（2 个）
+
 ```rust
 cancel_task(task_id) -> Result<(), String>
 app_version() -> Result<AppVersion, String>
 ```
 
 **小计**：
+
 - **MVP**：Workspace 7 + Terminal 9 + Git 11 + Pane 4 + Config 6 + 通用 2 = **39 个**
 - **v0.2 增量**：Git 5 + Pane 2 = 7 个 → 累计 46
 - **v0.3 增量**：Git 4 + Pane 1 = 5 个 → 累计 51
@@ -885,6 +907,7 @@ app:crash                 { report }
 ## 7. 周级 Milestone 甘特图（v2 加宽）
 
 > v2 调整：
+>
 > - MVP 由 10 周加到 **12 周**（20% buffer）
 > - v0.2 由 4 周加到 **5 周**
 > - v0.3 由 4 周加到 **5 周**
@@ -892,41 +915,42 @@ app:crash                 { report }
 > - 每个阶段最后一周留 buffer，不安排新 feature
 > - 假设：每周 20-25 小时个人投入（比 v1 的 20-30 收紧下限）
 
-| 周 | 阶段 | 交付物 | 验收标准 | 关键依赖 |
-|---|------|--------|----------|----------|
-| **W0** | Spike | 5-6 天技术验证 | Tauri Pass/Fail、PTY 吞吐、git2 vs gix、redb vs rusqlite、Claude CLI 录样 | 下文 §附录 A |
-| **W1** | v0.1 基建 | Cargo workspace 2 crate 脚手架、CI（lint/test/build）、icon、`tauri.conf.json` 初版、LICENSE（Apache-2.0）+ NOTICE | `cargo test` 绿、GitHub Actions 通过、dmg/AppImage 可产出 | Spike 结论 |
-| **W2** | v0.1 PTY | `vibestation-core/pty` 完整：单读线程 + mpsc、zsh/bash 启动、fix-path-env | 单 workspace 单 Tab 在 mac 上可跑 Claude CLI 不丢字符，10 秒 `yes` 不卡 | 参考 CodexMonitor terminal.rs |
-| **W3** | v0.1 前端终端 | `Terminal.tsx` + `TerminalTabs.tsx`，xterm 5.5 + fit/web-links/serialize addon | 5 个 Tab 并存切换，每个保留独立 buffer，切换延迟 <50ms | W2 |
-| **W4** | v0.1 Pane 系统 | `PaneContainer.tsx` + `SplitLayout.tsx`，1 层嵌套（4 Pane），快捷键 `⌘\` `⌘⇧\` `⌘⌃W` | 4 Pane 并存，拖拽调整比例持久化 | W3 |
-| **W5** | v0.1 Git 读 | `vibestation-core/git/sync/logwalker.rs` + `revlog.rs`（AsyncLog 分批）| 10 万 commit 仓库 Log 首屏 <500ms，滚动不卡 | 参考 gitui/asyncgit |
-| **W6** | v0.1 Git Log UI | `GitLogView.tsx` + `CommitList.tsx`（列表 + 分支标签贴，**无自绘 rail**）+ `@tanstack/solid-virtual` | 虚拟化滚动 60fps、分支/tag 标签贴对、merge commit 正确显示双 parent | W5 |
-| **W7** | v0.1 Diff 基础 | `DiffView.tsx` 基础行对比（+/-），**无 Monaco、无复杂语法高亮**；大文件降级提示 | 100KB 文件 diff 渲染 <100ms；10MB 以上降级为"预览前 200 行" | W5 |
-| **W8** | v0.1 Commit 视图 | 右侧 `CommitDetail.tsx`（元数据 + 文件列表 + 跳转 Diff）、`StatusPanel.tsx`（stage/unstage/untracked 分组） | 任意 commit 点进详情 <100ms，stage/unstage 操作正确 | W6, W7 |
-| **W9** | v0.1 Commit 操作 | `git_commit`（勾文件 + 消息 + amend），无远端操作 | 可在本地 repo 成功产出 commit，能被 `git log` 看到 | W8 |
-| **W10** | v0.1 配置导入 | Ghostty（mac/linux）+ iTerm2（mac）+ Alacritty（linux）解析器；`profile_import` 命令 | 3 种配置各至少 10 条真实用户配置导入不报错 | `toml_edit` + `plist` |
-| **W11** | v0.1 终端正确性矩阵 | §10.6 矩阵逐项过一遍；崩溃恢复基础；macOS 公证流水线搭建 | 矩阵 100% 通过；notarization 可在 CI 上跑一轮 | `docs/terminal-correctness-matrix.md` |
-| **W12** | v0.1 发布 ★ + buffer | 文档、landing page v0、首个 GitHub Release v0.1.0；跨平台 QA | 见 §10 MVP 验收；Show HN + r/rust 发布；<30MB（Tauri）或 <80MB（Electron）包体积 | 全部前置周 |
-| **W13** | v0.2 分支 | `git_branch_create/checkout/delete` + UI、`BranchList.tsx` | 分支切换 <500ms、脏工作区切换有警告 | W12 |
-| **W14** | v0.2 Push/Pull/Fetch | `git_push` / `git_pull` / `git_fetch` 带进度条 | 在真实 GitHub repo 上双向同步，SSH/HTTPS 均工作 | `vibestation-core/git/sync/push_pull.rs` |
-| **W15** | v0.2 Pane 扩展 | 任意嵌套、方向键跳邻居、`⌘Enter` 最大化、Dual AI / Triple Review / Quad 预设 | 3 层嵌套不卡 60fps；预设切换 <100ms | W4 |
-| **W16** | v0.2 自绘 rail graph | `CommitGraph.tsx`（Canvas）+ rail 算法（抄 gitui）| linux kernel 仓库 rail 图正确 | W6 |
-| **W17** | v0.2 发布 ★ + buffer | v0.2.0 Release；信号指标观察 | 信号指标：3 篇独立博客提及、10+ alpha 测试者 | W13-W16 |
-| **W18** | v0.3 Rebase | `git_rebase` + 交互式 rebase UI、冲突标记 | pick/squash/edit/drop 可用 | - |
-| **W19** | v0.3 Merge/Cherry-pick | `git_merge` / `git_cherrypick` + 冲突解决面板 | 三路 diff 展示，手动解决后可 continue | W18 |
-| **W20** | v0.3 Pop to External | `terminal_pop_external`，mac 支持 Ghostty/iTerm2，linux 支持 Ghostty/Alacritty | 点击一键弹到外部终端，cwd/env/命令历史保留 | - |
-| **W21** | v0.3 Diff 高级 | `DiffView` 支持语法高亮（shiki lazy load）、大文件流式加载 | 1MB 文件 diff <300ms | - |
-| **W22** | v0.3 发布 ★ + buffer | v0.3.0 Release | - | - |
-| **W23** | v1.0 AI-Aware Spike | 用真实 Claude CLI transcript 验证 `parsed_issues` 解析；多语言编译器（rustc/tsc/gcc）诊断样本收集 | Spike 结论：可行 / 不可行；若不可行则 descope | - |
-| **W24** | v1.0 Claude 深集成 | session ↔ commit 自动绑定、"用 Claude 生成 commit message" | 每个 Claude session 产生的 commit 带 session 元数据 | W23 |
-| **W25** | v1.0 AI-Aware Pane 联动 | Pane A-B 订阅 + 失败反哺 | Claude CLI 改代码后 `cargo watch` 失败可一键回填 | W23 |
-| **W26** | v1.0 一键回滚 | 回滚整个 AI session 或单文件 | 回滚后工作区干净、可复原 | W24 |
-| **W27** | v1.0 性能 | 基准测试固化：启动 <2s、Log <500ms、切 Tab <50ms、内存 <300MB；benchmark CI 回归报警 | 指标达标 | W5-W26 |
-| **W28** | v1.0 Polish | 键盘快捷键覆盖 95% 操作、主题系统、错误上报完善 | 键盘用户不摸鼠标可完成全流程 | - |
-| **W29** | v1.0 文档 + 安全审计 | 用户手册、开发者指南、API ref、3 篇 tutorial、外部安全审计过一轮 | docs 上线 | - |
-| **W30** | v1.0 发布 ★ + buffer | v1.0.0 Release、Product Hunt、Show HN 二发 | 信号指标：HN 首页再进一次、1 家媒体报道、Sponsors 开通 | 全部 |
+| 周      | 阶段                    | 交付物                                                                                                             | 验收标准                                                                         | 关键依赖                                 |
+| ------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------- |
+| **W0**  | Spike                   | 5-6 天技术验证                                                                                                     | Tauri Pass/Fail、PTY 吞吐、git2 vs gix、redb vs rusqlite、Claude CLI 录样        | 下文 §附录 A                             |
+| **W1**  | v0.1 基建               | Cargo workspace 2 crate 脚手架、CI（lint/test/build）、icon、`tauri.conf.json` 初版、LICENSE（Apache-2.0）+ NOTICE | `cargo test` 绿、GitHub Actions 通过、dmg/AppImage 可产出                        | Spike 结论                               |
+| **W2**  | v0.1 PTY                | `vibestation-core/pty` 完整：单读线程 + mpsc、zsh/bash 启动、fix-path-env                                          | 单 workspace 单 Tab 在 mac 上可跑 Claude CLI 不丢字符，10 秒 `yes` 不卡          | 参考 CodexMonitor terminal.rs            |
+| **W3**  | v0.1 前端终端           | `Terminal.tsx` + `TerminalTabs.tsx`，xterm 5.5 + fit/web-links/serialize addon                                     | 5 个 Tab 并存切换，每个保留独立 buffer，切换延迟 <50ms                           | W2                                       |
+| **W4**  | v0.1 Pane 系统          | `PaneContainer.tsx` + `SplitLayout.tsx`，1 层嵌套（4 Pane），快捷键 `⌘\` `⌘⇧\` `⌘⌃W`                               | 4 Pane 并存，拖拽调整比例持久化                                                  | W3                                       |
+| **W5**  | v0.1 Git 读             | `vibestation-core/git/sync/logwalker.rs` + `revlog.rs`（AsyncLog 分批）                                            | 10 万 commit 仓库 Log 首屏 <500ms，滚动不卡                                      | 参考 gitui/asyncgit                      |
+| **W6**  | v0.1 Git Log UI         | `GitLogView.tsx` + `CommitList.tsx`（列表 + 分支标签贴，**无自绘 rail**）+ `@tanstack/solid-virtual`               | 虚拟化滚动 60fps、分支/tag 标签贴对、merge commit 正确显示双 parent              | W5                                       |
+| **W7**  | v0.1 Diff 基础          | `DiffView.tsx` 基础行对比（+/-），**无 Monaco、无复杂语法高亮**；大文件降级提示                                    | 100KB 文件 diff 渲染 <100ms；10MB 以上降级为"预览前 200 行"                      | W5                                       |
+| **W8**  | v0.1 Commit 视图        | 右侧 `CommitDetail.tsx`（元数据 + 文件列表 + 跳转 Diff）、`StatusPanel.tsx`（stage/unstage/untracked 分组）        | 任意 commit 点进详情 <100ms，stage/unstage 操作正确                              | W6, W7                                   |
+| **W9**  | v0.1 Commit 操作        | `git_commit`（勾文件 + 消息 + amend），无远端操作                                                                  | 可在本地 repo 成功产出 commit，能被 `git log` 看到                               | W8                                       |
+| **W10** | v0.1 配置导入           | Ghostty（mac/linux）+ iTerm2（mac）+ Alacritty（linux）解析器；`profile_import` 命令                               | 3 种配置各至少 10 条真实用户配置导入不报错                                       | `toml_edit` + `plist`                    |
+| **W11** | v0.1 终端正确性矩阵     | §10.6 矩阵逐项过一遍；崩溃恢复基础；macOS 公证流水线搭建                                                           | 矩阵 100% 通过；notarization 可在 CI 上跑一轮                                    | `docs/terminal-correctness-matrix.md`    |
+| **W12** | v0.1 发布 ★ + buffer    | 文档、landing page v0、首个 GitHub Release v0.1.0；跨平台 QA                                                       | 见 §10 MVP 验收；Show HN + r/rust 发布；<30MB（Tauri）或 <80MB（Electron）包体积 | 全部前置周                               |
+| **W13** | v0.2 分支               | `git_branch_create/checkout/delete` + UI、`BranchList.tsx`                                                         | 分支切换 <500ms、脏工作区切换有警告                                              | W12                                      |
+| **W14** | v0.2 Push/Pull/Fetch    | `git_push` / `git_pull` / `git_fetch` 带进度条                                                                     | 在真实 GitHub repo 上双向同步，SSH/HTTPS 均工作                                  | `vibestation-core/git/sync/push_pull.rs` |
+| **W15** | v0.2 Pane 扩展          | 任意嵌套、方向键跳邻居、`⌘Enter` 最大化、Dual AI / Triple Review / Quad 预设                                       | 3 层嵌套不卡 60fps；预设切换 <100ms                                              | W4                                       |
+| **W16** | v0.2 自绘 rail graph    | `CommitGraph.tsx`（Canvas）+ rail 算法（抄 gitui）                                                                 | linux kernel 仓库 rail 图正确                                                    | W6                                       |
+| **W17** | v0.2 发布 ★ + buffer    | v0.2.0 Release；信号指标观察                                                                                       | 信号指标：3 篇独立博客提及、10+ alpha 测试者                                     | W13-W16                                  |
+| **W18** | v0.3 Rebase             | `git_rebase` + 交互式 rebase UI、冲突标记                                                                          | pick/squash/edit/drop 可用                                                       | -                                        |
+| **W19** | v0.3 Merge/Cherry-pick  | `git_merge` / `git_cherrypick` + 冲突解决面板                                                                      | 三路 diff 展示，手动解决后可 continue                                            | W18                                      |
+| **W20** | v0.3 Pop to External    | `terminal_pop_external`，mac 支持 Ghostty/iTerm2，linux 支持 Ghostty/Alacritty                                     | 点击一键弹到外部终端，cwd/env/命令历史保留                                       | -                                        |
+| **W21** | v0.3 Diff 高级          | `DiffView` 支持语法高亮（shiki lazy load）、大文件流式加载                                                         | 1MB 文件 diff <300ms                                                             | -                                        |
+| **W22** | v0.3 发布 ★ + buffer    | v0.3.0 Release                                                                                                     | -                                                                                | -                                        |
+| **W23** | v1.0 AI-Aware Spike     | 用真实 Claude CLI transcript 验证 `parsed_issues` 解析；多语言编译器（rustc/tsc/gcc）诊断样本收集                  | Spike 结论：可行 / 不可行；若不可行则 descope                                    | -                                        |
+| **W24** | v1.0 Claude 深集成      | session ↔ commit 自动绑定、"用 Claude 生成 commit message"                                                         | 每个 Claude session 产生的 commit 带 session 元数据                              | W23                                      |
+| **W25** | v1.0 AI-Aware Pane 联动 | Pane A-B 订阅 + 失败反哺                                                                                           | Claude CLI 改代码后 `cargo watch` 失败可一键回填                                 | W23                                      |
+| **W26** | v1.0 一键回滚           | 回滚整个 AI session 或单文件                                                                                       | 回滚后工作区干净、可复原                                                         | W24                                      |
+| **W27** | v1.0 性能               | 基准测试固化：启动 <2s、Log <500ms、切 Tab <50ms、内存 <300MB；benchmark CI 回归报警                               | 指标达标                                                                         | W5-W26                                   |
+| **W28** | v1.0 Polish             | 键盘快捷键覆盖 95% 操作、主题系统、错误上报完善                                                                    | 键盘用户不摸鼠标可完成全流程                                                     | -                                        |
+| **W29** | v1.0 文档 + 安全审计    | 用户手册、开发者指南、API ref、3 篇 tutorial、外部安全审计过一轮                                                   | docs 上线                                                                        | -                                        |
+| **W30** | v1.0 发布 ★ + buffer    | v1.0.0 Release、Product Hunt、Show HN 二发                                                                         | 信号指标：HN 首页再进一次、1 家媒体报道、Sponsors 开通                           | 全部                                     |
 
 **里程碑汇总**：
+
 - ★ W12 — v0.1 MVP（多 Tab 终端 + 只读 Git + Commit + Pane + 配置导入）
 - ★ W17 — v0.2（分支 + Push/Pull/Fetch + rail 图 + Pane 扩展）
 - ★ W22 — v0.3（完整 Git workflow + 外部终端 + 高级 Diff）
@@ -938,13 +962,13 @@ app:crash                 { report }
 
 ### 8.1 单元测试
 
-| Crate / 模块 | 覆盖率目标 | 关键测试 |
-|-------|-----------|----------|
-| `vibestation-core::config` | 85% | config 解析、persistence 迁移、profile 导入边界（坏 TOML、空 plist）|
-| `vibestation-core::git` | 80% | logwalker 排序稳定性、diff hunks 边界、branch ahead/behind |
-| `vibestation-core::pty` | 70% | PTY session 创建销毁、resize、mpsc 分发无丢失 |
-| `vibestation-core::security` | 90% | TaskRunner 白名单、命令 sanitize、路径注入 |
-| `vibestation-app` | 50% | IPC command 参数校验、error 序列化 |
+| Crate / 模块                 | 覆盖率目标 | 关键测试                                                             |
+| ---------------------------- | ---------- | -------------------------------------------------------------------- |
+| `vibestation-core::config`   | 85%        | config 解析、persistence 迁移、profile 导入边界（坏 TOML、空 plist） |
+| `vibestation-core::git`      | 80%        | logwalker 排序稳定性、diff hunks 边界、branch ahead/behind           |
+| `vibestation-core::pty`      | 70%        | PTY session 创建销毁、resize、mpsc 分发无丢失                        |
+| `vibestation-core::security` | 90%        | TaskRunner 白名单、命令 sanitize、路径注入                           |
+| `vibestation-app`            | 50%        | IPC command 参数校验、error 序列化                                   |
 
 工具：`cargo nextest` + `cargo tarpaulin`（mac/linux 都支持），CI 矩阵跑。
 
@@ -979,15 +1003,15 @@ app:crash                 { report }
 
 ### 8.4 性能基准
 
-| 指标 | 目标 | 测试方法 |
-|------|------|----------|
-| 冷启动到可用 | <2s（mac M1）/ <3s（linux）| `scripts/benchmark-startup.sh` |
-| 10 万 commit Log 首屏 | <500ms | `scripts/benchmark-gitlog.sh`（linux kernel）|
-| 切 Tab 延迟 | <50ms | Playwright 记录 |
-| 终端输出吞吐 | >10MB/s（`yes \| head -c 10M`）| 手动计时 |
-| 内存占用（5 workspace × 10 tab）| <500MB | Activity Monitor / `ps` |
-| 安装包大小（Tauri） | <30MB（mac dmg）/ <40MB（linux AppImage）| `ls -lh target/release/bundle/` |
-| 安装包大小（Electron fallback） | <80MB（mac dmg）/ <100MB（linux AppImage）| 同上 |
+| 指标                             | 目标                                       | 测试方法                                      |
+| -------------------------------- | ------------------------------------------ | --------------------------------------------- |
+| 冷启动到可用                     | <2s（mac M1）/ <3s（linux）                | `scripts/benchmark-startup.sh`                |
+| 10 万 commit Log 首屏            | <500ms                                     | `scripts/benchmark-gitlog.sh`（linux kernel） |
+| 切 Tab 延迟                      | <50ms                                      | Playwright 记录                               |
+| 终端输出吞吐                     | >10MB/s（`yes \| head -c 10M`）            | 手动计时                                      |
+| 内存占用（5 workspace × 10 tab） | <500MB                                     | Activity Monitor / `ps`                       |
+| 安装包大小（Tauri）              | <30MB（mac dmg）/ <40MB（linux AppImage）  | `ls -lh target/release/bundle/`               |
+| 安装包大小（Electron fallback）  | <80MB（mac dmg）/ <100MB（linux AppImage） | 同上                                          |
 
 benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归超 20% 报警。
 
@@ -996,43 +1020,44 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 ## 9. 风险登记册（v2 扩充至 30 条）
 
 > v2 调整说明：
+>
 > - R12 Wayland 升级至 CRITICAL（MVP 验收门槛）
 > - R13 commit graph 降级至 低/低（MVP 不做 rail 图，改列表 + 分支标签贴）
 > - R17 单人耗尽改实质缓解（明确"停摆触发条件"）
 > - 新增 R21-R30 共 10 条（notarization、Linux 分发、auto-updater、终端正确性、TaskRunner 安全、Git edge-case、状态恢复、商标、AI API 变更、telemetry 合规）
 
-| # | 风险 | 概率 | 影响 | 对策 | Owner | 触发时机 |
-|---|------|------|------|------|-------|----------|
-| R1 | Claude CLI 输出协议与 Codex 不同，解析失败 | 高 | 高 | Spike Day 5 实机录制样本；v1.0 W23 单独 spike 前不锁定实现 | 核心作者 | Spike Day 5 |
-| R2 | portable-pty 多 Tab Mutex 瓶颈 | 中 | 高 | 单读线程 + mpsc 分发 | 核心作者 | W2 |
-| R3 | git2 大仓库 log 慢到不可用 | 中 | 高 | Spike Day 3 benchmark；若慢则引入 gix 做读路径 | 核心作者 | W5 |
-| R4 | macOS GUI 启动 PATH 为空，CLI 找不到 | 高 | 中 | `fix-path-env` crate 必装 | 核心作者 | W1 |
-| R5 | Wayland 剪贴板 / 窗口管理 API 差异 | 中 | 中 | 使用 `tauri-plugin-clipboard-manager`，Wayland fallback 到 `wl-copy` | 核心作者 | W3 |
-| R6 | Monaco 体积爆炸拖累冷启动 | 高 | 中 | 自建 diff（diff npm + HTML 行对照），MVP 基础版 | 核心作者 | W7 |
-| R7 | Floem 诱惑（Rust 原生）走弯路 | 低 | 高 | 坚持 SolidJS 不动摇 | 核心作者 | 持续 |
-| R8 | npm postinstall 链过复杂 | 中 | 低 | 禁用 predev/prebuild 链，只保留 `gen:types` | 核心作者 | W1 |
-| R9 | git2 vendored-libgit2 首次编译慢（3-5 分钟）| 高 | 低 | CI 缓存 target/ + ~/.cargo/registry | DevOps | W1 |
-| R10 | alacritty_terminal 只发 git | 中 | 低 | MVP 不用 alacritty_terminal，只用 xterm.js | 核心作者 | 决策时 |
-| R11 | 多 workspace 文件监听爆炸（node_modules）| 高 | 中 | `notify-debouncer-mini` + .gitignore 模式忽略 | 核心作者 | W2 |
-| R12 | **Tauri 2 在 Ubuntu 24 Wayland 下不稳定** | **中** | **CRITICAL** | **Spike Week 0 Day 1-2 硬验证，失败回退 Electron 28+；该风险是 MVP 验收门槛** | 核心作者 | Spike Day 1-2 |
-| R13 | commit graph rail 算法复杂度低估 | 低 | 低 | **MVP 不做 rail，用列表 + 分支标签贴**；v0.2 W16 单独一周做 rail | 核心作者 | v0.2 W16 |
-| R14 | CLI session 边界判定不稳定 | 高 | 高 | v1.0 vision，MVP 不做；W23 专项 spike；三档策略：显式标记 > 时间窗口 > 手动 | 核心作者 | W23 |
-| R15 | 开源社区冷启动，无人 star/反馈 | 高 | 中 | 首发 Show HN + r/rust + r/selfhosted + HN；信号指标非数字 KPI | 核心作者 | W12 |
-| R16 | Apache-2.0 下有公司抄袭闭源 | 中 | 低 | Apache-2.0 已含 patent grant；README 强调原创性；关键 demo 视频留存 | 核心作者 | v1.0 后 |
-| R17 | 单人维护精力耗尽 | 高 | 高 | **停摆触发**：连续 2 周 < 5 小时投入 → 进入 §10.5 hibernation 模式，README 坦诚公开；v0.3 后主动招 1-2 个 co-maintainer | 核心作者 | 持续 |
-| R18 | 依赖大版本升级（gix 0.70+）破坏 API | 中 | 中 | Dependabot 开通 + 每月人工 review；锁 `Cargo.lock` | 核心作者 | 持续 |
-| R19 | Pane 嵌套布局触发 xterm.js 频繁 `fit` 调用导致性能抖动 | 中 | 中 | `ResizeObserver` + debounce 50ms；MVP 限制 1 层嵌套 | 核心作者 | W4 |
-| R20 | Pane 关闭时 PTY 子进程未 kill 造成 zombie | 高 | 中 | 关 Pane 必调 `MasterPty::kill()`；测试套件专门验证 PID 回收 | 核心作者 | W2 |
-| **R21** | **macOS notarization + Hardened Runtime 配置错误导致 dmg 在用户机打不开** | **高** | **CRITICAL** | W11 搭建 `notarize.yml` 流水线；Apple Developer ID 申请（需 1-2 周审核）；Entitlements.plist 准确配置；scripts/notarize-macos.sh 自动化；真机测试 Gatekeeper 启用场景 | 核心作者 | W11 |
-| R22 | Linux 分发碎片化（AppImage vs deb vs Flatpak vs Snap）| 中 | 中 | **AppImage 优先**（签名 + sha256 分发）；deb 次之（Debian/Ubuntu 官方风格）；Flatpak / Snap 交给社区贡献；文档明确支持分级 | 核心作者 | W11 |
-| R23 | auto-updater 错误导致用户无法回滚或收不到更新 | 中 | 高 | Tauri updater 签名验证；staged rollout（10% → 50% → 100%）；回滚机制（保留前一版本）；fail-closed 默认 | 核心作者 | v0.2+ |
-| **R24** | **终端正确性问题（IME/CJK/OSC52/mouse/alt-screen/tmux 兼容）** | **高** | **CRITICAL** | W11 专项验收矩阵（§10.6）；每项可 demo；不通过不 release；OSC52 剪贴板转发、bracketed paste、mouse reporting、alt-screen 切换、tmux 嵌套全测 | 核心作者 | W11 |
-| R25 | TaskRunner 任意命令执行被注入 | 中 | 高 | §13 安全边界：白名单机制 + 二次确认 + 最小权限；AI 回填 prompt sanitize；不开 sudo；不写系统目录 | 核心作者 | v0.1（基础） / v1.0（AI 回填） |
-| R26 | Git edge-case（worktree/submodule/LFS/nested repo/partial clone）行为异常 | 高 | 中 | Non-goals 声明 MVP 仅保证"不崩溃"；集成测试覆盖 5 种场景；v0.3-v1.0 渐进支持 | 核心作者 | W5 起 |
-| R27 | 本地状态损坏（rusqlite 文件损坏 / 升级迁移失败）导致用户数据丢失 | 中 | 高 | schema_version 字段 + 迁移测试；备份（`~/.config/vibestation/backups/`）；崩溃后启动时自检 + 可选回滚；提供手动导出/导入命令 | 核心作者 | v0.1 |
-| R28 | 商标 / 项目名冲突（"vibestation" 被他人注册）| 中 | 中 | v0.1 发布前做商标搜索（USPTO / EUIPO / CNIPA）；域名推到 W10 附近再决定（候选 `.app` / `.dev` / `.io`）；GitHub organization 预注册 | 核心作者 | W10-W11 |
-| R29 | AI 提供商 API 变更（Anthropic / OpenAI 折腾）破坏 CLI 集成 | 中 | 中 | 不直接调 API（让用户自己跑 Claude CLI / Codex CLI）；只解析输出；CLI 协议变化在 v1.0 AI-Aware 时才敏感，届时 W23 spike 验证 | 核心作者 | W23 |
-| R30 | 崩溃上报 / telemetry 合规（GDPR / CCPA）| 中 | 中 | 默认 `telemetry_enabled = false`；首次启动显式询问；仅收集匿名 crash report + 版本号；有明确 privacy policy；用户可随时导出 / 删除 | 核心作者 | W11 |
+| #       | 风险                                                                      | 概率   | 影响         | 对策                                                                                                                                                                  | Owner    | 触发时机                       |
+| ------- | ------------------------------------------------------------------------- | ------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------ |
+| R1      | Claude CLI 输出协议与 Codex 不同，解析失败                                | 高     | 高           | Spike Day 5 实机录制样本；v1.0 W23 单独 spike 前不锁定实现                                                                                                            | 核心作者 | Spike Day 5                    |
+| R2      | portable-pty 多 Tab Mutex 瓶颈                                            | 中     | 高           | 单读线程 + mpsc 分发                                                                                                                                                  | 核心作者 | W2                             |
+| R3      | git2 大仓库 log 慢到不可用                                                | 中     | 高           | Spike Day 3 benchmark；若慢则引入 gix 做读路径                                                                                                                        | 核心作者 | W5                             |
+| R4      | macOS GUI 启动 PATH 为空，CLI 找不到                                      | 高     | 中           | `fix-path-env` crate 必装                                                                                                                                             | 核心作者 | W1                             |
+| R5      | Wayland 剪贴板 / 窗口管理 API 差异                                        | 中     | 中           | 使用 `tauri-plugin-clipboard-manager`，Wayland fallback 到 `wl-copy`                                                                                                  | 核心作者 | W3                             |
+| R6      | Monaco 体积爆炸拖累冷启动                                                 | 高     | 中           | 自建 diff（diff npm + HTML 行对照），MVP 基础版                                                                                                                       | 核心作者 | W7                             |
+| R7      | Floem 诱惑（Rust 原生）走弯路                                             | 低     | 高           | 坚持 SolidJS 不动摇                                                                                                                                                   | 核心作者 | 持续                           |
+| R8      | npm postinstall 链过复杂                                                  | 中     | 低           | 禁用 predev/prebuild 链，只保留 `gen:types`                                                                                                                           | 核心作者 | W1                             |
+| R9      | git2 vendored-libgit2 首次编译慢（3-5 分钟）                              | 高     | 低           | CI 缓存 target/ + ~/.cargo/registry                                                                                                                                   | DevOps   | W1                             |
+| R10     | alacritty_terminal 只发 git                                               | 中     | 低           | MVP 不用 alacritty_terminal，只用 xterm.js                                                                                                                            | 核心作者 | 决策时                         |
+| R11     | 多 workspace 文件监听爆炸（node_modules）                                 | 高     | 中           | `notify-debouncer-mini` + .gitignore 模式忽略                                                                                                                         | 核心作者 | W2                             |
+| R12     | **Tauri 2 在 Ubuntu 24 Wayland 下不稳定**                                 | **中** | **CRITICAL** | **Spike Week 0 Day 1-2 硬验证，失败回退 Electron 28+；该风险是 MVP 验收门槛**                                                                                         | 核心作者 | Spike Day 1-2                  |
+| R13     | commit graph rail 算法复杂度低估                                          | 低     | 低           | **MVP 不做 rail，用列表 + 分支标签贴**；v0.2 W16 单独一周做 rail                                                                                                      | 核心作者 | v0.2 W16                       |
+| R14     | CLI session 边界判定不稳定                                                | 高     | 高           | v1.0 vision，MVP 不做；W23 专项 spike；三档策略：显式标记 > 时间窗口 > 手动                                                                                           | 核心作者 | W23                            |
+| R15     | 开源社区冷启动，无人 star/反馈                                            | 高     | 中           | 首发 Show HN + r/rust + r/selfhosted + HN；信号指标非数字 KPI                                                                                                         | 核心作者 | W12                            |
+| R16     | Apache-2.0 下有公司抄袭闭源                                               | 中     | 低           | Apache-2.0 已含 patent grant；README 强调原创性；关键 demo 视频留存                                                                                                   | 核心作者 | v1.0 后                        |
+| R17     | 单人维护精力耗尽                                                          | 高     | 高           | **停摆触发**：连续 2 周 < 5 小时投入 → 进入 §10.5 hibernation 模式，README 坦诚公开；v0.3 后主动招 1-2 个 co-maintainer                                               | 核心作者 | 持续                           |
+| R18     | 依赖大版本升级（gix 0.70+）破坏 API                                       | 中     | 中           | Dependabot 开通 + 每月人工 review；锁 `Cargo.lock`                                                                                                                    | 核心作者 | 持续                           |
+| R19     | Pane 嵌套布局触发 xterm.js 频繁 `fit` 调用导致性能抖动                    | 中     | 中           | `ResizeObserver` + debounce 50ms；MVP 限制 1 层嵌套                                                                                                                   | 核心作者 | W4                             |
+| R20     | Pane 关闭时 PTY 子进程未 kill 造成 zombie                                 | 高     | 中           | 关 Pane 必调 `MasterPty::kill()`；测试套件专门验证 PID 回收                                                                                                           | 核心作者 | W2                             |
+| **R21** | **macOS notarization + Hardened Runtime 配置错误导致 dmg 在用户机打不开** | **高** | **CRITICAL** | W11 搭建 `notarize.yml` 流水线；Apple Developer ID 申请（需 1-2 周审核）；Entitlements.plist 准确配置；scripts/notarize-macos.sh 自动化；真机测试 Gatekeeper 启用场景 | 核心作者 | W11                            |
+| R22     | Linux 分发碎片化（AppImage vs deb vs Flatpak vs Snap）                    | 中     | 中           | **AppImage 优先**（签名 + sha256 分发）；deb 次之（Debian/Ubuntu 官方风格）；Flatpak / Snap 交给社区贡献；文档明确支持分级                                            | 核心作者 | W11                            |
+| R23     | auto-updater 错误导致用户无法回滚或收不到更新                             | 中     | 高           | Tauri updater 签名验证；staged rollout（10% → 50% → 100%）；回滚机制（保留前一版本）；fail-closed 默认                                                                | 核心作者 | v0.2+                          |
+| **R24** | **终端正确性问题（IME/CJK/OSC52/mouse/alt-screen/tmux 兼容）**            | **高** | **CRITICAL** | W11 专项验收矩阵（§10.6）；每项可 demo；不通过不 release；OSC52 剪贴板转发、bracketed paste、mouse reporting、alt-screen 切换、tmux 嵌套全测                          | 核心作者 | W11                            |
+| R25     | TaskRunner 任意命令执行被注入                                             | 中     | 高           | §13 安全边界：白名单机制 + 二次确认 + 最小权限；AI 回填 prompt sanitize；不开 sudo；不写系统目录                                                                      | 核心作者 | v0.1（基础） / v1.0（AI 回填） |
+| R26     | Git edge-case（worktree/submodule/LFS/nested repo/partial clone）行为异常 | 高     | 中           | Non-goals 声明 MVP 仅保证"不崩溃"；集成测试覆盖 5 种场景；v0.3-v1.0 渐进支持                                                                                          | 核心作者 | W5 起                          |
+| R27     | 本地状态损坏（rusqlite 文件损坏 / 升级迁移失败）导致用户数据丢失          | 中     | 高           | schema_version 字段 + 迁移测试；备份（`~/.config/vibestation/backups/`）；崩溃后启动时自检 + 可选回滚；提供手动导出/导入命令                                          | 核心作者 | v0.1                           |
+| R28     | 商标 / 项目名冲突（"vibestation" 被他人注册）                             | 中     | 中           | v0.1 发布前做商标搜索（USPTO / EUIPO / CNIPA）；域名推到 W10 附近再决定（候选 `.app` / `.dev` / `.io`）；GitHub organization 预注册                                   | 核心作者 | W10-W11                        |
+| R29     | AI 提供商 API 变更（Anthropic / OpenAI 折腾）破坏 CLI 集成                | 中     | 中           | 不直接调 API（让用户自己跑 Claude CLI / Codex CLI）；只解析输出；CLI 协议变化在 v1.0 AI-Aware 时才敏感，届时 W23 spike 验证                                           | 核心作者 | W23                            |
+| R30     | 崩溃上报 / telemetry 合规（GDPR / CCPA）                                  | 中     | 中           | 默认 `telemetry_enabled = false`；首次启动显式询问；仅收集匿名 crash report + 版本号；有明确 privacy policy；用户可随时导出 / 删除                                    | 核心作者 | W11                            |
 
 ---
 
@@ -1063,6 +1088,7 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 - [ ] **终端正确性矩阵**（§10.6）100% 通过
 
 **砍到 v0.2**：
+
 - [ ] Push / Pull / Fetch
 - [ ] 自绘 commit rail graph
 - [ ] 分支 create / checkout / delete
@@ -1070,28 +1096,30 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 - [ ] 方向键跳邻居 / ⌘Enter 最大化
 
 **砍到 v0.3**：
+
 - [ ] Diff 复杂语法高亮
 - [ ] Rebase / Merge / Cherry-pick
 - [ ] Pop to External Terminal
 - [ ] Pane Detach
 
 **砍到 v1.0**：
+
 - [ ] AI-Aware Pane 联动
 - [ ] session ↔ commit 自动绑定
 - [ ] AI 一键回滚
 
 ### 10.2 性能指标
 
-| 指标 | 目标 | 验证方法 |
-|------|------|----------|
-| 冷启动（mac M1）| <2s（Tauri）/ <3s（Electron fallback）| 三次取均值 |
-| 冷启动（Ubuntu 24 x86）| <3s（Tauri）/ <4s（Electron fallback）| 同上 |
-| 10 万 commit Log 首屏 | <500ms | 用 linux kernel 仓库 |
-| 切 Tab 延迟 | <50ms | Playwright 记录 |
-| 10 Tab 并存内存 | <500MB | Activity Monitor |
-| 安装包（Tauri mac dmg）| <30MB | ls -lh |
-| 安装包（Tauri linux AppImage）| <40MB | ls -lh |
-| 安装包（Electron fallback mac dmg）| <80MB | ls -lh |
+| 指标                                | 目标                                   | 验证方法             |
+| ----------------------------------- | -------------------------------------- | -------------------- |
+| 冷启动（mac M1）                    | <2s（Tauri）/ <3s（Electron fallback） | 三次取均值           |
+| 冷启动（Ubuntu 24 x86）             | <3s（Tauri）/ <4s（Electron fallback） | 同上                 |
+| 10 万 commit Log 首屏               | <500ms                                 | 用 linux kernel 仓库 |
+| 切 Tab 延迟                         | <50ms                                  | Playwright 记录      |
+| 10 Tab 并存内存                     | <500MB                                 | Activity Monitor     |
+| 安装包（Tauri mac dmg）             | <30MB                                  | ls -lh               |
+| 安装包（Tauri linux AppImage）      | <40MB                                  | ls -lh               |
+| 安装包（Electron fallback mac dmg） | <80MB                                  | ls -lh               |
 
 ### 10.3 跨平台验收
 
@@ -1118,17 +1146,20 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 > 当个人投入时间出现下降，按以下树依次砍：
 
 **每周投入 ≤ 15 小时（正常 → 节能）**：
+
 - 砍配置导入 iTerm2 + Alacritty（只留 Ghostty；覆盖 Persona C，其他两个 persona 可手动配置）
 - 砍 Pane 分屏（只保留单 Pane；高级用户可用 tmux 在终端内分屏）
 - 双平台 → 仅 macOS（Linux 延后到 v0.2）
 
 **每周投入 ≤ 10 小时（节能 → 紧缩）**：
+
 - 仅保留核心三件套：多 Tab 终端 + Git Log 只读 + Git Status 只读
 - 砍 Commit UI（用户用终端 `git commit`）
 - 砍配置导入（用户手动编辑 TOML）
 - 砍 Diff 视图（用户用终端 `git diff`）
 
 **连续 2 周 < 5 小时投入（停摆触发）**：
+
 - 进入 **hibernation 模式**
 - README 顶部加明确 banner："项目维护者暂停中，v0.1 完成日期不定；欢迎 fork"
 - 不假装还在活跃开发
@@ -1140,23 +1171,23 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 
 > 终端产品的"及格线"，每项必须可 demo 才能 release v0.1。
 
-| # | 项 | 验收动作 | 通过标准 |
-|---|----|---------|----------|
-| T01 | IME 中文输入 | 在终端输入 `echo "你好世界"`（搜狗输入法）| 字符显示完整、光标位置正确、无候选框错位 |
-| T02 | IME 日文输入 | 输入假名转汉字 | 同上，Kotoeri / macOS 原生 IME |
-| T03 | CJK 双宽字符 | 输入 `echo "中文" \| wc -c` | 列宽计算正确（一个中文占 2 列）|
-| T04 | Bracketed paste | 粘贴多行 shell 脚本 | 不被当成每行 Enter 执行；`vim` / `zsh` / `fish` 均识别 |
-| T05 | OSC52 剪贴板转发 | tmux over SSH，远端 vim `:"*y`（yank to clipboard via OSC52）| 本地剪贴板收到内容 |
-| T06 | Mouse reporting | `vim` 鼠标滚动 / `htop` 鼠标点击 | 滚动平滑、点击响应 |
-| T07 | Alt-screen 切换 | 打开 `vim` / `less` / `htop` 再退出 | 退出后主屏 buffer 恢复、无残留 |
-| T08 | tmux 嵌套 | 在终端内跑 `tmux`，再开多 pane | 分屏/快捷键/滚动均正常 |
-| T09 | ANSI 256 / truecolor | `echo $'\e[38;2;255;100;50mhello\e[0m'` | 显示指定 RGB |
-| T10 | ANSI 边界 | 超长单行（10k 字符）输出 | 不卡顿、不崩溃 |
-| T11 | resize 响应 | 窗口大小变化 | xterm 正确 fit，无错位 |
-| T12 | 快速大量输出 | `yes \| head -c 100M` | 不丢字、CPU < 单核 80% |
-| T13 | UTF-8 emoji | `echo "😀 🎉 👨‍💻"` | 宽度正确、组合字符合并显示 |
-| T14 | Shell 启动环境 | macOS GUI 启动后 `echo $PATH` | 包含 brew / asdf / mise 等（fix-path-env 生效）|
-| T15 | 崩溃后子进程回收 | kill -9 应用 | `ps aux` 无 zombie 子进程 |
+| #   | 项                   | 验收动作                                                      | 通过标准                                               |
+| --- | -------------------- | ------------------------------------------------------------- | ------------------------------------------------------ |
+| T01 | IME 中文输入         | 在终端输入 `echo "你好世界"`（搜狗输入法）                    | 字符显示完整、光标位置正确、无候选框错位               |
+| T02 | IME 日文输入         | 输入假名转汉字                                                | 同上，Kotoeri / macOS 原生 IME                         |
+| T03 | CJK 双宽字符         | 输入 `echo "中文" \| wc -c`                                   | 列宽计算正确（一个中文占 2 列）                        |
+| T04 | Bracketed paste      | 粘贴多行 shell 脚本                                           | 不被当成每行 Enter 执行；`vim` / `zsh` / `fish` 均识别 |
+| T05 | OSC52 剪贴板转发     | tmux over SSH，远端 vim `:"*y`（yank to clipboard via OSC52） | 本地剪贴板收到内容                                     |
+| T06 | Mouse reporting      | `vim` 鼠标滚动 / `htop` 鼠标点击                              | 滚动平滑、点击响应                                     |
+| T07 | Alt-screen 切换      | 打开 `vim` / `less` / `htop` 再退出                           | 退出后主屏 buffer 恢复、无残留                         |
+| T08 | tmux 嵌套            | 在终端内跑 `tmux`，再开多 pane                                | 分屏/快捷键/滚动均正常                                 |
+| T09 | ANSI 256 / truecolor | `echo $'\e[38;2;255;100;50mhello\e[0m'`                       | 显示指定 RGB                                           |
+| T10 | ANSI 边界            | 超长单行（10k 字符）输出                                      | 不卡顿、不崩溃                                         |
+| T11 | resize 响应          | 窗口大小变化                                                  | xterm 正确 fit，无错位                                 |
+| T12 | 快速大量输出         | `yes \| head -c 100M`                                         | 不丢字、CPU < 单核 80%                                 |
+| T13 | UTF-8 emoji          | `echo "😀 🎉 👨‍💻"`                                             | 宽度正确、组合字符合并显示                             |
+| T14 | Shell 启动环境       | macOS GUI 启动后 `echo $PATH`                                 | 包含 brew / asdf / mise 等（fix-path-env 生效）        |
+| T15 | 崩溃后子进程回收     | kill -9 应用                                                  | `ps aux` 无 zombie 子进程                              |
 
 ---
 
@@ -1180,6 +1211,7 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 ### 11.2 README 结构（v2 调整）
 
 **英文主 README**（MVP 发布时）：
+
 1. 一行 slogan：**"Multi-tab terminal + JetBrains-grade Git workbench for Claude CLI / Codex CLI users"**（**无 "Mission Control" / "AI session aware"**）
 2. 一张动图 demo：多 Tab 终端 + Git Log 列表 + Commit
 3. Why Vibestation?（3 段故事化，聚焦终端 + Git 工作台场景，不讲 AI session）
@@ -1220,12 +1252,12 @@ benchmark 结果写入 `docs/benchmarks/`，CI 跑完自动 PR 更新，回归�
 ```yaml
 # .github/workflows/ci.yml 概要
 jobs:
-  lint:           # cargo fmt / clippy / pnpm eslint / pnpm stylelint
-  test-rust:      # matrix: [ubuntu-24.04, macos-14], cargo nextest
-  test-frontend:  # vitest + playwright(headed=false)
-  build:          # matrix 构建 dmg/AppImage，产物上传
-  benchmark:      # 跑 scripts/benchmark-*.sh，结果存 artifact
-  security:       # cargo audit + pnpm audit + CodeQL
+  lint: # cargo fmt / clippy / pnpm eslint / pnpm stylelint
+  test-rust: # matrix: [ubuntu-24.04, macos-14], cargo nextest
+  test-frontend: # vitest + playwright(headed=false)
+  build: # matrix 构建 dmg/AppImage，产物上传
+  benchmark: # 跑 scripts/benchmark-*.sh，结果存 artifact
+  security: # cargo audit + pnpm audit + CodeQL
   terminal-matrix: # v2 新增：运行 §10.6 自动化子集
 ```
 
@@ -1245,11 +1277,13 @@ jobs:
 ### 12.2 v0.1 发布日（W12）
 
 **上午**（UTC+8）：
+
 - Show HN: "Show HN: Vibestation – A multi-tab terminal with JetBrains-grade Git workbench"（**不用 Mission Control 字样**）
 - r/rust、r/commandline、r/linux、r/macapps
 - V2EX、即刻
 
 **下午**：
+
 - Product Hunt（需要准备好 product image、gallery、maker comment）
 - Twitter 发布动图 demo
 
@@ -1258,22 +1292,26 @@ jobs:
 > v1 的 "W14 1k stars / W25 2k stars" 是拍脑袋数字。v2 改为定性信号：
 
 **v0.1 发布 72 小时内（理想场景）**：
+
 - Show HN 首页（front page）至少 4 小时
 - r/rust 或 r/commandline 100+ upvotes
 - 3 篇独立开发者博客提及（非付费）
 - 10+ alpha 测试者主动提供反馈（issue / Discord / 邮件）
 
 **v0.2（W17）**：
+
 - GitHub Issues 有健康活跃度（单周 >3 issue 创建、triage 及时）
 - 第一个外部 PR 合并（无论大小）
 - 至少 1 个独立用户录制使用视频
 
 **v0.3（W22）**：
+
 - 月度 HN 二次曝光（如新 feature 帖）
 - Discord 社区 ≥ 50 人
 - 至少 1 家媒体报道（Console Weekly / This Week in Rust / 少数派 / Sspai）
 
 **v1.0（W30）**：
+
 - Sponsors 开通，首月 >5 人赞助（无论金额）
 - ≥ 3 位 co-maintainer 候选（核心作者邀请 + 反向申请）
 
@@ -1295,13 +1333,13 @@ Vibestation 允许执行任意 shell 命令（终端本身就是），但 TaskRu
 
 ### 13.1 威胁模型
 
-| 威胁 | 场景 | 严重度 |
-|------|------|--------|
-| 恶意 TaskRunner 命令注入 | Smart Layout TOML 包含 `rm -rf $HOME` 类命令 | 高 |
-| AI 回填 prompt 注入（v1.0）| Claude 输出被 attacker 控制（如 git log 中的 commit message），解析后自动执行 | 高 |
-| 配置文件污染 | 用户导入的 Ghostty 配置包含恶意 `env` | 中 |
-| 钓鱼 workspace 路径 | 用户打开第三方项目，里面 `.git/hooks` 被触发 | 中 |
-| 剪贴板嗅探 | OSC52 剪贴板写入被恶意程序监听 | 低 |
+| 威胁                        | 场景                                                                          | 严重度 |
+| --------------------------- | ----------------------------------------------------------------------------- | ------ |
+| 恶意 TaskRunner 命令注入    | Smart Layout TOML 包含 `rm -rf $HOME` 类命令                                  | 高     |
+| AI 回填 prompt 注入（v1.0） | Claude 输出被 attacker 控制（如 git log 中的 commit message），解析后自动执行 | 高     |
+| 配置文件污染                | 用户导入的 Ghostty 配置包含恶意 `env`                                         | 中     |
+| 钓鱼 workspace 路径         | 用户打开第三方项目，里面 `.git/hooks` 被触发                                  | 中     |
+| 剪贴板嗅探                  | OSC52 剪贴板写入被恶意程序监听                                                | 低     |
 
 ### 13.2 原则
 
@@ -1314,16 +1352,16 @@ Vibestation 允许执行任意 shell 命令（终端本身就是），但 TaskRu
 
 首批白名单（`crates/vibestation-core/src/security/allowlist.rs`）：
 
-| 命令前缀 | 说明 |
-|---------|------|
-| `cargo {build,test,check,clippy,watch,run,fmt}` | Rust 工具链 |
-| `npm {install,run,test,build,ci}` / `pnpm *` / `yarn *` | JS 包管理 |
-| `pytest` / `python -m pytest` / `uv run *` / `poetry run *` | Python 测试/执行 |
-| `go {build,test,run,vet,mod}` | Go 工具链 |
-| `make {,build,test,clean,install}` | make 常用目标（带参数） |
-| `git {status,log,diff,branch,add,commit}` | Git 只读 + 基础写 |
-| `docker {compose,ps,logs}` | Docker 常用只读 |
-| `node` / `python` / `ruby` / `deno` | 脚本解释器（无 -c 参数注入） |
+| 命令前缀                                                    | 说明                         |
+| ----------------------------------------------------------- | ---------------------------- |
+| `cargo {build,test,check,clippy,watch,run,fmt}`             | Rust 工具链                  |
+| `npm {install,run,test,build,ci}` / `pnpm *` / `yarn *`     | JS 包管理                    |
+| `pytest` / `python -m pytest` / `uv run *` / `poetry run *` | Python 测试/执行             |
+| `go {build,test,run,vet,mod}`                               | Go 工具链                    |
+| `make {,build,test,clean,install}`                          | make 常用目标（带参数）      |
+| `git {status,log,diff,branch,add,commit}`                   | Git 只读 + 基础写            |
+| `docker {compose,ps,logs}`                                  | Docker 常用只读              |
+| `node` / `python` / `ruby` / `deno`                         | 脚本解释器（无 -c 参数注入） |
 
 不在白名单的命令 → **首次运行弹确认框**（"Run `xxx`? Not in allowlist"），用户勾选"为此 workspace 记住"后下次不再提示。
 
@@ -1400,14 +1438,14 @@ jobs:
 
 ### 14.2 Linux 分发策略
 
-| 格式 | 优先级 | 适用 | 投入 |
-|------|--------|------|------|
-| **AppImage** | 优先 | Ubuntu 22/24、Fedora、Arch | v0.1 必做 |
-| **.tar.xz** | 次之 | 手动安装、Docker 内 | v0.1 必做 |
-| **.deb** | 次之 | Debian / Ubuntu 官方风格 | v0.2 |
-| **Flatpak** | 社区驱动 | GNOME/KDE 软件中心 | v0.3+（欢迎 PR）|
-| **Snap** | 社区驱动 | Ubuntu Store | v0.3+（欢迎 PR）|
-| **AUR (Arch)** | 社区驱动 | Arch 用户 | v0.2+（欢迎 PR）|
+| 格式           | 优先级   | 适用                       | 投入             |
+| -------------- | -------- | -------------------------- | ---------------- |
+| **AppImage**   | 优先     | Ubuntu 22/24、Fedora、Arch | v0.1 必做        |
+| **.tar.xz**    | 次之     | 手动安装、Docker 内        | v0.1 必做        |
+| **.deb**       | 次之     | Debian / Ubuntu 官方风格   | v0.2             |
+| **Flatpak**    | 社区驱动 | GNOME/KDE 软件中心         | v0.3+（欢迎 PR） |
+| **Snap**       | 社区驱动 | Ubuntu Store               | v0.3+（欢迎 PR） |
+| **AUR (Arch)** | 社区驱动 | Arch 用户                  | v0.2+（欢迎 PR） |
 
 #### 14.2.1 AppImage 签名与验证
 
@@ -1466,29 +1504,29 @@ Tauri 内置 updater，Electron fallback 用 `electron-updater`。共同要求�
 
 v2 由 5 天扩展为 **5-6 天**，新增 redb vs rusqlite benchmark、Tauri Pass/Fail 更细判据。
 
-| Day | 任务 | 产出 | 通过/失败后续 |
-|-----|------|------|---------------|
-| D1 | **Tauri 2 在 mac + Ubuntu Wayland + Ubuntu X11 启动** | 空壳三平台启动、冷启动 < 2s / 3s / 3s、IME 初测 | 通过 → D2 继续 Tauri；**失败 → D2 切 Electron 28+ spike** |
-| D2 | **Tauri 硬通过矩阵** + **Electron fallback 验证（若 D1 失败）** | §3.1.1 判据表填写完毕；锁定 Tauri 或 Electron；写入 ADR | 选定框架 → D3 |
-| D3 | **git2 读 commit log + gix 对比 benchmark** | linux kernel 仓库（100 万 commit）log benchmark 数据表；决定是否引入 gix 做读路径；写入 ADR | git2 足够 → MVP 用纯 git2；gix 显著更快 → 引入 gix |
-| D4 | **redb vs rusqlite benchmark** + **git2 写 commit 打通** | 10 workspace × 100 profile × 10k 快照读写 P99 对比；ADR 锁定持久化；本地 git commit 成功 | 选定持久化 → D5 |
-| D5 | **portable-pty 单读 + mpsc + xterm 5.5**；多 Tab 容器 | 单 Tab `yes`/`htop` 10 秒不卡；4 Tab 并存；PTY benchmark 吞吐 | 通过 → D6 |
-| D6 | **实机跑 Claude CLI + Codex CLI**；macOS Developer 账号申请启动 | Claude CLI / Codex CLI 输出样本录制；协议初探；Apple Dev Program 申请提交 | - |
+| Day | 任务                                                            | 产出                                                                                        | 通过/失败后续                                             |
+| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| D1  | **Tauri 2 在 mac + Ubuntu Wayland + Ubuntu X11 启动**           | 空壳三平台启动、冷启动 < 2s / 3s / 3s、IME 初测                                             | 通过 → D2 继续 Tauri；**失败 → D2 切 Electron 28+ spike** |
+| D2  | **Tauri 硬通过矩阵** + **Electron fallback 验证（若 D1 失败）** | §3.1.1 判据表填写完毕；锁定 Tauri 或 Electron；写入 ADR                                     | 选定框架 → D3                                             |
+| D3  | **git2 读 commit log + gix 对比 benchmark**                     | linux kernel 仓库（100 万 commit）log benchmark 数据表；决定是否引入 gix 做读路径；写入 ADR | git2 足够 → MVP 用纯 git2；gix 显著更快 → 引入 gix        |
+| D4  | **redb vs rusqlite benchmark** + **git2 写 commit 打通**        | 10 workspace × 100 profile × 10k 快照读写 P99 对比；ADR 锁定持久化；本地 git commit 成功    | 选定持久化 → D5                                           |
+| D5  | **portable-pty 单读 + mpsc + xterm 5.5**；多 Tab 容器           | 单 Tab `yes`/`htop` 10 秒不卡；4 Tab 并存；PTY benchmark 吞吐                               | 通过 → D6                                                 |
+| D6  | **实机跑 Claude CLI + Codex CLI**；macOS Developer 账号申请启动 | Claude CLI / Codex CLI 输出样本录制；协议初探；Apple Dev Program 申请提交                   | -                                                         |
 
 ### Spike 验收表（W1 首日交付）
 
-| 风险点 | 结论（通过/有坑/需换方案）| 证据 |
-|--------|---------------------------|------|
-| Tauri 2 on Wayland | | 截图 + 启动耗时 + IME 视频 |
-| Tauri 2 on macOS | | 同上 |
-| Electron 28+ fallback（若触发）| | 构建产物 + 冷启动数据 |
-| PTY 多 Tab 吞吐 | | benchmark 数据 |
-| git2 大仓库 log | | benchmark 数据 |
-| gix vs git2（若评估）| | benchmark 数据 |
-| redb vs rusqlite | | benchmark 数据 |
-| Claude CLI 在 PTY 里 | | 录屏 + 输出样本 |
-| macOS PATH 空问题 | | fix-path-env 验证结果 |
-| Apple Developer Program | | 申请提交日期、预计审核完成日期 |
+| 风险点                          | 结论（通过/有坑/需换方案） | 证据                           |
+| ------------------------------- | -------------------------- | ------------------------------ |
+| Tauri 2 on Wayland              |                            | 截图 + 启动耗时 + IME 视频     |
+| Tauri 2 on macOS                |                            | 同上                           |
+| Electron 28+ fallback（若触发） |                            | 构建产物 + 冷启动数据          |
+| PTY 多 Tab 吞吐                 |                            | benchmark 数据                 |
+| git2 大仓库 log                 |                            | benchmark 数据                 |
+| gix vs git2（若评估）           |                            | benchmark 数据                 |
+| redb vs rusqlite                |                            | benchmark 数据                 |
+| Claude CLI 在 PTY 里            |                            | 录屏 + 输出样本                |
+| macOS PATH 空问题               |                            | fix-path-env 验证结果          |
+| Apple Developer Program         |                            | 申请提交日期、预计审核完成日期 |
 
 ---
 
@@ -1496,3 +1534,13 @@ v2 由 5 天扩展为 **5-6 天**，新增 redb vs rusqlite benchmark、Tauri Pa
 
 本文档（v2）为 Vibestation 项目从 Spike（2026-04-20 周）到 v1.0 GA（2026-11 下旬）的完整实施指南，共 14 章 + 附录，预计总投入 **28-30 周 × 20-25 小时 ≈ 600-750 小时**（带 20% buffer）。所有技术决策可追溯到 `terminal-git-workbench-tech-research.md` 调研报告、`vibestation-codex-review-and-response.md` 评审与应对，或本文第 9 节风险登记册。
 
+---
+
+## v2.x 增补 · ADR-018 R1 greenlight（2026-05-16 · A 栏 sync · 章末追加注 · 不重排既有章节）
+
+> 本节是 CLAUDE.md 决策表 #3 变更的 implementation-plan.md 侧同步（A 栏变更流程 ⚠️ 要求二者都改）。**既有 §1.1 / §5.3.6 / §9 R1 / 附录 W23·W25 / 第 24 行叙事表的"AI-Aware MVP 不实现 / R1 HIGH/HIGH"措辞结构保持不动**（禁区：禁止重排章节结构）· 本注追加为唯一权威覆盖。
+
+- **R1（AI-Aware parser 可行性）HIGH/HIGH → greenlight 降级**：[ADR-018](./adr/ADR-018-ai-aware-r1-rejudge.md)（accepted 2026-05-16 · Arbiter "你直接执行" · supersede [ADR-017](./adr/ADR-017-ai-aware-deferred.md)）。依据：SPIKE-07.5 路径 A 结构化模式（`claude -p --output-format stream-json` / `codex exec --json`）实测 —— locked-§F 非退化 29/30=96.7% · carve-out(b) 重校准非退化 30/30=100% · claude 18/18=100% · panic 0（[SPIKE-07.5-report](./spikes/SPIKE-07.5-report.md)）。SPIKE-07 §H 路径 3 deferred 实测确认为 SPIKE-06 交互 TUI corpus 方法论 artifact，非 parser 能力墙。
+- **覆盖既有"AI-Aware MVP 不实现 / README 不宣传"措辞的 feasibility 部分**：AI-Aware Pane 联动 **v1.0 实施 unblocked**，MVP-18/19/20 blocker（SPIKE-07.5 PASS）已满足，解锁各自 ready-gate（established methodology 独立推进 · 非本注自动启动）。§9 R1 风险等级以本注为准（greenlight）。
+- **对外文案禁区保守保留**（未覆盖 §5.3.6 的"README 不宣传"营销侧）：greenlight 解锁实施 ≠ 解锁营销，未建先宣有风险。README / landing / 对外宣传**仍不得提及** AI-Aware / Mission Control / AI session aware，待 v1.0 实际 ship（[ADR-009](./adr/ADR-009-ai-aware-v1-vision.md) external-comms discipline 沿用 · ADR-018 决议 4 · Arbiter 可单独指令解除）。
+- **AI-Aware = v1.0 vision 定位不变**：ADR-018 仅降级 R1 风险 + supersede ADR-017 的 deferral，不 supersede ADR-009 的 vision-scoping。

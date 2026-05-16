@@ -1,0 +1,4 @@
+{"type":"thread.started","thread_id":"<REDACTED_UUID>"}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_0","type":"agent_message","text":"```text\n\\x1b[1;32mSUCCESS\\x1b[0m \\x1b[36m任务已完成\\x1b[0m\n```\n\n```json\n{\"a\":1,\"b\":[2,3]}\n```"}}
+{"type":"turn.completed","usage":{"input_tokens":25107,"cached_input_tokens":6528,"output_tokens":275,"reasoning_output_tokens":222}}

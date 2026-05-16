@@ -1,0 +1,16 @@
+{
+  "sample": "claude_happy_path_2",
+  "redacted_fields": [
+    {
+      "kind": "path",
+      "count": 64
+    },
+    {
+      "kind": "uuid",
+      "count": 210
+    }
+  ],
+  "source_lines": 56,
+  "non_json_passthrough": 0,
+  "redaction_tool": "SPIKE-07.5/tools/redact.py v2 (structure-preserving)"
+}

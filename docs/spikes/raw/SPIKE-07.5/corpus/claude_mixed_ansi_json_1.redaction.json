@@ -1,0 +1,16 @@
+{
+  "sample": "claude_mixed_ansi_json_1",
+  "redacted_fields": [
+    {
+      "kind": "path",
+      "count": 194
+    },
+    {
+      "kind": "uuid",
+      "count": 551
+    }
+  ],
+  "source_lines": 130,
+  "non_json_passthrough": 0,
+  "redaction_tool": "SPIKE-07.5/tools/redact.py v2 (structure-preserving)"
+}

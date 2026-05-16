@@ -1,0 +1,16 @@
+{
+  "sample": "claude_network_error_3",
+  "redacted_fields": [
+    {
+      "kind": "path",
+      "count": 16
+    },
+    {
+      "kind": "uuid",
+      "count": 93
+    }
+  ],
+  "source_lines": 35,
+  "non_json_passthrough": 0,
+  "redaction_tool": "SPIKE-07.5/tools/redact.py v2 (structure-preserving)"
+}

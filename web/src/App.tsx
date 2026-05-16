@@ -23,6 +23,7 @@ import {
   useRemoteSyncStatus,
   type RemoteSyncDirection,
 } from "./stores/remote-sync-status";
+import { PaneLinksProvider } from "./stores/paneLinks-context";
 import { ThemeProvider } from "./stores/theme";
 import { useSettings, reloadSettings } from "./stores/settings";
 import { PrimarySidebar } from "./components/PrimarySidebar";
@@ -1218,29 +1219,31 @@ const App: Component = () => {
             return view.kind === "workspace" ? view.ws : null;
           }}
         >
-          <LayoutShell
-            workspaces={workspaces}
-            currentView={currentView}
-            activeDiff={activeDiff}
-            ipc={ipc}
-            version={version}
-            dbReady={dbReady}
-            loading={loading}
-            deleteConfirm={deleteConfirm}
-            error={error}
-            onOpen={handleOpenWorkspace}
-            onCreate={handleCreateWorkspace}
-            onDeleteConfirm={(id) => setDeleteConfirm(id)}
-            onDeleteExecute={handleDeleteWorkspace}
-            onDeleteCancel={() => setDeleteConfirm(null)}
-            onDismissError={() => setError(null)}
-            onOpenDiff={handleOpenDiff}
-            onCloseDiff={() => setActiveDiff(null)}
-            onCloseWorkspaceView={handleCloseWorkspaceView}
-          />
-          <Show when={dbReady() && !telemetryDecided()}>
-            <TelemetryOptInModal />
-          </Show>
+          <PaneLinksProvider>
+            <LayoutShell
+              workspaces={workspaces}
+              currentView={currentView}
+              activeDiff={activeDiff}
+              ipc={ipc}
+              version={version}
+              dbReady={dbReady}
+              loading={loading}
+              deleteConfirm={deleteConfirm}
+              error={error}
+              onOpen={handleOpenWorkspace}
+              onCreate={handleCreateWorkspace}
+              onDeleteConfirm={(id) => setDeleteConfirm(id)}
+              onDeleteExecute={handleDeleteWorkspace}
+              onDeleteCancel={() => setDeleteConfirm(null)}
+              onDismissError={() => setError(null)}
+              onOpenDiff={handleOpenDiff}
+              onCloseDiff={() => setActiveDiff(null)}
+              onCloseWorkspaceView={handleCloseWorkspaceView}
+            />
+            <Show when={dbReady() && !telemetryDecided()}>
+              <TelemetryOptInModal />
+            </Show>
+          </PaneLinksProvider>
         </RemoteSyncStatusProvider>
       </LayoutProvider>
     </ThemeProvider>

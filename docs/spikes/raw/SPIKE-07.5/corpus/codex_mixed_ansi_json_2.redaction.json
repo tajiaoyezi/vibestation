@@ -7,5 +7,6 @@
     }
   ],
   "source_lines": 4,
-  "redaction_tool": "SPIKE-07.5/tools/redact.py"
+  "non_json_passthrough": 0,
+  "redaction_tool": "SPIKE-07.5/tools/redact.py v2 (structure-preserving)"
 }

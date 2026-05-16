@@ -1,0 +1,7 @@
+[1m[32m   Compiling[0m project v0.1.0
+[1m[31merror[0m[1m: expected `;`, found `}`[0m
+{"reason":"compiler-message","message":{"code":{"code":"E0425"},"level":"error","spans":[{"file_name":"/workspace/project/src/main.rs","line_start":12,"column_start":5,"line_end":12,"column_end":18}],"rendered":"error[E0425]: cannot find value `count` in this scope"}}
+[1m[33mwarning[0m: unused variable: `tmp`
+{"reason":"compiler-message","message":{"code":null,"level":"warning","spans":[{"file_name":"/workspace/project/src/util.rs","line_start":7,"column_start":9}],"rendered":"warning: unused variable: `tmp`"}}
+{"reason":"build-finished","success":false}
+[31m[1merror[0m: could not compile `project` (bin "app") due to 1 previous error

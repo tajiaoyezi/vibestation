@@ -18,7 +18,7 @@ reviewer: Codex CLI · self-review
 
 # MVP-18: AI-Aware Pane 联动
 
-> **状态**：`in-progress`（owner: Claude Code · 2026-05-16 认领实施 · 实施前置 SPIKE-07 PASS **已满足**：SPIKE-07.5 路径 A R1 greenlight · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · MVP-14 Phase A/B 已就绪）· **Phase A backend 已实现+merged**（migration/验证器/DAO 全 CRUD/§K.5 PaneLinkError/`pane:*` IPC 4 命令/14 §K.3 ts-rs binding #344 · §F.1 typed fixtures + §E B 集成测试 #347 · Phase B store 逻辑 binding-independent #346 · parser_bridge/sanitize #345 · §F.3 失败 fixture corpus #348 · 均主 agent §2.14 独立 review）· **待续**：Phase B Wave-2（`paneLinkContract.ts` seam → `@/bindings/*` + 组件 UI D.1-D.5 + a11y H.\*）· Phase C failure wire（`ParserBridgeError→PaneLinkError::Parser*` 边界 map + `pane:trigger`/`pane:build-failed` 事件 + `pane:failure:preview_prompt`）· Phase D runtime evidence。§E acceptance 框按多 phase 任务模式留最终 Phase D 收尾 gate 统一回勾（避免半勾）
+> **状态**：`in-progress`（owner: Claude Code · 2026-05-16 认领实施 · 实施前置 SPIKE-07 PASS **已满足**：SPIKE-07.5 路径 A R1 greenlight · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · MVP-14 Phase A/B 已就绪）· **Phase A backend 已实现+merged**（#344-348 · 均主 agent §2.14 独立 review）· **Phase B Wave-2 已 merged**（#353：seam → bindings + D.1-D.5 组件 + a11y）· **Phase B Wave-3 已 merged**（#356：store 单一真相 `PaneLinkView` · 删死 seam `paneLinkContract.ts`）· **Phase C backend wire 已 merged**（#354：`ParserBridgeError→PaneLinkError` 边界 map + `pane:build-failed` 事件 + `pane:failure:preview_prompt` 命令）· **待续**（前端集成层 · Arbiter 2026-05-16 拍板 Option 3 = 建 AI draft-buffer 抽象完整实现 D.2/D.5）：Wave 1（并行）：1-A plumbing（`paneLinkApi.ts`+`paneLinks-context.tsx`+`App.tsx` Provider+4 事件订阅 · Codex）· 1-B draft-buffer（`paneDrafts.ts`+`PaneDraftComposer.tsx` merge-preview · Cursor）· 1-C backend contract 审计（Droid）· 1-D 本 doc-sync（Grok）；Wave 2（串行 · 单 owner）：`PaneTerminal.tsx` 一次性集成（挂 chip/badge/callout/error/composer + 扩 PaneTerminalApi + Insert→preview→draft 全流程）；Wave 3：Playwright E2E + a11y/perf；Phase D runtime evidence（5+ 截图/录屏 · macOS+Linux dev mode）= Arbiter playbook 窗口触发。§E acceptance 框按多 phase 任务模式留最终 Phase D 收尾 gate 统一回勾（避免半勾）
 > **依赖**：[MVP-14](./MVP-14-pane-advanced-layout.md)（Phase A/B 已就绪：LayoutNode schema / Pane identity / workspace 隔离 —— 本 MVP 只复用这些；MVP-14 Phase C/D 与本 MVP 解耦）+ [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（CLI 协议 parser 验证必须 PASS 后才能实施）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · [`implementation-plan.md §5.3.6`](../implementation-plan.md) · [`implementation-plan.md §1.1`](../implementation-plan.md)
 > **详化时间**：2026-05-14 session 31 · Codex CLI self-review（单人项目 v2-D.2 模式）
@@ -343,6 +343,8 @@ Expected frontend files:
 - `web/src/panels/Terminal/PaneLinkPopover.tsx` for create/manage UI.
 - Tests under `web/tests/panels/Terminal/pane-linking/`.
 
+**实际落地校准（2026-05-16）**：spec 原 sketch 用 `PaneHeader.tsx` / `PaneLinkPopover.tsx`；实际落地命名 = `PaneLinkChip.tsx` + `RunnerSourceBadge.tsx`（mount 进 `PaneTerminal.tsx` `.vs-pane-actions` · Wave 2）· `LinkManagePopover.tsx`（D.4）· `PaneLinkErrorState.tsx`（D.5）· store `paneLinks.ts`（`PaneLinkView` 单一真相 · #356）· 新增集成层 `paneLinkApi.ts`+`paneLinks-context.tsx`（Wave 1-A）。
+
 ### I.3 Phase C file ownership
 
 Expected parser and feedback files:
@@ -351,6 +353,8 @@ Expected parser and feedback files:
 - `crates/app/src/pane_failure.rs` for failure event plumbing.
 - `web/src/panels/Terminal/PaneFailureCallout.tsx`.
 - E2E under `web/tests/e2e/pane-linking.spec.ts`.
+
+**实际落地校准（2026-05-16）**：spec 原 sketch 用 `PaneFailureCallout.tsx`；实际 = `FailureCallout.tsx`（D.3）· 新增 draft-buffer `paneDrafts.ts`+`PaneDraftComposer.tsx`（Wave 1-B · Option 3 实现 D.2/D.5）· E2E `web/tests/e2e/pane-linking.spec.ts`（Wave 3）。
 
 ### I.4 Phase D evidence
 

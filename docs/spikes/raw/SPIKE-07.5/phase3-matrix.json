@@ -1,0 +1,1338 @@
+{
+  "total_samples": 36,
+  "panics": 0,
+  "overall_pass": 32,
+  "overall_accuracy": 88.88888888888889,
+  "nondegenerate_pass": 29,
+  "nondegenerate_total": 30,
+  "nondegenerate_accuracy": 96.66666666666667,
+  "per_scenario": {
+    "auth_fail": {
+      "pass": 3,
+      "total": 6,
+      "accuracy": 50.0,
+      "mean_unrecognized": 0.0
+    },
+    "happy_path": {
+      "pass": 6,
+      "total": 6,
+      "accuracy": 100.0,
+      "mean_unrecognized": 0.008771929824561403
+    },
+    "interrupt_residual": {
+      "pass": 6,
+      "total": 6,
+      "accuracy": 100.0,
+      "mean_unrecognized": 0.0
+    },
+    "long_stream": {
+      "pass": 6,
+      "total": 6,
+      "accuracy": 100.0,
+      "mean_unrecognized": 0.008771929824561403
+    },
+    "mixed_ansi_json": {
+      "pass": 5,
+      "total": 6,
+      "accuracy": 83.33333333333334,
+      "mean_unrecognized": 0.012307901536787706
+    },
+    "network_error": {
+      "pass": 6,
+      "total": 6,
+      "accuracy": 100.0,
+      "mean_unrecognized": 0.13513513513513514
+    }
+  },
+  "per_cli": {
+    "claude": {
+      "pass": 18,
+      "total": 18,
+      "accuracy": 100.0
+    },
+    "codex": {
+      "pass": 14,
+      "total": 18,
+      "accuracy": 77.77777777777779
+    }
+  },
+  "baseline": {
+    "parser_errdetect_accuracy": 91.66666666666666,
+    "keyword_baseline_accuracy": 88.88888888888889,
+    "lineprefix_baseline_accuracy": 66.66666666666666
+  },
+  "rows": [
+    {
+      "cli": "claude",
+      "scenario": "auth_fail",
+      "take": 1,
+      "events": 27,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "27 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": true,
+            "detail": "Error{Auth, recoverable:false} 存在"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "auth_fail",
+      "take": 2,
+      "events": 27,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "27 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": true,
+            "detail": "Error{Auth, recoverable:false} 存在"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "auth_fail",
+      "take": 3,
+      "events": 27,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "27 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": true,
+            "detail": "Error{Auth, recoverable:false} 存在"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "happy_path",
+      "take": 1,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "happy_path",
+      "take": 2,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "happy_path",
+      "take": 3,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "interrupt_residual",
+      "take": 1,
+      "events": 23,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "23 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "interrupt_residual",
+      "take": 2,
+      "events": 23,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "23 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "interrupt_residual",
+      "take": 3,
+      "events": 23,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "23 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "long_stream",
+      "take": 1,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 1193/1193 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "long_stream",
+      "take": 2,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 741/741 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "long_stream",
+      "take": 3,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 1064/1064 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "mixed_ansi_json",
+      "take": 1,
+      "events": 129,
+      "unrecognized_ratio": 0.03875968992248062,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "129 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": true,
+            "detail": "提取出可解析 JSON"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "mixed_ansi_json",
+      "take": 2,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": true,
+            "detail": "提取出可解析 JSON"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "mixed_ansi_json",
+      "take": 3,
+      "events": 57,
+      "unrecognized_ratio": 0.017543859649122806,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "57 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": true,
+            "detail": "提取出可解析 JSON"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "network_error",
+      "take": 1,
+      "events": 37,
+      "unrecognized_ratio": 0.2702702702702703,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "37 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "network_error",
+      "take": 2,
+      "events": 37,
+      "unrecognized_ratio": 0.2702702702702703,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "37 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "claude",
+      "scenario": "network_error",
+      "take": 3,
+      "events": 37,
+      "unrecognized_ratio": 0.2702702702702703,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "37 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "auth_fail",
+      "take": 1,
+      "events": 7,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "7 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": false,
+            "detail": "无 Error{Auth, recoverable:false}"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": false
+      },
+      "sample_pass": false
+    },
+    {
+      "cli": "codex",
+      "scenario": "auth_fail",
+      "take": 2,
+      "events": 7,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "7 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": false,
+            "detail": "无 Error{Auth, recoverable:false}"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": false
+      },
+      "sample_pass": false
+    },
+    {
+      "cli": "codex",
+      "scenario": "auth_fail",
+      "take": 3,
+      "events": 9,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "9 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "auth_kind_auth",
+            "passed": false,
+            "detail": "无 Error{Auth, recoverable:false}"
+          },
+          {
+            "name": "auth_not_network",
+            "passed": true,
+            "detail": "未误标 Network"
+          }
+        ],
+        "all_passed": false
+      },
+      "sample_pass": false
+    },
+    {
+      "cli": "codex",
+      "scenario": "happy_path",
+      "take": 1,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "happy_path",
+      "take": 2,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "happy_path",
+      "take": 3,
+      "events": 9,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "9 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "happy_role_assistant",
+            "passed": true,
+            "detail": "MessageStart{Assistant} 存在"
+          },
+          {
+            "name": "happy_no_error",
+            "passed": true,
+            "detail": "无 Error 事件混入"
+          },
+          {
+            "name": "happy_has_end",
+            "passed": true,
+            "detail": "MessageEnd 存在"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "interrupt_residual",
+      "take": 1,
+      "events": 1,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "1 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "interrupt_residual",
+      "take": 2,
+      "events": 1,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "1 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "interrupt_residual",
+      "take": 3,
+      "events": 1,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "1 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "interrupt_no_dangling_start",
+            "passed": true,
+            "detail": "末事件非悬空 MessageStart（end/unrecognized 收尾）"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "long_stream",
+      "take": 1,
+      "events": 9,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "9 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 765/765 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "long_stream",
+      "take": 2,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 461/461 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "long_stream",
+      "take": 3,
+      "events": 9,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "9 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "long_content_95pct",
+            "passed": true,
+            "detail": "content 684/684 = 100% ≥ 95%"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "mixed_ansi_json",
+      "take": 1,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": true,
+            "detail": "提取出可解析 JSON"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "mixed_ansi_json",
+      "take": 2,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": true,
+            "detail": "提取出可解析 JSON"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "mixed_ansi_json",
+      "take": 3,
+      "events": 5,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": false,
+      "scenario_truth_error": false,
+      "degenerate": false,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "5 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "mixed_json_parseable",
+            "passed": false,
+            "detail": "无可解析 JSON（CLI 不发结构化 JSON events · corpus/协议现实）"
+          }
+        ],
+        "all_passed": false
+      },
+      "sample_pass": false
+    },
+    {
+      "cli": "codex",
+      "scenario": "network_error",
+      "take": 1,
+      "events": 15,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "15 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "network_error",
+      "take": 2,
+      "events": 11,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "11 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    },
+    {
+      "cli": "codex",
+      "scenario": "network_error",
+      "take": 3,
+      "events": 13,
+      "unrecognized_ratio": 0.0,
+      "panicked": false,
+      "parser_emits_error": true,
+      "scenario_truth_error": true,
+      "degenerate": true,
+      "assessment": {
+        "checks": [
+          {
+            "name": "U2_nonempty",
+            "passed": true,
+            "detail": "13 事件"
+          },
+          {
+            "name": "U3_monotone",
+            "passed": true,
+            "detail": "start→delta→end 有序"
+          },
+          {
+            "name": "net_kind_network",
+            "passed": true,
+            "detail": "Error{Network, recoverable:true} 存在"
+          },
+          {
+            "name": "net_not_timeout",
+            "passed": true,
+            "detail": "未误标 Timeout"
+          }
+        ],
+        "all_passed": true
+      },
+      "sample_pass": true
+    }
+  ]
+}

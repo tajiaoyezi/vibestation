@@ -1,0 +1,11 @@
+{
+  "sample": "codex_long_stream_2",
+  "redacted_fields": [
+    {
+      "kind": "uuid",
+      "count": 1
+    }
+  ],
+  "source_lines": 4,
+  "redaction_tool": "SPIKE-07.5/tools/redact.py"
+}

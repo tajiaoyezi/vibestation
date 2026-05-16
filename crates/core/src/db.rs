@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 7;
+const CURRENT_SCHEMA_VERSION: u32 = 8;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -83,6 +83,9 @@ pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     }
     if user_version < 7 {
         migrate_v7(conn)?;
+    }
+    if user_version < 8 {
+        migrate_v8(conn)?;
     }
 
     Ok(())
@@ -286,6 +289,44 @@ fn migrate_v7(conn: &Connection) -> Result<(), DbError> {
             version: 7,
             reason: e.to_string(),
         })?;
+    Ok(())
+}
+
+/// MVP-18 Phase A · AI-Aware Pane 联动的 `pane_links` 关系表（spec §G verbatim）。
+///
+/// Additive · idempotent（`IF NOT EXISTS`）· 单 `execute_batch` 事务 ·
+/// `PRAGMA user_version = 8`（spec §G.2 · SPIKE-04 B.3 安全模式）。
+/// **无 FK**：spec §B.6/§F.2 要求 child/parent pane 关闭后 link 标记 stale 而非
+/// 级联删除（link 可比 pane 长寿）· spec §G.3 仅存 metadata（不存 raw/prompt）。
+fn migrate_v8(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS pane_links (
+             id                TEXT PRIMARY KEY,
+             workspace_id      TEXT NOT NULL,
+             parent_pane_id    TEXT NOT NULL,
+             child_pane_id     TEXT NOT NULL,
+             link_kind         TEXT NOT NULL,
+             enabled           INTEGER NOT NULL DEFAULT 1,
+             fallback_mode     TEXT NOT NULL DEFAULT 'structured',
+             created_by        TEXT NOT NULL DEFAULT 'user',
+             created_at        INTEGER NOT NULL,
+             updated_at        INTEGER NOT NULL,
+             last_triggered_at INTEGER,
+             deleted_at        INTEGER,
+             UNIQUE(workspace_id, parent_pane_id, child_pane_id, link_kind)
+         );
+         CREATE INDEX IF NOT EXISTS idx_pane_links_workspace
+             ON pane_links(workspace_id, enabled, deleted_at);
+         CREATE INDEX IF NOT EXISTS idx_pane_links_child
+             ON pane_links(workspace_id, child_pane_id, enabled, deleted_at);
+         CREATE INDEX IF NOT EXISTS idx_pane_links_parent
+             ON pane_links(workspace_id, parent_pane_id, enabled, deleted_at);
+         PRAGMA user_version = 8;",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 8,
+        reason: e.to_string(),
+    })?;
     Ok(())
 }
 
@@ -945,5 +986,171 @@ mod tests {
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
         assert_eq!(version, 7);
+    }
+
+    // ── MVP-18 Phase A · pane_links (migrate_v8 · spec §G / §E B/F/G) ──
+
+    fn migrate_through_v8(conn: &Connection) {
+        migrate_v1(conn).unwrap();
+        migrate_v2(conn).unwrap();
+        migrate_v3(conn).unwrap();
+        migrate_v4(conn).unwrap();
+        migrate_v5(conn).unwrap();
+        migrate_v6(conn).unwrap();
+        migrate_v7(conn).unwrap();
+        migrate_v8(conn).unwrap();
+    }
+
+    #[test]
+    fn v8_migration_creates_pane_links_table_and_indexes() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v8create.db")).unwrap();
+        migrate_through_v8(&conn);
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='pane_links'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(table_exists, "pane_links table should exist after v8");
+
+        for idx in [
+            "idx_pane_links_workspace",
+            "idx_pane_links_child",
+            "idx_pane_links_parent",
+        ] {
+            let exists: bool = conn
+                .query_row(
+                    "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name=?1",
+                    [idx],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(exists, "{idx} should exist after v8");
+        }
+
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(pane_links)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        for c in [
+            "id",
+            "workspace_id",
+            "parent_pane_id",
+            "child_pane_id",
+            "link_kind",
+            "enabled",
+            "fallback_mode",
+            "created_by",
+            "created_at",
+            "updated_at",
+            "last_triggered_at",
+            "deleted_at",
+        ] {
+            assert!(
+                cols.contains(&c.to_string()),
+                "pane_links missing column {c}"
+            );
+        }
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 8);
+    }
+
+    #[test]
+    fn v8_unique_constraint_rejects_duplicate_tuple() {
+        // spec §B.4：重复 (workspace_id, parent, child, link_kind) 不产生重复行。
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v8uniq.db")).unwrap();
+        migrate_through_v8(&conn);
+
+        let insert = "INSERT INTO pane_links
+            (id, workspace_id, parent_pane_id, child_pane_id, link_kind, created_at, updated_at)
+            VALUES (?1,'w1','ai-pane','runner-pane','failureFeedback',1,1)";
+        conn.execute(insert, ["link-1"]).unwrap();
+        let dup = conn.execute(insert, ["link-2"]);
+        assert!(
+            dup.is_err(),
+            "duplicate (workspace,parent,child,kind) tuple must be rejected by UNIQUE"
+        );
+    }
+
+    #[test]
+    fn v8_migration_is_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v8idem.db")).unwrap();
+        migrate_through_v8(&conn);
+        // 再跑一次 v8（IF NOT EXISTS）· 不报错 · 不重复列 · version 仍 8
+        migrate_v8(&conn).unwrap();
+
+        let table_count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='pane_links'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(table_count, 1, "pane_links table must not duplicate");
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 8);
+    }
+
+    #[test]
+    fn v7_to_v8_is_additive_preserves_existing_rows() {
+        // spec §G.2：既有 DB 迁移到空 pane_links · 既有数据不丢。
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v7-to-v8.db")).unwrap();
+        migrate_v1(&conn).unwrap();
+        migrate_v2(&conn).unwrap();
+        migrate_v3(&conn).unwrap();
+        migrate_v4(&conn).unwrap();
+        migrate_v5(&conn).unwrap();
+        migrate_v6(&conn).unwrap();
+        migrate_v7(&conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO workspaces (workspace_id, name, path, has_git, repo_root, created_at, last_opened)
+             VALUES ('w1', 'WS', '/tmp/vibestation', 0, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO tabs (tab_id, workspace_id, name, shell, cwd, scroll_back, created_at)
+             VALUES ('t1', 'w1', 'Tab', '/bin/zsh', '/tmp', '[]', 2)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v8(&conn).unwrap();
+
+        let ws_name: String = conn
+            .query_row(
+                "SELECT name FROM workspaces WHERE workspace_id='w1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(ws_name, "WS", "existing workspace row must survive v8");
+        let tab_name: String = conn
+            .query_row("SELECT name FROM tabs WHERE tab_id='t1'", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        assert_eq!(tab_name, "Tab", "existing tab row must survive v8");
+
+        let pane_links_count: i64 = conn
+            .query_row("SELECT count(*) FROM pane_links", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(pane_links_count, 0, "v8 creates an empty pane_links table");
     }
 }

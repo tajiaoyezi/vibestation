@@ -40,10 +40,9 @@ pub enum ParserFallbackMode {
     RawText,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS, Error)]
-#[ts(export)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Error)]
 #[serde(tag = "kind", rename_all = "camelCase")]
-pub enum PaneLinkError {
+pub enum ParserBridgeError {
     #[error("parser unavailable: {message}")]
     ParserUnavailable { message: String },
     #[error("parser timeout: {message}")]
@@ -110,7 +109,7 @@ pub struct NormalizeResult {
     pub fallback_mode: ParserFallbackMode,
     pub truncated_count: usize,
     pub redaction_count: usize,
-    pub error: Option<PaneLinkError>,
+    pub error: Option<ParserBridgeError>,
 }
 
 pub fn normalize_issues(raw_parser_out: &UntrustedParserOutput, limit: usize) -> NormalizeResult {
@@ -125,7 +124,7 @@ pub fn normalize_issues(raw_parser_out: &UntrustedParserOutput, limit: usize) ->
             if !is_supported_cli_kind(cli_kind) {
                 return raw_fallback(
                     raw_text,
-                    PaneLinkError::UnsupportedCliKind {
+                    ParserBridgeError::UnsupportedCliKind {
                         message: cli_kind.clone(),
                     },
                     &ctx,
@@ -141,7 +140,7 @@ pub fn normalize_issues(raw_parser_out: &UntrustedParserOutput, limit: usize) ->
             message, raw_text, ..
         } => raw_fallback(
             raw_text,
-            PaneLinkError::ParserUnavailable {
+            ParserBridgeError::ParserUnavailable {
                 message: message.clone(),
             },
             &ctx,
@@ -150,14 +149,14 @@ pub fn normalize_issues(raw_parser_out: &UntrustedParserOutput, limit: usize) ->
             message, raw_text, ..
         } => raw_fallback(
             raw_text,
-            PaneLinkError::ParserTimeout {
+            ParserBridgeError::ParserTimeout {
                 message: message.clone(),
             },
             &ctx,
         ),
         UntrustedParserOutput::UnsupportedCliKind { cli_kind, raw_text } => raw_fallback(
             raw_text,
-            PaneLinkError::UnsupportedCliKind {
+            ParserBridgeError::UnsupportedCliKind {
                 message: cli_kind.clone(),
             },
             &ctx,
@@ -228,7 +227,7 @@ fn normalize_structured(
     }
 }
 
-fn raw_fallback(raw_text: &str, error: PaneLinkError, ctx: &SanitizeCtx) -> NormalizeResult {
+fn raw_fallback(raw_text: &str, error: ParserBridgeError, ctx: &SanitizeCtx) -> NormalizeResult {
     let mut redaction_count = 0;
     let raw_excerpt = match sanitize_text(raw_text, ctx, &mut redaction_count) {
         Ok(text) => text,
@@ -267,7 +266,7 @@ fn sanitization_fallback(
         fallback_mode: ParserFallbackMode::RawText,
         truncated_count: 0,
         redaction_count,
-        error: Some(PaneLinkError::PromptSanitizationFailed {
+        error: Some(ParserBridgeError::PromptSanitizationFailed {
             message: error.to_string(),
         }),
     }
@@ -401,7 +400,7 @@ mod tests {
         assert_eq!(result.raw_excerpt, "raw failure token=<REDACTED>");
         assert_eq!(
             result.error,
-            Some(PaneLinkError::ParserTimeout {
+            Some(ParserBridgeError::ParserTimeout {
                 message: "2s deadline exceeded".to_string()
             })
         );
@@ -419,7 +418,7 @@ mod tests {
         assert_eq!(result.fallback_mode, ParserFallbackMode::RawText);
         assert_eq!(
             result.error,
-            Some(PaneLinkError::UnsupportedCliKind {
+            Some(ParserBridgeError::UnsupportedCliKind {
                 message: "unknown-cli".to_string()
             })
         );
@@ -439,7 +438,7 @@ mod tests {
         assert_eq!(result.fallback_mode, ParserFallbackMode::RawText);
         assert_eq!(
             result.error,
-            Some(PaneLinkError::ParserUnavailable {
+            Some(ParserBridgeError::ParserUnavailable {
                 message: "panic while parsing".to_string()
             })
         );
@@ -464,7 +463,7 @@ mod tests {
         assert_eq!(result.parsed_issues, Vec::new());
         assert_eq!(
             result.error,
-            Some(PaneLinkError::PromptSanitizationFailed {
+            Some(ParserBridgeError::PromptSanitizationFailed {
                 message: "prompt contains a NUL byte".to_string()
             })
         );

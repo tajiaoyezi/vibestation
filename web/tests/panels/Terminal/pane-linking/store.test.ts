@@ -1,10 +1,8 @@
 import { createRoot, createSignal } from "solid-js";
 import { describe, expect, it } from "vitest";
-import type {
-  PaneBuildFailedEvent,
-  PaneLinkedEvent,
-} from "../../../../src/panels/Terminal/paneLinkContract";
+import type { PaneLinkedEvent } from "../../../../src/bindings";
 import {
+  type PaneBuildFailedEvent,
   FAILURE_BACKLOG_CAP,
   createPaneLinksStore,
 } from "../../../../src/stores/paneLinks";
@@ -56,10 +54,10 @@ describe("paneLinks store", () => {
     const store = createPaneLinksStore();
     store.applyLinkedEvent(linkedEvent());
     expect(store.linksByWorkspace["workspace-a"]).toHaveLength(1);
-    expect(store.linksByWorkspace["workspace-a"][0]?.status).toBe("enabled");
+    expect(store.linksByWorkspace["workspace-a"][0]?.enabled).toBe(true);
 
     store.applyLinkedEvent(linkedEvent({ status: "disabled", updatedAt: 2 }));
-    expect(store.linksByWorkspace["workspace-a"][0]?.status).toBe("disabled");
+    expect(store.linksByWorkspace["workspace-a"][0]?.enabled).toBe(false);
 
     store.applyLinkedEvent(linkedEvent({ status: "removed", updatedAt: 3 }));
     expect(store.linksByWorkspace["workspace-a"]).toHaveLength(0);
@@ -111,19 +109,19 @@ describe("paneLinks store", () => {
 
     expect(
       store.linksByWorkspace["workspace-a"].find(
-        (link) => link.linkId === "link-a",
-      )?.status,
-    ).toBe("stale");
+        (link) => link.id === "link-a",
+      )?.enabled,
+    ).toBe(false);
     expect(
       store.linksByWorkspace["workspace-a"].find(
-        (link) => link.linkId === "link-b",
-      )?.status,
-    ).toBe("enabled");
+        (link) => link.id === "link-b",
+      )?.enabled,
+    ).toBe(true);
     expect(
       store.linksByWorkspace["workspace-b"].find(
-        (link) => link.linkId === "link-c",
-      )?.status,
-    ).toBe("enabled");
+        (link) => link.id === "link-c",
+      )?.enabled,
+    ).toBe(true);
   });
 
   it("deduplicates repeated failures by commandRunId + failureHash (D.6)", () => {
@@ -151,5 +149,81 @@ describe("paneLinks store", () => {
     expect(callouts).toHaveLength(FAILURE_BACKLOG_CAP);
     expect(callouts[0]?.commandRunId).toBe("run-3");
     expect(callouts[FAILURE_BACKLOG_CAP - 1]?.commandRunId).toBe("run-7");
+  });
+
+  it("activeLinks selector filters only enabled links", () => {
+    createRoot((dispose) => {
+      const store = createPaneLinksStore();
+      const [workspaceId] = createSignal<string>("workspace-a");
+      const selectors = store.createWorkspaceScopedSelectors(workspaceId);
+
+      store.applyLinkedEvent(linkedEvent({ linkId: "active-1" }));
+      store.applyLinkedEvent(
+        linkedEvent({ linkId: "disabled-1", status: "disabled" }),
+      );
+
+      expect(selectors.activeLinks()).toHaveLength(1);
+      expect(selectors.activeLinks()[0]?.id).toBe("active-1");
+
+      dispose();
+    });
+  });
+
+  it("linkForPane finds link by parent or child pane id", () => {
+    createRoot((dispose) => {
+      const store = createPaneLinksStore();
+      const [workspaceId] = createSignal<string>("workspace-a");
+      const selectors = store.createWorkspaceScopedSelectors(workspaceId);
+
+      store.applyLinkedEvent(linkedEvent());
+
+      const byParent = selectors.linkForPane("pane-ai");
+      expect(byParent?.id).toBe("link-1");
+
+      const byChild = selectors.linkForPane("pane-runner");
+      expect(byChild?.id).toBe("link-1");
+
+      const noMatch = selectors.linkForPane("nonexistent");
+      expect(noMatch).toBeUndefined();
+
+      dispose();
+    });
+  });
+
+  it("dismissCallout removes specific callout by commandRunId", () => {
+    const store = createPaneLinksStore();
+
+    store.applyBuildFailedEvent(failedEvent({ commandRunId: "run-a" }));
+    store.applyBuildFailedEvent(
+      failedEvent({
+        commandRunId: "run-b",
+        rawExcerpt: "different error",
+      }),
+    );
+
+    expect(store.failureCalloutsByWorkspace["workspace-a"]).toHaveLength(2);
+
+    store.dismissCallout("workspace-a", "run-a");
+    expect(store.failureCalloutsByWorkspace["workspace-a"]).toHaveLength(1);
+    expect(
+      store.failureCalloutsByWorkspace["workspace-a"][0]?.commandRunId,
+    ).toBe("run-b");
+  });
+
+  it("applyErrorEvent stores last error and clearError resets it", () => {
+    const store = createPaneLinksStore();
+    expect(store.lastError).toBeNull();
+
+    store.applyErrorEvent({
+      workspaceId: "workspace-a",
+      error: { kind: "paneNotFound", detail: "pane-123" },
+    });
+    expect(store.lastError).toEqual({
+      kind: "paneNotFound",
+      detail: "pane-123",
+    });
+
+    store.clearError();
+    expect(store.lastError).toBeNull();
   });
 });

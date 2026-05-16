@@ -1,4 +1,4 @@
-# ADR-019: CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale
+# ADR-021: CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale
 
 **状态**：proposed
 **日期**：2026-05-16（proposed）

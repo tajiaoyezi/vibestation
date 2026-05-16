@@ -1,0 +1,22 @@
+# SPIKE-07.5 结构化模式 parser 验证原型 · 独立 crate
+# （不进 workspace crates/ · 沿用 SPIKE-07 spec §C Don't.5 · 用完归档不重写生产级）
+# 空 [workspace] 表使本 crate 成为独立 workspace root · 不被根 Cargo.toml 吸收
+[workspace]
+
+[package]
+name = "spike-07_5-parser"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "SPIKE-07.5 结构化模式（claude stream-json / codex exec --json）parser 验证原型（路径 A · R1 重判前置 · 复用 SPIKE-07 IR+assertions）"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "matrix"
+path = "src/bin/matrix.rs"
+
+[profile.release]
+opt-level = 2

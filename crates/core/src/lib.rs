@@ -16,6 +16,7 @@ pub mod git_status;
 pub mod git_sync;
 pub mod layout;
 pub mod pane_detach;
+pub mod pane_links;
 pub mod pane_pty;
 pub mod pane_service;
 pub mod panes;

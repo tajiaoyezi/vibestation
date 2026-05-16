@@ -1,0 +1,33 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.2.0, pluggy-1.5.0
+rootdir: /workspace/project
+collected 4 items
+
+tests/test_linkgraph.py ..F.                                             [100%]
+
+=================================== FAILURES ===================================
+______________________ test_cross_workspace_is_rejected ________________________
+
+    def test_cross_workspace_is_rejected():
+        graph = LinkGraph(workspace_id="ws-a")
+        child = make_pane(workspace_id="ws-b", kind="runner")
+>       graph.link(parent=ai_pane(), child=child)
+
+tests/test_linkgraph.py:57:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <linkgraph.LinkGraph object at 0x7f3c1a2b4d10>, parent = 'pane-ai-1'
+child = Pane(id='pane-runner-9', workspace_id='ws-b', kind='runner')
+
+    def link(self, parent, child):
+        if child.workspace_id != self.workspace_id:
+>           raise CrossWorkspaceError(
+                f"child pane belongs to workspace {child.workspace_id!r}, "
+                f"expected {self.workspace_id!r}"
+            )
+E           linkgraph.CrossWorkspaceError: child pane belongs to workspace 'ws-b', expected 'ws-a'
+
+src/linkgraph.py:128: CrossWorkspaceError
+=========================== short test summary info ============================
+FAILED tests/test_linkgraph.py::test_cross_workspace_is_rejected - linkgraph.CrossWorkspaceError: child pane belongs to workspace 'ws-b', expected 'ws-a'
+1 failed, 3 passed in 0.42s

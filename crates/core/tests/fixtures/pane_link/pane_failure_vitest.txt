@@ -1,0 +1,41 @@
+ RUN  v4.1.5 /workspace/project/web
+
+ ❯ tests/panels/Terminal/pane-linking/store.test.ts (5 tests | 2 failed) 412ms
+   ✓ paneLinks store > applies linked lifecycle updates (B.5/B.7) 3ms
+   × paneLinks store > scopes selectors by workspace id and isolates A/B state (F.1/G.3) 5ms
+     → expected 'workspace-a' to be 'workspace-b' // Object.is equality
+   ✓ paneLinks store > marks all links stale when child pane closes (F.2) 1ms
+   × paneLinks store > deduplicates repeated failures by commandRunId + failureHash (D.6) 2ms
+     → expected length 2 to be 1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/panels/Terminal/pane-linking/store.test.ts > paneLinks store > scopes selectors by workspace id and isolates A/B state (F.1/G.3)
+AssertionError: expected 'workspace-a' to be 'workspace-b' // Object.is equality
+
+- Expected
++ Received
+
+- workspace-b
++ workspace-a
+
+ ❯ tests/panels/Terminal/pane-linking/store.test.ts:88:42
+     86|       setWorkspaceId("workspace-b");
+     87|       expect(selectors.links()).toHaveLength(1);
+     88|       expect(selectors.links()[0]?.workspaceId).toBe("workspace-b");
+       |                                                  ^
+     89|       dispose();
+     90|     });
+
+ FAIL  tests/panels/Terminal/pane-linking/store.test.ts > paneLinks store > deduplicates repeated failures by commandRunId + failureHash (D.6)
+AssertionError: expected length 2 to be 1
+ ❯ tests/panels/Terminal/pane-linking/store.test.ts:135:54
+    133|     store.applyBuildFailedEvent(failedEvent());
+    134|     store.applyBuildFailedEvent(failedEvent());
+    135|     expect(store.failureCalloutsByWorkspace["workspace-a"]).toHaveLength(1);
+       |                                                      ^
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  14:41:45
+   Duration  412ms (transform 27ms, setup 64ms, tests 4ms, environment 481ms)

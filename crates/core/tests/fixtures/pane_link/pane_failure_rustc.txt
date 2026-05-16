@@ -1,0 +1,70 @@
+error[E0425]: cannot find function `spawn_watch_process` in this scope
+   --> /workspace/vibestation/crates/core/src/runner.rs:42:13
+    |
+42  |     let handle = spawn_watch_process(&config)?;
+    |                  ^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `spawn_worker_process`
+    |
+   ::: /workspace/vibestation/crates/core/src/worker.rs:88:1
+    |
+88  | pub fn spawn_worker_process(cfg: &WorkerConfig) -> Result<JoinHandle<()>> {
+    | ------------------------------------------------------------------------- similarly named function `spawn_worker_process` defined here
+
+error[E0308]: mismatched types
+   --> /workspace/vibestation/crates/core/src/runner.rs:67:29
+    |
+67  |     let timeout: Duration = config.timeout_ms;
+    |                             ^^^^^^^^^^^^^^^^^ expected `Duration`, found `u64`
+    |
+help: try wrapping the expression in `Duration::from_millis`
+    |
+67  |     let timeout: Duration = Duration::from_millis(config.timeout_ms);
+    |                             +++++++++++++++++++++                +
+
+error[E0599]: no method named `send_output` found for struct `PaneOutput` in the current scope
+   --> /workspace/vibestation/crates/core/src/runner.rs:103:9
+    |
+103 |         output.send_output(line)?;
+    |         ^^^^^^----------- method not found in `PaneOutput`
+    |
+    = help: items from traits can only be used if the trait is in scope
+    = note: the following trait is implemented but not in scope; perhaps add a `use` for it:
+            `use crate::output::OutputSink;`
+
+error[E0061]: this function takes 2 arguments but 1 argument was supplied
+   --> /workspace/vibestation/crates/core/src/runner.rs:134:21
+    |
+134 |     let parsed = parser.parse(stderr)?;
+    |                  ^^^^^^^^^^^^-------
+    |                             |
+    |                             expected 2 arguments
+    |
+note: function defined here
+   --> /workspace/vibestation/crates/core/src/parser.rs:45:8
+    |
+45  |     pub fn parse(&self, input: &str, opts: &ParseOptions) -> Result<ParsedOutput> {
+    |          -----
+
+error[E0277]: the trait bound `Vec<ParsedIssue>: serde::Serialize` is not satisfied
+   --> /workspace/vibestation/crates/core/src/runner.rs:156:28
+    |
+156 |     serde_json::to_string(&issues)?
+    |     ---------------------  ^^^^^^ the trait `Serialize` is not implemented for `Vec<ParsedIssue>`
+    |     |
+    |     required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `Serialize`:
+              `Vec<T>`
+              `VecDeque<T>`
+
+error[E0382]: borrow of moved value: `child_pane_id`
+   --> /workspace/vibestation/crates/core/src/runner.rs:178:14
+    |
+175 |     let link = pane_link::get(child_pane_id)?;
+    |                 -----------------^^^^^^^^^^^
+    |                 |                |
+    |                 |                value moved here
+    |                 value borrowed here after move
+    |
+    = note: move occurs because `child_pane_id` has type `String`, which does not implement the `Copy` trait
+
+error: could not compile `vibestation-core` (lib) due to 6 previous errors

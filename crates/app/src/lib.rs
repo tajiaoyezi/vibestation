@@ -40,15 +40,16 @@ use vibestation_core::{
     GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState, LayoutStore,
     MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
     PaneCreateRequest, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
-    PaneDetachOpenRequest, PaneDetachOpenResult, PaneFocusRequest, PaneInitRequest,
-    PaneListResponse, PanePtyEvent, PanePtySpawnRequest, PtyEvent, PtyEventReceiver, PtyManager,
-    PtySpawnRequest, PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult,
-    RebaseControlRequest, RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus,
-    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest,
-    SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest, SwitcherSearchResult,
-    TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
-    TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
-    WorkspaceStore,
+    PaneDetachOpenRequest, PaneDetachOpenResult, PaneFocusRequest, PaneInitRequest, PaneLinkDao,
+    PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
+    PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PanePtyEvent, PanePtySpawnRequest,
+    PaneUnlinkRequest, PaneUnlinkResult, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
+    PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult, RebaseControlRequest,
+    RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteListRequest,
+    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
+    StageRequest, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -1585,6 +1586,107 @@ fn pane_detach_list(
     Ok(detached_panes.list_entries())
 }
 
+// =============================================================================
+// MVP-18 Phase A · AI-Aware Pane 联动 link 管理 IPC（spec §K.1 命令 1-4）
+//
+// 仅 link 管理（create / unlink / list / set_enabled）· DAO 已在
+// vibestation_core::pane_links 完整单测。命令为 thin wrapper：复用 tab_* idiom
+// （state.pool.lock → guard.as_ref() → DAO 调用 → map_err(|e| e.to_string())）。
+// `pane:linked` 事件按既有 `let _ = app.emit(...)` idiom emit（非关键路径 ·
+// 前端 store 据此更新 header chip / child badge / manage links 视图）。
+//
+// 不含 §K.1 命令 5 `pane:failure:preview_prompt` / parser 事件 / `pane:trigger`
+// / `pane:build-failed`（依赖 parser_bridge · 后续切片）。
+// =============================================================================
+
+#[tauri::command]
+fn pane_link(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: PaneLinkRequest,
+) -> Result<PaneLinkResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    // §E B.4 already_existed：DAO `create` 冻结签名（Droid #347 已 merge 依赖 ·
+    // 不可改）不暴露"新建 vs 命中已有"信号 · 故命令层 create 前查活跃 link。
+    // 边界：soft-deleted link 被 `list_by_workspace` 排除 → existing=false →
+    // create 复活该行 · 此时 already_existed=false（复活=新 active link · 非
+    // 活跃重复 · 与 §E B.4 幂等仅针对 enabled 重复一致）。桌面串行 IPC ·
+    // list→create TOCTOU 可忽略。DAO 未来非破坏式暴露该信号后可去此预查。
+    let existing = PaneLinkDao::list_by_workspace(pool, &req.workspace_id)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .any(|l| {
+            l.parent_pane_id == req.parent_pane_id
+                && l.child_pane_id == req.child_pane_id
+                && l.link_kind == req.link_kind
+        });
+    let link = PaneLinkDao::create(pool, &req).map_err(|e| e.to_string())?;
+    let _ = app.emit(
+        "pane:linked",
+        PaneLinkedEvent::from_link(&link, PaneLinkStatus::Enabled),
+    );
+    Ok(PaneLinkResult {
+        link,
+        already_existed: existing,
+    })
+}
+
+#[tauri::command]
+fn pane_unlink(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: PaneUnlinkRequest,
+) -> Result<PaneUnlinkResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    // 软删前取 link 以便 emit 完整 PaneLinkedEvent（unlink 后 get 不可见）。
+    let link = PaneLinkDao::get(pool, &req.workspace_id, &req.link_id).ok();
+    let result = PaneLinkDao::unlink(pool, &req).map_err(|e| e.to_string())?;
+    if result.removed {
+        if let Some(link) = link {
+            let _ = app.emit(
+                "pane:linked",
+                PaneLinkedEvent::from_link(&link, PaneLinkStatus::Removed),
+            );
+        }
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn pane_links_list(
+    state: State<'_, AppState>,
+    req: PaneLinksListRequest,
+) -> Result<PaneLinksListResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let links =
+        PaneLinkDao::list_by_workspace(pool, &req.workspace_id).map_err(|e| e.to_string())?;
+    Ok(PaneLinksListResult { links })
+}
+
+#[tauri::command]
+fn pane_links_set_enabled(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: PaneLinkSetEnabledRequest,
+) -> Result<PaneLinkResult, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    let pool = guard.as_ref().ok_or("database not initialized")?;
+    let link = PaneLinkDao::set_enabled(pool, &req).map_err(|e| e.to_string())?;
+    let status = if link.enabled {
+        PaneLinkStatus::Enabled
+    } else {
+        PaneLinkStatus::Disabled
+    };
+    let _ = app.emit("pane:linked", PaneLinkedEvent::from_link(&link, status));
+    Ok(PaneLinkResult {
+        link,
+        already_existed: true,
+    })
+}
+
 fn rebase_repo_path(
     state: &State<'_, AppState>,
     workspace_id: &str,
@@ -1876,6 +1978,10 @@ pub fn run() {
             pane_detach_open,
             pane_detach_close,
             pane_detach_list,
+            pane_link,
+            pane_unlink,
+            pane_links_list,
+            pane_links_set_enabled,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,

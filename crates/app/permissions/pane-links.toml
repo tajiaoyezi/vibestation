@@ -1,0 +1,24 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-18 Phase A · AI-Aware Pane 联动 link 管理 IPC permissions
+# 参考 allow-tab-* 模式 · 每个 command 独立 grant
+
+[[permission]]
+identifier = "allow-pane-link-create"
+description = "允许前端建立同 workspace 内 AI Pane → 执行型 Pane 的失败反哺订阅关系"
+commands.allow = ["pane_link"]
+
+[[permission]]
+identifier = "allow-pane-link-unlink"
+description = "允许前端手动解除 Pane 订阅关系（软删 · 防 AI context 污染）"
+commands.allow = ["pane_unlink"]
+
+[[permission]]
+identifier = "allow-pane-links-list"
+description = "允许前端列出当前 workspace 的 Pane link（含 disabled · manage links 视图）"
+commands.allow = ["pane_links_list"]
+
+[[permission]]
+identifier = "allow-pane-link-set-enabled"
+description = "允许前端临时暂停 / 恢复某条 Pane link（不删关系）"
+commands.allow = ["pane_links_set_enabled"]

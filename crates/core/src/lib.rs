@@ -79,6 +79,12 @@ pub use pane_detach::{
     PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
     PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
 };
+pub use pane_links::{
+    validate_link_request, PaneKind, PaneLink, PaneLinkDao, PaneLinkError, PaneLinkErrorEvent,
+    PaneLinkKind, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus,
+    PaneLinkedEvent, PaneLinksListRequest, PaneLinksListResult, PaneTriggerEvent,
+    PaneUnlinkRequest, PaneUnlinkResult,
+};
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use pane_service::{
     apply_layout_preset, apply_layout_preset_advanced, apply_pane_close, apply_pane_focus,

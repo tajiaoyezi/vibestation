@@ -78,6 +78,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/pane_detach.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_links.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_failure.rs");
+    println!("cargo:rerun-if-changed=../core/src/parser_bridge.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -449,6 +450,7 @@ fn main() {
             "export type { ParsedIssue } from \"./ParsedIssue\";",
             "export type { ParsedIssueSeverity } from \"./ParsedIssueSeverity\";",
             "export type { PaneBuildFailedEvent } from \"./PaneBuildFailedEvent\";",
+            "export type { PaneFailureFallbackMode } from \"./PaneFailureFallbackMode\";",
             "export type { PaneFailurePreviewRequest } from \"./PaneFailurePreviewRequest\";",
             "export type { PaneFailurePreviewResult } from \"./PaneFailurePreviewResult\";",
             "export type { PaneLinkErrorEvent } from \"./PaneLinkErrorEvent\";",

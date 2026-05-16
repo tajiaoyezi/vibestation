@@ -29,19 +29,22 @@ use vibestation_core::{
     MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
     PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult,
     PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
-    PaneFocusRequest, PaneInitRequest, PaneListResponse, PaneMaximizeRequest, PaneMaximizeResult,
-    PaneNavDirection, PaneNavigateRequest, PaneNavigateResult, PanePtyExitedEvent,
-    PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest, PaneScrollbackFetchRequest,
-    PaneState, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest, PullResult,
-    PullStrategy, PushProgressEvent, PushRequest, PushResult, RailGraphBranchChangedPayload,
-    RailGraphPerfSample, RailGraphRebaseStatePayload, RailGraphViewportSyncPayload,
-    RebaseControlRequest, RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError,
-    RebaseStartRequest, RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
+    PaneFocusRequest, PaneInitRequest, PaneLink, PaneLinkError, PaneLinkErrorEvent, PaneLinkKind,
+    PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
+    PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PaneMaximizeRequest,
+    PaneMaximizeResult, PaneNavDirection, PaneNavigateRequest, PaneNavigateResult,
+    PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest,
+    PaneScrollbackFetchRequest, PaneState, PaneTriggerEvent, PaneUnlinkRequest, PaneUnlinkResult,
+    PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest, PullResult, PullStrategy,
+    PushProgressEvent, PushRequest, PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample,
+    RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
+    RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
+    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SetGitIdentityRequest,
+    SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest,
+    StageFailedItem, StageRequest, StageResult, SwitcherMatch, SwitcherQueryRequest,
+    SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
+    TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
+    WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -72,6 +75,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/config_import/keybinding.rs");
     println!("cargo:rerun-if-changed=../core/src/rail_graph_events.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_detach.rs");
+    println!("cargo:rerun-if-changed=../core/src/pane_links.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -248,6 +252,22 @@ fn main() {
     PaneDetachStateEvent::export_all(&config).expect("export PaneDetachStateEvent");
     PaneDetachAction::export_all(&config).expect("export PaneDetachAction");
 
+    // MVP-18 Phase A · AI-Aware Pane 联动 IPC contract（spec §K.3 binding 1-13 + 18 · 14 type）
+    PaneLink::export_all(&config).expect("export PaneLink");
+    PaneLinkKind::export_all(&config).expect("export PaneLinkKind");
+    PaneLinkStatus::export_all(&config).expect("export PaneLinkStatus");
+    PaneLinkRequest::export_all(&config).expect("export PaneLinkRequest");
+    PaneLinkResult::export_all(&config).expect("export PaneLinkResult");
+    PaneUnlinkRequest::export_all(&config).expect("export PaneUnlinkRequest");
+    PaneUnlinkResult::export_all(&config).expect("export PaneUnlinkResult");
+    PaneLinksListRequest::export_all(&config).expect("export PaneLinksListRequest");
+    PaneLinksListResult::export_all(&config).expect("export PaneLinksListResult");
+    PaneLinkSetEnabledRequest::export_all(&config).expect("export PaneLinkSetEnabledRequest");
+    PaneLinkedEvent::export_all(&config).expect("export PaneLinkedEvent");
+    PaneTriggerEvent::export_all(&config).expect("export PaneTriggerEvent");
+    PaneLinkErrorEvent::export_all(&config).expect("export PaneLinkErrorEvent");
+    PaneLinkError::export_all(&config).expect("export PaneLinkError");
+
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
         output_dir.join("index.ts"),
@@ -406,6 +426,21 @@ fn main() {
             "export type { PaneDetachStateEvent } from \"./PaneDetachStateEvent\";",
             "export type { PaneDetachAction } from \"./PaneDetachAction\";",
             "export type { DetachedWindowBounds } from \"./DetachedWindowBounds\";",
+            // MVP-18 Phase A · AI-Aware Pane 联动 IPC contract
+            "export type { PaneLink } from \"./PaneLink\";",
+            "export type { PaneLinkKind } from \"./PaneLinkKind\";",
+            "export type { PaneLinkStatus } from \"./PaneLinkStatus\";",
+            "export type { PaneLinkRequest } from \"./PaneLinkRequest\";",
+            "export type { PaneLinkResult } from \"./PaneLinkResult\";",
+            "export type { PaneUnlinkRequest } from \"./PaneUnlinkRequest\";",
+            "export type { PaneUnlinkResult } from \"./PaneUnlinkResult\";",
+            "export type { PaneLinksListRequest } from \"./PaneLinksListRequest\";",
+            "export type { PaneLinksListResult } from \"./PaneLinksListResult\";",
+            "export type { PaneLinkSetEnabledRequest } from \"./PaneLinkSetEnabledRequest\";",
+            "export type { PaneLinkedEvent } from \"./PaneLinkedEvent\";",
+            "export type { PaneTriggerEvent } from \"./PaneTriggerEvent\";",
+            "export type { PaneLinkErrorEvent } from \"./PaneLinkErrorEvent\";",
+            "export type { PaneLinkError } from \"./PaneLinkError\";",
             "",
         ]
         .join("\n"),

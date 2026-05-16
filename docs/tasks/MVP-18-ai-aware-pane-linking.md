@@ -2,8 +2,8 @@
 id: MVP-18
 type: mvp
 title: AI-Aware Pane 联动（订阅 + 失败反哺）
-status: ready
-owner:
+status: in-progress
+owner: Claude Code
 phase: v1.0
 depends_on: ["MVP-14", "SPIKE-07"]
 blocks: []
@@ -18,7 +18,7 @@ reviewer: Codex CLI · self-review
 
 # MVP-18: AI-Aware Pane 联动
 
-> **状态**：`ready`（v1.0 vision · spec 详化完成 · session 32 Arbiter approve flip · 实施仍 gated on SPIKE-07 PASS + MVP-14 全 phase done）
+> **状态**：`in-progress`（owner: Claude Code · 2026-05-16 认领实施 · 实施前置 SPIKE-07 PASS **已满足**：SPIKE-07.5 路径 A R1 greenlight · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · MVP-14 Phase A/B 已就绪）· Phase A backend IPC+DB 起步
 > **依赖**：[MVP-14](./MVP-14-pane-advanced-layout.md)（Phase A/B 已就绪：LayoutNode schema / Pane identity / workspace 隔离 —— 本 MVP 只复用这些；MVP-14 Phase C/D 与本 MVP 解耦）+ [SPIKE-07](./SPIKE-07-cli-protocol-parser.md)（CLI 协议 parser 验证必须 PASS 后才能实施）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md) · [`implementation-plan.md §5.3.6`](../implementation-plan.md) · [`implementation-plan.md §1.1`](../implementation-plan.md)
 > **详化时间**：2026-05-14 session 31 · Codex CLI self-review（单人项目 v2-D.2 模式）

@@ -16,6 +16,7 @@ pub mod git_status;
 pub mod git_sync;
 pub mod layout;
 pub mod pane_detach;
+pub mod pane_links;
 pub mod pane_pty;
 pub mod pane_service;
 pub mod panes;
@@ -77,6 +78,12 @@ pub use pane_detach::{
     generate_window_label, DetachError, DetachedPaneMap, DetachedWindowBounds, DetachedWindowInfo,
     PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
     PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
+};
+pub use pane_links::{
+    validate_link_request, PaneKind, PaneLink, PaneLinkDao, PaneLinkError, PaneLinkErrorEvent,
+    PaneLinkKind, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus,
+    PaneLinkedEvent, PaneLinksListRequest, PaneLinksListResult, PaneTriggerEvent,
+    PaneUnlinkRequest, PaneUnlinkResult,
 };
 pub use pane_pty::{map_event as map_pane_pty_event, PanePtyEvent};
 pub use pane_service::{

@@ -1,12 +1,12 @@
 {
-  "scoring_mode": "locked-§F (assertions.rs byte-identical · §B 完整性)",
+  "scoring_mode": "recalibrated-carve-out-b (Arbiter approved 2026-05-16 · assertions.rs 仍 byte-identical)",
   "total_samples": 36,
   "panics": 0,
-  "overall_pass": 32,
-  "overall_accuracy": 88.88888888888889,
-  "nondegenerate_pass": 29,
+  "overall_pass": 33,
+  "overall_accuracy": 91.66666666666666,
+  "nondegenerate_pass": 30,
   "nondegenerate_total": 30,
-  "nondegenerate_accuracy": 96.66666666666667,
+  "nondegenerate_accuracy": 100.0,
   "per_scenario": {
     "auth_fail": {
       "pass": 3,
@@ -33,9 +33,9 @@
       "mean_unrecognized": 0.008771929824561403
     },
     "mixed_ansi_json": {
-      "pass": 5,
+      "pass": 6,
       "total": 6,
-      "accuracy": 83.33333333333334,
+      "accuracy": 100.0,
       "mean_unrecognized": 0.012307901536787706
     },
     "network_error": {
@@ -52,9 +52,9 @@
       "accuracy": 100.0
     },
     "codex": {
-      "pass": 14,
+      "pass": 15,
       "total": 18,
-      "accuracy": 77.77777777777779
+      "accuracy": 83.33333333333334
     }
   },
   "baseline": {
@@ -517,7 +517,7 @@
           {
             "name": "mixed_json_parseable",
             "passed": true,
-            "detail": "提取出可解析 JSON"
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
         "all_passed": true
@@ -549,7 +549,7 @@
           {
             "name": "mixed_json_parseable",
             "passed": true,
-            "detail": "提取出可解析 JSON"
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
         "all_passed": true
@@ -581,7 +581,7 @@
           {
             "name": "mixed_json_parseable",
             "passed": true,
-            "detail": "提取出可解析 JSON"
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
         "all_passed": true
@@ -1153,7 +1153,7 @@
           {
             "name": "mixed_json_parseable",
             "passed": true,
-            "detail": "提取出可解析 JSON"
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
         "all_passed": true
@@ -1185,7 +1185,7 @@
           {
             "name": "mixed_json_parseable",
             "passed": true,
-            "detail": "提取出可解析 JSON"
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
         "all_passed": true
@@ -1216,13 +1216,13 @@
           },
           {
             "name": "mixed_json_parseable",
-            "passed": false,
-            "detail": "无可解析 JSON（CLI 不发结构化 JSON events · corpus/协议现实）"
+            "passed": true,
+            "detail": "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复"
           }
         ],
-        "all_passed": false
+        "all_passed": true
       },
-      "sample_pass": false
+      "sample_pass": true
     },
     {
       "cli": "codex",

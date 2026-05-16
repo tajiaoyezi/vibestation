@@ -65,6 +65,9 @@ struct BaselineStat {
 
 #[derive(serde::Serialize)]
 struct MatrixReport {
+    /// 口径："locked-§F"（默认 · assertions.rs byte-identical）或
+    /// "recalibrated-carve-out-b"（SPIKE075_RECAL=1 · Arbiter approved）
+    scoring_mode: String,
     total_samples: usize,
     panics: usize,
     overall_pass: usize,
@@ -84,6 +87,47 @@ fn is_degenerate(cli: &str, scenario: &str) -> bool {
     cli == "codex" && (scenario == "auth_fail" || scenario == "network_error")
 }
 
+/// carve-out (b) 重校准（Arbiter "你直接执行" 2026-05-16 approved · ADR-018）：
+/// `mixed_json_parseable` 锁定 §F 用**行首**启发式（行 trim 后 starts_with {/[）·
+/// 对模型把 JSON **内联** ANSI 同行 / 包 markdown fence 的合法输出漏抽（#33）。
+/// 重校准 = 对 parser 抽出的 `MessageDelta` content 做**子串** JSON 可恢复扫描
+/// （任一 `{`/`[` 起始处能解析出一个 JSON value 即算可恢复）· 语义上更贴 §F
+/// 本意"内容里 JSON 可恢复"。**统一作用于全部 6 个 mixed 样本**（非特判 #33 ·
+/// 自审四问边界适用性）。`assertions.rs` **保持 byte-identical 不改**（§B 完整性）·
+/// 仅 `SPIKE075_RECAL=1` 时本函数覆盖 mixed 断言 · 双口径并报。
+fn mixed_json_recoverable(events: &[CliEvent]) -> bool {
+    events.iter().any(|e| {
+        let CliEvent::MessageDelta { content, .. } = e else {
+            return false;
+        };
+        content.char_indices().any(|(i, c)| {
+            if c != '{' && c != '[' {
+                return false;
+            }
+            // 从该处起解析一个 JSON value（容忍尾随文本 · StreamDeserializer）
+            let mut it =
+                serde_json::Deserializer::from_str(&content[i..]).into_iter::<serde_json::Value>();
+            matches!(it.next(), Some(Ok(_)))
+        })
+    })
+}
+
+/// 用重校准结果覆盖 mixed_ansi_json 的 `mixed_json_parseable` check · 重算 all_passed。
+fn apply_recal_mixed(a: &mut SampleAssessment, events: &[CliEvent]) {
+    let recovered = mixed_json_recoverable(events);
+    for c in a.checks.iter_mut() {
+        if c.name == "mixed_json_parseable" {
+            c.passed = recovered;
+            c.detail = if recovered {
+                "重校准(carve-out b · 子串扫描): content 内 JSON 可恢复".into()
+            } else {
+                "重校准(carve-out b): content 内仍无可恢复 JSON".into()
+            };
+        }
+    }
+    a.all_passed = a.checks.iter().all(|c| c.passed);
+}
+
 fn main() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../raw/SPIKE-07.5/corpus");
     let corpus = match load_corpus(&dir) {
@@ -93,6 +137,9 @@ fn main() {
             std::process::exit(1);
         }
     };
+
+    // carve-out (b) 重校准口径开关（Arbiter "你直接执行" approved · 默认 off = 锁定 §F）
+    let mixed_recal = std::env::var("SPIKE075_RECAL").is_ok();
 
     let mut rows: Vec<SampleRow> = Vec::with_capacity(corpus.len());
     let mut panics = 0usize;
@@ -116,7 +163,11 @@ fn main() {
             }
         };
         // decision-grade：long_stream 95% 分母 = 协议真值 reference_text（parser 无关）
-        let assessment = assess(&s.scenario, &events, &s.reference_text);
+        let mut assessment = assess(&s.scenario, &events, &s.reference_text);
+        // carve-out (b) Arbiter-approved 重校准（仅 SPIKE075_RECAL=1 · 仅 mixed）
+        if mixed_recal && s.scenario == "mixed_ansi_json" {
+            apply_recal_mixed(&mut assessment, &events);
+        }
         let parser_emits_error = events.iter().any(|e| matches!(e, CliEvent::Error { .. }));
         let scenario_truth_error = scenario_is_error(&s.scenario);
         let sample_pass = !panicked && assessment.all_passed;
@@ -206,6 +257,12 @@ fn main() {
     };
 
     let report = MatrixReport {
+        scoring_mode: if mixed_recal {
+            "recalibrated-carve-out-b (Arbiter approved 2026-05-16 · assertions.rs 仍 byte-identical)"
+                .into()
+        } else {
+            "locked-§F (assertions.rs byte-identical · §B 完整性)".into()
+        },
         total_samples: total,
         panics,
         overall_pass,
@@ -245,6 +302,7 @@ fn pct(n: usize, d: usize) -> f64 {
 
 fn print_markdown(r: &MatrixReport) {
     println!("# SPIKE-07.5 Phase 3 · §F 测试矩阵实测结果（结构化模式）\n");
+    println!("评分口径：**{}**\n", r.scoring_mode);
     println!(
         "样本总数 **{}** · panic **{}** · 整体 PASS **{}/{}** = **{:.1}%**",
         r.total_samples, r.panics, r.overall_pass, r.total_samples, r.overall_accuracy
@@ -346,5 +404,46 @@ fn print_markdown(r: &MatrixReport) {
         for c in row.assessment.checks.iter().filter(|c| !c.passed) {
             println!("- ❌ `{}` — {}", c.name, c.detail);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn delta(s: &str) -> CliEvent {
+        CliEvent::MessageDelta {
+            content: s.into(),
+            raw_ansi: None,
+        }
+    }
+
+    #[test]
+    fn recal_recovers_inline_json_after_ansi_same_line() {
+        // #33 实测形态：JSON 内联在 ANSI 同行 + markdown fence
+        let e = vec![delta(
+            "```text\n\\033[1m粗体\\033[0m [{\"x\":1},{\"y\":2}]\n```",
+        )];
+        assert!(mixed_json_recoverable(&e));
+    }
+
+    #[test]
+    fn recal_recovers_line_start_json_too() {
+        // 锁定 §F 能过的（行首 JSON）重校准也必须过（统一更宽 · 不回退）
+        let e = vec![delta("preface\n{\"lang\":\"zh\",\"ok\":true}\n")];
+        assert!(mixed_json_recoverable(&e));
+    }
+
+    #[test]
+    fn recal_rejects_pure_prose_no_json() {
+        let e = vec![delta("这是一段没有任何 JSON 的纯文本说明。")];
+        assert!(!mixed_json_recoverable(&e));
+    }
+
+    #[test]
+    fn recal_ignores_lone_brace_not_valid_json() {
+        // 单个 { 不构成可解析 JSON value · 不得误判可恢复
+        let e = vec![delta("函数体 { 缩进 } 不是 JSON")];
+        assert!(!mixed_json_recoverable(&e));
     }
 }

@@ -1,0 +1,10 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-18 Phase C · Failure feedback preview IPC permission.
+# Event delivery (`pane:trigger` / `pane:build-failed`) is backend-emitted and
+# does not require a Tauri command allow-list entry.
+
+[[permission]]
+identifier = "allow-pane-failure-preview-prompt"
+description = "允许前端预览执行型 Pane 失败输出生成的脱敏 prompt fragment（不插入、不发送）"
+commands.allow = ["pane_failure_preview_prompt"]

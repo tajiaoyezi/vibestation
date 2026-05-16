@@ -16,6 +16,7 @@ pub mod git_status;
 pub mod git_sync;
 pub mod layout;
 pub mod pane_detach;
+pub mod pane_failure;
 pub mod pane_links;
 pub mod pane_pty;
 pub mod pane_service;
@@ -79,6 +80,11 @@ pub use pane_detach::{
     PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
     PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
 };
+pub use pane_failure::{
+    build_failure_events, map_parser_bridge_error, preview_failure_prompt, PaneBuildFailedEvent,
+    PaneFailureFallbackMode, PaneFailurePreviewRequest, PaneFailurePreviewResult,
+    PaneFailureSource, PaneFailureTriggerReason,
+};
 pub use pane_links::{
     validate_link_request, PaneKind, PaneLink, PaneLinkDao, PaneLinkError, PaneLinkErrorEvent,
     PaneLinkKind, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus,
@@ -99,6 +105,7 @@ pub use panes::{
     PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest, PaneScrollbackFetchRequest,
     PaneState, PanesDao, SmartLayoutKind, SplitDir, SplitRatioUpdateRequest, WorkspaceLayoutState,
 };
+pub use parser_bridge::{ParsedIssue, ParsedIssueSeverity};
 pub use pty::{
     check_shell_exists, list_available_shells, resolve_default_shell, PtyError, PtyEvent,
     PtyEventReceiver, PtyExitedEvent, PtyManager, PtySpawnRequest, PtyStdoutEvent, ShellInfo,

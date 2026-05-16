@@ -26,30 +26,32 @@ use vibestation_core::pty_pool::{PoolConfig, PtyPool, SpawnResult, TakeResult};
 use vibestation_core::{
     branch_checkout as core_branch_checkout, branch_create as core_branch_create,
     branch_delete as core_branch_delete, branch_list as core_branch_list,
-    branch_switcher_query as core_branch_switcher_query, git_auth_provide as core_git_auth_provide,
-    git_fetch_with_events as core_git_fetch, git_merge_abort as core_git_merge_abort,
-    git_pull_with_events as core_git_pull, git_push_with_events as core_git_push,
-    git_remote_list as core_git_remote_list, pane_pty, pane_service, telemetry, AppSettings,
-    AppSettingsStore, AppVersionInfo, AuthRequest, BranchCheckoutRequest, BranchCreateRequest,
-    BranchDeleteRequest, BranchError, BranchInfo, BranchListRequest, BranchListResponse,
-    BranchSwitchResult, CherryPickRequest, CherryPickStatus, CommitDetail,
-    ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, DiffRequest, DiffResponse,
-    DiffService, FetchProgressEvent, FetchRequest, FetchResult, GitConfigIdentity,
-    GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService, GitStatusCollapseRequest,
-    GitStatusPanelSettings, GitStatusRequest, GitStatusResponse, GitStatusService,
-    GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState, LayoutStore,
-    MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
+    branch_switcher_query as core_branch_switcher_query, build_failure_events,
+    git_auth_provide as core_git_auth_provide, git_fetch_with_events as core_git_fetch,
+    git_merge_abort as core_git_merge_abort, git_pull_with_events as core_git_pull,
+    git_push_with_events as core_git_push, git_remote_list as core_git_remote_list, pane_pty,
+    pane_service, preview_failure_prompt, telemetry, AppSettings, AppSettingsStore, AppVersionInfo,
+    AuthRequest, BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest, BranchError,
+    BranchInfo, BranchListRequest, BranchListResponse, BranchSwitchResult, CherryPickRequest,
+    CherryPickStatus, CommitDetail, ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState,
+    DiffRequest, DiffResponse, DiffService, FetchProgressEvent, FetchRequest, FetchResult,
+    GitConfigIdentity, GitLogQueryRequest, GitLogQueryResponse, GitLogReader, GitOpsService,
+    GitStatusCollapseRequest, GitStatusPanelSettings, GitStatusRequest, GitStatusResponse,
+    GitStatusService, GitStatusWatcher, GitSyncEventHandlers, LayoutApplyRequest, LayoutState,
+    LayoutStore, MergeRequest, MergeStatus, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
     PaneCreateRequest, PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry,
-    PaneDetachOpenRequest, PaneDetachOpenResult, PaneFocusRequest, PaneInitRequest, PaneLinkDao,
-    PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
-    PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PanePtyEvent, PanePtySpawnRequest,
-    PaneUnlinkRequest, PaneUnlinkResult, PtyEvent, PtyEventReceiver, PtyManager, PtySpawnRequest,
-    PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult, RebaseControlRequest,
-    RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteListRequest,
-    RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, SplitRatioUpdateRequest,
-    StageRequest, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceMetadata, WorkspaceStore,
+    PaneDetachOpenRequest, PaneDetachOpenResult, PaneFailurePreviewRequest,
+    PaneFailurePreviewResult, PaneFailureSource, PaneFailureTriggerReason, PaneFocusRequest,
+    PaneInitRequest, PaneLinkDao, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest,
+    PaneLinkStatus, PaneLinkedEvent, PaneLinksListRequest, PaneLinksListResult, PaneListResponse,
+    PanePtyEvent, PanePtySpawnRequest, PaneUnlinkRequest, PaneUnlinkResult, PanesDao, PtyEvent,
+    PtyEventReceiver, PtyManager, PtySpawnRequest, PullRequest, PullResult, PushProgressEvent,
+    PushRequest, PushResult, RebaseControlRequest, RebaseInteractivePlan, RebaseOpError,
+    RebaseStartRequest, RebaseStatus, RemoteListRequest, RemoteListResponse, SetGitIdentityRequest,
+    SettingsUpdateRequest, SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest,
+    SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
+    TabReorderRequest, TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
+    WorkspaceMetadata, WorkspaceStore,
 };
 
 pub type DbPool = r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>;
@@ -65,6 +67,9 @@ const GIT_CONFLICT_DETECTED_EVENT: &str = "git:conflict-detected";
 /// emit 此 event · payload 为 `RebaseCrashRecoveryEvent` · 前端据此渲染 recovery banner。
 const GIT_CRASH_RECOVERY_EVENT: &str = "git:crash-recovery-detected";
 const EXTERNAL_TERM_LAUNCHED_EVENT: &str = "external_term_launched";
+const PANE_TRIGGER_EVENT: &str = "pane:trigger";
+const PANE_BUILD_FAILED_EVENT: &str = "pane:build-failed";
+const PANE_FAILURE_OUTPUT_LIMIT: usize = 16 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -132,6 +137,10 @@ struct AppState {
     pty_pool: Arc<PtyPool>,
     /// MVP-20 · PTY 预热池（与 pane_pty 配套 · 独立池）
     pane_pty_pool: Arc<PtyPool>,
+    /// MVP-18 Phase C · bounded stdout tail per pane for failure fallback context.
+    pane_failure_outputs: Arc<Mutex<HashMap<String, String>>>,
+    /// MVP-18 Phase C · best-effort last stdin text per pane, used only as display context.
+    pane_failure_commands: Arc<Mutex<HashMap<String, String>>>,
 }
 
 struct GitStatusSubscription {
@@ -689,7 +698,9 @@ fn pane_pty_spawn(
 
 #[tauri::command]
 fn pane_pty_stdin(state: State<'_, AppState>, pane_id: String, data: String) -> Result<(), String> {
-    pane_pty::stdin(&state.pane_pty, &pane_id, &data).map_err(|e| e.to_string())
+    pane_pty::stdin(&state.pane_pty, &pane_id, &data).map_err(|e| e.to_string())?;
+    remember_pane_failure_command(&state, &pane_id, &data);
+    Ok(())
 }
 
 #[tauri::command]
@@ -895,14 +906,165 @@ fn emit_pane_pty_events(app: AppHandle, events: PtyEventReceiver) {
     while let Ok(event) = events.recv() {
         let mapped = pane_pty::map_event(event);
         let result = match mapped {
-            PanePtyEvent::Stdout(payload) => app.emit("pane_pty_stdout", payload),
-            PanePtyEvent::Exited(payload) => app.emit("pane_pty_exited", payload),
+            PanePtyEvent::Stdout(payload) => {
+                remember_pane_failure_output(&app, &payload.pane_id, &payload.data);
+                app.emit("pane_pty_stdout", payload)
+            }
+            PanePtyEvent::Exited(payload) => {
+                let result = app.emit("pane_pty_exited", payload.clone());
+                if is_failure_exit_code(payload.exit_code) {
+                    emit_pane_failure_feedback(&app, &payload);
+                } else {
+                    let state = app.state::<AppState>();
+                    clear_pane_failure_context(&state, &payload.pane_id);
+                }
+                result
+            }
         };
 
         if let Err(error) = result {
             eprintln!("[mvp-05] emit pane PTY event failed: {error}");
         }
     }
+}
+
+fn remember_pane_failure_command(state: &AppState, pane_id: &str, data: &str) {
+    let trimmed = data.trim();
+    if trimmed.is_empty() {
+        return;
+    }
+    if let Ok(mut commands) = state.pane_failure_commands.lock() {
+        commands.insert(pane_id.to_string(), trimmed.to_string());
+    }
+}
+
+fn remember_pane_failure_output(app: &AppHandle, pane_id: &str, data: &str) {
+    let state = app.state::<AppState>();
+    if let Ok(mut outputs) = state.pane_failure_outputs.lock() {
+        let buffer = outputs.entry(pane_id.to_string()).or_default();
+        record_pane_failure_output(buffer, data);
+    };
+}
+
+fn record_pane_failure_output(buffer: &mut String, data: &str) {
+    buffer.push_str(data);
+    if buffer.len() <= PANE_FAILURE_OUTPUT_LIMIT {
+        return;
+    }
+
+    let mut drain_to = buffer.len() - PANE_FAILURE_OUTPUT_LIMIT;
+    while !buffer.is_char_boundary(drain_to) {
+        drain_to += 1;
+    }
+    buffer.drain(..drain_to);
+}
+
+fn is_failure_exit_code(exit_code: Option<i32>) -> bool {
+    matches!(exit_code, Some(code) if code != 0)
+}
+
+fn clear_pane_failure_context(state: &AppState, pane_id: &str) {
+    if let Ok(mut outputs) = state.pane_failure_outputs.lock() {
+        outputs.remove(pane_id);
+    }
+    if let Ok(mut commands) = state.pane_failure_commands.lock() {
+        commands.remove(pane_id);
+    }
+}
+
+fn emit_pane_failure_feedback(app: &AppHandle, payload: &vibestation_core::PanePtyExitedEvent) {
+    let state = app.state::<AppState>();
+    let Ok(guard) = state.pool.lock() else {
+        clear_pane_failure_context(&state, &payload.pane_id);
+        return;
+    };
+    let Some(pool) = guard.as_ref() else {
+        clear_pane_failure_context(&state, &payload.pane_id);
+        return;
+    };
+    let Ok((workspace_id, persisted_cwd)) = pane_workspace_and_cwd(pool, &payload.pane_id) else {
+        clear_pane_failure_context(&state, &payload.pane_id);
+        return;
+    };
+    let Ok(links) = PaneLinkDao::list_by_workspace(pool, &workspace_id) else {
+        clear_pane_failure_context(&state, &payload.pane_id);
+        return;
+    };
+    let target_links = links
+        .into_iter()
+        .filter(|link| link.enabled && link.child_pane_id == payload.pane_id)
+        .collect::<Vec<_>>();
+    if target_links.is_empty() {
+        clear_pane_failure_context(&state, &payload.pane_id);
+        return;
+    }
+
+    let occurred_at = chrono::Utc::now().timestamp_millis();
+    let command_run_id = format!("{}-{occurred_at}", payload.pane_id);
+    let command = state
+        .pane_failure_commands
+        .lock()
+        .ok()
+        .and_then(|mut commands| commands.remove(&payload.pane_id))
+        .filter(|command| !command.trim().is_empty())
+        .unwrap_or_else(|| "unknown".to_string());
+    let raw_output = state
+        .pane_failure_outputs
+        .lock()
+        .ok()
+        .and_then(|mut outputs| outputs.remove(&payload.pane_id))
+        .unwrap_or_default();
+    let cwd = state
+        .pane_pty
+        .working_directory(&payload.pane_id)
+        .map(|path| path.to_string_lossy().to_string())
+        .unwrap_or(persisted_cwd);
+    let source = PaneFailureSource {
+        workspace_id,
+        child_pane_id: payload.pane_id.clone(),
+        command_run_id,
+        reason: PaneFailureTriggerReason::ExitCode,
+        exit_code: payload.exit_code,
+        command: command.clone(),
+        cwd,
+        cli_kind: pane_failure_cli_kind(&command),
+        raw_output,
+        parsed_issues: Vec::new(),
+        occurred_at,
+    };
+
+    for link in target_links {
+        let (trigger, build_failed) = build_failure_events(&link, &source);
+        let _ = app.emit(PANE_TRIGGER_EVENT, trigger);
+        let _ = app.emit(PANE_BUILD_FAILED_EVENT, build_failed);
+    }
+}
+
+fn pane_workspace_and_cwd(pool: &DbPool, pane_id: &str) -> Result<(String, String), String> {
+    let pane = PanesDao::get(pool, pane_id).map_err(|e| e.to_string())?;
+    let pane = pane.ok_or_else(|| format!("pane not found: {pane_id}"))?;
+    let conn = pool.get().map_err(|e| e.to_string())?;
+    let workspace_id = conn
+        .query_row(
+            "SELECT workspace_id FROM tabs WHERE tab_id = ?1",
+            [&pane.tab_id],
+            |row| row.get::<_, String>(0),
+        )
+        .map_err(|e| e.to_string())?;
+    Ok((workspace_id, pane.cwd))
+}
+
+fn pane_failure_cli_kind(command: &str) -> String {
+    let mut parts = command.split_whitespace();
+    match (parts.next(), parts.next()) {
+        (Some("cargo"), _) => "cargo",
+        (Some("pnpm"), _) => "pnpm",
+        (Some("npm"), _) => "npm",
+        (Some("pytest"), _) => "pytest",
+        (Some("go"), Some("test")) => "go test",
+        _ => "compiler",
+    }
+    .to_string()
 }
 
 fn git_status_repo_path(pool: &DbPool, workspace_id: &str) -> Result<PathBuf, String> {
@@ -1687,6 +1849,13 @@ fn pane_links_set_enabled(
     })
 }
 
+#[tauri::command]
+fn pane_failure_preview_prompt(
+    req: PaneFailurePreviewRequest,
+) -> Result<PaneFailurePreviewResult, String> {
+    preview_failure_prompt(&req).map_err(|e| e.to_string())
+}
+
 fn rebase_repo_path(
     state: &State<'_, AppState>,
     workspace_id: &str,
@@ -1880,6 +2049,8 @@ pub fn run() {
             pane_pty,
             pty_pool,
             pane_pty_pool,
+            pane_failure_outputs: Arc::new(Mutex::new(HashMap::new())),
+            pane_failure_commands: Arc::new(Mutex::new(HashMap::new())),
         })
         .manage(DetachedPaneMap::new())
         .invoke_handler(tauri::generate_handler![
@@ -1982,6 +2153,7 @@ pub fn run() {
             pane_unlink,
             pane_links_list,
             pane_links_set_enabled,
+            pane_failure_preview_prompt,
             menu::menu_show_tab,
             menu::menu_show_terminal,
             menu::menu_register_shortcuts,
@@ -2013,4 +2185,37 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("Tauri 应用启动失败");
+}
+
+#[cfg(test)]
+mod pane_failure_tests {
+    use super::*;
+
+    #[test]
+    fn pane_failure_cli_kind_uses_command_token_not_error_text() {
+        assert_eq!(pane_failure_cli_kind("cargo test --workspace"), "cargo");
+        assert_eq!(pane_failure_cli_kind("pnpm test"), "pnpm");
+        assert_eq!(pane_failure_cli_kind("npm run test"), "npm");
+        assert_eq!(pane_failure_cli_kind("pytest tests"), "pytest");
+        assert_eq!(pane_failure_cli_kind("go test ./..."), "go test");
+        assert_eq!(pane_failure_cli_kind("just test"), "compiler");
+    }
+
+    #[test]
+    fn pane_failure_output_buffer_keeps_utf8_tail() {
+        let mut buffer = String::new();
+        record_pane_failure_output(&mut buffer, "hello");
+        record_pane_failure_output(&mut buffer, &"界".repeat(PANE_FAILURE_OUTPUT_LIMIT));
+
+        assert!(buffer.len() <= PANE_FAILURE_OUTPUT_LIMIT);
+        assert!(buffer.is_char_boundary(buffer.len()));
+    }
+
+    #[test]
+    fn pane_failure_exit_gate_only_handles_nonzero_exit() {
+        assert!(!is_failure_exit_code(None));
+        assert!(!is_failure_exit_code(Some(0)));
+        assert!(is_failure_exit_code(Some(1)));
+        assert!(is_failure_exit_code(Some(101)));
+    }
 }

@@ -31,8 +31,8 @@
 截至 session 32，代码实施层面已经形成三段式状态：
 
 1. **v0.1 / v0.2 / v0.3 的核心代码主线均已达到 100% 收口**（以 `docs/PROGRESS.md` 当前阶段描述与本 README 索引状态为准）。
-2. **v1.0 vision 4 spec（SPIKE-07 + MVP-18/19/20）已 session 32 Arbiter approve 全部 flip `ready`**（spec 详化完成 · 实施仍 gated on 各自 depends_on done）。SPIKE-07：3 High 修 @ PR #328 → re-review APPROVE-WITH-NITS → threshold 收敛 + flip @ PR #331。
-3. **当前阻塞不在编码而在 capture + SPIKE-07.5 实跑**：Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动；SPIKE-07 已实跑闭环（§H 路径 3 deferred · ADR-017 accepted 2026-05-16 · 见下方 v1.0 vision 段）；MVP-18/19/20 实施前置**改为 SPIKE-07.5 实跑 PASS**（路径 A · 结构化模式重录重跑 · R1 真降级才解锁）。
+2. **SPIKE-07.5 实跑闭环 → R1 greenlight**（路径 A 结构化模式重录重跑 · 非退化 30/30=100% · claude 18/18 · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · 2026-05-16 Arbiter "你直接执行"）→ **MVP-18/19/20 实施 blocker 解除**。SPIKE-07 已 done（§H 路径 3 deferred · ADR-017 · 后续路径 A → SPIKE-07.5）。
+3. **v1.0 vision 进入实施**：**MVP-18 Phase A backend 已实现+merged**（#344 migration/validator/DAO/§K.5/IPC/14 binding · #347 §F 集成测试 · #346 Cursor store · #345 parser_bridge/sanitize · #348 §F.3 fixtures · 均主 agent §2.14 独立 review）· MVP-18 `in-progress`（Phase B Wave-2 + Phase C failure wire + Phase D evidence 待续 · Phase C done 后 MVP-19→20 依赖链解锁）。**当前其余阻塞仍在 capture**：v0.1/v0.2/v0.3 各 sprint Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动。
 
 这段总览用于“先看全局，再钻索引表”：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段。
 
@@ -90,13 +90,13 @@ v0.3 结论：
 
 ### v1.0 vision 状态（spec 详化批）
 
-| Task       | 主题                                      | 当前状态  | 详化进展                                                                                                                                                      | PR 参考                   |
-| ---------- | ----------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| SPIKE-07   | CLI parser 验证（R1 gate）                | **done**  | 实跑闭环：§H 路径 3 deferred · R1 保留 HIGH/HIGH · ADR-017 accepted（2026-05-16 Arbiter）· 后续路径 A → SPIKE-07.5（结构化模式重录重跑）                      | #311 · #328 · #331 · #338 |
-| SPIKE-07.5 | 结构化模式重录重跑（路径 A · 新 R1 gate） | **ready** | spec 详化 + ready-gate APPROVE-WITH-NITS（3 nit 修+re-reviewed）+ Arbiter flip 拍板（2026-05-16）· 实施待 Arbiter 自定执行窗口（API 预算 · 同 SPIKE-06 录制） | #340 · #341               |
-| MVP-18     | AI-Aware Pane 联动                        | **ready** | session 32 Arbiter approve flip（实施仍 gated on SPIKE-07 + MVP-14）                                                                                          | #309 · #330               |
-| MVP-19     | session ↔ commit 绑定                     | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）                                                                                                | #313 · #330               |
-| MVP-20     | 一键回滚（session revert）                | **ready** | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）                                                                                                | #312 · #330               |
+| Task       | 主题                                      | 当前状态        | 详化进展                                                                                                                                                                                                                                                                                                     | PR 参考                          |
+| ---------- | ----------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| SPIKE-07   | CLI parser 验证（R1 gate）                | **done**        | 实跑闭环：§H 路径 3 deferred · R1 保留 HIGH/HIGH · ADR-017 accepted（2026-05-16 Arbiter）· 后续路径 A → SPIKE-07.5（结构化模式重录重跑）                                                                                                                                                                     | #311 · #328 · #331 · #338        |
+| SPIKE-07.5 | 结构化模式重录重跑（路径 A · 新 R1 gate） | **done**        | 实跑闭环 · R1 **greenlight**（路径 1 · 非退化 30/30=100% · claude 18/18）· [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017（2026-05-16 Arbiter "你直接执行"）· MVP-18/19/20 解锁                                                                                                 | #340 · #341 · #343               |
+| MVP-18     | AI-Aware Pane 联动                        | **in-progress** | SPIKE-07.5 PASS 解锁 · **Phase A backend 实现+merged**（migration/validator/DAO/§K.5/IPC 4 命令/14 ts-rs binding #344 · §F 集成测试 #347 · store 逻辑 #346 · parser_bridge/sanitize #345 · §F.3 fixtures #348）· Phase B Wave-2 seam 替换 + Phase C failure wire + Phase D evidence 待续 · owner Claude Code | #344 · #345 · #346 · #347 · #348 |
+| MVP-19     | session ↔ commit 绑定                     | **ready**       | session 32 Arbiter approve flip（实施仍 gated on MVP-18 done）                                                                                                                                                                                                                                               | #313 · #330                      |
+| MVP-20     | 一键回滚（session revert）                | **ready**       | session 32 Arbiter approve flip（实施仍 gated on MVP-19 done）                                                                                                                                                                                                                                               | #312 · #330                      |
 
 v1.0 vision 结论：
 

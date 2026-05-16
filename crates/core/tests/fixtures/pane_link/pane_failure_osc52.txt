@@ -1,0 +1,7 @@
+[runner] copying build artifact path to clipboard
+]52;c;L3dvcmtzcGFjZS9wcm9qZWN0L3RhcmdldC9yZWxlYXNlL2FwcA==
+[build] linking target/release/app
+]52;c;c2stRkFLRS1ub3QtYS1yZWFsLXNlY3JldA==
+error: linker `cc` failed: exit status: 1
+[runner] note: /workspace/project/target/release/deps had 2 undefined symbols
+[runner] process exited with code 101

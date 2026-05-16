@@ -5,17 +5,20 @@ import { RunnerSourceBadge } from "../../../../src/panels/Terminal/RunnerSourceB
 import { FailureCallout } from "../../../../src/panels/Terminal/FailureCallout";
 import { LinkManagePopover } from "../../../../src/panels/Terminal/LinkManagePopover";
 import { PaneLinkErrorState } from "../../../../src/panels/Terminal/PaneLinkErrorState";
-import type { PaneLink, PaneLinkError } from "../../../../src/bindings";
-import type { PaneFailureCallout } from "../../../../src/stores/paneLinks";
+import type { PaneLinkError } from "../../../../src/bindings";
+import type {
+  PaneFailureCallout,
+  PaneLinkView,
+} from "../../../../src/stores/paneLinks";
 
-function makeLink(overrides: Partial<PaneLink> = {}): PaneLink {
+function makeLink(overrides: Partial<PaneLinkView> = {}): PaneLinkView {
   return {
     id: "link-1",
     workspaceId: "ws-1",
     parentPaneId: "pane-ai",
     childPaneId: "pane-runner",
     linkKind: "failureFeedback",
-    enabled: true,
+    status: "enabled",
     fallbackMode: "structured",
     createdBy: "user",
     createdAt: 1760000000000,
@@ -69,11 +72,25 @@ describe("PaneLinkChip (D.1)", () => {
 
   it("shows paused badge when link is disabled", () => {
     const { container } = render(() => (
-      <PaneLinkChip link={makeLink({ enabled: false })} role="parent" />
+      <PaneLinkChip link={makeLink({ status: "disabled" })} role="parent" />
     ));
     const badge = container.querySelector(".vs-pane-link-chip-badge");
     expect(badge).toBeInTheDocument();
     expect(badge?.textContent).toBe("paused");
+  });
+
+  it("flows a stale link through as paused · #353 debt fix (distinct from active)", () => {
+    const { container } = render(() => (
+      <PaneLinkChip link={makeLink({ status: "stale" })} role="parent" />
+    ));
+    // stale must NOT render as active/"linked" — the store no longer collapses
+    // it into enabled, so the chip correctly shows it paused.
+    expect(
+      container.querySelector(".vs-pane-link-chip-badge")?.textContent,
+    ).toBe("paused");
+    expect(
+      container.querySelector(".vs-pane-link-chip.is-paused"),
+    ).toBeInTheDocument();
   });
 
   it("fires onClick on click and keyboard Enter", async () => {
@@ -105,7 +122,7 @@ describe("PaneLinkChip (D.1)", () => {
   it("has correct aria-label for child paused", () => {
     const { getByRole } = render(() => (
       <PaneLinkChip
-        link={makeLink({ enabled: false })}
+        link={makeLink({ status: "disabled" })}
         role="child"
       />
     ));
@@ -131,7 +148,7 @@ describe("RunnerSourceBadge (D.2)", () => {
 
   it("does not render when link is disabled", () => {
     const { queryByRole } = render(() => (
-      <RunnerSourceBadge link={makeLink({ enabled: false })} />
+      <RunnerSourceBadge link={makeLink({ status: "disabled" })} />
     ));
     expect(queryByRole("status")).not.toBeInTheDocument();
   });
@@ -272,6 +289,23 @@ describe("LinkManagePopover (D.4)", () => {
     const switches = getAllByRole("switch");
     expect(switches).toHaveLength(1);
     expect(switches[0].getAttribute("aria-checked")).toBe("true");
+  });
+
+  it("surfaces lifecycle status in item label · stale ≠ disabled (#353 fix)", () => {
+    const { getByRole } = render(() => (
+      <LinkManagePopover
+        open={true}
+        links={[makeLink({ status: "stale" })]}
+        currentPaneId="pane-ai"
+        onClose={() => {}}
+      />
+    ));
+    // the store no longer collapses stale into disabled — the popover item
+    // label reflects the real §K.6 lifecycle status.
+    expect(getByRole("listitem").getAttribute("aria-label")).toContain(
+      "stale",
+    );
+    expect(getByRole("switch").getAttribute("aria-checked")).toBe("false");
   });
 
   it("fires onToggleEnabled on switch click", async () => {

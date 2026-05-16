@@ -5,19 +5,19 @@
  * shows "← parent". Clicking opens the link management popover (D.4).
  */
 import { type Component, Show, createMemo } from "solid-js";
-import type { PaneLink } from "../../bindings";
+import type { PaneLinkView } from "../../stores/paneLinks";
 
 export type PaneLinkChipRole = "parent" | "child";
 
 export type PaneLinkChipProps = {
-  link: PaneLink;
+  link: PaneLinkView;
   role: PaneLinkChipRole;
   targetPaneLabel?: string;
   onClick?: () => void;
 };
 
-const statusLabel = (link: PaneLink): string => {
-  if (!link.enabled) return "paused";
+const statusLabel = (link: PaneLinkView): string => {
+  if (link.status !== "enabled") return "paused";
   return "linked";
 };
 
@@ -40,7 +40,7 @@ export const PaneLinkChip: Component<PaneLinkChipProps> = (props) => {
   return (
     <button
       type="button"
-      class={`vs-pane-link-chip ${!props.link.enabled ? "is-paused" : ""}`}
+      class={`vs-pane-link-chip ${props.link.status !== "enabled" ? "is-paused" : ""}`}
       aria-label={ariaLabel()}
       onClick={(e) => {
         e.stopPropagation();
@@ -71,7 +71,7 @@ export const PaneLinkChip: Component<PaneLinkChipProps> = (props) => {
         />
       </svg>
       <span class="vs-pane-link-chip-text">{chipLabel()}</span>
-      <Show when={!props.link.enabled}>
+      <Show when={props.link.status !== "enabled"}>
         <span class="vs-pane-link-chip-badge" aria-hidden="true">
           paused
         </span>

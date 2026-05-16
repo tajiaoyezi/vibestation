@@ -25,8 +25,8 @@
 | [ADR-014](./ADR-014-ipc-contract-source-of-truth-ts-rs.md)   | IPC contract source of truth = Rust struct + ts-rs codegen（H2 根因消除）           | **accepted** | —（规范类 · 未在锁定表） | Session 13 中 · SPIKE-08 §A PASS @ 2026-04-20 + PR #63 rollout                 |
 | [ADR-015](./ADR-015-telemetry-stack-sentry.md)               | Telemetry crash stack = Sentry SDK + sanitized payload                              | **accepted** | #10 实施子决策           | MVP-10 Phase B pre-spike @ 2026-04-25 · accepted @ 2026-04-26                  |
 | [ADR-016](./ADR-016-admin-override-trailer-exemption.md)     | v2-D.1 → v2-D.2 · admin direct push trailer 豁免 + 审计 marker 要求                 | **accepted** | —（治理规则）            | Session 23 · session 21 7 个 admin push audit 项闭合 @ 2026-05-03              |
-| [ADR-019](./ADR-019-ci-mandate-staleness.md)                 | CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale                             | **proposed** | —（治理规则）            | session 32 续 8 PR merge 零 auto CI · ci.yml 仅 workflow_dispatch @ 2026-05-16 |
-| [ADR-020](./ADR-020-dispatch-template-ref-path-staleness.md) | dispatch-prompt-template.md §4 参考实现引用路径 stale（top-level 实在 \_archived/） | **proposed** | —（治理规则）            | PR #329 压缩后 · spike-tmp/dispatch/ cleanup 导致路径断链 @ 2026-05-16         |
+| [ADR-021](./ADR-021-ci-mandate-staleness.md)                 | CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale                             | **proposed** | —（治理规则）            | session 32 续 8 PR merge 零 auto CI · ci.yml 仅 workflow_dispatch @ 2026-05-16 |
+| [ADR-022](./ADR-022-dispatch-template-ref-path-staleness.md) | dispatch-prompt-template.md §4 参考实现引用路径 stale（top-level 实在 \_archived/） | **proposed** | —（治理规则）            | PR #329 压缩后 · spike-tmp/dispatch/ cleanup 导致路径断链 @ 2026-05-16         |
 
 ---
 

@@ -1,4 +1,4 @@
-# ADR-020: dispatch-prompt-template.md §4 参考实现引用路径 stale（指 top-level 实在 \_archived/）
+# ADR-022: dispatch-prompt-template.md §4 参考实现引用路径 stale（指 top-level 实在 \_archived/）
 
 **状态**：proposed
 **日期**：2026-05-16（proposed）

@@ -26,25 +26,26 @@ use vibestation_core::{
     ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
     LayoutApplyAdvancedRequest, LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope,
     LayoutHistoryEntry, LayoutNode, LayoutPresetKind, LayoutState, MergeConflictInfo, MergeRequest,
-    MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent, PaneCloseRequest,
-    PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest, PaneDetachCloseResult,
-    PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult, PaneDetachStateEvent,
-    PaneFocusRequest, PaneInitRequest, PaneLink, PaneLinkError, PaneLinkErrorEvent, PaneLinkKind,
-    PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
+    MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent, PaneBuildFailedEvent,
+    PaneCloseRequest, PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest,
+    PaneDetachCloseResult, PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult,
+    PaneDetachStateEvent, PaneFailurePreviewRequest, PaneFailurePreviewResult, PaneFocusRequest,
+    PaneInitRequest, PaneLink, PaneLinkError, PaneLinkErrorEvent, PaneLinkKind, PaneLinkRequest,
+    PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
     PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PaneMaximizeRequest,
     PaneMaximizeResult, PaneNavDirection, PaneNavigateRequest, PaneNavigateResult,
     PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest,
     PaneScrollbackFetchRequest, PaneState, PaneTriggerEvent, PaneUnlinkRequest, PaneUnlinkResult,
-    PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest, PullResult, PullStrategy,
-    PushProgressEvent, PushRequest, PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample,
-    RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
-    RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
-    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SetGitIdentityRequest,
-    SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest,
-    StageFailedItem, StageRequest, StageResult, SwitcherMatch, SwitcherQueryRequest,
-    SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest,
-    TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus, UnstageRequest,
-    WorkspaceLayoutState, WorkspaceMetadata,
+    ParsedIssue, ParsedIssueSeverity, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest,
+    PullResult, PullStrategy, PushProgressEvent, PushRequest, PushResult,
+    RailGraphBranchChangedPayload, RailGraphPerfSample, RailGraphRebaseStatePayload,
+    RailGraphViewportSyncPayload, RebaseControlRequest, RebaseInteractivePlan,
+    RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo,
+    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
+    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
+    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
+    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
+    TelemetryStatus, UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -76,6 +77,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/rail_graph_events.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_detach.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_links.rs");
+    println!("cargo:rerun-if-changed=../core/src/pane_failure.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -265,6 +267,11 @@ fn main() {
     PaneLinkSetEnabledRequest::export_all(&config).expect("export PaneLinkSetEnabledRequest");
     PaneLinkedEvent::export_all(&config).expect("export PaneLinkedEvent");
     PaneTriggerEvent::export_all(&config).expect("export PaneTriggerEvent");
+    ParsedIssue::export_all(&config).expect("export ParsedIssue");
+    ParsedIssueSeverity::export_all(&config).expect("export ParsedIssueSeverity");
+    PaneBuildFailedEvent::export_all(&config).expect("export PaneBuildFailedEvent");
+    PaneFailurePreviewRequest::export_all(&config).expect("export PaneFailurePreviewRequest");
+    PaneFailurePreviewResult::export_all(&config).expect("export PaneFailurePreviewResult");
     PaneLinkErrorEvent::export_all(&config).expect("export PaneLinkErrorEvent");
     PaneLinkError::export_all(&config).expect("export PaneLinkError");
 
@@ -439,6 +446,11 @@ fn main() {
             "export type { PaneLinkSetEnabledRequest } from \"./PaneLinkSetEnabledRequest\";",
             "export type { PaneLinkedEvent } from \"./PaneLinkedEvent\";",
             "export type { PaneTriggerEvent } from \"./PaneTriggerEvent\";",
+            "export type { ParsedIssue } from \"./ParsedIssue\";",
+            "export type { ParsedIssueSeverity } from \"./ParsedIssueSeverity\";",
+            "export type { PaneBuildFailedEvent } from \"./PaneBuildFailedEvent\";",
+            "export type { PaneFailurePreviewRequest } from \"./PaneFailurePreviewRequest\";",
+            "export type { PaneFailurePreviewResult } from \"./PaneFailurePreviewResult\";",
             "export type { PaneLinkErrorEvent } from \"./PaneLinkErrorEvent\";",
             "export type { PaneLinkError } from \"./PaneLinkError\";",
             "",

@@ -110,6 +110,7 @@
     "allow-pane-link-unlink",
     "allow-pane-links-list",
     "allow-pane-link-set-enabled",
+    "allow-pane-failure-preview-prompt",
     "dialog:default",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-read-text"

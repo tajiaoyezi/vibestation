@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 9;
+const CURRENT_SCHEMA_VERSION: u32 = 10;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -89,6 +89,9 @@ pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     }
     if user_version < 9 {
         migrate_v9(conn)?;
+    }
+    if user_version < 10 {
+        migrate_v10(conn)?;
     }
 
     Ok(())
@@ -419,6 +422,116 @@ fn migrate_v9(conn: &Connection) -> Result<(), DbError> {
     })?;
     tx.commit().map_err(|e| DbError::Migration {
         version: 9,
+        reason: e.to_string(),
+    })?;
+    Ok(())
+}
+
+/// MVP-20 Phase A M2 · rollback operation audit log + session rollback markers.
+///
+/// Mirrors `migrate_v9`'s all-or-nothing pattern: all DDL, guarded ALTERs, schema
+/// validation, and `PRAGMA user_version = 10` run in one transaction. The
+/// `ai_sessions` columns are additive and guarded because user DBs may have been
+/// migrated by an earlier dev build.
+fn migrate_v10(conn: &Connection) -> Result<(), DbError> {
+    let add_rolled_back_at = !column_exists(conn, "ai_sessions", "rolled_back_at")?;
+    let add_rollback_commit_shas = !column_exists(conn, "ai_sessions", "rollback_commit_shas")?;
+    let add_rollback_session_id = !column_exists(conn, "ai_sessions", "rollback_session_id")?;
+
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| DbError::Migration {
+            version: 10,
+            reason: e.to_string(),
+        })?;
+
+    tx.execute_batch(
+        "CREATE TABLE IF NOT EXISTS rollback_ops (
+             id          INTEGER PRIMARY KEY AUTOINCREMENT,
+             session_id  TEXT NOT NULL,
+             started_at  INTEGER NOT NULL,
+             finished_at INTEGER,
+             status      TEXT NOT NULL,
+             commit_plan TEXT NOT NULL,
+             current_idx INTEGER NOT NULL DEFAULT 0,
+             error_msg   TEXT,
+             FOREIGN KEY (session_id) REFERENCES ai_sessions(id)
+         );",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 10,
+        reason: e.to_string(),
+    })?;
+
+    for (should_add, sql) in [
+        (
+            add_rolled_back_at,
+            "ALTER TABLE ai_sessions ADD COLUMN rolled_back_at INTEGER",
+        ),
+        (
+            add_rollback_commit_shas,
+            "ALTER TABLE ai_sessions ADD COLUMN rollback_commit_shas TEXT",
+        ),
+        (
+            add_rollback_session_id,
+            "ALTER TABLE ai_sessions ADD COLUMN rollback_session_id TEXT",
+        ),
+    ] {
+        if should_add {
+            tx.execute(sql, []).map_err(|e| DbError::Migration {
+                version: 10,
+                reason: e.to_string(),
+            })?;
+        }
+    }
+
+    let rollback_cols: Vec<String> = {
+        let mut stmt =
+            tx.prepare("PRAGMA table_info(rollback_ops)")
+                .map_err(|e| DbError::Migration {
+                    version: 10,
+                    reason: e.to_string(),
+                })?;
+        let rows = stmt
+            .query_map([], |row| row.get::<_, String>(1))
+            .map_err(|e| DbError::Migration {
+                version: 10,
+                reason: e.to_string(),
+            })?;
+        rows.collect::<Result<Vec<_>, _>>()
+            .map_err(|e| DbError::Migration {
+                version: 10,
+                reason: e.to_string(),
+            })?
+    };
+    let expected = [
+        "id",
+        "session_id",
+        "started_at",
+        "finished_at",
+        "status",
+        "commit_plan",
+        "current_idx",
+        "error_msg",
+    ];
+    if rollback_cols.len() != expected.len()
+        || expected
+            .iter()
+            .any(|col| !rollback_cols.iter().any(|c| c == col))
+    {
+        return Err(DbError::Migration {
+            version: 10,
+            reason: format!("rollback_ops schema mismatch: {rollback_cols:?}"),
+        });
+    }
+
+    tx.execute_batch("PRAGMA user_version = 10;")
+        .map_err(|e| DbError::Migration {
+            version: 10,
+            reason: e.to_string(),
+        })?;
+    tx.commit().map_err(|e| DbError::Migration {
+        version: 10,
         reason: e.to_string(),
     })?;
     Ok(())
@@ -1555,5 +1668,154 @@ mod tests {
             )
             .unwrap();
         assert!(workspaces_ok, "old schema (workspaces) must remain usable");
+    }
+
+    // ── MVP-20 Phase A M2 · rollback_ops + ai_sessions rollback metadata (migrate_v10) ──
+
+    fn migrate_through_v10(conn: &Connection) {
+        migrate_through_v9(conn);
+        migrate_v10(conn).unwrap();
+    }
+
+    #[test]
+    fn v10_creates_rollback_ops_table_and_ai_session_columns() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v10rollback.db")).unwrap();
+        migrate_through_v10(&conn);
+
+        let rollback_ops_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='rollback_ops'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            rollback_ops_exists,
+            "rollback_ops table should exist after v10"
+        );
+
+        let rollback_cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(rollback_ops)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        for c in [
+            "id",
+            "session_id",
+            "started_at",
+            "finished_at",
+            "status",
+            "commit_plan",
+            "current_idx",
+            "error_msg",
+        ] {
+            assert!(
+                rollback_cols.contains(&c.to_string()),
+                "rollback_ops missing col {c}"
+            );
+        }
+        assert_eq!(
+            rollback_cols.len(),
+            8,
+            "rollback_ops §G.2 must remain verbatim"
+        );
+
+        let session_cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(ai_sessions)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        for c in [
+            "rolled_back_at",
+            "rollback_commit_shas",
+            "rollback_session_id",
+        ] {
+            assert!(
+                session_cols.contains(&c.to_string()),
+                "ai_sessions missing v10 col {c}"
+            );
+        }
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 10);
+    }
+
+    #[test]
+    fn v10_migration_is_idempotent_and_preserves_existing_sessions() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v10idem.db")).unwrap();
+        migrate_through_v9(&conn);
+        conn.execute(
+            "INSERT INTO ai_sessions (id, workspace_id, cli_kind, started_at, created_at, updated_at)
+             VALUES ('s1','w1','codex',1,1,1)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v10(&conn).unwrap();
+        migrate_v10(&conn).unwrap();
+
+        let session_count: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM ai_sessions WHERE id='s1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            session_count, 1,
+            "v10 must preserve existing ai_sessions rows"
+        );
+
+        for c in [
+            "rolled_back_at",
+            "rollback_commit_shas",
+            "rollback_session_id",
+        ] {
+            let count: i64 = conn
+                .query_row(
+                    "SELECT count(*) FROM pragma_table_info('ai_sessions') WHERE name=?1",
+                    [c],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(count, 1, "{c} must not duplicate on v10 re-run");
+        }
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 10);
+    }
+
+    #[test]
+    fn v10_rolls_back_and_keeps_v9_schema_when_a_step_fails() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v10rollback-fail.db")).unwrap();
+        migrate_through_v9(&conn);
+        conn.execute("CREATE TABLE rollback_ops (bogus TEXT)", [])
+            .unwrap();
+
+        let result = migrate_v10(&conn);
+        assert!(
+            result.is_err(),
+            "v10 must fail when rollback_ops schema cannot apply"
+        );
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 9, "failed v10 must not advance user_version");
+        assert!(
+            !column_exists(&conn, "ai_sessions", "rolled_back_at").unwrap(),
+            "failed v10 must not leave ai_sessions half-altered"
+        );
     }
 }

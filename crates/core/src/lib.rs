@@ -27,6 +27,7 @@ pub mod pty_pool;
 pub mod rail_graph_events;
 pub mod rebase_ops;
 pub mod sanitize;
+pub mod session_lifecycle;
 pub mod sessions;
 pub mod tabs;
 pub mod telemetry;

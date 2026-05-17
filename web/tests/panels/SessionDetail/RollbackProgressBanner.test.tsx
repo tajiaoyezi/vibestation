@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, fireEvent, screen } from "@solidjs/testing-library";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { render, fireEvent, screen, cleanup } from "@solidjs/testing-library";
 import { RollbackProgressBanner } from "../../../src/panels/SessionDetail/RollbackProgressBanner";
 import type { RollbackProgress } from "../../../src/panels/SessionDetail/rollbackContract";
+
+// 每个测试后卸载已 mount 组件 · 移除其 document keydown listener
+// 否则跨测试累积泄漏污染后续测试文件（reviewer-fix · 仿 sessionDetail.test.tsx 既有模式）
+afterEach(() => cleanup());
 
 describe("RollbackProgressBanner", () => {
   const baseProgress: RollbackProgress = {

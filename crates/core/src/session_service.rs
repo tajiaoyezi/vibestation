@@ -16,18 +16,24 @@ use crate::session_ipc::{
 use crate::session_lifecycle::{
     SessionInputEvent, SessionLifecycleDecision, SessionLifecycleService,
 };
+use crate::session_redaction::{redact_session_summary, RedactionError, RedactionResult};
 use crate::sessions::{AiSession, LinkState, SessionCommitLink, SessionError, SessionStatus};
 use rusqlite::OptionalExtension;
+use serde_json::Value;
 use uuid::Uuid;
 
 const STRATEGY_VERSION: &str = "v1";
 const AUTO_CONFIRM_THRESHOLD: f32 = 0.7;
 const TIME_WINDOW_STRONG_MS: i64 = 30 * 60 * 1000;
 const TIME_WINDOW_NEAR_MS: i64 = 2 * 60 * 60 * 1000;
+const REDACTION_FAILURE_PLACEHOLDER: &str = "[summary unavailable: redaction failed]";
+
+type SummaryRedactor = fn(&str) -> Result<RedactionResult, RedactionError>;
 
 pub struct SessionService<'a> {
     pool: &'a DbPool,
     lifecycle: SessionLifecycleService,
+    summary_redactor: SummaryRedactor,
 }
 
 impl<'a> SessionService<'a> {
@@ -35,11 +41,29 @@ impl<'a> SessionService<'a> {
         Self {
             pool,
             lifecycle: SessionLifecycleService::with_default_config(),
+            summary_redactor: redact_session_summary,
         }
     }
 
     pub fn with_lifecycle(pool: &'a DbPool, lifecycle: SessionLifecycleService) -> Self {
-        Self { pool, lifecycle }
+        Self {
+            pool,
+            lifecycle,
+            summary_redactor: redact_session_summary,
+        }
+    }
+
+    #[cfg(test)]
+    fn with_summary_redactor(
+        pool: &'a DbPool,
+        lifecycle: SessionLifecycleService,
+        summary_redactor: SummaryRedactor,
+    ) -> Self {
+        Self {
+            pool,
+            lifecycle,
+            summary_redactor,
+        }
     }
 
     pub fn start(&self, req: SessionStartRequest) -> Result<SessionStartResult, SessionError> {
@@ -184,6 +208,7 @@ impl<'a> SessionService<'a> {
         req: SessionDetailRequest,
     ) -> Result<SessionDetailResult, SessionError> {
         let session = AiSessionDao::get_by_id(self.pool, &req.workspace_id, &req.session_id)?;
+        let session = self.redact_detail_session(session);
         let links =
             SessionCommitLinkDao::list_by_session(self.pool, &req.workspace_id, &req.session_id)?;
         let active_links: Vec<_> = links
@@ -202,6 +227,50 @@ impl<'a> SessionService<'a> {
             commit_count,
             avg_confidence,
         })
+    }
+
+    fn redact_detail_session(&self, mut session: AiSession) -> AiSession {
+        session.title = self.redact_display_text(&session.title);
+        session.metadata_json = self.redact_metadata_json(&session.metadata_json);
+        session
+    }
+
+    fn redact_display_text(&self, raw: &str) -> String {
+        match (self.summary_redactor)(raw) {
+            Ok(result) => result.sanitized_text,
+            Err(RedactionError::EngineFailure(_)) => REDACTION_FAILURE_PLACEHOLDER.to_string(),
+        }
+    }
+
+    fn redact_metadata_json(&self, raw: &str) -> String {
+        match serde_json::from_str::<Value>(raw) {
+            Ok(mut value) => {
+                self.redact_json_value(&mut value);
+                serde_json::to_string(&value).unwrap_or_else(|_| {
+                    Value::String(REDACTION_FAILURE_PLACEHOLDER.to_string()).to_string()
+                })
+            }
+            Err(_) => Value::String(self.redact_display_text(raw)).to_string(),
+        }
+    }
+
+    fn redact_json_value(&self, value: &mut Value) {
+        match value {
+            Value::String(text) => {
+                *text = self.redact_display_text(text);
+            }
+            Value::Array(items) => {
+                for item in items {
+                    self.redact_json_value(item);
+                }
+            }
+            Value::Object(object) => {
+                for nested in object.values_mut() {
+                    self.redact_json_value(nested);
+                }
+            }
+            Value::Null | Value::Bool(_) | Value::Number(_) => {}
+        }
     }
 
     pub fn rebind(&self, req: SessionRebindRequest) -> Result<SessionRebindResult, SessionError> {
@@ -638,4 +707,156 @@ fn now_ms() -> i64 {
 
 fn db_err(e: impl std::string::ToString) -> SessionError {
     SessionError::DbError(e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db;
+    use crate::session_redaction::{RedactionError, RedactionResult};
+    use serde_json::{json, Value};
+    use tempfile::TempDir;
+
+    fn setup() -> (TempDir, DbPool) {
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("session_service_redaction.db")).unwrap();
+        (dir, pool)
+    }
+
+    fn session_with_summary(
+        id: &str,
+        workspace_id: &str,
+        title: &str,
+        metadata_json: &str,
+    ) -> AiSession {
+        AiSession {
+            id: id.to_string(),
+            workspace_id: workspace_id.to_string(),
+            cli_kind: "codex".to_string(),
+            source: "auto".to_string(),
+            title: title.to_string(),
+            started_at: 1_800_000_000_000,
+            ended_at: None,
+            end_reason: None,
+            prompt_count: 0,
+            token_count: None,
+            event_count: 1,
+            status: SessionStatus::Active,
+            parser_version: None,
+            strategy_version: Some("v1".to_string()),
+            metadata_json: metadata_json.to_string(),
+            created_at: 1_800_000_000_000,
+            updated_at: 1_800_000_000_000,
+        }
+    }
+
+    fn detail_for(
+        service: &SessionService<'_>,
+        workspace_id: &str,
+        session_id: &str,
+    ) -> SessionDetailResult {
+        service
+            .get_detail(SessionDetailRequest {
+                workspace_id: workspace_id.to_string(),
+                session_id: session_id.to_string(),
+            })
+            .unwrap()
+    }
+
+    #[test]
+    fn session_service_redaction_get_detail_redacts_summary_text_fields() {
+        let (_dir, pool) = setup();
+        let raw_title =
+            "deploy summary Authorization: Bearer sk-live-abcdefghijklmnopqrstuvwxyz123456";
+        let raw_metadata = json!({
+            "summary": "owner alice@example.com hit /Users/alice/work with ghp_abcdefghijklmnopqrstuvwxyzABCDEFGHIJ",
+            "notes": [
+                "phone 415-555-1212",
+                "github_pat_abcdefghijklmnopqrstuvwxyzABCDEFGHIJ"
+            ],
+        })
+        .to_string();
+        AiSessionDao::insert(
+            &pool,
+            &session_with_summary("s-redact", "w1", raw_title, &raw_metadata),
+        )
+        .unwrap();
+
+        let detail = detail_for(&SessionService::new(&pool), "w1", "s-redact");
+        let metadata: Value = serde_json::from_str(&detail.session.metadata_json).unwrap();
+        let metadata_text = metadata.to_string();
+
+        assert!(!detail.session.title.contains("sk-live"));
+        assert!(detail.session.title.contains("[REDACTED_TOKEN]"));
+        assert!(!metadata_text.contains("alice@example.com"));
+        assert!(!metadata_text.contains("/Users/alice"));
+        assert!(!metadata_text.contains("ghp_"));
+        assert!(!metadata_text.contains("github_pat_"));
+        assert!(!metadata_text.contains("415-555-1212"));
+        assert!(metadata_text.contains("[REDACTED_EMAIL]"));
+        assert!(metadata_text.contains("/Users/[REDACTED_USER]"));
+        assert!(metadata_text.contains("[REDACTED_TOKEN]"));
+        assert!(metadata_text.contains("[REDACTED_PHONE]"));
+    }
+
+    #[test]
+    fn session_service_redaction_get_detail_does_not_persist_sanitized_summary() {
+        let (_dir, pool) = setup();
+        let raw_metadata = json!({
+            "summary": "contact bob@example.com before reading /Users/bob/private/log.txt",
+        })
+        .to_string();
+        AiSessionDao::insert(
+            &pool,
+            &session_with_summary(
+                "s-read-only",
+                "w1",
+                "token sk-live-abcdefghijklmnopqrstuvwxyz123456",
+                &raw_metadata,
+            ),
+        )
+        .unwrap();
+
+        let _detail = detail_for(&SessionService::new(&pool), "w1", "s-read-only");
+        let persisted = AiSessionDao::get_by_id(&pool, "w1", "s-read-only").unwrap();
+
+        assert_eq!(persisted.metadata_json, raw_metadata);
+        assert!(persisted.title.contains("sk-live"));
+    }
+
+    fn failing_redactor(_raw: &str) -> Result<RedactionResult, RedactionError> {
+        Err(RedactionError::EngineFailure(
+            "synthetic test failure".to_string(),
+        ))
+    }
+
+    #[test]
+    fn session_service_redaction_get_detail_fail_closed_on_redaction_error() {
+        let (_dir, pool) = setup();
+        let raw_title = "summary with sk-live-abcdefghijklmnopqrstuvwxyz123456";
+        let raw_metadata = json!({
+            "summary": "email carol@example.com path /Users/carol/work",
+            "nested": { "token": "Bearer sk-live-abcdefghijklmnopqrstuvwxyz123456" },
+        })
+        .to_string();
+        AiSessionDao::insert(
+            &pool,
+            &session_with_summary("s-fail-closed", "w1", raw_title, &raw_metadata),
+        )
+        .unwrap();
+
+        let service = SessionService::with_summary_redactor(
+            &pool,
+            SessionLifecycleService::with_default_config(),
+            failing_redactor,
+        );
+        let detail = detail_for(&service, "w1", "s-fail-closed");
+        let returned = format!("{} {}", detail.session.title, detail.session.metadata_json);
+
+        assert!(returned.contains("[summary unavailable: redaction failed]"));
+        assert!(!returned.contains("sk-live"));
+        assert!(!returned.contains("carol@example.com"));
+        assert!(!returned.contains("/Users/carol"));
+        assert!(!returned.contains("Bearer "));
+    }
 }

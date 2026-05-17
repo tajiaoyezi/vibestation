@@ -44,6 +44,7 @@ import type {
   RebaseStatus,
 } from "../../bindings";
 import { queryLog, fetchDetail, clearCache } from "./gitLogApi";
+import { SessionBadge } from "./SessionBadge";
 import type { DiffTarget } from "../../components/MainContent";
 import {
   GitSyncProgressDialog,
@@ -1577,6 +1578,11 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
                       )}
                     </For>
                   </div>
+                  {/* §D.2 · MVP-19 Phase C: session badge (HC-5 additive · zero structural change) */}
+                  <SessionBadge
+                    commitSha={entry.shortSha}
+                    workspaceId={workspaceId}
+                  />
                 </button>
               )}
             </For>

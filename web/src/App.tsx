@@ -64,6 +64,18 @@ import {
   payloadToRecoveryState,
   reduceRecoveries,
 } from "./lib/crash-recovery";
+// MVP-20 Phase D · rollback crash recovery 状态机纯函数（解耦 SolidJS · 可单测）
+import {
+  type RollbackRecoveryPayload,
+  type RollbackRecoveryUiState,
+  payloadToRollbackRecovery,
+  reduceRollbackRecoveries,
+} from "./lib/rollback-recovery";
+import { RollbackRecoveryBanner } from "./panels/SessionDetail/RollbackRecoveryBanner";
+import {
+  rollbackAbort,
+  rollbackExecute,
+} from "./panels/SessionDetail/rollbackApi";
 
 // IPC contract types · 由 `crates/app/build.rs` 从 Rust `#[derive(TS)]` 自动生成。
 // 禁止手写对偶 interface（SPIKE-08 §A rollout · 防 H2 类 drift）。
@@ -203,6 +215,15 @@ const LayoutShell: Component<{
   >({});
   const [recoveryBusy, setRecoveryBusy] = createSignal(false);
   const [recoveryError, setRecoveryError] = createSignal<string | null>(null);
+  // MVP-20 Phase D · per-session rollback crash recovery banner 状态
+  // key = sessionId（rollback 是 session 维度 · 区别 MVP-16 的 workspace 维度）
+  const [rollbackRecoveries, setRollbackRecoveries] = createSignal<
+    Record<string, RollbackRecoveryUiState>
+  >({});
+  const [rollbackRecoveryBusy, setRollbackRecoveryBusy] = createSignal(false);
+  const [rollbackRecoveryError, setRollbackRecoveryError] = createSignal<
+    string | null
+  >(null);
   const remoteSync = useRemoteSyncStatus();
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
@@ -594,6 +615,78 @@ const LayoutShell: Component<{
     }
   };
 
+  // ── MVP-20 Phase D · rollback crash recovery banner（spec §H.9 · §I）──
+  // rollback 是 session 维度（区别 MVP-16 workspace 维度）· 单 banner 显示
+  // 当前一条（多并发崩溃罕见 · 处理一条后下一条浮现 · 镜像 MVP-16 单 banner）。
+  const activeRollbackRecovery = (): RollbackRecoveryUiState | null => {
+    const entries = Object.values(rollbackRecoveries());
+    return entries[0] ?? null;
+  };
+
+  const upsertRollbackRecovery = (
+    sessionId: string,
+    next: RollbackRecoveryUiState | null,
+  ) => {
+    setRollbackRecoveries((prev) =>
+      reduceRollbackRecoveries(prev, sessionId, next),
+    );
+  };
+
+  // 收到 `git:rollback-crash-recovery-detected`（启动 emit）· 委托纯状态机
+  const ingestRollbackRecovery = (payload: RollbackRecoveryPayload) => {
+    upsertRollbackRecovery(
+      payload.sessionId,
+      payloadToRollbackRecovery(payload),
+    );
+  };
+
+  // Abort：始终安全（后端 cleanup_state + 反向 revert 已完成项 → 回 rollback
+  // 前 HEAD）· 复用既有 rollback_abort IPC（同 SessionDetail abort 路径）。
+  const handleRollbackRecoveryAbort = async () => {
+    const current = activeRollbackRecovery();
+    if (!current) return;
+    setRollbackRecoveryBusy(true);
+    setRollbackRecoveryError(null);
+    try {
+      await rollbackAbort(current.sessionId);
+      upsertRollbackRecovery(current.sessionId, null);
+    } catch (err) {
+      setRollbackRecoveryError(
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setRollbackRecoveryBusy(false);
+    }
+  };
+
+  // Resume：仅 conflict_paused 可用（canResume 守护 · 后端 resume 路径）。
+  // 失败（如冲突未解决）如实暴露错误 · 引导用户去 Session 详情或中止
+  // （不静默吞 · 不假装成功 · CLAUDE.md 错误处理）。
+  const handleRollbackRecoveryResume = async () => {
+    const current = activeRollbackRecovery();
+    if (!current || !current.canResume) return;
+    setRollbackRecoveryBusy(true);
+    setRollbackRecoveryError(null);
+    try {
+      await rollbackExecute(current.sessionId, []);
+      upsertRollbackRecovery(current.sessionId, null);
+    } catch (err) {
+      setRollbackRecoveryError(
+        err instanceof Error ? err.message : String(err),
+      );
+    } finally {
+      setRollbackRecoveryBusy(false);
+    }
+  };
+
+  // Dismiss：本地清 banner（延后处理 · 用户可在 Session 详情继续）·
+  // 不动 .git / DB 状态 · 下次启动若仍未完成会再次检测 emit。
+  const handleRollbackRecoveryDismiss = () => {
+    const current = activeRollbackRecovery();
+    if (!current) return;
+    upsertRollbackRecovery(current.sessionId, null);
+  };
+
   const handleGlobalMergeResult = (status: MergeStatus) => {
     setGlobalMergeOpen(false);
     if (status.outcome === "conflict" && status.conflictingFiles.length > 0) {
@@ -619,6 +712,8 @@ const LayoutShell: Component<{
   let unlistenRebaseDone: UnlistenFn | undefined;
   // MVP-16 Phase C · 启动检测 emit · per-workspace 一条 event
   let unlistenCrashRecovery: UnlistenFn | undefined;
+  // MVP-20 Phase D · 启动检测 emit · per-session 一条 rollback recovery event
+  let unlistenRollbackCrashRecovery: UnlistenFn | undefined;
 
   onMount(async () => {
     document.addEventListener("keydown", handleKeyDown);
@@ -700,6 +795,15 @@ const LayoutShell: Component<{
         ingestRecoveryPayload(event.payload);
       },
     );
+    // MVP-20 Phase D · 启动 emit `git:rollback-crash-recovery-detected` ·
+    // backend `emit_rollback_crash_recovery` 在 `workspace_init` 扫一次
+    // （REVERT_HEAD + DB in_progress/conflict_paused）· 每条 session 一个 event。
+    unlistenRollbackCrashRecovery = await listen<RollbackRecoveryPayload>(
+      "git:rollback-crash-recovery-detected",
+      (event) => {
+        ingestRollbackRecovery(event.payload);
+      },
+    );
   });
 
   // MVP-16 Phase C · workspace 切换时主动查目标 workspace 是否有未完成操作
@@ -718,6 +822,7 @@ const LayoutShell: Component<{
     unlistenConflictDetected?.();
     unlistenRebaseDone?.();
     unlistenCrashRecovery?.();
+    unlistenRollbackCrashRecovery?.();
   });
 
   return (
@@ -786,6 +891,23 @@ const LayoutShell: Component<{
           <div class="vs-conflict-error" role="alert">
             {message()}
           </div>
+        )}
+      </Show>
+
+      {/* MVP-20 Phase D · rollback crash recovery banner（spec §H.9 · §I）
+       * 与 MVP-16 recovery banner 独立（rollback session 维度 · rebase
+       * workspace 维度 · 正交 · 罕见同时出现）· Abort 始终安全为主操作。
+       */}
+      <Show when={activeRollbackRecovery()}>
+        {(current) => (
+          <RollbackRecoveryBanner
+            state={current()}
+            busy={rollbackRecoveryBusy()}
+            error={rollbackRecoveryError()}
+            onAbort={handleRollbackRecoveryAbort}
+            onResume={handleRollbackRecoveryResume}
+            onDismiss={handleRollbackRecoveryDismiss}
+          />
         )}
       </Show>
 

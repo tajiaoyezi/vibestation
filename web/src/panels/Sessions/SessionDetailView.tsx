@@ -217,7 +217,8 @@ export function SessionDetailView(): JSX.Element {
       done: 0,
       total: shas.length,
       currentSha: null,
-      status: "starting",
+      // 回滚已启动 = in_progress（spec §K union · 替换原越界 magic "starting"）
+      status: "in_progress",
     });
     try {
       await rollbackExecute(sessionId, shas);

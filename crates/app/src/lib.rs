@@ -88,6 +88,11 @@ const GIT_ROLLBACK_PROGRESS_EVENT: &str = "git:rollback-progress";
 const GIT_ROLLBACK_CONFLICT_EVENT: &str = "git:rollback-conflict";
 const GIT_ROLLBACK_DONE_EVENT: &str = "git:rollback-done";
 const GIT_ROLLBACK_ABORTED_EVENT: &str = "git:rollback-aborted";
+/// MVP-20 Phase D · app 启动检测到上次未完成的 rollback（REVERT_HEAD + DB
+/// in_progress/conflict_paused）时 emit · payload `RollbackCrashRecovery` ·
+/// 前端据此渲染全局 recovery banner（spec §H.9 · §I Phase D · 镜像 MVP-16
+/// `git:crash-recovery-detected` 模式 · 但 rollback 是 session 维度 · 平行）。
+const GIT_ROLLBACK_CRASH_RECOVERY_EVENT: &str = "git:rollback-crash-recovery-detected";
 const PANE_FAILURE_OUTPUT_LIMIT: usize = 16 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
@@ -352,6 +357,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
     drop(guard);
 
     emit_rebase_crash_recovery(&app, &crash_pool);
+    emit_rollback_crash_recovery(&app, &crash_pool);
     let _ = app.emit("settings_changed", &settings);
     Ok("ok".to_string())
 }
@@ -2343,6 +2349,23 @@ fn emit_rebase_crash_recovery(app: &AppHandle, pool: &DbPool) {
                 total_steps: state.total_steps,
             },
         );
+    }
+}
+
+/// MVP-20 Phase D · app 启动 / 数据库就绪后扫描未完成的 rollback（spec §H.9
+/// · §I Phase D）· 每条 emit 一条 `git:rollback-crash-recovery-detected` ·
+/// 前端据此渲染全局 recovery banner（继续 / 中止）。
+///
+/// 与 `emit_rebase_crash_recovery` 平行（rollback session 维度 vs rebase
+/// workspace 维度）· 检测逻辑全在 `vibestation_core::detect_rollback_crash_recovery`
+/// （REVERT_HEAD + DB in_progress/conflict_paused 双条件 · 单测守护）。
+/// best-effort：检测失败不阻塞启动（同 rebase）。
+fn emit_rollback_crash_recovery(app: &AppHandle, pool: &DbPool) {
+    let Ok(entries) = vibestation_core::detect_rollback_crash_recovery(pool) else {
+        return;
+    };
+    for entry in entries {
+        let _ = app.emit(GIT_ROLLBACK_CRASH_RECOVERY_EVENT, entry);
     }
 }
 

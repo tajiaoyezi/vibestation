@@ -1,0 +1,415 @@
+import {
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  Show,
+  type JSX,
+} from "solid-js";
+import { useSessions } from "../../stores/sessions-context";
+import type {
+  AiSession,
+  SessionCommitLink,
+  SessionDetailResult,
+} from "../../bindings";
+import { isLinkActive, isLinkConfirmed } from "../../stores/sessions";
+import { SessionUnbindModal } from "./SessionUnbindModal";
+import { SessionRebindModal } from "./SessionRebindModal";
+import "./sessionDetail.css";
+
+function fmtTime(epoch: number): string {
+  return new Date(epoch).toLocaleString();
+}
+
+function shortSha(sha: string): string {
+  return sha.slice(0, 8);
+}
+
+function statusLabel(status: AiSession["status"]): string {
+  switch (status) {
+    case "active":
+      return "Active";
+    case "ended":
+      return "Ended";
+    case "idleCutoff":
+      return "Idle cutoff";
+    case "archived":
+      return "Archived";
+    default:
+      return status;
+  }
+}
+
+/**
+ * Resolve workspaceId for a sessionId by scanning the store. Returns the first
+ * workspace that has a session with the given id. Falls back to the first
+ * workspace key if no match (best-effort when store hasn't been hydrated yet).
+ */
+function resolveWorkspaceId(
+  sessionsByWorkspace: Record<string, AiSession[]>,
+  sessionId: string,
+): string {
+  for (const [wsId, sessions] of Object.entries(sessionsByWorkspace)) {
+    if (sessions.some((s) => s.id === sessionId)) return wsId;
+  }
+  const keys = Object.keys(sessionsByWorkspace);
+  return keys[0] ?? "";
+}
+
+export function SessionDetailView(): JSX.Element {
+  const ctx = useSessions();
+  const detail = ctx.activeDetail();
+  const sessionId = detail?.sessionId ?? "";
+  const commitAnchor = detail?.commitAnchor;
+
+  const workspaceId = createMemo(() =>
+    resolveWorkspaceId(ctx.store.sessionsByWorkspace, sessionId),
+  );
+
+  const [detailData] = createResource(
+    () => {
+      const wsId = workspaceId();
+      if (!wsId) return null;
+      return { workspaceId: wsId, sessionId };
+    },
+    (req) => (req ? ctx.getDetail(req) : Promise.reject("no workspace")),
+  );
+
+  const [unbindTarget, setUnbindTarget] =
+    createSignal<SessionCommitLink | null>(null);
+  const [rebindTarget, setRebindTarget] =
+    createSignal<SessionCommitLink | null>(null);
+
+  const handleUnbind = async (
+    link: SessionCommitLink,
+    reason: string,
+    recalc: boolean,
+  ) => {
+    const wsId = workspaceId();
+    await ctx.unbind({
+      workspaceId: wsId,
+      linkId: link.id,
+      reason: reason || null,
+    });
+    if (recalc) {
+      await ctx.recalc({
+        workspaceId: wsId,
+        commitSha: link.commitSha,
+      });
+    }
+    setUnbindTarget(null);
+  };
+
+  const handleRebind = async (
+    link: SessionCommitLink,
+    targetSessionId: string,
+    reason: string,
+  ) => {
+    const wsId = workspaceId();
+    await ctx.rebind({
+      workspaceId: wsId,
+      linkId: link.id,
+      targetSessionId,
+      reason: reason || null,
+    });
+    setRebindTarget(null);
+  };
+
+  const handleEndSession = async (session: AiSession) => {
+    await ctx.end({
+      workspaceId: workspaceId(),
+      sessionId: session.id,
+      endReason: "manual_end",
+    });
+  };
+
+  const handleRecalcAll = async (links: SessionCommitLink[]) => {
+    const wsId = workspaceId();
+    const shas = [...new Set(links.map((l) => l.commitSha))];
+    for (const sha of shas) {
+      await ctx.recalc({ workspaceId: wsId, commitSha: sha });
+    }
+  };
+
+  return (
+    <div class="vs-session-detail" role="region" aria-label="Session detail">
+      <Show when={ctx.store.lastError}>
+        {(err) => (
+          <div class="vs-session-error-bar" role="alert" aria-live="polite">
+            <span>
+              Error: {err().kind}
+              {"detail" in err()
+                ? ` — ${(err() as { detail: string }).detail}`
+                : ""}
+            </span>
+            <button
+              class="vs-session-error-dismiss"
+              onClick={() => ctx.store.clearError()}
+              aria-label="Dismiss error"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </Show>
+
+      <Show
+        when={!detailData.loading && detailData()}
+        fallback={
+          <Show
+            when={detailData.error}
+            fallback={
+              <div class="vs-session-detail-loading" aria-live="polite">
+                Loading session…
+              </div>
+            }
+          >
+            <div
+              class="vs-session-detail-error"
+              role="alert"
+              aria-live="assertive"
+            >
+              Session not found or failed to load.
+            </div>
+          </Show>
+        }
+      >
+        {(data: () => SessionDetailResult) => (
+          <>
+            <SessionHeader
+              session={data().session}
+              onClose={() => ctx.closeDetail()}
+            />
+            <SessionSummary data={data()} />
+            <SessionTimeRange session={data().session} />
+            <SessionCommitPanel
+              links={data().links}
+              commitAnchor={commitAnchor}
+              onUnbind={setUnbindTarget}
+              onRebind={setRebindTarget}
+            />
+            <SessionActions
+              session={data().session}
+              links={data().links}
+              onEnd={handleEndSession}
+              onRecalcAll={handleRecalcAll}
+            />
+          </>
+        )}
+      </Show>
+
+      <Show when={unbindTarget()}>
+        {(link) => (
+          <SessionUnbindModal
+            link={link()}
+            sessionTitle={detailData()?.session.title ?? ""}
+            onCancel={() => setUnbindTarget(null)}
+            onUnbind={(reason) => handleUnbind(link(), reason, false)}
+            onUnbindAndRecalc={(reason) => handleUnbind(link(), reason, true)}
+          />
+        )}
+      </Show>
+
+      <Show when={rebindTarget()}>
+        {(link) => (
+          <SessionRebindModal
+            link={link()}
+            workspaceId={workspaceId()}
+            currentSessionId={sessionId}
+            onCancel={() => setRebindTarget(null)}
+            onRebind={(targetId, reason) =>
+              handleRebind(link(), targetId, reason)
+            }
+          />
+        )}
+      </Show>
+    </div>
+  );
+}
+
+function SessionHeader(props: {
+  session: AiSession;
+  onClose: () => void;
+}): JSX.Element {
+  return (
+    <div class="vs-session-detail-header">
+      <button
+        class="vs-session-detail-close"
+        onClick={() => props.onClose()}
+        aria-label="Close session detail"
+      >
+        ✕
+      </button>
+      <h3 class="vs-session-detail-title">{props.session.title}</h3>
+      <span
+        class="vs-session-detail-cli-tag"
+        aria-label={`CLI: ${props.session.cliKind}`}
+      >
+        {props.session.cliKind}
+      </span>
+      <span
+        class="vs-session-status-badge"
+        data-status={props.session.status}
+        role="status"
+        aria-label={`Status: ${statusLabel(props.session.status)}`}
+      >
+        {statusLabel(props.session.status)}
+      </span>
+    </div>
+  );
+}
+
+function SessionSummary(props: { data: SessionDetailResult }): JSX.Element {
+  return (
+    <div class="vs-session-summary" aria-label="Session summary">
+      <div class="vs-session-summary-item">
+        <span>Commits:</span>
+        <span class="vs-session-summary-value">{props.data.commitCount}</span>
+      </div>
+      <div class="vs-session-summary-item">
+        <span>Avg confidence:</span>
+        <span class="vs-session-summary-value">
+          {(props.data.avgConfidence * 100).toFixed(1)}%
+        </span>
+      </div>
+      <div class="vs-session-summary-item">
+        <span>Prompts:</span>
+        <span class="vs-session-summary-value">
+          {props.data.session.promptCount}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SessionTimeRange(props: { session: AiSession }): JSX.Element {
+  return (
+    <div class="vs-session-time-range" aria-label="Session time range">
+      <span>Started: {fmtTime(props.session.startedAt)}</span>
+      <Show when={props.session.endedAt}>
+        {(end) => <span>Ended: {fmtTime(end())}</span>}
+      </Show>
+    </div>
+  );
+}
+
+function SessionCommitPanel(props: {
+  links: SessionCommitLink[];
+  commitAnchor?: string;
+  onUnbind: (link: SessionCommitLink) => void;
+  onRebind: (link: SessionCommitLink) => void;
+}): JSX.Element {
+  return (
+    <div class="vs-session-commits">
+      <h4 class="vs-session-commits-title">
+        Linked commits ({props.links.length})
+      </h4>
+      <Show
+        when={props.links.length > 0}
+        fallback={
+          <div class="vs-session-detail-empty">No commits linked yet.</div>
+        }
+      >
+        <ul
+          class="vs-session-commit-list"
+          role="list"
+          aria-label="Linked commits"
+        >
+          <For each={props.links}>
+            {(link) => (
+              <CommitRow
+                link={link}
+                isAnchor={link.commitSha === props.commitAnchor}
+                onUnbind={() => props.onUnbind(link)}
+                onRebind={() => props.onRebind(link)}
+              />
+            )}
+          </For>
+        </ul>
+      </Show>
+    </div>
+  );
+}
+
+function CommitRow(props: {
+  link: SessionCommitLink;
+  isAnchor: boolean;
+  onUnbind: () => void;
+  onRebind: () => void;
+}): JSX.Element {
+  const active = () => isLinkActive(props.link);
+  const confirmed = () => isLinkConfirmed(props.link);
+
+  return (
+    <li
+      class="vs-session-commit-row"
+      data-anchor={props.isAnchor || undefined}
+      tabIndex={0}
+      role="listitem"
+      aria-label={`Commit ${shortSha(props.link.commitSha)}, state: ${props.link.linkState}, confidence: ${(props.link.confidence * 100).toFixed(0)}%`}
+    >
+      <code class="vs-session-commit-sha">
+        {shortSha(props.link.commitSha)}
+      </code>
+      <span
+        class="vs-session-commit-state"
+        data-state={props.link.linkState}
+        aria-label={`Link state: ${props.link.linkState}`}
+      >
+        {props.link.linkState}
+        {!confirmed() && active() ? " ⚠" : ""}
+      </span>
+      <span class="vs-session-commit-confidence">
+        {(props.link.confidence * 100).toFixed(0)}%
+      </span>
+      <div class="vs-session-commit-actions">
+        <Show when={active()}>
+          <button
+            class="vs-session-commit-action-btn is-danger"
+            onClick={() => props.onUnbind()}
+            aria-label={`Unbind commit ${shortSha(props.link.commitSha)}`}
+          >
+            Unbind
+          </button>
+          <button
+            class="vs-session-commit-action-btn"
+            onClick={() => props.onRebind()}
+            aria-label={`Rebind commit ${shortSha(props.link.commitSha)}`}
+          >
+            Rebind
+          </button>
+        </Show>
+      </div>
+    </li>
+  );
+}
+
+function SessionActions(props: {
+  session: AiSession;
+  links: SessionCommitLink[];
+  onEnd: (session: AiSession) => Promise<void>;
+  onRecalcAll: (links: SessionCommitLink[]) => Promise<void>;
+}): JSX.Element {
+  return (
+    <div class="vs-session-actions">
+      <Show when={props.session.status === "active"}>
+        <button
+          class="vs-dialog-btn-secondary"
+          onClick={() => void props.onEnd(props.session)}
+          aria-label="End this session"
+        >
+          End session
+        </button>
+      </Show>
+      <Show when={props.links.length > 0}>
+        <button
+          class="vs-dialog-btn-secondary"
+          onClick={() => void props.onRecalcAll(props.links)}
+          aria-label="Recalculate all commit bindings"
+        >
+          Recalc all
+        </button>
+      </Show>
+    </div>
+  );
+}

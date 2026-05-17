@@ -536,11 +536,21 @@ where
 {
     let (_workspace_id, repo_path) = session_workspace_and_repo(pool, session_id)?;
     let repo = Repository::open(&repo_path).map_err(map_git_error)?;
-    if RollbackOpDao::get_in_progress(pool, session_id)?.is_some() {
-        return Err(RollbackError::InProgress {
-            session_id: session_id.to_string(),
-        });
+
+    if let Some(record) = RollbackOpDao::get_in_progress(pool, session_id)? {
+        return match record.status.as_str() {
+            ROLLBACK_STATUS_IN_PROGRESS => Err(RollbackError::InProgress {
+                session_id: session_id.to_string(),
+            }),
+            ROLLBACK_STATUS_CONFLICT_PAUSED => {
+                resume_rollback_execute(&repo, pool, session_id, record, &mut on_progress)
+            }
+            status => Err(rollback_state_error(format!(
+                "unexpected active rollback status: {status}"
+            ))),
+        };
     }
+
     check_preconditions(&repo)?;
 
     let preview = rollback_preview(pool, session_id)?;
@@ -567,35 +577,15 @@ where
     let total = plan_entries.len() as i64;
     let mut revert_shas = Vec::new();
 
-    for idx in 0..plan_entries.len() {
-        let sha = plan_entries[idx].sha.clone();
-        match revert_commit(&repo, &sha, session_id) {
-            Ok(revert_sha) => {
-                plan_entries[idx].status = "reverted".to_string();
-                plan_entries[idx].revert_sha = Some(revert_sha.clone());
-                revert_shas.push(revert_sha);
-                RollbackOpDao::update_progress(pool, session_id, idx as i64 + 1, &plan_entries)?;
-                on_progress(RollbackProgress {
-                    done: idx as i64 + 1,
-                    total,
-                    current_sha: Some(sha),
-                    status: ROLLBACK_STATUS_IN_PROGRESS.to_string(),
-                });
-            }
-            Err(err @ RollbackError::ConflictDetected { .. }) => {
-                plan_entries[idx].status = "conflict".to_string();
-                RollbackOpDao::mark_conflict(
-                    pool,
-                    session_id,
-                    idx as i64,
-                    &plan_entries,
-                    &err.to_string(),
-                )?;
-                return Err(err);
-            }
-            Err(err) => return Err(err),
-        }
-    }
+    run_revert_loop(
+        &repo,
+        pool,
+        session_id,
+        &mut plan_entries,
+        0,
+        &mut on_progress,
+        &mut revert_shas,
+    )?;
 
     RollbackOpDao::mark_completed(pool, session_id, &plan_entries)?;
     mark_session_rolled_back(pool, session_id, &revert_shas)?;
@@ -610,6 +600,139 @@ where
         revert_shas,
         head_sha: head_sha(&repo)?,
     })
+}
+
+fn resume_rollback_execute<F>(
+    repo: &Repository,
+    pool: &DbPool,
+    session_id: &str,
+    record: RollbackOpRecord,
+    on_progress: &mut F,
+) -> Result<RevertSequenceResult, RollbackError>
+where
+    F: FnMut(RollbackProgress),
+{
+    if !repo.path().join("REVERT_HEAD").exists() {
+        return Err(rollback_state_error(
+            "REVERT_HEAD missing · cannot resume rollback",
+        ));
+    }
+
+    let mut plan_entries = record.plan_entries()?;
+    let current_idx = usize::try_from(record.current_idx)
+        .map_err(|_| rollback_state_error("rollback current_idx is negative"))?;
+    let current_sha = plan_entries
+        .get(current_idx)
+        .map(|entry| entry.sha.clone())
+        .ok_or_else(|| rollback_state_error("rollback current_idx is out of range"))?;
+    if plan_entries[current_idx].status != "conflict" {
+        return Err(rollback_state_error(format!(
+            "rollback plan mismatch at current_idx {current_idx}: expected conflict, got {}",
+            plan_entries[current_idx].status
+        )));
+    }
+
+    let index = repo.index().map_err(map_git_error)?;
+    if index.has_conflicts() {
+        drop(index);
+        return Err(RollbackError::ConflictDetected {
+            commit_sha: current_sha,
+            files: conflict_files(repo)?,
+        });
+    }
+    drop(index);
+
+    let original = find_commit(repo, &current_sha)?;
+    let message = build_revert_message(&commit_summary(&original), session_id);
+    let revert_sha = commit_current_index(repo, &message)?.to_string();
+    repo.cleanup_state().map_err(map_git_error)?;
+
+    plan_entries[current_idx].status = "reverted".to_string();
+    plan_entries[current_idx].revert_sha = Some(revert_sha.clone());
+
+    let total = plan_entries.len() as i64;
+    let mut revert_shas: Vec<String> = plan_entries
+        .iter()
+        .take(current_idx)
+        .filter_map(|entry| entry.revert_sha.clone())
+        .collect();
+    revert_shas.push(revert_sha);
+    RollbackOpDao::update_progress(pool, session_id, current_idx as i64 + 1, &plan_entries)?;
+    on_progress(RollbackProgress {
+        done: current_idx as i64 + 1,
+        total,
+        current_sha: Some(current_sha),
+        status: ROLLBACK_STATUS_IN_PROGRESS.to_string(),
+    });
+
+    run_revert_loop(
+        repo,
+        pool,
+        session_id,
+        &mut plan_entries,
+        current_idx + 1,
+        on_progress,
+        &mut revert_shas,
+    )?;
+
+    RollbackOpDao::mark_completed(pool, session_id, &plan_entries)?;
+    mark_session_rolled_back(pool, session_id, &revert_shas)?;
+
+    Ok(RevertSequenceResult {
+        progress: RollbackProgress {
+            done: total,
+            total,
+            current_sha: None,
+            status: ROLLBACK_STATUS_COMPLETED.to_string(),
+        },
+        revert_shas,
+        head_sha: head_sha(repo)?,
+    })
+}
+
+fn run_revert_loop<F>(
+    repo: &Repository,
+    pool: &DbPool,
+    session_id: &str,
+    plan_entries: &mut [RollbackPlanRecordEntry],
+    start_idx: usize,
+    on_progress: &mut F,
+    revert_shas: &mut Vec<String>,
+) -> Result<(), RollbackError>
+where
+    F: FnMut(RollbackProgress),
+{
+    let total = plan_entries.len() as i64;
+    for idx in start_idx..plan_entries.len() {
+        let sha = plan_entries[idx].sha.clone();
+        match revert_commit(repo, &sha, session_id) {
+            Ok(revert_sha) => {
+                plan_entries[idx].status = "reverted".to_string();
+                plan_entries[idx].revert_sha = Some(revert_sha.clone());
+                revert_shas.push(revert_sha);
+                RollbackOpDao::update_progress(pool, session_id, idx as i64 + 1, plan_entries)?;
+                on_progress(RollbackProgress {
+                    done: idx as i64 + 1,
+                    total,
+                    current_sha: Some(sha),
+                    status: ROLLBACK_STATUS_IN_PROGRESS.to_string(),
+                });
+            }
+            Err(err @ RollbackError::ConflictDetected { .. }) => {
+                plan_entries[idx].status = "conflict".to_string();
+                RollbackOpDao::mark_conflict(
+                    pool,
+                    session_id,
+                    idx as i64,
+                    plan_entries,
+                    &err.to_string(),
+                )?;
+                return Err(err);
+            }
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(())
 }
 
 pub fn rollback_abort(
@@ -973,12 +1096,20 @@ fn db_error(error: impl std::string::ToString) -> RollbackError {
     }
 }
 
+fn rollback_state_error(message: impl std::string::ToString) -> RollbackError {
+    RollbackError::Git2Error {
+        class: "RollbackState".to_string(),
+        code: -1,
+        message: message.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::db;
     use crate::sessions::{AiSession, SessionStatus};
-    use git2::{Oid, Repository, Signature};
+    use git2::{Oid, Repository, Signature, Time};
     use std::{fs, path::PathBuf};
     use tempfile::TempDir;
 
@@ -1150,6 +1281,10 @@ mod tests {
         }
 
         fn commit_file(&self, path: &str, content: &str, message: &str) -> Oid {
+            self.commit_file_at(path, content, message, chrono::Utc::now().timestamp())
+        }
+
+        fn commit_file_at(&self, path: &str, content: &str, message: &str, time: i64) -> Oid {
             let full_path = self.path.join(path);
             if let Some(parent) = full_path.parent() {
                 fs::create_dir_all(parent).unwrap();
@@ -1160,7 +1295,8 @@ mod tests {
             index.write().unwrap();
             let tree_oid = index.write_tree().unwrap();
             let tree = self.repo.find_tree(tree_oid).unwrap();
-            let sig = Signature::now("Codex CLI", "noreply@openai.com").unwrap();
+            let git_time = Time::new(time, 0);
+            let sig = Signature::new("Codex CLI", "noreply@openai.com", &git_time).unwrap();
             let parent = self
                 .repo
                 .head()
@@ -1358,6 +1494,125 @@ mod tests {
         assert_eq!(record.plan_entries().unwrap()[0].sha, "abc123");
     }
 
+    fn conflict_resume_fixture(
+        session_id: &str,
+    ) -> (GitFixture, TempDir, db::DbPool, String, String, Vec<String>) {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join(format!("{session_id}.db"));
+        let pool = db::open_pool(&db_path).unwrap();
+        insert_workspace_and_session(&pool, "ws-resume", session_id, &fixture.path);
+
+        let conflict_sha = fixture
+            .commit_file_at("app.txt", "older\n", "feat: conflict source", 100)
+            .to_string();
+        let clean_sha = fixture
+            .commit_file_at("side.txt", "side\n", "feat: clean side change", 200)
+            .to_string();
+        fixture.commit_file_at("app.txt", "outside\n", "human: later edit", 300);
+
+        insert_link(&pool, "ws-resume", session_id, &conflict_sha, 1.0);
+        insert_link(&pool, "ws-resume", session_id, &clean_sha, 1.0);
+
+        let include_shas = vec![clean_sha, conflict_sha.clone()];
+        (
+            fixture,
+            dir,
+            pool,
+            conflict_sha,
+            session_id.to_string(),
+            include_shas,
+        )
+    }
+
+    fn resolve_app_conflict(fixture: &GitFixture, contents: &str) {
+        fs::write(fixture.path.join("app.txt"), contents).unwrap();
+        let mut index = fixture.repo.index().unwrap();
+        index.add_path(std::path::Path::new("app.txt")).unwrap();
+        index.write().unwrap();
+    }
+
+    #[test]
+    fn test_rollback_resume_after_conflict_resolve() {
+        let (fixture, _db_dir, pool, _conflict_sha, session_id, include_shas) =
+            conflict_resume_fixture("session-resume-ok");
+        let initial = rollback_execute(&pool, &session_id, include_shas.clone()).unwrap_err();
+        assert!(
+            matches!(initial, RollbackError::ConflictDetected { .. }),
+            "expected initial conflict, got {initial:?}"
+        );
+
+        resolve_app_conflict(&fixture, "base\n");
+        let mut progress_events = Vec::new();
+        let result = rollback_execute_with_progress(&pool, &session_id, include_shas, |progress| {
+            progress_events.push(progress);
+        })
+        .unwrap();
+
+        assert_eq!(result.revert_shas.len(), 2);
+        assert_eq!(result.progress.status, "completed");
+        assert_eq!(progress_events.len(), 1);
+        assert_eq!(progress_events[0].done, 2);
+        assert_eq!(progress_events[0].total, 2);
+        assert!(!fixture.repo.path().join("REVERT_HEAD").exists());
+        let record = RollbackOpDao::latest_for_session(&pool, &session_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(record.status, "completed");
+        assert!(record
+            .plan_entries()
+            .unwrap()
+            .iter()
+            .all(|entry| entry.status == "reverted" && entry.revert_sha.is_some()));
+    }
+
+    #[test]
+    fn test_rollback_resume_with_unresolved_conflicts() {
+        let (_fixture, _db_dir, pool, conflict_sha, session_id, include_shas) =
+            conflict_resume_fixture("session-resume-unresolved");
+        let initial = rollback_execute(&pool, &session_id, include_shas.clone()).unwrap_err();
+        assert!(
+            matches!(initial, RollbackError::ConflictDetected { .. }),
+            "expected initial conflict, got {initial:?}"
+        );
+
+        let err = rollback_execute(&pool, &session_id, include_shas).unwrap_err();
+
+        match err {
+            RollbackError::ConflictDetected { commit_sha, files } => {
+                assert_eq!(commit_sha, conflict_sha);
+                assert!(files.contains(&"app.txt".to_string()));
+            }
+            other => panic!("expected conflict to stay visible, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_rollback_execute_blocks_when_in_progress_not_paused() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("rollback-in-progress.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-progress", "session-progress", &fixture.path);
+        let conn = pool.get().unwrap();
+        conn.execute(
+            "INSERT INTO rollback_ops
+                (session_id, started_at, status, commit_plan, current_idx)
+             VALUES ('session-progress', 1, 'in_progress', '[]', 0)",
+            [],
+        )
+        .unwrap();
+        drop(conn);
+
+        let err = rollback_execute(&pool, "session-progress", vec![]).unwrap_err();
+
+        assert_eq!(
+            err,
+            RollbackError::InProgress {
+                session_id: "session-progress".to_string()
+            }
+        );
+    }
+
     #[cfg(feature = "integration")]
     #[test]
     fn integration_full_session_revert_5commits() {
@@ -1481,7 +1736,6 @@ mod tests {
         assert_eq!(status.unwrap().status, "in_progress");
     }
 
-    #[cfg(feature = "integration")]
     fn insert_workspace_and_session(
         pool: &db::DbPool,
         workspace_id: &str,
@@ -1500,7 +1754,6 @@ mod tests {
         crate::AiSessionDao::insert(pool, &active_session(session_id, workspace_id)).unwrap();
     }
 
-    #[cfg(feature = "integration")]
     fn insert_link(
         pool: &db::DbPool,
         workspace_id: &str,

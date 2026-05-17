@@ -25,6 +25,8 @@ import {
 } from "./stores/remote-sync-status";
 import { PaneLinksProvider } from "./stores/paneLinks-context";
 import { PaneDraftsProvider } from "./stores/paneDrafts-context";
+import { SessionsProvider } from "./stores/sessions-context";
+import { SessionDetailHost } from "./panels/Sessions/SessionDetailHost";
 import { ThemeProvider } from "./stores/theme";
 import { useSettings, reloadSettings } from "./stores/settings";
 import { PrimarySidebar } from "./components/PrimarySidebar";
@@ -1222,29 +1224,34 @@ const App: Component = () => {
         >
           <PaneLinksProvider>
             <PaneDraftsProvider>
-              <LayoutShell
-                workspaces={workspaces}
-                currentView={currentView}
-                activeDiff={activeDiff}
-                ipc={ipc}
-                version={version}
-                dbReady={dbReady}
-                loading={loading}
-                deleteConfirm={deleteConfirm}
-                error={error}
-                onOpen={handleOpenWorkspace}
-                onCreate={handleCreateWorkspace}
-                onDeleteConfirm={(id) => setDeleteConfirm(id)}
-                onDeleteExecute={handleDeleteWorkspace}
-                onDeleteCancel={() => setDeleteConfirm(null)}
-                onDismissError={() => setError(null)}
-                onOpenDiff={handleOpenDiff}
-                onCloseDiff={() => setActiveDiff(null)}
-                onCloseWorkspaceView={handleCloseWorkspaceView}
-              />
-              <Show when={dbReady() && !telemetryDecided()}>
-                <TelemetryOptInModal />
-              </Show>
+              <SessionsProvider>
+                <LayoutShell
+                  workspaces={workspaces}
+                  currentView={currentView}
+                  activeDiff={activeDiff}
+                  ipc={ipc}
+                  version={version}
+                  dbReady={dbReady}
+                  loading={loading}
+                  deleteConfirm={deleteConfirm}
+                  error={error}
+                  onOpen={handleOpenWorkspace}
+                  onCreate={handleCreateWorkspace}
+                  onDeleteConfirm={(id) => setDeleteConfirm(id)}
+                  onDeleteExecute={handleDeleteWorkspace}
+                  onDeleteCancel={() => setDeleteConfirm(null)}
+                  onDismissError={() => setError(null)}
+                  onOpenDiff={handleOpenDiff}
+                  onCloseDiff={() => setActiveDiff(null)}
+                  onCloseWorkspaceView={handleCloseWorkspaceView}
+                />
+                <Show when={dbReady() && !telemetryDecided()}>
+                  <TelemetryOptInModal />
+                </Show>
+                {/* MVP-19 §D · Phase D fills SessionDetailHost (renders on
+                    activeDetail() from sessions-context · A.0.1 mounts host). */}
+                <SessionDetailHost />
+              </SessionsProvider>
             </PaneDraftsProvider>
           </PaneLinksProvider>
         </RemoteSyncStatusProvider>

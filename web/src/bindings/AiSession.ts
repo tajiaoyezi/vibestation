@@ -8,7 +8,7 @@ export type AiSession = { id: string, workspaceId: string, cliKind: string,
 /**
  * §G.2 `auto | manual`.
  */
-source: string, title: string, startedAt: number, endedAt: number | null, endReason: string | null, promptCount: bigint, tokenCount: bigint | null, eventCount: bigint, status: SessionStatus, parserVersion: string | null, strategyVersion: string | null, 
+source: string, title: string, startedAt: number, endedAt: number | null, endReason: string | null, promptCount: number, tokenCount: number | null, eventCount: number, status: SessionStatus, parserVersion: string | null, strategyVersion: string | null, 
 /**
  * §G.2 defaults to `{}`. Do not store plaintext secrets or sensitive user data.
  */

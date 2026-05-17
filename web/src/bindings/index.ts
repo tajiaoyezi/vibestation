@@ -112,6 +112,7 @@ export type { RollbackProgress } from "./RollbackProgress";
 export type { RollbackAbortResult } from "./RollbackAbortResult";
 export type { RollbackStatus } from "./RollbackStatus";
 export type { RollbackStatusKind } from "./RollbackStatusKind";
+export type { RollbackCrashRecovery } from "./RollbackCrashRecovery";
 export type { RollbackCommitEntry } from "./RollbackCommitEntry";
 export type { MergeRequest } from "./MergeRequest";
 export type { MergeStrategy } from "./MergeStrategy";

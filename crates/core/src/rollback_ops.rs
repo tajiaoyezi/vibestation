@@ -236,6 +236,27 @@ pub struct RollbackStatus {
     pub current_sha: Option<String>,
 }
 
+/// app 启动 crash recovery 检测的单条结果（spec §H.9 · §I Phase D ·
+/// `git:rollback-crash-recovery-detected` event payload）。
+///
+/// 与 `RollbackStatus` 区别：携带 `workspace_id`（前端按 workspace 路由 +
+/// 渲染全局 recovery banner）。镜像 MVP-16 `RebaseCrashRecoveryEvent` 模式 ·
+/// 但 rollback 是 session 维度（session_id / current_idx / total）· 故平行
+/// 独立类型而非塞进 rebase 的 workspace 维度 payload（保真 · §B.4）。
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct RollbackCrashRecovery {
+    pub workspace_id: String,
+    pub session_id: String,
+    pub status: RollbackStatusKind,
+    #[ts(type = "number")]
+    pub current_idx: i64,
+    #[ts(type = "number")]
+    pub total: i64,
+    pub current_sha: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct RevertSequenceResult {
     pub progress: RollbackProgress,
@@ -395,6 +416,29 @@ impl RollbackOpDao {
         )
         .optional()
         .map_err(db_error)
+    }
+
+    /// 全局扫描所有 session 的活跃（in_progress / conflict_paused）rollback。
+    ///
+    /// 与 `get_in_progress` 区别：**不按 session_id 过滤** · 供 app 启动时
+    /// crash recovery 检测（启动时不知道哪个 session 崩在 revert 中途 ·
+    /// spec §H.9 · §I Phase D）。
+    pub fn list_active(pool: &DbPool) -> Result<Vec<RollbackOpRecord>, RollbackError> {
+        let conn = pool.get().map_err(DbError::from).map_err(db_error)?;
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, session_id, started_at, finished_at, status, commit_plan, current_idx, error_msg
+                 FROM rollback_ops
+                 WHERE status IN ('in_progress', 'conflict_paused')
+                 ORDER BY started_at DESC, id DESC",
+            )
+            .map_err(db_error)?;
+        let rows = stmt
+            .query_map([], row_to_record)
+            .map_err(db_error)?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(db_error)?;
+        Ok(rows)
     }
 
     pub fn update_progress(
@@ -861,6 +905,44 @@ pub fn detect_in_progress(
         return Ok(None);
     };
     status_from_record(&record).map(Some)
+}
+
+/// 全局 crash recovery 检测（spec §H.9 · §I Phase D · session-agnostic）。
+///
+/// app 启动时调用：扫描所有 `in_progress` / `conflict_paused` 的
+/// `rollback_ops` 记录，对每条解析 session→workspace→repo，**仅当对应仓库
+/// 仍存在 `REVERT_HEAD` 时**报告（spec §H.9 两条件 · 防 DB 状态滞后的伪
+/// crash 误报）。镜像 MVP-16 `emit_rebase_crash_recovery` 的扫描模式 ·
+/// 但以 rollback DB 记录而非 workspace 列表为遍历源（rollback 是 session
+/// 维度）。orphan REVERT_HEAD（无 DB 记录）天然排除——不接管非本功能状态。
+///
+/// 防御性：单条 session/workspace 解析或开仓失败 **跳过该条**而非整体失败
+/// （脏数据 / 已删 workspace 不应阻塞 app 启动 · 同 MVP-16 `continue` 语义）。
+pub fn detect_crash_recovery(pool: &DbPool) -> Result<Vec<RollbackCrashRecovery>, RollbackError> {
+    let records = RollbackOpDao::list_active(pool)?;
+    let mut out = Vec::new();
+    for record in records {
+        let Ok((workspace_id, repo_path)) = session_workspace_and_repo(pool, &record.session_id)
+        else {
+            continue;
+        };
+        let Ok(repo) = Repository::open(&repo_path) else {
+            continue;
+        };
+        if !repo.path().join("REVERT_HEAD").exists() {
+            continue;
+        }
+        let status = status_from_record(&record)?;
+        out.push(RollbackCrashRecovery {
+            workspace_id,
+            session_id: status.session_id,
+            status: status.status,
+            current_idx: status.current_idx,
+            total: status.total,
+            current_sha: status.current_sha,
+        });
+    }
+    Ok(out)
 }
 
 pub fn check_preconditions(repo: &Repository) -> Result<(), RollbackError> {
@@ -1867,6 +1949,131 @@ mod tests {
 
         assert!(status.is_some());
         assert_eq!(status.unwrap().status, RollbackStatusKind::InProgress);
+    }
+
+    // ── MVP-20 Phase D · 全局 crash recovery 检测（spec §H.9 · §J R2）──
+    //
+    // RED 依据：spec §I Phase D「app 启动检测 REVERT_HEAD + DB in_progress →
+    // 全局 recovery banner」。既有 detect_in_progress 是 per-session（需先知
+    // session_id），启动时不知道 → 需 session-agnostic 全局扫描（镜像 MVP-16
+    // emit_rebase_crash_recovery 模式 · 但 rollback 是 session 维度 · 平行）。
+    // 不变量：仅当 DB in_progress/conflict_paused **且** REVERT_HEAD 同时存在
+    // 才报告（spec §H.9 两条件 · 防 DB 滞后的伪 crash 误报）。
+
+    #[test]
+    fn detect_crash_recovery_finds_in_progress_with_revert_head() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("crash-detect.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-cd", "sess-cd", &fixture.path);
+        let plan = vec![
+            RollbackPlanRecordEntry {
+                sha: "aaa".into(),
+                include: true,
+                confidence: 1.0,
+                status: "reverted".into(),
+                revert_sha: Some("r-aaa".into()),
+            },
+            RollbackPlanRecordEntry {
+                sha: "bbb".into(),
+                include: true,
+                confidence: 1.0,
+                status: "pending".into(),
+                revert_sha: None,
+            },
+        ];
+        RollbackOpDao::insert_in_progress(&pool, "sess-cd", &plan).unwrap();
+        RollbackOpDao::update_progress(&pool, "sess-cd", 1, &plan).unwrap();
+        fs::write(fixture.repo.path().join("REVERT_HEAD"), "bbb\n").unwrap();
+
+        let found = detect_crash_recovery(&pool).unwrap();
+
+        assert_eq!(found.len(), 1);
+        let entry = &found[0];
+        assert_eq!(entry.session_id, "sess-cd");
+        assert_eq!(entry.workspace_id, "ws-cd");
+        assert_eq!(entry.status, RollbackStatusKind::InProgress);
+        assert_eq!(entry.current_idx, 1);
+        assert_eq!(entry.total, 2);
+        assert_eq!(entry.current_sha.as_deref(), Some("bbb"));
+    }
+
+    #[test]
+    fn detect_crash_recovery_skips_when_no_revert_head() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("crash-norevert.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-nr", "sess-nr", &fixture.path);
+        let plan = vec![RollbackPlanRecordEntry {
+            sha: "x".into(),
+            include: true,
+            confidence: 1.0,
+            status: "pending".into(),
+            revert_sha: None,
+        }];
+        RollbackOpDao::insert_in_progress(&pool, "sess-nr", &plan).unwrap();
+        // 没有 REVERT_HEAD → DB in_progress 但非真 mid-revert crash · 不误报
+        let found = detect_crash_recovery(&pool).unwrap();
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn detect_crash_recovery_reports_conflict_paused() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("crash-conflict.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-cp", "sess-cp", &fixture.path);
+        let plan = vec![RollbackPlanRecordEntry {
+            sha: "c".into(),
+            include: true,
+            confidence: 1.0,
+            status: "conflict".into(),
+            revert_sha: None,
+        }];
+        RollbackOpDao::insert_in_progress(&pool, "sess-cp", &plan).unwrap();
+        RollbackOpDao::mark_conflict(&pool, "sess-cp", 0, &plan, "Conflict on c").unwrap();
+        fs::write(fixture.repo.path().join("REVERT_HEAD"), "c\n").unwrap();
+
+        let found = detect_crash_recovery(&pool).unwrap();
+
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].status, RollbackStatusKind::ConflictPaused);
+    }
+
+    #[test]
+    fn detect_crash_recovery_excludes_terminal_status() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("crash-terminal.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-tm", "sess-tm", &fixture.path);
+        let plan = vec![RollbackPlanRecordEntry {
+            sha: "t".into(),
+            include: true,
+            confidence: 1.0,
+            status: "reverted".into(),
+            revert_sha: Some("r-t".into()),
+        }];
+        RollbackOpDao::insert_in_progress(&pool, "sess-tm", &plan).unwrap();
+        RollbackOpDao::mark_completed(&pool, "sess-tm", &plan).unwrap();
+        // 残留 REVERT_HEAD 也不应报告（status=completed 已是终态）
+        fs::write(fixture.repo.path().join("REVERT_HEAD"), "t\n").unwrap();
+
+        let found = detect_crash_recovery(&pool).unwrap();
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn detect_crash_recovery_orphan_revert_head_no_db_defensive() {
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("crash-orphan.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-or", "sess-or", &fixture.path);
+        // REVERT_HEAD 存在但无 rollback_ops 记录（外部 git revert 残留 / 脏状态）
+        fs::write(fixture.repo.path().join("REVERT_HEAD"), "z\n").unwrap();
+
+        let found = detect_crash_recovery(&pool).unwrap();
+        // 以 DB 记录为准遍历 · orphan REVERT_HEAD 天然排除（不接管非本功能状态）
+        assert!(found.is_empty());
     }
 
     fn insert_workspace_and_session(

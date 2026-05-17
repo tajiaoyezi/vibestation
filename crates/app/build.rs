@@ -42,16 +42,16 @@ use vibestation_core::{
     RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
     RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
     RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, RevertPlan, RevertPlanEntry,
-    RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackPreview, RollbackProgress,
-    RollbackStatus, RollbackStatusKind, SessionBindCommitRequest, SessionBindCommitResult,
-    SessionBindMode, SessionCommitBoundEvent, SessionCommitLink, SessionCommitUnboundEvent,
-    SessionDetailRequest, SessionDetailResult, SessionEndRequest, SessionEndResult,
-    SessionEndedEvent, SessionError, SessionErrorEvent, SessionLinkUpdatedEvent,
-    SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
-    SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
-    SessionStartedEvent, SessionStatus, SessionUnbindRequest, SessionUnbindResult,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    RollbackAbortResult, RollbackCommitEntry, RollbackCrashRecovery, RollbackError,
+    RollbackPreview, RollbackProgress, RollbackStatus, RollbackStatusKind,
+    SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode, SessionCommitBoundEvent,
+    SessionCommitLink, SessionCommitUnboundEvent, SessionDetailRequest, SessionDetailResult,
+    SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError, SessionErrorEvent,
+    SessionLinkUpdatedEvent, SessionListRequest, SessionListResult, SessionRebindRequest,
+    SessionRebindResult, SessionRecalcRequest, SessionRecalcResult, SessionStartRequest,
+    SessionStartResult, SessionStartedEvent, SessionStatus, SessionUnbindRequest,
+    SessionUnbindResult, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult,
+    SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
     SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
     TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
     UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
@@ -217,6 +217,7 @@ fn main() {
     RollbackAbortResult::export_all(&config).expect("export RollbackAbortResult");
     RollbackStatus::export_all(&config).expect("export RollbackStatus");
     RollbackStatusKind::export_all(&config).expect("export RollbackStatusKind");
+    RollbackCrashRecovery::export_all(&config).expect("export RollbackCrashRecovery");
     RollbackCommitEntry::export_all(&config).expect("export RollbackCommitEntry");
     MergeRequest::export_all(&config).expect("export MergeRequest");
     MergeStrategy::export_all(&config).expect("export MergeStrategy");
@@ -447,6 +448,7 @@ fn main() {
             "export type { RollbackAbortResult } from \"./RollbackAbortResult\";",
             "export type { RollbackStatus } from \"./RollbackStatus\";",
             "export type { RollbackStatusKind } from \"./RollbackStatusKind\";",
+            "export type { RollbackCrashRecovery } from \"./RollbackCrashRecovery\";",
             "export type { RollbackCommitEntry } from \"./RollbackCommitEntry\";",
             "export type { MergeRequest } from \"./MergeRequest\";",
             "export type { MergeStrategy } from \"./MergeStrategy\";",

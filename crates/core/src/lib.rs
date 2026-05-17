@@ -134,10 +134,11 @@ pub use rebase_ops::{
 };
 pub use rollback_ops::{
     abort_revert, abort_revert_completed, build_revert_message, build_revert_plan,
-    check_preconditions, detect_in_progress as rollback_detect_in_progress, revert_commit,
-    revert_sequence, rollback_abort, rollback_execute, rollback_execute_with_progress,
-    rollback_preview, rollback_status, RevertCandidate, RevertPlan, RevertPlanEntry,
-    RevertSequenceResult, RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackOpDao,
+    check_preconditions, detect_crash_recovery as detect_rollback_crash_recovery,
+    detect_in_progress as rollback_detect_in_progress, revert_commit, revert_sequence,
+    rollback_abort, rollback_execute, rollback_execute_with_progress, rollback_preview,
+    rollback_status, RevertCandidate, RevertPlan, RevertPlanEntry, RevertSequenceResult,
+    RollbackAbortResult, RollbackCommitEntry, RollbackCrashRecovery, RollbackError, RollbackOpDao,
     RollbackPlanRecordEntry, RollbackPreview, RollbackProgress, RollbackStatus, RollbackStatusKind,
     MIN_AUTO_CONFIDENCE,
 };

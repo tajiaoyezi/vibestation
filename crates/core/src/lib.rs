@@ -30,6 +30,7 @@ pub mod sanitize;
 pub mod session_dao;
 pub mod session_ipc;
 pub mod session_lifecycle;
+pub mod session_redaction;
 pub mod sessions;
 pub mod tabs;
 pub mod telemetry;
@@ -137,6 +138,9 @@ pub use session_ipc::{
     SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
     SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
     SessionStartedEvent, SessionUnbindRequest, SessionUnbindResult,
+};
+pub use session_redaction::{
+    redact_session_summary, RedactionError, RedactionResult, REDACTION_STRATEGY_VERSION,
 };
 pub use sessions::{AiSession, LinkState, SessionCommitLink, SessionError, SessionStatus};
 pub use tabs::{

@@ -42,6 +42,8 @@ notify = "6.1.1"
 sentry = { version = "0.48", default-features = false, features = ["transport", "rustls"] }
 # SHA-256 · panic message 哈希（不可逆 · 防 PII 泄漏）
 sha2 = "0.11"
+# MVP-19 §M session summary redaction pipeline
+regex = "1"
 
 [dev-dependencies]
 tempfile.workspace = true

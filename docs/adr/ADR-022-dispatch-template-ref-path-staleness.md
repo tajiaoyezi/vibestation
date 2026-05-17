@@ -1,8 +1,8 @@
 # ADR-022: dispatch-prompt-template.md §4 参考实现引用路径 stale（指 top-level 实在 \_archived/）
 
-**状态**：proposed
-**日期**：2026-05-16（proposed）
-**决策者**：Grok（dispatch 起草 · self-review v2-D.2 单人项目）· 主 agent 后续独立 review
+**状态**：accepted
+**日期**：2026-05-16（proposed）· 2026-05-17（accepted · Arbiter tajiaoyezi 拍板方案 (d) · 见下「事实修正」）
+**决策者**：Grok（dispatch 起草 · self-review v2-D.2 单人项目）· Claude Code 主 agent 独立 review（**证伪原 Context · 见「事实修正」段**）· Arbiter tajiaoyezi 拍板
 **对应 `CLAUDE.md` 决策表**：—（治理规则 · 本 ADR 记录 dispatch 模板路径引用漂移）
 **前置事件**：PR #329（dispatch-prompt-template.md 压缩重构 · 883→597 行 · 审计附录拆分到 docs/dispatch-incidents.md）· spike-tmp/dispatch/ 目录 cleanup（top-level 清空 · 示例 prompt 移入 \_archived/ 子目录保留）
 
@@ -27,15 +27,26 @@
 
 注：#329 压缩后 §4 标题已从原 "4 · 参考实现 · 选择指南" 演进为当前形式 · 路径引用问题遗留未修。
 
-## 决策（Decision · proposed · Arbiter 拍板后生效）
+## 🔴 事实修正（Claude Code 主 agent 2026-05-17 独立 review · git 核验证伪原 Context）
 
-§2.1 要求：本 ADR 仅记录事实 + 提议选项 · **status 只能 proposed** · 不得自 accept · 不改 dispatch-prompt-template.md（accept 后另 PR 执行）· 最终由 Arbiter 裁决：
+**原「背景与问题」段的事实描述有重大偏差** · 据此提出的 (a)/(b)/(c) 三选项**没有一个能真正修复断链**。git 核验坐实如下：
 
-- **(a)【推荐】** 更新 §4（及第 419 行 "统一放" 声明）路径为 `spike-tmp/dispatch/_archived/<name>`（最小改 · 准确反映 cleanup 后实际归档位置 · 推荐模板表中的 basename 引用保持或加 `_archived/` 前缀说明）
-- **(b)** 把 8 范本移回 top-level `spike-tmp/dispatch/`（破坏 cleanup 约定 · 增加 repo 根级噪声 · 不推荐）
-- **(c)** §4 路径引用改为泛指 "见 `spike-tmp/dispatch/_archived/` 历史归档目录"（不逐一列具体文件名 · 由 incidents.md 维护清单）
+| 原 Context 声称                                          | git 核验实测                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spike-tmp/dispatch/` 顶层已清空 · 范本都在 `_archived/` | 顶层**不空**（MVP-18/19 等近期 prompt + `_archived/` 子目录并存）· `_archived/` 里**找不到** §4 写的 4 个范本（精确文件名核对全 ABSENT）                                                                                                                                                                                                                      |
+| 根因 = 路径前缀错（top-level → `_archived/`）            | 真实根因**双层**：(i) `.gitignore:116` = `spike-tmp/` → **整个 `spike-tmp/` gitignored** · `git ls-files` 确认 git 中**零 dispatch 范本文件**；(ii) §4 写的 4 个文件名（`MVP-04-storage-prep-opencode-prompt.md` / `MVP-07-kimi-prompt.md` / `SPIKE-06-pr2-codex-prompt.md` / `MVP-02-opencode-prompt.md`）本身已 stale，本地 `_archived/` 也不存在这些精确名 |
+| (a) 改 `_archived/` 前缀即修复                           | 改后路径仍：文件不存在 + gitignored，clone repo 的 agent 永远看不到 · 是"看起来修了实际没修"的**假对齐**（比 proposed 标记更危险）                                                                                                                                                                                                                            |
 
-无论哪条：**.claude/rules/dispatch-prompt-template.md 实际改动 —— 均由 Arbiter 拍板明确后在独立 PR 执行 · 本 PR 仅 proposed draft**。
+**结论**：clone repo 的 agent 看不到**任何** dispatch 范本文件（无论 top-level / `_archived/`），因为整个 `spike-tmp/` 不进 git。修复方向不是改路径前缀，而是**文档停止承诺一个 git 中不存在的可点击路径**。`docs/dispatch-incidents.md §4`（行 365-389）有同样的断链引用，须同步修。
+
+## 决策（Decision · accepted · Arbiter 2026-05-17 拍板方案 (d)）
+
+原 proposed 的 (a)/(b)/(c) 三选项均建立在被证伪的前提上（详见上「事实修正」段）· Arbiter 基于修正事实拍板**新增方案 (d)**：
+
+- ~~**(a)** 更新 §4 路径为 `_archived/` 前缀~~ —— **作废**（文件不存在 + gitignored · 假对齐）
+- ~~**(b)** 范本移回 top-level~~ —— **作废**（gitignored · clone 仍看不到）
+- ~~**(c)** §4 泛指 `_archived/` 目录~~ —— **作废**（目录 gitignored · clone 仍看不到）
+- **(d)【Arbiter 2026-05-17 选定】文档不再承诺 git 路径**：`.claude/rules/dispatch-prompt-template.md` §3.0 第 441 行 + §4 + `docs/dispatch-incidents.md` §4 删除指向具体范本文件名的可点击路径引用 · 改为明确「dispatch 范本是本地 `spike-tmp/dispatch/`（**gitignored · 不进 git · clone 后不可见**）工作产物 · 写 dispatch 时参照本规则 §3 标准模板 + `docs/dispatch-incidents.md §4` 的范本特征描述（按 agent 类型/任务类型选结构），不依赖具体范本文件可点击」
 
 ## 约束（Constraints）
 
@@ -60,18 +71,18 @@
 
 ---
 
-## Arbiter 拍板栏（待 tajiaoyezi · v2-D.2 单人项目 self-review + Arbiter approval · 留空待拍板）
+## Arbiter 拍板栏（tajiaoyezi · v2-D.2 单人项目 self-review + Arbiter approval · 2026-05-17 已拍板）
 
-- [ ] 事实准确性：origin/main dispatch-prompt-template.md 第 419 行 "统一放 `spike-tmp/dispatch/`" + §4「参考实现 · 选择指南」表格已 git show 确认 · top-level 目录实际为空（\_archived/ 存在）已 ls/find 验证
-- [ ] 选项完整：(a)(b)(c) 三条均已列出 · 推荐 (a) 最小改理由已陈述
-- [ ] 约束遵守：**status=proposed** · 未碰 dispatch-prompt-template.md · 未改现有 ADR · git diff --stat 仅 3 文件 · §4 现状以 origin/main grep 为准
-- [ ] 选定方案：（留空 · 由 Arbiter 在 review comment 或后续 PR 明确 (a)/(b)/(c)）
+- [x] 事实准确性：**原 Context 已被主 agent git 核验证伪** · 修正事实见「事实修正」段（`.gitignore:116` spike-tmp/ 整个 gitignored · 4 范本文件名全 ABSENT · `git ls-files` 零范本）· Arbiter 基于修正事实拍板
+- [x] 选项完整：原 (a)(b)(c) 作废理由已陈述 · 新增 (d) 由 Arbiter 基于修正事实选定
+- [x] 约束遵守：proposed 阶段未碰 dispatch-prompt-template.md（本 accept PR 才执行 · v2-D.2 流程合规）· 证伪过程仅 git 只读核验未改源文件
+- [x] **选定方案：(d)** —— Arbiter tajiaoyezi 2026-05-17 拍板「文档不再承诺 git 路径 · 范本是本地 gitignored 工作产物 · 参照 §3 模板 + incidents.md §4 特征描述」
 
-**proposed 决议**（本 PR 仅 draft · accept 待 Arbiter 单独 flip）：
+**accepted 决议**（Arbiter 2026-05-17 flip · 本 PR 同步执行文档改写）：
 
-1. 记录事实：dispatch-prompt-template.md §4 及路径声明引用 top-level `spike-tmp/dispatch/` 已与实际 \_archived/ 归档现实 drift（PR #329 压缩后遗留）
-2. 推荐 (a)：更新路径引用为 `_archived/` 前缀 · 最小侵入 · 恢复文档可执行性
-3. 后续动作：Arbiter 择一选项后 · 另开 PR 改 `.claude/rules/dispatch-prompt-template.md`（必要时同步 incidents.md §4）· 本 ADR → accepted
+1. 记录事实修正：原 ADR-022「背景与问题」事实偏差（误判根因为路径前缀 · 实为 spike-tmp/ 整个 gitignored + 文件名 stale 双层）· 由主 agent git 核验证伪并记入「事实修正」段（保留原 Context 不删 · 供未来 agent 看到"proposed 事实可能不准 · accept 前主 agent 必独立核验"的教训）
+2. 选定 (d)：dispatch-prompt-template.md §3.0 第 441 行 + §4 + dispatch-incidents.md §4 删除断链的可点击范本路径引用 · 改为「范本 = 本地 gitignored 工作产物 · 参照 §3 模板 + incidents.md §4 特征描述」· 本 PR 执行
+3. 衍生教训（已沉淀入 PR body）：dispatch 起草的 ADR proposed 事实段不可全信 · accept 翻转前主 agent 必须独立 git 核验事实，证伪即回 Arbiter 重新决策（本案 §2.1 + 08-systematic-debugging 正例）
 
 ---
 

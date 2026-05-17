@@ -41,12 +41,18 @@ use vibestation_core::{
     PushRequest, PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample,
     RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
     RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
-    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SessionCommitLink,
-    SessionError, SessionStatus, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
-    SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
-    SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
-    TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
-    TelemetryStatus, UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
+    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SessionBindCommitRequest,
+    SessionBindCommitResult, SessionBindMode, SessionCommitBoundEvent, SessionCommitLink,
+    SessionCommitUnboundEvent, SessionDetailRequest, SessionDetailResult, SessionEndRequest,
+    SessionEndResult, SessionEndedEvent, SessionError, SessionErrorEvent, SessionLinkUpdatedEvent,
+    SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
+    SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
+    SessionStartedEvent, SessionStatus, SessionUnbindRequest, SessionUnbindResult,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -81,6 +87,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/pane_failure.rs");
     println!("cargo:rerun-if-changed=../core/src/parser_bridge.rs");
     println!("cargo:rerun-if-changed=../core/src/sessions.rs");
+    println!("cargo:rerun-if-changed=../core/src/session_ipc.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -283,6 +290,30 @@ fn main() {
     SessionCommitLink::export_all(&config).expect("export SessionCommitLink");
     LinkState::export_all(&config).expect("export LinkState");
     SessionError::export_all(&config).expect("export SessionError");
+    // MVP-19 W2-A.0 · Session↔commit binding IPC contract (§K.1 命令 / §K.2 事件)
+    SessionBindMode::export_all(&config).expect("export SessionBindMode");
+    SessionStartRequest::export_all(&config).expect("export SessionStartRequest");
+    SessionStartResult::export_all(&config).expect("export SessionStartResult");
+    SessionEndRequest::export_all(&config).expect("export SessionEndRequest");
+    SessionEndResult::export_all(&config).expect("export SessionEndResult");
+    SessionBindCommitRequest::export_all(&config).expect("export SessionBindCommitRequest");
+    SessionBindCommitResult::export_all(&config).expect("export SessionBindCommitResult");
+    SessionUnbindRequest::export_all(&config).expect("export SessionUnbindRequest");
+    SessionUnbindResult::export_all(&config).expect("export SessionUnbindResult");
+    SessionListRequest::export_all(&config).expect("export SessionListRequest");
+    SessionListResult::export_all(&config).expect("export SessionListResult");
+    SessionDetailRequest::export_all(&config).expect("export SessionDetailRequest");
+    SessionDetailResult::export_all(&config).expect("export SessionDetailResult");
+    SessionRebindRequest::export_all(&config).expect("export SessionRebindRequest");
+    SessionRebindResult::export_all(&config).expect("export SessionRebindResult");
+    SessionRecalcRequest::export_all(&config).expect("export SessionRecalcRequest");
+    SessionRecalcResult::export_all(&config).expect("export SessionRecalcResult");
+    SessionStartedEvent::export_all(&config).expect("export SessionStartedEvent");
+    SessionEndedEvent::export_all(&config).expect("export SessionEndedEvent");
+    SessionCommitBoundEvent::export_all(&config).expect("export SessionCommitBoundEvent");
+    SessionCommitUnboundEvent::export_all(&config).expect("export SessionCommitUnboundEvent");
+    SessionLinkUpdatedEvent::export_all(&config).expect("export SessionLinkUpdatedEvent");
+    SessionErrorEvent::export_all(&config).expect("export SessionErrorEvent");
 
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
@@ -469,6 +500,30 @@ fn main() {
             "export type { SessionCommitLink } from \"./SessionCommitLink\";",
             "export type { LinkState } from \"./LinkState\";",
             "export type { SessionError } from \"./SessionError\";",
+            // MVP-19 W2-A.0 · Session↔commit binding IPC contract
+            "export type { SessionBindMode } from \"./SessionBindMode\";",
+            "export type { SessionStartRequest } from \"./SessionStartRequest\";",
+            "export type { SessionStartResult } from \"./SessionStartResult\";",
+            "export type { SessionEndRequest } from \"./SessionEndRequest\";",
+            "export type { SessionEndResult } from \"./SessionEndResult\";",
+            "export type { SessionBindCommitRequest } from \"./SessionBindCommitRequest\";",
+            "export type { SessionBindCommitResult } from \"./SessionBindCommitResult\";",
+            "export type { SessionUnbindRequest } from \"./SessionUnbindRequest\";",
+            "export type { SessionUnbindResult } from \"./SessionUnbindResult\";",
+            "export type { SessionListRequest } from \"./SessionListRequest\";",
+            "export type { SessionListResult } from \"./SessionListResult\";",
+            "export type { SessionDetailRequest } from \"./SessionDetailRequest\";",
+            "export type { SessionDetailResult } from \"./SessionDetailResult\";",
+            "export type { SessionRebindRequest } from \"./SessionRebindRequest\";",
+            "export type { SessionRebindResult } from \"./SessionRebindResult\";",
+            "export type { SessionRecalcRequest } from \"./SessionRecalcRequest\";",
+            "export type { SessionRecalcResult } from \"./SessionRecalcResult\";",
+            "export type { SessionStartedEvent } from \"./SessionStartedEvent\";",
+            "export type { SessionEndedEvent } from \"./SessionEndedEvent\";",
+            "export type { SessionCommitBoundEvent } from \"./SessionCommitBoundEvent\";",
+            "export type { SessionCommitUnboundEvent } from \"./SessionCommitUnboundEvent\";",
+            "export type { SessionLinkUpdatedEvent } from \"./SessionLinkUpdatedEvent\";",
+            "export type { SessionErrorEvent } from \"./SessionErrorEvent\";",
             "",
         ]
         .join("\n"),

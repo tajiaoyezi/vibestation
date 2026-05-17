@@ -5,15 +5,13 @@ import type {
   RollbackAbortResult,
   RollbackStatus,
   RollbackProgress,
-} from "./rollbackContract";
-import type { RollbackError } from "../../bindings/RollbackError";
+  RollbackError,
+} from "../../bindings";
 
 export async function rollbackPreview(
   sessionId: string,
 ): Promise<RollbackPreview> {
-  return invoke<RollbackPreview>("rollback_preview", {
-    req: { session_id: sessionId },
-  });
+  return invoke<RollbackPreview>("rollback_preview", { sessionId });
 }
 
 export async function rollbackExecute(
@@ -21,24 +19,21 @@ export async function rollbackExecute(
   includeShas: string[],
 ): Promise<RollbackProgress> {
   return invoke<RollbackProgress>("rollback_execute", {
-    req: { session_id: sessionId, include_shas: includeShas },
+    sessionId,
+    includeShas,
   });
 }
 
 export async function rollbackAbort(
   sessionId: string,
 ): Promise<RollbackAbortResult> {
-  return invoke<RollbackAbortResult>("rollback_abort", {
-    req: { session_id: sessionId },
-  });
+  return invoke<RollbackAbortResult>("rollback_abort", { sessionId });
 }
 
 export async function rollbackStatus(
   sessionId: string,
 ): Promise<RollbackStatus> {
-  return invoke<RollbackStatus>("rollback_status", {
-    req: { session_id: sessionId },
-  });
+  return invoke<RollbackStatus>("rollback_status", { sessionId });
 }
 
 export function onRollbackProgress(
@@ -50,27 +45,27 @@ export function onRollbackProgress(
 }
 
 export function onRollbackDone(
-  cb: (p: { session_id: string; revert_shas: string[] }) => void,
+  cb: (p: { sessionId: string; revertShas: string[] }) => void,
 ): Promise<UnlistenFn> {
-  return listen<{ session_id: string; revert_shas: string[] }>(
+  return listen<{ sessionId: string; revertShas: string[] }>(
     "git:rollback-done",
     (e) => cb(e.payload),
   );
 }
 
 export function onRollbackAborted(
-  cb: (p: { session_id: string; head_sha: string }) => void,
+  cb: (p: { sessionId: string; headSha: string }) => void,
 ): Promise<UnlistenFn> {
-  return listen<{ session_id: string; head_sha: string }>(
+  return listen<{ sessionId: string; headSha: string }>(
     "git:rollback-aborted",
     (e) => cb(e.payload),
   );
 }
 
 export function onRollbackConflict(
-  cb: (p: { path: string; commit_sha: string }) => void,
+  cb: (p: { path: string; commitSha: string }) => void,
 ): Promise<UnlistenFn> {
-  return listen<{ path: string; commit_sha: string }>(
+  return listen<{ path: string; commitSha: string }>(
     "git:rollback-conflict",
     (e) => cb(e.payload),
   );

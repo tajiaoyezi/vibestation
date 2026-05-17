@@ -1,5 +1,5 @@
 import { Show, type JSX } from "solid-js";
-import type { RollbackProgress } from "./rollbackContract";
+import type { RollbackProgress } from "../../bindings";
 
 interface RollbackProgressBannerProps {
   sessionId: string;
@@ -40,11 +40,12 @@ export function RollbackProgressBanner(
           style={{ width: `${pct()}%` }}
         />
       </div>
-      <Show when={props.progress.current_sha}>
-        <div class="vs-rollback-progress-current">
-          当前：revert {shortSha(props.progress.current_sha)} "
-          {props.progress.status}"
-        </div>
+      <Show when={props.progress.currentSha}>
+        {(sha) => (
+          <div class="vs-rollback-progress-current">
+            当前：revert {shortSha(sha())} "{props.progress.status}"
+          </div>
+        )}
       </Show>
       <button
         type="button"

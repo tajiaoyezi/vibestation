@@ -6,7 +6,7 @@ import {
   onCleanup,
   type JSX,
 } from "solid-js";
-import type { RollbackPreview, RollbackCommitEntry } from "./rollbackContract";
+import type { RollbackPreview, RollbackCommitEntry } from "../../bindings";
 
 interface RollbackPreviewModalProps {
   preview: RollbackPreview;
@@ -94,7 +94,7 @@ export function RollbackPreviewModal(
           id="vs-rollback-preview-title"
           class="vs-dialog-title vs-rollback-title-warning"
         >
-          ⚠ 回滚预览：Session #{props.preview.session_id}
+          ⚠ 回滚预览：Session #{props.preview.sessionId}
         </h3>
         <div class="vs-dialog-body vs-rollback-preview-body">
           <p class="vs-rollback-preview-summary">
@@ -145,8 +145,8 @@ export function RollbackPreviewModal(
           </ul>
 
           <div class="vs-rollback-files-summary">
-            影响文件：{props.preview.total_files_changed} 文件 · +
-            {props.preview.total_insertions} / -{props.preview.total_deletions}
+            影响文件：{props.preview.totalFilesChanged} 文件 · +
+            {props.preview.totalInsertions} / -{props.preview.totalDeletions}
             <button
               class="vs-rollback-files-toggle"
               onClick={() => setFilesExpanded((prev) => !prev)}
@@ -156,7 +156,7 @@ export function RollbackPreviewModal(
             </button>
           </div>
 
-          <Show when={props.preview.has_low_confidence}>
+          <Show when={props.preview.hasLowConfidence}>
             <div class="vs-rollback-low-confidence-banner" role="alert">
               ⚠ 警告：{lowConfidenceCount()} 个 commit 置信度 &lt;
               0.9，请确认是否包含在回滚中

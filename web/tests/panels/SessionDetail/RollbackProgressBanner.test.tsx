@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, fireEvent, screen, cleanup } from "@solidjs/testing-library";
 import { RollbackProgressBanner } from "../../../src/panels/SessionDetail/RollbackProgressBanner";
-import type { RollbackProgress } from "../../../src/panels/SessionDetail/rollbackContract";
+import type { RollbackProgress } from "../../../src/bindings";
 
 // 每个测试后卸载已 mount 组件 · 移除其 document keydown listener
 // 否则跨测试累积泄漏污染后续测试文件（reviewer-fix · 仿 sessionDetail.test.tsx 既有模式）
@@ -11,7 +11,7 @@ describe("RollbackProgressBanner", () => {
   const baseProgress: RollbackProgress = {
     done: 3,
     total: 7,
-    current_sha: "bcd2345678901",
+    currentSha: "bcd2345678901",
     status: 'fix: 修复 stage 路径异常',
   };
 
@@ -84,7 +84,7 @@ describe("RollbackProgressBanner", () => {
     render(() => (
       <RollbackProgressBanner
         sessionId="sess-42"
-        progress={{ done: 0, total: 0, current_sha: "", status: "" }}
+        progress={{ done: 0, total: 0, currentSha: "", status: "" }}
         onAbort={vi.fn()}
       />
     ));
@@ -96,7 +96,7 @@ describe("RollbackProgressBanner", () => {
     render(() => (
       <RollbackProgressBanner
         sessionId="sess-42"
-        progress={{ done: 5, total: 5, current_sha: "xyz", status: "done" }}
+        progress={{ done: 5, total: 5, currentSha: "xyz", status: "done" }}
         onAbort={vi.fn()}
       />
     ));

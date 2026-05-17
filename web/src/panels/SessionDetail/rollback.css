@@ -285,6 +285,63 @@
   min-height: 0;
 }
 
+/* ── MVP-20 Phase D · Crash Recovery Banner ── */
+
+.vs-rollback-recovery-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: oklch(0.72 0.19 25 / 0.1);
+  border-bottom: 1px solid var(--color-status-error, var(--danger));
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.vs-rollback-recovery-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-1);
+}
+
+.vs-rollback-recovery-icon {
+  font-size: 1rem;
+}
+
+.vs-rollback-recovery-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.vs-rollback-recovery-resume-btn,
+.vs-rollback-recovery-dismiss-btn {
+  appearance: none;
+  border: 1px solid var(--border-1);
+  background: none;
+  color: var(--text-1);
+  font-size: 0.6875rem;
+  padding: 2px var(--space-2);
+  border-radius: var(--r-6);
+  cursor: pointer;
+}
+
+.vs-rollback-recovery-resume-btn:hover,
+.vs-rollback-recovery-dismiss-btn:hover {
+  background: var(--bg-2);
+}
+
+.vs-rollback-recovery-resume-btn:disabled,
+.vs-rollback-recovery-dismiss-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vs-rollback-recovery-error {
+  font-size: 0.6875rem;
+  color: var(--color-status-error, var(--danger));
+}
+
 /* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {

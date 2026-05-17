@@ -36,17 +36,19 @@
         - **(a) Reviewer 自己 push** 翻转 commit 到 PR branch（推荐 · 作者无法插入新改动）
         - **(b) Author push 翻转 commit 后 Reviewer 对最新 HEAD re-approve**（GitHub 分支保护应开启 "require approval from latest commit"）
       - 同规则适用于 spec PR 的 `draft → ready` 翻转（详见 `docs/tasks/README.md` 第 7 步）
-   5. **合入后 CI 验证**（session 14 事件制度化 · 2026-04-21）· merge 后 5-10 min 内 · 每次必查合入 commit 的 CI 状态：
+   5. **合入后质量门验证**（[ADR-021](./docs/adr/ADR-021-ci-mandate-staleness.md) accepted @ 2026-05-17 · supersede 原「合入后 CI 验证」mandate）· 本项目**无自动 CI**（`.github/workflows/ci.yml` = `on: workflow_dispatch:` 仅手动 · PR #102 关 PR 触发 + session 21 billing 关 push main 触发 · 既定运营模型非临时故障）· 故**唯一有效质量门 = 本地 gate + reviewer §2.14 独立复跑**：
 
-      ```bash
-      gh api "repos/tajiaoyezi/vibestation/commits/$(git rev-parse HEAD)/check-runs" \
-        --jq '.check_runs[] | "\(.conclusion // .status) · \(.name)"'
-      ```
+      - **实现者 push 前**：本地全跑 `cargo test --workspace` / `cargo clippy --workspace -- -D warnings` / `cargo fmt --all -- --check` / `pnpm lint` / `pnpm typecheck` / `pnpm vitest run`（按改动涉及面取子集）· raw output 贴 PR body · 不接受"应该过"口头转述
+      - **reviewer merge 前**（§2.14）：GUI / IPC 类 PR 必须本地启 `pnpm tauri:dev` 跑 critical UX path · 不只看 Rust 测试 + ts-rs contract
+      - **不要**再跑 `gh api .../check-runs` 期待自动 CI 结果（合入 commit check-runs 恒空 · 仅 dependabot/renovate bot 的 update run · 据此判断会困惑误导）
+      - **仅当**手动 `gh workflow run ci.yml` 触发过 · 才查该次 dispatch run 状态：
 
-      - 任一 `conclusion=failure` → **立即开 fix PR**（例 PR #86 修 pty Linux ignore + prettier）· 不得拖到下一次 review 才发现
-      - 原因：repo 未启 branch protection required check · `gh pr merge --auto` 遇 pending CI 会**瞬合**（分支保护不生效）· 合入后 CI 后 fail 会被淹没
-      - 反模式：看 `gh pr checks <N>` 显示 `pending` 就 `--auto merge` 走人 · 不回头 check · 未来 agent 继承 failure status
-      - 事件：PR #82/#83 合入时 Rust/Frontend 被瞬合 · 4 commit 持续 fail · 直到 PR #86 才修
+        ```bash
+        gh run list --workflow=ci.yml --limit 3   # 仅在手动 dispatch 后有意义
+        ```
+
+      - 历史教训（为何本地 gate 是唯一可信门）：PR #82/#83 时代曾依赖 auto-CI · `gh pr merge --auto` 遇 pending CI 瞬合 · Rust/Frontend 4 commit 持续 fail 到 PR #86 才修 → 自动 CI 关闭后此风险靠"本地 gate 必过 + reviewer §2.14 实跑"消除，不靠合入后补查
+      - 未来重开 auto-CI 触发条件（[ADR-021](./docs/adr/ADR-021-ci-mandate-staleness.md) 决议 4）：仓库变 public 或升级 GitHub Pro（Actions 分钟预算不再约束）· 届时新开 ADR 评估恢复 `push`/`pull_request` 触发并复活合入后 check-runs 验证
 
 **人类详细手册 + Playbook + FAQ**：`docs/SESSION-STARTUP.md`（不在本文件重复）。
 

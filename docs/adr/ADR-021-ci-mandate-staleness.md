@@ -1,8 +1,8 @@
 # ADR-021: CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale
 
-**状态**：proposed
-**日期**：2026-05-16（proposed）
-**决策者**：Grok（dispatch 起草 · self-review v2-D.2 单人项目）· 主 agent 后续独立 review
+**状态**：accepted
+**日期**：2026-05-16（proposed）· 2026-05-17（accepted · Arbiter tajiaoyezi 拍板方案 (b)）
+**决策者**：Grok（dispatch 起草 · self-review v2-D.2 单人项目）· Claude Code 主 agent 独立 review · Arbiter tajiaoyezi 拍板
 **对应 `CLAUDE.md` 决策表**：—（治理规则 · 本 ADR 记录 CI mandate 漂移 · 对应 CLAUDE.md §"合入后 CI 验证" 条款）
 **前置事件**：PR #102（关闭 push/PR 触发）· PR #329（dispatch 压缩）· session 32 续 8 PR merge（#344-349）· ci.yml 最后一次 run 2026-04-25/28（手动 · 全 failure）
 
@@ -46,18 +46,19 @@
 
 ---
 
-## Arbiter 拍板栏（待 tajiaoyezi · v2-D.2 单人项目 self-review + Arbiter approval · 留空待拍板）
+## Arbiter 拍板栏（tajiaoyezi · v2-D.2 单人项目 self-review + Arbiter approval · 2026-05-17 已拍板）
 
-- [ ] 事实准确性：ci.yml 仅 `workflow_dispatch` · 最后 run 2026-04-25/28 · session 32 续 8 PR 零 auto CI · 均已 git show / cat 验证
-- [ ] 选项完整：(a)(b)(c) 三条均已列出 · 推荐 (b) 理由已陈述
-- [ ] 约束遵守：**status=proposed** · 未碰 CLAUDE.md · 未改现有 ADR · git diff --stat 仅 3 文件
-- [ ] 选定方案：（留空 · 由 Arbiter 在 review comment 或后续 PR 明确 (a)/(b)/(c)）
+- [x] 事实准确性：ci.yml 仅 `workflow_dispatch` · 最后 run 2026-04-25/28 · session 32 续 8 PR 零 auto CI · 均已 git show / cat 验证（主 agent 2026-05-17 复核：`.github/workflows/ci.yml` `on: workflow_dispatch:` · `gh run list --branch main` 仅 dependabot/renovate · 合入 commit check-runs 空）
+- [x] 选项完整：(a)(b)(c) 三条均已列出 · 推荐 (b) 理由已陈述
+- [x] 约束遵守：proposed 阶段未碰 CLAUDE.md / 现有 ADR（本 accept PR 才执行 CLAUDE.md 改写 · v2-D.2 流程合规）
+- [x] **选定方案：(b)** —— Arbiter tajiaoyezi 2026-05-17 拍板「改 CLAUDE.md 该条款对齐现实 · 承认 no-auto-CI 是既定运营模型」
 
-**proposed 决议**（本 PR 仅 draft · accept 待 Arbiter 单独 flip）：
+**accepted 决议**（Arbiter 2026-05-17 flip · 本 PR 同步执行 CLAUDE.md 改写）：
 
-1. 记录事实：CLAUDE.md「合入后 CI 验证」mandate 与 ci.yml 实际触发策略已 drift · 由 design 导致（PR #102 关闭自动触发）
-2. 质量门现状：本地 gate + reviewer §2.14 实跑 是当前唯一有效门
-3. 后续动作：Arbiter 择一选项后 · 另开 PR 改 CLAUDE.md（必要时改 ci.yml）· 本 ADR → accepted · 统计更新
+1. 记录事实：CLAUDE.md「合入后 CI 验证」mandate 与 ci.yml 实际触发策略已 drift · 由 design 导致（PR #102 关闭 PR 触发 · session 21 billing 进一步关 push main 触发 · 仅留 `workflow_dispatch`）
+2. 质量门现状坐实：**本地 gate（cargo test/clippy/fmt · pnpm lint/typecheck/vitest）+ reviewer §2.14 独立复跑** 是当前唯一有效质量门 · 无自动 CI 是既定运营模型（非临时 billing 故障）
+3. 选定 (b)：CLAUDE.md §5「合入后 CI 验证」改写为「合入后质量门验证 = 本地 gate + reviewer §2.14 实跑 · CI = `workflow_dispatch` 手动按需（GitHub Actions 预算恢复 / 仓库公开后可评估重开 auto-CI）」· 本 PR 执行
+4. 重开 auto-CI（选项 a）的未来触发条件：仓库变 public 或升级 GitHub Pro（Actions 分钟预算不再是约束）· 届时新开 ADR 评估 push/pull_request 触发恢复
 
 ---
 

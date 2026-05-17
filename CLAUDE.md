@@ -211,7 +211,9 @@ gh pr create
 
 ---
 
-## 🏁 当前可执行动作（session 32 续 · 2026-05-16 · **SPIKE-07.5 R1 greenlight · ADR-018 accepted · MVP-18 Phase A 实现 merged · 续 6 PR 入 main**）
+## 🏁 当前可执行动作（session 33 · 2026-05-17 · **MVP-18 Phase A/B/C + MVP-19 W1/W2/CDE-impl + 治理 ADR-021/022 + MVP-20 Phase A 全链收口 · merged #365-#388**）
+
+> 权威当前态以 [`docs/PROGRESS.md`](./docs/PROGRESS.md) 为准（本 🏁 段下方 session-32 详述为历史快照 · 不再逐项追平 · 见「自审四问」边界：scalar 当前态归 PROGRESS）。**session 33 实况**：MVP-20 Phase A 全链 #385-#388 done（M1 + Phase B〔reviewer-fix 测试隔离回归〕+ M2 + seam→binding reconcile · 流水线半并行）· **下一步 = MVP-20 Phase C**（`git:rollback-conflict` wire MVP-16 ConflictBanner/3way + 空 catch wire 真 `RollbackError` §E.2.4 · 依赖 MVP-16 done）· 追踪：Phase D RollbackStatus.status union 保真 / DiffLine shiki pre-existing flaky 单列。
 
 **代码状态**：
 

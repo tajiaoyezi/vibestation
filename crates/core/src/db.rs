@@ -34,7 +34,7 @@ impl From<rusqlite::Error> for DbError {
 
 pub type DbPool = Pool<SqliteConnectionManager>;
 
-const CURRENT_SCHEMA_VERSION: u32 = 8;
+const CURRENT_SCHEMA_VERSION: u32 = 9;
 
 /// Open or create the database at `db_path`, run migrations, return a connection pool.
 pub fn open_pool(db_path: &std::path::Path) -> Result<DbPool, DbError> {
@@ -86,6 +86,9 @@ pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     }
     if user_version < 8 {
         migrate_v8(conn)?;
+    }
+    if user_version < 9 {
+        migrate_v9(conn)?;
     }
 
     Ok(())
@@ -325,6 +328,97 @@ fn migrate_v8(conn: &Connection) -> Result<(), DbError> {
     )
     .map_err(|e| DbError::Migration {
         version: 8,
+        reason: e.to_string(),
+    })?;
+    Ok(())
+}
+
+/// MVP-19 W1-A.1 · session ↔ commit 自动绑定的 `ai_sessions` + `session_commit_links`
+/// 关系表（spec §G.2/§G.3 verbatim schema · §G.4 migration 安全）。
+///
+/// §G.4：(1) 单事务内建表 + 全索引（`unchecked_transaction` → 任一步失败整体回滚 ·
+/// 旧 schema 仍可用 · 区别 migrate_v8 的裸 `execute_batch` autocommit）(2) 推进
+/// `PRAGMA user_version = 9` 也在事务内（回滚则版本号不前进）(3) 幂等（`IF NOT
+/// EXISTS`）(4) `session_commit_links.session_id` FK → `ai_sessions(id)`。
+/// 业务理由（spec §B）：session↔commit 关联是审计数据，silent partial-schema
+/// corruption 会直接损害用户对"回滚依据"的信任 → 必须 all-or-nothing。
+fn migrate_v9(conn: &Connection) -> Result<(), DbError> {
+    // §G.4(1)(3)：单事务包住「建两表 + 全索引 + 推进 user_version」· 任一步失败
+    // `tx` drop 即 ROLLBACK（DropBehavior::Rollback）· 旧 schema 不被半成品污染。
+    // `unchecked_transaction` 是 `&Connection` 下取显式事务的 rusqlite idiom
+    // （migrate_v8 裸 execute_batch autocommit 对单表 additive 够用 · 但 §G.4 对
+    // 审计数据显式要求 all-or-nothing · 故此处升级）。
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| DbError::Migration {
+            version: 9,
+            reason: e.to_string(),
+        })?;
+    tx.execute_batch(
+        // §G.2 ai_sessions · 17 列 verbatim + 2 索引（IF NOT EXISTS = §G.4(4) 幂等）
+        "CREATE TABLE IF NOT EXISTS ai_sessions (
+             id TEXT PRIMARY KEY,
+             workspace_id TEXT NOT NULL,
+             cli_kind TEXT NOT NULL,
+             source TEXT NOT NULL DEFAULT 'auto',
+             title TEXT NOT NULL DEFAULT '',
+             started_at INTEGER NOT NULL,
+             ended_at INTEGER,
+             end_reason TEXT,
+             prompt_count INTEGER NOT NULL DEFAULT 0,
+             token_count INTEGER,
+             event_count INTEGER NOT NULL DEFAULT 0,
+             status TEXT NOT NULL DEFAULT 'active',
+             parser_version TEXT,
+             strategy_version TEXT,
+             metadata_json TEXT NOT NULL DEFAULT '{}',
+             created_at INTEGER NOT NULL,
+             updated_at INTEGER NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS idx_ai_sessions_workspace_started
+             ON ai_sessions(workspace_id, started_at DESC);
+         CREATE INDEX IF NOT EXISTS idx_ai_sessions_workspace_status
+             ON ai_sessions(workspace_id, status, ended_at);
+         -- §G.3 session_commit_links · 19 列 verbatim + 1 unique partial + 3 索引 + FK
+         CREATE TABLE IF NOT EXISTS session_commit_links (
+             id TEXT PRIMARY KEY,
+             workspace_id TEXT NOT NULL,
+             session_id TEXT NOT NULL,
+             commit_sha TEXT NOT NULL,
+             is_primary INTEGER NOT NULL DEFAULT 1,
+             link_state TEXT NOT NULL DEFAULT 'pending',
+             auto_bound INTEGER NOT NULL DEFAULT 1,
+             confidence REAL NOT NULL DEFAULT 0.0,
+             confidence_reason TEXT NOT NULL DEFAULT '',
+             strategy_version TEXT NOT NULL DEFAULT 'v1',
+             source_event_id TEXT,
+             linked_at INTEGER NOT NULL,
+             unlinked_at INTEGER,
+             unlinked_reason TEXT,
+             superseded_by_link_id TEXT,
+             created_by TEXT NOT NULL DEFAULT 'system',
+             reviewed_by TEXT,
+             created_at INTEGER NOT NULL,
+             updated_at INTEGER NOT NULL,
+             FOREIGN KEY(session_id) REFERENCES ai_sessions(id)
+         );
+         CREATE UNIQUE INDEX IF NOT EXISTS ux_session_commit_primary
+             ON session_commit_links(workspace_id, commit_sha, is_primary)
+             WHERE is_primary = 1 AND unlinked_at IS NULL;
+         CREATE INDEX IF NOT EXISTS idx_session_commit_links_session
+             ON session_commit_links(workspace_id, session_id, linked_at DESC);
+         CREATE INDEX IF NOT EXISTS idx_session_commit_links_commit
+             ON session_commit_links(workspace_id, commit_sha, linked_at DESC);
+         CREATE INDEX IF NOT EXISTS idx_session_commit_links_state
+             ON session_commit_links(workspace_id, link_state, confidence);
+         PRAGMA user_version = 9;",
+    )
+    .map_err(|e| DbError::Migration {
+        version: 9,
+        reason: e.to_string(),
+    })?;
+    tx.commit().map_err(|e| DbError::Migration {
+        version: 9,
         reason: e.to_string(),
     })?;
     Ok(())
@@ -1152,5 +1246,314 @@ mod tests {
             .query_row("SELECT count(*) FROM pane_links", [], |row| row.get(0))
             .unwrap();
         assert_eq!(pane_links_count, 0, "v8 creates an empty pane_links table");
+    }
+
+    // ── MVP-19 W1-A.1 · ai_sessions + session_commit_links (migrate_v9 · spec §G) ──
+
+    fn migrate_through_v9(conn: &Connection) {
+        migrate_through_v8(conn);
+        migrate_v9(conn).unwrap();
+    }
+
+    #[test]
+    fn v9_creates_ai_sessions_table_columns_and_indexes() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v9sessions.db")).unwrap();
+        migrate_through_v9(&conn);
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='ai_sessions'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(table_exists, "ai_sessions table should exist after v9");
+
+        // §G.2 · 17 列逐字
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(ai_sessions)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        for c in [
+            "id",
+            "workspace_id",
+            "cli_kind",
+            "source",
+            "title",
+            "started_at",
+            "ended_at",
+            "end_reason",
+            "prompt_count",
+            "token_count",
+            "event_count",
+            "status",
+            "parser_version",
+            "strategy_version",
+            "metadata_json",
+            "created_at",
+            "updated_at",
+        ] {
+            assert!(cols.contains(&c.to_string()), "ai_sessions missing col {c}");
+        }
+        assert_eq!(cols.len(), 17, "ai_sessions §G.2 = exactly 17 columns");
+
+        for idx in [
+            "idx_ai_sessions_workspace_started",
+            "idx_ai_sessions_workspace_status",
+        ] {
+            let exists: bool = conn
+                .query_row(
+                    "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name=?1",
+                    [idx],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(exists, "{idx} should exist after v9");
+        }
+
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 9);
+    }
+
+    #[test]
+    fn v9_creates_session_commit_links_table_columns_indexes_and_fk() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v9links.db")).unwrap();
+        migrate_through_v9(&conn);
+
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='session_commit_links'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(table_exists, "session_commit_links should exist after v9");
+
+        // §G.3 · 19 列逐字
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(session_commit_links)")
+            .and_then(|mut stmt| {
+                stmt.query_map([], |row| row.get::<_, String>(1))
+                    .map(|rows| rows.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap();
+        for c in [
+            "id",
+            "workspace_id",
+            "session_id",
+            "commit_sha",
+            "is_primary",
+            "link_state",
+            "auto_bound",
+            "confidence",
+            "confidence_reason",
+            "strategy_version",
+            "source_event_id",
+            "linked_at",
+            "unlinked_at",
+            "unlinked_reason",
+            "superseded_by_link_id",
+            "created_by",
+            "reviewed_by",
+            "created_at",
+            "updated_at",
+        ] {
+            assert!(
+                cols.contains(&c.to_string()),
+                "session_commit_links missing col {c}"
+            );
+        }
+        assert_eq!(
+            cols.len(),
+            19,
+            "session_commit_links §G.3 = exactly 19 columns"
+        );
+
+        for idx in [
+            "ux_session_commit_primary",
+            "idx_session_commit_links_session",
+            "idx_session_commit_links_commit",
+            "idx_session_commit_links_state",
+        ] {
+            let exists: bool = conn
+                .query_row(
+                    "SELECT count(*) > 0 FROM sqlite_master WHERE type='index' AND name=?1",
+                    [idx],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(exists, "{idx} should exist after v9");
+        }
+
+        let fk_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM pragma_foreign_key_list('session_commit_links') WHERE \"table\" = 'ai_sessions'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            fk_exists,
+            "session_commit_links.session_id FK → ai_sessions(id)"
+        );
+    }
+
+    #[test]
+    fn v9_unique_partial_index_enforces_single_active_primary_per_commit() {
+        // §H8：同 (workspace, commit) 至多 1 条 is_primary=1 且未 unlink 的 link。
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v9uniq.db")).unwrap();
+        migrate_through_v9(&conn);
+        conn.execute(
+            "INSERT INTO ai_sessions (id, workspace_id, cli_kind, started_at, created_at, updated_at)
+             VALUES ('s1','w1','claude',1,1,1)",
+            [],
+        )
+        .unwrap();
+
+        let ins = "INSERT INTO session_commit_links
+            (id, workspace_id, session_id, commit_sha, is_primary, linked_at, created_at, updated_at)
+            VALUES (?1,'w1','s1','sha-abc',1,1,1,1)";
+        conn.execute(ins, ["l1"]).unwrap();
+        let dup = conn.execute(ins, ["l2"]);
+        assert!(
+            dup.is_err(),
+            "2nd active is_primary link for same (ws,commit) must hit ux_session_commit_primary"
+        );
+
+        // unlink l1（set unlinked_at）→ partial index 排除 → 可再插主 link
+        conn.execute(
+            "UPDATE session_commit_links SET unlinked_at = 2 WHERE id = 'l1'",
+            [],
+        )
+        .unwrap();
+        conn.execute(ins, ["l3"]).expect(
+            "after unlinking previous primary, a new primary link must be insertable (partial idx)",
+        );
+    }
+
+    #[test]
+    fn v9_session_commit_links_fk_violation_rejected() {
+        let dir = TempDir::new().unwrap();
+        let pool = open_pool(&dir.path().join("v9fk.db")).unwrap();
+        let conn = pool.get().unwrap();
+        let result = conn.execute(
+            "INSERT INTO session_commit_links
+                (id, workspace_id, session_id, commit_sha, linked_at, created_at, updated_at)
+             VALUES ('l1','w1','no-such-session','sha',1,1,1)",
+            [],
+        );
+        assert!(
+            result.is_err(),
+            "FK to missing ai_sessions(id) must be rejected (PRAGMA foreign_keys=ON)"
+        );
+    }
+
+    #[test]
+    fn v9_migration_is_idempotent() {
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v9idem.db")).unwrap();
+        migrate_through_v9(&conn);
+        migrate_v9(&conn).unwrap(); // 再跑一次（IF NOT EXISTS）
+
+        for t in ["ai_sessions", "session_commit_links"] {
+            let cnt: i64 = conn
+                .query_row(
+                    "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                    [t],
+                    |r| r.get(0),
+                )
+                .unwrap();
+            assert_eq!(cnt, 1, "{t} must not duplicate on re-run");
+        }
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 9);
+    }
+
+    #[test]
+    fn v8_to_v9_is_additive_preserves_existing_rows() {
+        // §G.4：既有 DB（已有 workspaces/tabs/pane_links 数据）迁移到空 session 表 ·
+        // 既有数据不丢。
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v8-to-v9.db")).unwrap();
+        migrate_through_v8(&conn);
+        conn.execute(
+            "INSERT INTO workspaces (workspace_id, name, path, has_git, repo_root, created_at, last_opened)
+             VALUES ('w1', 'WS', '/tmp/vibestation', 0, NULL, 1, 1)",
+            [],
+        )
+        .unwrap();
+
+        migrate_v9(&conn).unwrap();
+
+        let ws_name: String = conn
+            .query_row(
+                "SELECT name FROM workspaces WHERE workspace_id='w1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(ws_name, "WS", "existing workspace row must survive v9");
+        let sessions_count: i64 = conn
+            .query_row("SELECT count(*) FROM ai_sessions", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(sessions_count, 0, "v9 creates an empty ai_sessions table");
+    }
+
+    #[test]
+    fn v9_rolls_back_and_keeps_old_schema_when_a_step_fails() {
+        // §G.4(3)：任一步失败回滚 · 旧 schema 仍可用。模拟：先手工建一个与
+        // session_commit_links **冲突**的对象（非 IF NOT EXISTS 能吞的 · 用一个
+        // 同名 index 但定义不同 → CREATE INDEX 即使带 IF NOT EXISTS 不报错，故
+        // 改用预先存在的同名 **table** 占位触发 CREATE TABLE IF NOT EXISTS 跳过、
+        // 但后续 CREATE UNIQUE INDEX 在缺列的占位表上失败）来强制中途失败。
+        let dir = TempDir::new().unwrap();
+        let conn = Connection::open(dir.path().join("v9rollback.db")).unwrap();
+        migrate_through_v8(&conn);
+        // 占位：与目标同名但 schema 不符的表 · 让 CREATE TABLE IF NOT EXISTS 跳过，
+        // 随后建 ux_session_commit_primary（引用不存在的列）失败 → 整事务回滚。
+        conn.execute("CREATE TABLE session_commit_links (bogus TEXT)", [])
+            .unwrap();
+
+        let result = migrate_v9(&conn);
+        assert!(result.is_err(), "v9 must fail when a DDL step cannot apply");
+
+        // 回滚：user_version 未前进（仍 8）· 占位表未被破坏 · ai_sessions 未残留
+        let version: u32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(
+            version, 8,
+            "failed v9 must NOT advance user_version (rollback)"
+        );
+        let ai_sessions_exists: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='ai_sessions'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(
+            !ai_sessions_exists,
+            "ai_sessions must not be left half-created after rollback"
+        );
+        // 旧 schema 仍可用
+        let workspaces_ok: bool = conn
+            .query_row(
+                "SELECT count(*) > 0 FROM sqlite_master WHERE type='table' AND name='workspaces'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!(workspaces_ok, "old schema (workspaces) must remain usable");
     }
 }

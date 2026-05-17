@@ -48,7 +48,13 @@ use vibestation_core::{
     PaneUnlinkRequest, PaneUnlinkResult, PanesDao, PtyEvent, PtyEventReceiver, PtyManager,
     PtySpawnRequest, PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult,
     RebaseControlRequest, RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus,
-    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest,
+    RemoteListRequest, RemoteListResponse, SessionBindCommitRequest, SessionBindCommitResult,
+    SessionCommitBoundEvent, SessionCommitLinkDao, SessionCommitUnboundEvent, SessionDetailRequest,
+    SessionDetailResult, SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError,
+    SessionErrorEvent, SessionLinkUpdatedEvent, SessionListRequest, SessionListResult,
+    SessionRebindRequest, SessionRebindResult, SessionRecalcRequest, SessionRecalcResult,
+    SessionService, SessionStartRequest, SessionStartResult, SessionStartedEvent,
+    SessionUnbindRequest, SessionUnbindResult, SetGitIdentityRequest, SettingsUpdateRequest,
     SplitRatioUpdateRequest, StageRequest, SwitcherQueryRequest, SwitcherSearchResult,
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
     TabState, TabsDao, TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceMetadata,
@@ -71,6 +77,12 @@ const EXTERNAL_TERM_LAUNCHED_EVENT: &str = "external_term_launched";
 const PANE_TRIGGER_EVENT: &str = "pane:trigger";
 const PANE_BUILD_FAILED_EVENT: &str = "pane:build-failed";
 const PANE_LINK_ERROR_EVENT: &str = "pane:link-error";
+const SESSION_STARTED_EVENT: &str = "session:started";
+const SESSION_ENDED_EVENT: &str = "session:ended";
+const SESSION_COMMIT_BOUND_EVENT: &str = "session:commit-bound";
+const SESSION_COMMIT_UNBOUND_EVENT: &str = "session:commit-unbound";
+const SESSION_LINK_UPDATED_EVENT: &str = "session:link-updated";
+const SESSION_ERROR_EVENT: &str = "session:error";
 const PANE_FAILURE_OUTPUT_LIMIT: usize = 16 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
@@ -136,6 +148,33 @@ fn emit_pane_link_error(app: &AppHandle, workspace_id: &str, error: PaneLinkErro
         PANE_LINK_ERROR_EVENT,
         pane_link_error_event(workspace_id, error),
     );
+}
+
+fn session_pool(state: &State<'_, AppState>) -> Result<DbPool, String> {
+    let guard = state.pool.lock().map_err(|e| e.to_string())?;
+    guard
+        .as_ref()
+        .cloned()
+        .ok_or_else(|| "database not initialized".to_string())
+}
+
+fn session_error_json(error: &SessionError) -> String {
+    serde_json::to_string(error).unwrap_or_else(|_| error.to_string())
+}
+
+fn emit_session_error(app: &AppHandle, workspace_id: &str, error: SessionError) {
+    let _ = app.emit(
+        SESSION_ERROR_EVENT,
+        SessionErrorEvent {
+            workspace_id: workspace_id.to_string(),
+            error,
+        },
+    );
+}
+
+fn map_session_error(app: &AppHandle, workspace_id: &str, error: SessionError) -> String {
+    emit_session_error(app, workspace_id, error.clone());
+    session_error_json(&error)
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1774,6 +1813,193 @@ fn pane_detach_list(
 }
 
 // =============================================================================
+// MVP-19 W2-B · session ↔ commit binding IPC
+//
+// Thin Tauri handler layer only: state.pool → SessionService → best-effort
+// `session:*` emit. Canonical request/result/event/error types live in
+// vibestation_core::{session_ipc,sessions}; this layer must not redefine them.
+// =============================================================================
+
+#[tauri::command]
+fn session_start(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionStartRequest,
+) -> Result<SessionStartResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    let result = service
+        .start(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    if !result.already_active {
+        let _ = app.emit(
+            SESSION_STARTED_EVENT,
+            SessionStartedEvent {
+                workspace_id,
+                session: result.session.clone(),
+            },
+        );
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn session_end(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionEndRequest,
+) -> Result<SessionEndResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    let result = service
+        .end(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    let _ = app.emit(
+        SESSION_ENDED_EVENT,
+        SessionEndedEvent {
+            workspace_id,
+            session_id: result.session.id.clone(),
+            end_reason: result.session.end_reason.clone(),
+        },
+    );
+    Ok(result)
+}
+
+#[tauri::command]
+fn session_bind_commit(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionBindCommitRequest,
+) -> Result<SessionBindCommitResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    let result = service
+        .bind_commit(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    let _ = app.emit(
+        SESSION_COMMIT_BOUND_EVENT,
+        SessionCommitBoundEvent {
+            workspace_id,
+            link: result.link.clone(),
+        },
+    );
+    Ok(result)
+}
+
+#[tauri::command]
+fn session_unbind(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionUnbindRequest,
+) -> Result<SessionUnbindResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let link_id = req.link_id.clone();
+    let pool = session_pool(&state)?;
+    let link_before = SessionCommitLinkDao::get(&pool, &workspace_id, &link_id).ok();
+    let service = SessionService::new(&pool);
+    let result = service
+        .unbind(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    if result.unlinked {
+        if let Some(link) = link_before {
+            let _ = app.emit(
+                SESSION_COMMIT_UNBOUND_EVENT,
+                SessionCommitUnboundEvent {
+                    workspace_id,
+                    link_id: result.link_id.clone(),
+                    commit_sha: link.commit_sha,
+                },
+            );
+        }
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn session_list(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionListRequest,
+) -> Result<SessionListResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    service
+        .list(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))
+}
+
+#[tauri::command]
+fn session_get_detail(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionDetailRequest,
+) -> Result<SessionDetailResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    service
+        .get_detail(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))
+}
+
+#[tauri::command]
+fn session_rebind(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionRebindRequest,
+) -> Result<SessionRebindResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    let result = service
+        .rebind(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    let _ = app.emit(
+        SESSION_LINK_UPDATED_EVENT,
+        SessionLinkUpdatedEvent {
+            workspace_id: workspace_id.clone(),
+            link: result.new_link.clone(),
+        },
+    );
+    let _ = app.emit(
+        SESSION_COMMIT_BOUND_EVENT,
+        SessionCommitBoundEvent {
+            workspace_id,
+            link: result.new_link.clone(),
+        },
+    );
+    Ok(result)
+}
+
+#[tauri::command]
+fn session_recalc(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    req: SessionRecalcRequest,
+) -> Result<SessionRecalcResult, String> {
+    let workspace_id = req.workspace_id.clone();
+    let pool = session_pool(&state)?;
+    let service = SessionService::new(&pool);
+    let result = service
+        .recalc(req)
+        .map_err(|e| map_session_error(&app, &workspace_id, e))?;
+    for link in &result.candidates {
+        let _ = app.emit(
+            SESSION_LINK_UPDATED_EVENT,
+            SessionLinkUpdatedEvent {
+                workspace_id: workspace_id.clone(),
+                link: link.clone(),
+            },
+        );
+    }
+    Ok(result)
+}
+
+// =============================================================================
 // MVP-18 Phase A · AI-Aware Pane 联动 link 管理 IPC（spec §K.1 命令 1-4）
 //
 // 仅 link 管理（create / unlink / list / set_enabled）· DAO 已在
@@ -2190,6 +2416,14 @@ pub fn run() {
             pane_detach_open,
             pane_detach_close,
             pane_detach_list,
+            session_start,
+            session_end,
+            session_bind_commit,
+            session_unbind,
+            session_list,
+            session_get_detail,
+            session_rebind,
+            session_recalc,
             pane_link,
             pane_unlink,
             pane_links_list,

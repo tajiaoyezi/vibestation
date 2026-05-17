@@ -1,7 +1,7 @@
 import { createSignal, Show, type Component } from "solid-js";
 
 export type ConflictBannerVariant = "active" | "recovery";
-export type ConflictOperation = "rebase" | "merge" | "cherrypick";
+export type ConflictOperation = "rebase" | "merge" | "cherrypick" | "rollback";
 
 type ConflictBannerProps = {
   variant: ConflictBannerVariant;
@@ -24,6 +24,7 @@ const operationCopy: Record<ConflictOperation, string> = {
   rebase: "Rebasing",
   merge: "Merging",
   cherrypick: "Cherry-picking",
+  rollback: "Reverting",
 };
 
 export const ConflictBanner: Component<ConflictBannerProps> = (props) => {

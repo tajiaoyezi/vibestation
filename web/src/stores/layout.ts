@@ -16,6 +16,7 @@ export type LayoutAction =
   | { kind: "toggle-primary" }
   | { kind: "toggle-secondary" }
   | { kind: "toggle-bottom" }
+  | { kind: "open-bottom" }
   | { kind: "resize-primary"; width: number }
   | { kind: "resize-secondary"; width: number }
   | { kind: "resize-bottom"; height: number }
@@ -46,6 +47,8 @@ export function layoutReducer(
       return { ...state, secondaryOpen: !state.secondaryOpen };
     case "toggle-bottom":
       return { ...state, bottomOpen: !state.bottomOpen };
+    case "open-bottom":
+      return state.bottomOpen ? state : { ...state, bottomOpen: true };
     case "resize-primary":
       return {
         ...state,

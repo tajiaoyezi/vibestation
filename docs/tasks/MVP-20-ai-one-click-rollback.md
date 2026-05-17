@@ -2,8 +2,8 @@
 id: MVP-20
 type: mvp
 title: AI 一键回滚（session 级 revert）
-status: ready
-owner:
+status: in-progress
+owner: Claude Code
 phase: v1.0
 depends_on: ["MVP-19", "MVP-16"]
 blocks: []

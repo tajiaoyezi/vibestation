@@ -1663,6 +1663,75 @@ mod tests {
         );
     }
 
+    // ── MVP-20 Phase D · abort state machine 边界（spec §N.2 反向场景）──
+    // 这些防御路径 Phase A/B/C 已实现但零测试覆盖 · 补回归/边界守护
+    // （testing 规则：异常路径必须覆盖 · 防未来重构悄悄破坏幂等性）。
+
+    #[test]
+    fn rollback_abort_no_active_is_graceful() {
+        // 无进行中 rollback 时 abort：success=false · 不 panic · 不写 DB
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("abort-noactive.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-na", "sess-na", &fixture.path);
+
+        let result = rollback_abort(&pool, "sess-na").unwrap();
+
+        assert!(!result.success);
+        assert_eq!(result.error.as_deref(), Some("no rollback in progress"));
+        // 无副作用：未写入任何 rollback_ops 记录
+        assert!(RollbackOpDao::latest_for_session(&pool, "sess-na")
+            .unwrap()
+            .is_none());
+    }
+
+    #[test]
+    fn rollback_abort_idempotent_double_abort() {
+        // abort 一个 in_progress → aborted；再 abort → success=false ·
+        // 状态机不被二次 abort 污染（status 仍 Aborted · 非回退/损坏）。
+        let fixture = GitFixture::new();
+        let dir = TempDir::new().unwrap();
+        let pool = db::open_pool(&dir.path().join("abort-double.db")).unwrap();
+        insert_workspace_and_session(&pool, "ws-db", "sess-db", &fixture.path);
+        let sha = fixture
+            .commit_file("dbl.txt", "dbl\n", "feat: double abort")
+            .to_string();
+        let plan = vec![RollbackPlanRecordEntry {
+            sha: sha.clone(),
+            include: true,
+            confidence: 1.0,
+            status: "pending".into(),
+            revert_sha: None,
+        }];
+        RollbackOpDao::insert_in_progress(&pool, "sess-db", &plan).unwrap();
+        let reverted = revert_commit(&fixture.repo, &sha, "sess-db").unwrap();
+        let mut updated = plan;
+        updated[0].status = "reverted".into();
+        updated[0].revert_sha = Some(reverted);
+        RollbackOpDao::update_progress(&pool, "sess-db", 1, &updated).unwrap();
+
+        let first = rollback_abort(&pool, "sess-db").unwrap();
+        assert!(first.success);
+        assert_eq!(
+            RollbackOpDao::latest_for_session(&pool, "sess-db")
+                .unwrap()
+                .unwrap()
+                .status,
+            RollbackStatusKind::Aborted
+        );
+
+        // 二次 abort：已无 active 记录 → graceful false · 状态不被破坏
+        let second = rollback_abort(&pool, "sess-db").unwrap();
+        assert!(!second.success);
+        assert_eq!(
+            RollbackOpDao::latest_for_session(&pool, "sess-db")
+                .unwrap()
+                .unwrap()
+                .status,
+            RollbackStatusKind::Aborted
+        );
+    }
+
     fn active_session(id: &str, workspace_id: &str) -> AiSession {
         AiSession {
             id: id.to_string(),

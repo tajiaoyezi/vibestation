@@ -167,3 +167,8 @@ export type { PaneFailurePreviewRequest } from "./PaneFailurePreviewRequest";
 export type { PaneFailurePreviewResult } from "./PaneFailurePreviewResult";
 export type { PaneLinkErrorEvent } from "./PaneLinkErrorEvent";
 export type { PaneLinkError } from "./PaneLinkError";
+export type { AiSession } from "./AiSession";
+export type { SessionStatus } from "./SessionStatus";
+export type { SessionCommitLink } from "./SessionCommitLink";
+export type { LinkState } from "./LinkState";
+export type { SessionError } from "./SessionError";

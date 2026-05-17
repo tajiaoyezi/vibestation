@@ -12,11 +12,11 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    AppSettings, AppVersionInfo, AuthChallenge, AuthMethod, AuthRequest, BranchCheckoutRequest,
-    BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo, BranchKind,
-    BranchListRequest, BranchListResponse, BranchSwitchResult, CherryPickRequest, CherryPickStatus,
-    CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest, CommitResponse,
-    ConflictFile, ConflictHunk, ConflictHunkResolution, ConflictResolution,
+    AiSession, AppSettings, AppVersionInfo, AuthChallenge, AuthMethod, AuthRequest,
+    BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo,
+    BranchKind, BranchListRequest, BranchListResponse, BranchSwitchResult, CherryPickRequest,
+    CherryPickStatus, CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest,
+    CommitResponse, ConflictFile, ConflictHunk, ConflictHunkResolution, ConflictResolution,
     ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState, CrashReportPayload, DiffHunk,
     DiffLine, DiffLineType, DiffRequest, DiffResponse, EnvEntry, EnvPreview, ExternalTerminalInfo,
     ExternalTerminalLaunchRequest, ExternalTerminalLaunchResult, FetchProgressEvent, FetchRequest,
@@ -25,23 +25,24 @@ use vibestation_core::{
     GitStatusRequest, GitStatusResponse, ImportApplyRequest, ImportApplyResult, ImportFieldType,
     ImportPreview, ImportScanResult, ImportSource, KeyBindingConflict, KeyBindingResolution,
     LayoutApplyAdvancedRequest, LayoutApplyRequest, LayoutApplyResult, LayoutEnvelope,
-    LayoutHistoryEntry, LayoutNode, LayoutPresetKind, LayoutState, MergeConflictInfo, MergeRequest,
-    MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent, PaneBuildFailedEvent,
-    PaneCloseRequest, PaneCreateRequest, PaneDetachAction, PaneDetachCloseRequest,
-    PaneDetachCloseResult, PaneDetachListEntry, PaneDetachOpenRequest, PaneDetachOpenResult,
-    PaneDetachStateEvent, PaneFailurePreviewRequest, PaneFailurePreviewResult, PaneFocusRequest,
-    PaneInitRequest, PaneLink, PaneLinkError, PaneLinkErrorEvent, PaneLinkKind, PaneLinkRequest,
-    PaneLinkResult, PaneLinkSetEnabledRequest, PaneLinkStatus, PaneLinkedEvent,
-    PaneLinksListRequest, PaneLinksListResult, PaneListResponse, PaneMaximizeRequest,
-    PaneMaximizeResult, PaneNavDirection, PaneNavigateRequest, PaneNavigateResult,
-    PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent, PaneResizeStepRequest,
-    PaneScrollbackFetchRequest, PaneState, PaneTriggerEvent, PaneUnlinkRequest, PaneUnlinkResult,
-    ParsedIssue, ParsedIssueSeverity, PtyExitedEvent, PtySpawnRequest, PtyStdoutEvent, PullRequest,
-    PullResult, PullStrategy, PushProgressEvent, PushRequest, PushResult,
-    RailGraphBranchChangedPayload, RailGraphPerfSample, RailGraphRebaseStatePayload,
-    RailGraphViewportSyncPayload, RebaseControlRequest, RebaseInteractivePlan,
-    RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus, RemoteInfo,
-    RemoteListRequest, RemoteListResponse, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
+    LayoutHistoryEntry, LayoutNode, LayoutPresetKind, LayoutState, LinkState, MergeConflictInfo,
+    MergeRequest, MergeStatus, MergeStrategy, NetworkOpError, OperationDoneEvent,
+    PaneBuildFailedEvent, PaneCloseRequest, PaneCreateRequest, PaneDetachAction,
+    PaneDetachCloseRequest, PaneDetachCloseResult, PaneDetachListEntry, PaneDetachOpenRequest,
+    PaneDetachOpenResult, PaneDetachStateEvent, PaneFailurePreviewRequest,
+    PaneFailurePreviewResult, PaneFocusRequest, PaneInitRequest, PaneLink, PaneLinkError,
+    PaneLinkErrorEvent, PaneLinkKind, PaneLinkRequest, PaneLinkResult, PaneLinkSetEnabledRequest,
+    PaneLinkStatus, PaneLinkedEvent, PaneLinksListRequest, PaneLinksListResult, PaneListResponse,
+    PaneMaximizeRequest, PaneMaximizeResult, PaneNavDirection, PaneNavigateRequest,
+    PaneNavigateResult, PanePtyExitedEvent, PanePtySpawnRequest, PanePtyStdoutEvent,
+    PaneResizeStepRequest, PaneScrollbackFetchRequest, PaneState, PaneTriggerEvent,
+    PaneUnlinkRequest, PaneUnlinkResult, ParsedIssue, ParsedIssueSeverity, PtyExitedEvent,
+    PtySpawnRequest, PtyStdoutEvent, PullRequest, PullResult, PullStrategy, PushProgressEvent,
+    PushRequest, PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample,
+    RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
+    RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
+    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SessionCommitLink,
+    SessionError, SessionStatus, SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo,
     SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult,
     SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest,
     TabListResponse, TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest,
@@ -79,6 +80,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/pane_links.rs");
     println!("cargo:rerun-if-changed=../core/src/pane_failure.rs");
     println!("cargo:rerun-if-changed=../core/src/parser_bridge.rs");
+    println!("cargo:rerun-if-changed=../core/src/sessions.rs");
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let output_dir = manifest_dir.join("../../web/src/bindings");
@@ -275,6 +277,12 @@ fn main() {
     PaneFailurePreviewResult::export_all(&config).expect("export PaneFailurePreviewResult");
     PaneLinkErrorEvent::export_all(&config).expect("export PaneLinkErrorEvent");
     PaneLinkError::export_all(&config).expect("export PaneLinkError");
+    // MVP-19 W1-A.0 · Session/commit binding canonical types.
+    AiSession::export_all(&config).expect("export AiSession");
+    SessionStatus::export_all(&config).expect("export SessionStatus");
+    SessionCommitLink::export_all(&config).expect("export SessionCommitLink");
+    LinkState::export_all(&config).expect("export LinkState");
+    SessionError::export_all(&config).expect("export SessionError");
 
     // 前端统一 import 入口（手工维护 · 防缺文件 · SPIKE-08 POC pattern）。
     fs::write(
@@ -455,6 +463,12 @@ fn main() {
             "export type { PaneFailurePreviewResult } from \"./PaneFailurePreviewResult\";",
             "export type { PaneLinkErrorEvent } from \"./PaneLinkErrorEvent\";",
             "export type { PaneLinkError } from \"./PaneLinkError\";",
+            // MVP-19 W1-A.0 · Session/commit binding canonical types
+            "export type { AiSession } from \"./AiSession\";",
+            "export type { SessionStatus } from \"./SessionStatus\";",
+            "export type { SessionCommitLink } from \"./SessionCommitLink\";",
+            "export type { LinkState } from \"./LinkState\";",
+            "export type { SessionError } from \"./SessionError\";",
             "",
         ]
         .join("\n"),

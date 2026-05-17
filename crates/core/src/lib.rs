@@ -26,6 +26,7 @@ pub mod pty;
 pub mod pty_pool;
 pub mod rail_graph_events;
 pub mod rebase_ops;
+pub mod rollback_ops;
 pub mod sanitize;
 pub mod session_dao;
 pub mod session_ipc;
@@ -130,6 +131,10 @@ pub use rebase_ops::{
     ConflictResolution, ConflictResolveFileRequest, ConflictedFile, CrashRecoveryState,
     MergeRequest, MergeStatus, MergeStrategy, RebaseControlRequest, RebaseInteractivePlan,
     RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus,
+};
+pub use rollback_ops::{
+    build_revert_plan, RevertCandidate, RevertPlan, RevertPlanEntry, RollbackError,
+    MIN_AUTO_CONFIDENCE,
 };
 pub use session_dao::{AiSessionDao, SessionCommitLinkDao};
 pub use session_ipc::{

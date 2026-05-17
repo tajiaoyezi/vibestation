@@ -48,7 +48,8 @@ use vibestation_core::{
     PaneUnlinkRequest, PaneUnlinkResult, PanesDao, PtyEvent, PtyEventReceiver, PtyManager,
     PtySpawnRequest, PullRequest, PullResult, PushProgressEvent, PushRequest, PushResult,
     RebaseControlRequest, RebaseInteractivePlan, RebaseOpError, RebaseStartRequest, RebaseStatus,
-    RemoteListRequest, RemoteListResponse, SessionBindCommitRequest, SessionBindCommitResult,
+    RemoteListRequest, RemoteListResponse, RollbackAbortResult, RollbackError, RollbackPreview,
+    RollbackProgress, RollbackStatus, SessionBindCommitRequest, SessionBindCommitResult,
     SessionCommitBoundEvent, SessionCommitLinkDao, SessionCommitUnboundEvent, SessionDetailRequest,
     SessionDetailResult, SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError,
     SessionErrorEvent, SessionLinkUpdatedEvent, SessionListRequest, SessionListResult,
@@ -83,6 +84,10 @@ const SESSION_COMMIT_BOUND_EVENT: &str = "session:commit-bound";
 const SESSION_COMMIT_UNBOUND_EVENT: &str = "session:commit-unbound";
 const SESSION_LINK_UPDATED_EVENT: &str = "session:link-updated";
 const SESSION_ERROR_EVENT: &str = "session:error";
+const GIT_ROLLBACK_PROGRESS_EVENT: &str = "git:rollback-progress";
+const GIT_ROLLBACK_CONFLICT_EVENT: &str = "git:rollback-conflict";
+const GIT_ROLLBACK_DONE_EVENT: &str = "git:rollback-done";
+const GIT_ROLLBACK_ABORTED_EVENT: &str = "git:rollback-aborted";
 const PANE_FAILURE_OUTPUT_LIMIT: usize = 16 * 1024;
 
 #[derive(Debug, Clone, Serialize)]
@@ -117,6 +122,27 @@ struct RebaseOperationDoneEvent {
     operation: String,
     success: bool,
     message: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RollbackConflictEvent {
+    path: String,
+    commit_sha: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RollbackDoneEvent {
+    session_id: String,
+    revert_shas: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RollbackAbortedEvent {
+    session_id: String,
+    head_sha: String,
 }
 
 /// MVP-16 Phase C · 启动 / workspace 切换检测到上次未完成操作时 emit。
@@ -175,6 +201,10 @@ fn emit_session_error(app: &AppHandle, workspace_id: &str, error: SessionError) 
 fn map_session_error(app: &AppHandle, workspace_id: &str, error: SessionError) -> String {
     emit_session_error(app, workspace_id, error.clone());
     session_error_json(&error)
+}
+
+fn rollback_error_json(error: &RollbackError) -> String {
+    serde_json::to_string(error).unwrap_or_else(|_| error.to_string())
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1813,6 +1843,93 @@ fn pane_detach_list(
 }
 
 // =============================================================================
+// MVP-20 Phase A M2 · AI session one-click rollback IPC
+// =============================================================================
+
+#[tauri::command]
+fn rollback_preview(
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<RollbackPreview, String> {
+    let pool = session_pool(&state)?;
+    vibestation_core::rollback_preview(&pool, &session_id).map_err(|e| rollback_error_json(&e))
+}
+
+#[tauri::command]
+fn rollback_execute(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    session_id: String,
+    include_shas: Vec<String>,
+) -> Result<RollbackProgress, String> {
+    let pool = session_pool(&state)?;
+    match vibestation_core::rollback_execute_with_progress(
+        &pool,
+        &session_id,
+        include_shas,
+        |progress| {
+            let _ = app.emit(GIT_ROLLBACK_PROGRESS_EVENT, progress);
+        },
+    ) {
+        Ok(result) => {
+            let _ = app.emit(GIT_ROLLBACK_PROGRESS_EVENT, result.progress.clone());
+            let _ = app.emit(
+                GIT_ROLLBACK_DONE_EVENT,
+                RollbackDoneEvent {
+                    session_id,
+                    revert_shas: result.revert_shas,
+                },
+            );
+            Ok(result.progress)
+        }
+        Err(error) => {
+            if let RollbackError::ConflictDetected { commit_sha, files } = &error {
+                for path in files {
+                    let _ = app.emit(
+                        GIT_ROLLBACK_CONFLICT_EVENT,
+                        RollbackConflictEvent {
+                            path: path.clone(),
+                            commit_sha: commit_sha.clone(),
+                        },
+                    );
+                }
+            }
+            Err(rollback_error_json(&error))
+        }
+    }
+}
+
+#[tauri::command]
+fn rollback_abort(
+    state: State<'_, AppState>,
+    app: AppHandle,
+    session_id: String,
+) -> Result<RollbackAbortResult, String> {
+    let pool = session_pool(&state)?;
+    let result = vibestation_core::rollback_abort(&pool, &session_id)
+        .map_err(|e| rollback_error_json(&e))?;
+    if result.success {
+        let _ = app.emit(
+            GIT_ROLLBACK_ABORTED_EVENT,
+            RollbackAbortedEvent {
+                session_id,
+                head_sha: result.head_sha.clone(),
+            },
+        );
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+fn rollback_status(
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<RollbackStatus, String> {
+    let pool = session_pool(&state)?;
+    vibestation_core::rollback_status(&pool, &session_id).map_err(|e| rollback_error_json(&e))
+}
+
+// =============================================================================
 // MVP-19 W2-B · session ↔ commit binding IPC
 //
 // Thin Tauri handler layer only: state.pool → SessionService → best-effort
@@ -2416,6 +2533,10 @@ pub fn run() {
             pane_detach_open,
             pane_detach_close,
             pane_detach_list,
+            rollback_preview,
+            rollback_execute,
+            rollback_abort,
+            rollback_status,
             session_start,
             session_end,
             session_bind_commit,

@@ -42,7 +42,8 @@ use vibestation_core::{
     RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
     RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
     RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, RevertPlan, RevertPlanEntry,
-    RollbackError, SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode,
+    RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackPreview, RollbackProgress,
+    RollbackStatus, SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode,
     SessionCommitBoundEvent, SessionCommitLink, SessionCommitUnboundEvent, SessionDetailRequest,
     SessionDetailResult, SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError,
     SessionErrorEvent, SessionLinkUpdatedEvent, SessionListRequest, SessionListResult,
@@ -210,6 +211,11 @@ fn main() {
     RollbackError::export_all(&config).expect("export RollbackError");
     RevertPlan::export_all(&config).expect("export RevertPlan");
     RevertPlanEntry::export_all(&config).expect("export RevertPlanEntry");
+    RollbackPreview::export_all(&config).expect("export RollbackPreview");
+    RollbackProgress::export_all(&config).expect("export RollbackProgress");
+    RollbackAbortResult::export_all(&config).expect("export RollbackAbortResult");
+    RollbackStatus::export_all(&config).expect("export RollbackStatus");
+    RollbackCommitEntry::export_all(&config).expect("export RollbackCommitEntry");
     MergeRequest::export_all(&config).expect("export MergeRequest");
     MergeStrategy::export_all(&config).expect("export MergeStrategy");
     MergeStatus::export_all(&config).expect("export MergeStatus");
@@ -434,6 +440,11 @@ fn main() {
             "export type { RollbackError } from \"./RollbackError\";",
             "export type { RevertPlan } from \"./RevertPlan\";",
             "export type { RevertPlanEntry } from \"./RevertPlanEntry\";",
+            "export type { RollbackPreview } from \"./RollbackPreview\";",
+            "export type { RollbackProgress } from \"./RollbackProgress\";",
+            "export type { RollbackAbortResult } from \"./RollbackAbortResult\";",
+            "export type { RollbackStatus } from \"./RollbackStatus\";",
+            "export type { RollbackCommitEntry } from \"./RollbackCommitEntry\";",
             "export type { MergeRequest } from \"./MergeRequest\";",
             "export type { MergeStrategy } from \"./MergeStrategy\";",
             "export type { MergeStatus } from \"./MergeStatus\";",

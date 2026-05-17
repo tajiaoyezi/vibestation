@@ -269,6 +269,22 @@
   color: var(--text-3);
 }
 
+/* ── Conflict Overlay ── */
+
+.vs-mvp20-rollback-conflict-overlay {
+  position: fixed;
+  inset: 56px 0 0 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-0);
+}
+
+.vs-mvp20-rollback-conflict-overlay .vs-three-way-diff {
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── Reduced motion ── */
 
 @media (prefers-reduced-motion: reduce) {

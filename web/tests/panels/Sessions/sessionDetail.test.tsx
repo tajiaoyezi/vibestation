@@ -93,6 +93,10 @@ vi.mock("../../../src/stores/sessions-context", () => ({
   useSessions: () => state.ctx,
 }));
 
+vi.mock("../../../src/stores/layout-context", () => ({
+  useLayout: () => ({ dispatch: vi.fn() }),
+}));
+
 vi.mock("../../../src/panels/Sessions/sessionDetail.css", () => ({}));
 
 import { SessionDetailView } from "../../../src/panels/Sessions/SessionDetailView";

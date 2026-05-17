@@ -3,10 +3,13 @@ import {
   createResource,
   createSignal,
   For,
+  onCleanup,
+  onMount,
   Show,
   type JSX,
 } from "solid-js";
 import { useSessions } from "../../stores/sessions-context";
+import { useLayout } from "../../stores/layout-context";
 import type {
   AiSession,
   SessionCommitLink,
@@ -19,11 +22,19 @@ import { RollbackPreviewModal } from "../SessionDetail/RollbackPreviewModal";
 import { RollbackConfirmDialog } from "../SessionDetail/RollbackConfirmDialog";
 import { RollbackProgressBanner } from "../SessionDetail/RollbackProgressBanner";
 import {
+  onRollbackAborted,
+  onRollbackConflict,
+  onRollbackDone,
   rollbackPreview,
   rollbackExecute,
   rollbackAbort,
 } from "../SessionDetail/rollbackApi";
 import type { RollbackPreview, RollbackProgress } from "../../bindings";
+import {
+  parseRollbackError,
+  formatRollbackError,
+} from "../SessionDetail/rollbackError";
+import { RollbackConflictView } from "../SessionDetail/RollbackConflictView";
 import "./sessionDetail.css";
 import "../SessionDetail/rollback.css";
 
@@ -68,6 +79,7 @@ function resolveWorkspaceId(
 
 export function SessionDetailView(): JSX.Element {
   const ctx = useSessions();
+  const { dispatch } = useLayout();
   const detail = ctx.activeDetail();
   const sessionId = detail?.sessionId ?? "";
   const commitAnchor = detail?.commitAnchor;
@@ -97,6 +109,15 @@ export function SessionDetailView(): JSX.Element {
   >(null);
   const [rollbackProgress, setRollbackProgress] =
     createSignal<RollbackProgress | null>(null);
+  const [lastIncludeShas, setLastIncludeShas] = createSignal<string[]>([]);
+  const [rollbackConflict, setRollbackConflict] = createSignal<{
+    path: string;
+    commitSha: string;
+    includeShas: string[];
+  } | null>(null);
+  const [rollbackUiError, setRollbackUiError] = createSignal<string | null>(
+    null,
+  );
   const [rolledBack, setRolledBack] = createSignal(false);
   const [rollbackLoading, setRollbackLoading] = createSignal(false);
 
@@ -151,13 +172,31 @@ export function SessionDetailView(): JSX.Element {
     }
   };
 
+  const handleRollbackError = (err: unknown, contextLabel: string) => {
+    const parsed = parseRollbackError(err);
+    if (parsed?.kind === "dirtyWorkingTree") {
+      dispatch({ kind: "open-bottom" });
+      setRollbackUiError(
+        `请先提交或丢弃工作区的 ${parsed.modified.length + parsed.staged.length} 处改动 · 已自动打开底部 Git Status 面板`,
+      );
+      return parsed;
+    }
+    if (parsed) {
+      setRollbackUiError(`${parsed.kind}: ${formatRollbackError(parsed)}`);
+      return parsed;
+    }
+    setRollbackUiError(`${contextLabel} failed: ${String(err)}`);
+    return null;
+  };
+
   const handleRollbackClick = async () => {
+    setRollbackUiError(null);
     setRollbackLoading(true);
     try {
       const preview = await rollbackPreview(sessionId);
       setRollbackPreviewData(preview);
-    } catch {
-      /* IPC not wired yet — M2 dependency */
+    } catch (err) {
+      handleRollbackError(err, "rollback preview");
     } finally {
       setRollbackLoading(false);
     }
@@ -171,6 +210,8 @@ export function SessionDetailView(): JSX.Element {
   const handleConfirmExecute = async () => {
     const shas = rollbackConfirmShas();
     if (!shas) return;
+    setRollbackUiError(null);
+    setLastIncludeShas(shas);
     setRollbackConfirmShas(null);
     setRollbackProgress({
       done: 0,
@@ -181,46 +222,84 @@ export function SessionDetailView(): JSX.Element {
     try {
       await rollbackExecute(sessionId, shas);
       setRolledBack(true);
-    } catch {
-      /* IPC not wired yet — M2 dependency */
-    } finally {
-      setRollbackProgress(null);
+    } catch (err) {
+      const parsed = handleRollbackError(err, "rollback execute");
+      if (parsed?.kind !== "conflictDetected") {
+        setRollbackProgress(null);
+      }
     }
   };
 
   const handleRollbackAbort = async () => {
+    setRollbackUiError(null);
     try {
       await rollbackAbort(sessionId);
-    } catch {
-      /* IPC not wired yet — M2 dependency */
+    } catch (err) {
+      handleRollbackError(err, "rollback abort");
     } finally {
       setRollbackProgress(null);
+      setRollbackConflict(null);
     }
   };
 
+  onMount(async () => {
+    const unlistenConflict = await onRollbackConflict((payload) => {
+      setRollbackConflict({
+        path: payload.path,
+        commitSha: payload.commitSha,
+        includeShas: lastIncludeShas(),
+      });
+      setRollbackProgress(null);
+    });
+    const unlistenDone = await onRollbackDone(() => {
+      setRollbackConflict(null);
+      setRollbackProgress(null);
+      setRolledBack(true);
+    });
+    const unlistenAbort = await onRollbackAborted(() => {
+      setRollbackConflict(null);
+      setRollbackProgress(null);
+    });
+    onCleanup(() => {
+      unlistenConflict();
+      unlistenDone();
+      unlistenAbort();
+    });
+  });
+
   return (
     <div class="vs-session-detail" role="region" aria-label="Session detail">
-      <Show when={ctx.store.lastError}>
-        {(err) => (
-          <div class="vs-session-error-bar" role="alert" aria-live="polite">
-            <span>
-              Error: {err().kind}
-              {"detail" in err()
-                ? ` — ${(err() as { detail: string }).detail}`
-                : ""}
-            </span>
-            <button
-              class="vs-session-error-dismiss"
-              onClick={() => ctx.store.clearError()}
-              aria-label="Dismiss error"
+      <Show when={ctx.store.lastError || rollbackUiError()}>
+        <div class="vs-session-error-bar" role="alert" aria-live="polite">
+          <span>
+            <Show
+              when={ctx.store.lastError}
+              fallback={`Error: rollback_failed — ${rollbackUiError()}`}
             >
-              Dismiss
-            </button>
-          </div>
-        )}
+              {(err) => (
+                <>
+                  Error: {err().kind}
+                  {"detail" in err()
+                    ? ` — ${(err() as { detail: string }).detail}`
+                    : ""}
+                </>
+              )}
+            </Show>
+          </span>
+          <button
+            class="vs-session-error-dismiss"
+            onClick={() => {
+              ctx.store.clearError();
+              setRollbackUiError(null);
+            }}
+            aria-label="Dismiss error"
+          >
+            Dismiss
+          </button>
+        </div>
       </Show>
 
-      <Show when={rollbackProgress()}>
+      <Show when={!rollbackConflict() && rollbackProgress()}>
         {(prog) => (
           <RollbackProgressBanner
             sessionId={sessionId}
@@ -321,6 +400,47 @@ export function SessionDetailView(): JSX.Element {
             commitCount={shas().length}
             onCancel={() => setRollbackConfirmShas(null)}
             onExecute={() => void handleConfirmExecute()}
+          />
+        )}
+      </Show>
+
+      <Show when={rollbackConflict()}>
+        {(conflict) => (
+          <RollbackConflictView
+            sessionId={sessionId}
+            workspaceId={workspaceId()}
+            includeShas={conflict().includeShas}
+            progress={
+              rollbackProgress() ?? {
+                done: 0,
+                total: conflict().includeShas.length,
+              }
+            }
+            initialConflictFile={conflict().path}
+            onResume={async () => {
+              setRollbackUiError(null);
+              try {
+                await rollbackExecute(sessionId, conflict().includeShas);
+              } catch (err) {
+                const parsed = handleRollbackError(err, "rollback resume");
+                if (parsed?.kind !== "conflictDetected") {
+                  setRollbackConflict(null);
+                }
+                throw err;
+              }
+            }}
+            onAbort={async () => {
+              setRollbackUiError(null);
+              try {
+                await rollbackAbort(sessionId);
+                setRollbackConflict(null);
+                setRollbackProgress(null);
+              } catch (err) {
+                handleRollbackError(err, "rollback abort");
+                throw err;
+              }
+            }}
+            onCompleted={() => setRollbackConflict(null)}
           />
         )}
       </Show>

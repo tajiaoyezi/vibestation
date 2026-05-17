@@ -1,0 +1,109 @@
+/* MVP-19 §D.2 · Git Log session badge (Phase C).
+ *
+ * Co-located per project convention (cf. panels/Sessions/sessionDetail.css,
+ * panels/CommitBar/styles.css). Design tokens only — no hardcoded palette.
+ * Visual language mirrors the existing `.vs-git-badge` rule in styles.css.
+ *
+ * Reviewer-fix note (#377): the original Phase C PR shipped the component
+ * logic but no stylesheet, so §D.2(c) weakened style / status colour /
+ * HC-4 reduced-motion were not actually delivered. This file closes that
+ * gap inside the Phase C file domain (panels/GitLog/**).
+ */
+
+.vs-session-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: var(--space-2);
+  vertical-align: middle;
+}
+
+.vs-session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 14rem;
+  font-size: 0.625rem;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  padding: 0 var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+
+.vs-session-badge__icon {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+}
+
+.vs-session-badge__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* §D.2 confirmed — active known session, accent emphasis. */
+.vs-session-badge--confirmed {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.vs-session-badge--confirmed:hover {
+  background: color-mix(in oklch, var(--accent) 22%, var(--bg-1));
+}
+
+/* §D.2 (c) pending — weakened style (muted + dashed). The ◌ icon is the
+ * non-colour state cue (HC-4: colour is not the sole indicator). */
+.vs-session-badge--pending {
+  color: var(--text-4);
+  border-color: var(--line-soft);
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.78;
+}
+
+.vs-session-badge--pending:hover {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+/* §D.2 (f) stale — session record missing, warning cue + ⚠ icon. */
+.vs-session-badge--stale {
+  color: var(--warning);
+  border-color: var(--warning);
+  background: transparent;
+}
+
+.vs-session-badge--stale:hover {
+  background: color-mix(in oklch, var(--warning) 16%, var(--bg-1));
+}
+
+.vs-session-badge:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/* §D.2 (b) +N secondary marker — subdued, not competing with the badge. */
+.vs-session-badge__secondary {
+  font-size: 0.5625rem;
+  font-family: var(--font-mono);
+  color: var(--text-4);
+  letter-spacing: 0.02em;
+}
+
+/* HC-4: explicit component-level reduced-motion degradation. The global
+ * rule in styles.css already neutralises transitions; this keeps the
+ * component self-contained so the PR claim is accurate. */
+@media (prefers-reduced-motion: reduce) {
+  .vs-session-badge {
+    transition: none;
+  }
+}

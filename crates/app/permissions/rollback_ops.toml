@@ -1,0 +1,23 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-20 Phase A M2 · AI session rollback IPC permissions.
+
+[[permission]]
+identifier = "allow-rollback-preview"
+description = "允许前端预览指定 AI session 的可回滚 commit 列表"
+commands.allow = ["rollback_preview"]
+
+[[permission]]
+identifier = "allow-rollback-execute"
+description = "允许前端执行指定 AI session 的 git revert 序列"
+commands.allow = ["rollback_execute"]
+
+[[permission]]
+identifier = "allow-rollback-abort"
+description = "允许前端中止并清理进行中的 AI session rollback"
+commands.allow = ["rollback_abort"]
+
+[[permission]]
+identifier = "allow-rollback-status"
+description = "允许前端读取指定 AI session rollback 的当前状态"
+commands.allow = ["rollback_status"]

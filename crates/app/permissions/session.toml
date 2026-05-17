@@ -1,0 +1,44 @@
+"$schema" = "../gen/schemas/default_permissions.json"
+
+# MVP-19 W2-B · session ↔ commit binding IPC permissions
+# 每个 session command 独立 grant，命令名逐字对齐 HC-6。
+
+[[permission]]
+identifier = "allow-session-start"
+description = "允许前端启动或复用当前 workspace 的 AI session"
+commands.allow = ["session_start"]
+
+[[permission]]
+identifier = "allow-session-end"
+description = "允许前端结束当前 workspace 的 AI session 并写入 end_reason"
+commands.allow = ["session_end"]
+
+[[permission]]
+identifier = "allow-session-bind-commit"
+description = "允许前端把 commit 自动或手动绑定到同 workspace session"
+commands.allow = ["session_bind_commit"]
+
+[[permission]]
+identifier = "allow-session-unbind"
+description = "允许前端软解绑 session commit link 并保留审计记录"
+commands.allow = ["session_unbind"]
+
+[[permission]]
+identifier = "allow-session-list"
+description = "允许前端按 workspace 列出 AI sessions"
+commands.allow = ["session_list"]
+
+[[permission]]
+identifier = "allow-session-get-detail"
+description = "允许前端读取 AI session 详情与 commit links"
+commands.allow = ["session_get_detail"]
+
+[[permission]]
+identifier = "allow-session-rebind"
+description = "允许前端把 commit 改绑到同 workspace 的另一个 session"
+commands.allow = ["session_rebind"]
+
+[[permission]]
+identifier = "allow-session-recalc"
+description = "允许前端重算 commit 的 session 绑定候选"
+commands.allow = ["session_recalc"]

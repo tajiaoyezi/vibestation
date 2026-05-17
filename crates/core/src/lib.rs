@@ -30,6 +30,7 @@ pub mod sanitize;
 pub mod session_dao;
 pub mod session_ipc;
 pub mod session_lifecycle;
+pub mod session_service;
 pub mod sessions;
 pub mod tabs;
 pub mod telemetry;
@@ -138,6 +139,10 @@ pub use session_ipc::{
     SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
     SessionStartedEvent, SessionUnbindRequest, SessionUnbindResult,
 };
+pub use session_lifecycle::{
+    IdleCutoffConfig, SessionInputEvent, SessionLifecycleDecision, SessionLifecycleService,
+};
+pub use session_service::SessionService;
 pub use sessions::{AiSession, LinkState, SessionCommitLink, SessionError, SessionStatus};
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,

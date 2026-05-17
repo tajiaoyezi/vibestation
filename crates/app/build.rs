@@ -41,18 +41,19 @@ use vibestation_core::{
     PushRequest, PushResult, RailGraphBranchChangedPayload, RailGraphPerfSample,
     RailGraphRebaseStatePayload, RailGraphViewportSyncPayload, RebaseControlRequest,
     RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
-    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, SessionBindCommitRequest,
-    SessionBindCommitResult, SessionBindMode, SessionCommitBoundEvent, SessionCommitLink,
-    SessionCommitUnboundEvent, SessionDetailRequest, SessionDetailResult, SessionEndRequest,
-    SessionEndResult, SessionEndedEvent, SessionError, SessionErrorEvent, SessionLinkUpdatedEvent,
-    SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
-    SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
-    SessionStartedEvent, SessionStatus, SessionUnbindRequest, SessionUnbindResult,
-    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
-    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
-    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
-    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
+    RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, RevertPlan, RevertPlanEntry,
+    RollbackError, SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode,
+    SessionCommitBoundEvent, SessionCommitLink, SessionCommitUnboundEvent, SessionDetailRequest,
+    SessionDetailResult, SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError,
+    SessionErrorEvent, SessionLinkUpdatedEvent, SessionListRequest, SessionListResult,
+    SessionRebindRequest, SessionRebindResult, SessionRecalcRequest, SessionRecalcResult,
+    SessionStartRequest, SessionStartResult, SessionStartedEvent, SessionStatus,
+    SessionUnbindRequest, SessionUnbindResult, SetGitIdentityRequest, SettingsUpdateRequest,
+    ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest,
+    StageResult, SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest,
+    TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest, TabState,
+    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceLayoutState,
+    WorkspaceMetadata,
 };
 
 fn main() {
@@ -205,6 +206,10 @@ fn main() {
     RebaseStatus::export_all(&config).expect("export RebaseStatus");
     RebaseControlRequest::export_all(&config).expect("export RebaseControlRequest");
     RebaseOpError::export_all(&config).expect("export RebaseOpError");
+    // MVP-20 Phase A · rollback plan 类型（M1 · build_revert_plan 契约 · §2.16 codegen 随本 Rust PR）
+    RollbackError::export_all(&config).expect("export RollbackError");
+    RevertPlan::export_all(&config).expect("export RevertPlan");
+    RevertPlanEntry::export_all(&config).expect("export RevertPlanEntry");
     MergeRequest::export_all(&config).expect("export MergeRequest");
     MergeStrategy::export_all(&config).expect("export MergeStrategy");
     MergeStatus::export_all(&config).expect("export MergeStatus");
@@ -426,6 +431,9 @@ fn main() {
             "export type { RebaseStatus } from \"./RebaseStatus\";",
             "export type { RebaseControlRequest } from \"./RebaseControlRequest\";",
             "export type { RebaseOpError } from \"./RebaseOpError\";",
+            "export type { RollbackError } from \"./RollbackError\";",
+            "export type { RevertPlan } from \"./RevertPlan\";",
+            "export type { RevertPlanEntry } from \"./RevertPlanEntry\";",
             "export type { MergeRequest } from \"./MergeRequest\";",
             "export type { MergeStrategy } from \"./MergeStrategy\";",
             "export type { MergeStatus } from \"./MergeStatus\";",

@@ -138,7 +138,7 @@ pub use rollback_ops::{
     revert_sequence, rollback_abort, rollback_execute, rollback_execute_with_progress,
     rollback_preview, rollback_status, RevertCandidate, RevertPlan, RevertPlanEntry,
     RevertSequenceResult, RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackOpDao,
-    RollbackPlanRecordEntry, RollbackPreview, RollbackProgress, RollbackStatus,
+    RollbackPlanRecordEntry, RollbackPreview, RollbackProgress, RollbackStatus, RollbackStatusKind,
     MIN_AUTO_CONFIDENCE,
 };
 pub use session_dao::{AiSessionDao, SessionCommitLinkDao};

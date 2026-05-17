@@ -43,18 +43,18 @@ use vibestation_core::{
     RebaseInteractivePlan, RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest,
     RebaseStatus, RemoteInfo, RemoteListRequest, RemoteListResponse, RevertPlan, RevertPlanEntry,
     RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackPreview, RollbackProgress,
-    RollbackStatus, SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode,
-    SessionCommitBoundEvent, SessionCommitLink, SessionCommitUnboundEvent, SessionDetailRequest,
-    SessionDetailResult, SessionEndRequest, SessionEndResult, SessionEndedEvent, SessionError,
-    SessionErrorEvent, SessionLinkUpdatedEvent, SessionListRequest, SessionListResult,
-    SessionRebindRequest, SessionRebindResult, SessionRecalcRequest, SessionRecalcResult,
-    SessionStartRequest, SessionStartResult, SessionStartedEvent, SessionStatus,
-    SessionUnbindRequest, SessionUnbindResult, SetGitIdentityRequest, SettingsUpdateRequest,
-    ShellInfo, SpawnResult, SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest,
-    StageResult, SwitcherMatch, SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest,
-    TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest, TabState,
-    TelemetryOptInRequest, TelemetryStatus, UnstageRequest, WorkspaceLayoutState,
-    WorkspaceMetadata,
+    RollbackStatus, RollbackStatusKind, SessionBindCommitRequest, SessionBindCommitResult,
+    SessionBindMode, SessionCommitBoundEvent, SessionCommitLink, SessionCommitUnboundEvent,
+    SessionDetailRequest, SessionDetailResult, SessionEndRequest, SessionEndResult,
+    SessionEndedEvent, SessionError, SessionErrorEvent, SessionLinkUpdatedEvent,
+    SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
+    SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
+    SessionStartedEvent, SessionStatus, SessionUnbindRequest, SessionUnbindResult,
+    SetGitIdentityRequest, SettingsUpdateRequest, ShellInfo, SpawnResult, SplitDir,
+    SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
+    SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
+    TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
+    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -73,6 +73,7 @@ fn main() {
     println!("cargo:rerun-if-changed=../core/src/branch_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/git_sync.rs");
     println!("cargo:rerun-if-changed=../core/src/rebase_ops.rs");
+    println!("cargo:rerun-if-changed=../core/src/rollback_ops.rs");
     println!("cargo:rerun-if-changed=../core/src/app_settings.rs");
     println!("cargo:rerun-if-changed=../core/src/telemetry.rs");
     println!("cargo:rerun-if-changed=../core/src/pty_pool.rs");
@@ -215,6 +216,7 @@ fn main() {
     RollbackProgress::export_all(&config).expect("export RollbackProgress");
     RollbackAbortResult::export_all(&config).expect("export RollbackAbortResult");
     RollbackStatus::export_all(&config).expect("export RollbackStatus");
+    RollbackStatusKind::export_all(&config).expect("export RollbackStatusKind");
     RollbackCommitEntry::export_all(&config).expect("export RollbackCommitEntry");
     MergeRequest::export_all(&config).expect("export MergeRequest");
     MergeStrategy::export_all(&config).expect("export MergeStrategy");
@@ -444,6 +446,7 @@ fn main() {
             "export type { RollbackProgress } from \"./RollbackProgress\";",
             "export type { RollbackAbortResult } from \"./RollbackAbortResult\";",
             "export type { RollbackStatus } from \"./RollbackStatus\";",
+            "export type { RollbackStatusKind } from \"./RollbackStatusKind\";",
             "export type { RollbackCommitEntry } from \"./RollbackCommitEntry\";",
             "export type { MergeRequest } from \"./MergeRequest\";",
             "export type { MergeStrategy } from \"./MergeStrategy\";",

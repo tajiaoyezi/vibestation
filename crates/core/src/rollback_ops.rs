@@ -31,11 +31,56 @@ use ts_rs::TS;
 /// link 不自动包含（用户可在 UI 手动勾选）。
 pub const MIN_AUTO_CONFIDENCE: f32 = 0.9;
 
-const ROLLBACK_STATUS_IDLE: &str = "idle";
-const ROLLBACK_STATUS_IN_PROGRESS: &str = "in_progress";
-const ROLLBACK_STATUS_CONFLICT_PAUSED: &str = "conflict_paused";
-const ROLLBACK_STATUS_COMPLETED: &str = "completed";
-const ROLLBACK_STATUS_ABORTED: &str = "aborted";
+/// `rollback:*` 状态机的类型化 status（spec §K · status union 保真）。
+///
+/// serde `snake_case` 同时充当两个契约的 single source of truth：
+/// 1. DB `rollback_ops.status` 的 TEXT 持久值（与既有 SQL 字面量
+///    `'in_progress'` / `'conflict_paused'` 等完全一致 · round-trip 单测守护）；
+/// 2. ts-rs 生成的 TS union literal
+///    `"idle" | "in_progress" | "conflict_paused" | "completed" | "aborted"`
+///    （spec §K 契约 · 替换 Phase A/B/C 的裸 `string`）。
+///
+/// 用 enum 而非 `&str` 常量：abort / resume / crash-recovery 的状态转换在
+/// 编译期穷尽匹配（Rust 状态机模式 · illegal states unrepresentable）·
+/// 并让 `SessionDetailView.tsx` 此前的 `status:"starting"` 越界值在
+/// 跨 IPC 边界即类型错误。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "snake_case")]
+pub enum RollbackStatusKind {
+    Idle,
+    InProgress,
+    ConflictPaused,
+    Completed,
+    Aborted,
+}
+
+impl RollbackStatusKind {
+    /// DB TEXT / SQL 字面量值（snake_case · 与 serde 输出一致）。
+    pub fn as_db_str(&self) -> &'static str {
+        match self {
+            Self::Idle => "idle",
+            Self::InProgress => "in_progress",
+            Self::ConflictPaused => "conflict_paused",
+            Self::Completed => "completed",
+            Self::Aborted => "aborted",
+        }
+    }
+
+    /// 从 DB TEXT 解析 · 未知值显式报错（不静默 fallback · 防脏数据被吞）。
+    pub fn from_db_str(s: &str) -> Result<Self, RollbackError> {
+        match s {
+            "idle" => Ok(Self::Idle),
+            "in_progress" => Ok(Self::InProgress),
+            "conflict_paused" => Ok(Self::ConflictPaused),
+            "completed" => Ok(Self::Completed),
+            "aborted" => Ok(Self::Aborted),
+            other => Err(rollback_state_error(format!(
+                "unknown rollback status in DB: {other}"
+            ))),
+        }
+    }
+}
 
 /// `rollback:*` 操作的统一错误（spec §G.3 `RollbackError` · §I 起点 A7：
 /// 仿 MVP-09 `CommitError` / MVP-16 `RebaseOpError` 结构化变体）。
@@ -164,7 +209,7 @@ pub struct RollbackProgress {
     #[ts(type = "number")]
     pub total: i64,
     pub current_sha: Option<String>,
-    pub status: String,
+    pub status: RollbackStatusKind,
 }
 
 /// `rollback:abort` 返回类型（spec §G.3）。
@@ -183,7 +228,7 @@ pub struct RollbackAbortResult {
 #[serde(rename_all = "camelCase")]
 pub struct RollbackStatus {
     pub session_id: String,
-    pub status: String,
+    pub status: RollbackStatusKind,
     #[ts(type = "number")]
     pub current_idx: i64,
     #[ts(type = "number")]
@@ -214,7 +259,8 @@ pub struct RollbackOpRecord {
     pub session_id: String,
     pub started_at: i64,
     pub finished_at: Option<i64>,
-    pub status: String,
+    /// 类型化 op status（DB TEXT ↔ enum 由 `row_to_record` round-trip）。
+    pub status: RollbackStatusKind,
     pub commit_plan: String,
     pub current_idx: i64,
     pub error_msg: Option<String>,
@@ -360,7 +406,7 @@ impl RollbackOpDao {
         Self::update_active(
             pool,
             session_id,
-            ROLLBACK_STATUS_IN_PROGRESS,
+            RollbackStatusKind::InProgress,
             current_idx,
             plan,
             None,
@@ -377,7 +423,7 @@ impl RollbackOpDao {
         Self::update_active(
             pool,
             session_id,
-            ROLLBACK_STATUS_CONFLICT_PAUSED,
+            RollbackStatusKind::ConflictPaused,
             current_idx,
             plan,
             Some(error_msg),
@@ -389,7 +435,7 @@ impl RollbackOpDao {
         session_id: &str,
         plan: &[RollbackPlanRecordEntry],
     ) -> Result<(), RollbackError> {
-        Self::finish_active(pool, session_id, ROLLBACK_STATUS_COMPLETED, plan, None)
+        Self::finish_active(pool, session_id, RollbackStatusKind::Completed, plan, None)
     }
 
     pub fn mark_aborted(
@@ -398,13 +444,19 @@ impl RollbackOpDao {
         plan: &[RollbackPlanRecordEntry],
         error_msg: Option<&str>,
     ) -> Result<(), RollbackError> {
-        Self::finish_active(pool, session_id, ROLLBACK_STATUS_ABORTED, plan, error_msg)
+        Self::finish_active(
+            pool,
+            session_id,
+            RollbackStatusKind::Aborted,
+            plan,
+            error_msg,
+        )
     }
 
     fn update_active(
         pool: &DbPool,
         session_id: &str,
-        status: &str,
+        status: RollbackStatusKind,
         current_idx: i64,
         plan: &[RollbackPlanRecordEntry],
         error_msg: Option<&str>,
@@ -420,7 +472,13 @@ impl RollbackOpDao {
                  ORDER BY started_at DESC, id DESC
                  LIMIT 1
              )",
-            rusqlite::params![status, current_idx, commit_plan, error_msg, session_id],
+            rusqlite::params![
+                status.as_db_str(),
+                current_idx,
+                commit_plan,
+                error_msg,
+                session_id
+            ],
         )
         .map_err(db_error)?;
         Ok(())
@@ -429,7 +487,7 @@ impl RollbackOpDao {
     fn finish_active(
         pool: &DbPool,
         session_id: &str,
-        status: &str,
+        status: RollbackStatusKind,
         plan: &[RollbackPlanRecordEntry],
         error_msg: Option<&str>,
     ) -> Result<(), RollbackError> {
@@ -444,7 +502,13 @@ impl RollbackOpDao {
                  ORDER BY started_at DESC, id DESC
                  LIMIT 1
              )",
-            rusqlite::params![status, now_ms(), commit_plan, error_msg, session_id],
+            rusqlite::params![
+                status.as_db_str(),
+                now_ms(),
+                commit_plan,
+                error_msg,
+                session_id
+            ],
         )
         .map_err(db_error)?;
         Ok(())
@@ -452,12 +516,16 @@ impl RollbackOpDao {
 }
 
 fn row_to_record(row: &rusqlite::Row<'_>) -> Result<RollbackOpRecord, rusqlite::Error> {
+    let status_raw: String = row.get(4)?;
+    let status = RollbackStatusKind::from_db_str(&status_raw).map_err(|e| {
+        rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new(e))
+    })?;
     Ok(RollbackOpRecord {
         id: row.get(0)?,
         session_id: row.get(1)?,
         started_at: row.get(2)?,
         finished_at: row.get(3)?,
-        status: row.get(4)?,
+        status,
         commit_plan: row.get(5)?,
         current_idx: row.get(6)?,
         error_msg: row.get(7)?,
@@ -538,15 +606,20 @@ where
     let repo = Repository::open(&repo_path).map_err(map_git_error)?;
 
     if let Some(record) = RollbackOpDao::get_in_progress(pool, session_id)? {
-        return match record.status.as_str() {
-            ROLLBACK_STATUS_IN_PROGRESS => Err(RollbackError::InProgress {
+        // get_in_progress SQL 只返回 in_progress / conflict_paused · 其余变体
+        // 不可达但穷尽匹配（Rust 状态机模式 · 防 DB 脏数据静默走错路径）。
+        return match record.status {
+            RollbackStatusKind::InProgress => Err(RollbackError::InProgress {
                 session_id: session_id.to_string(),
             }),
-            ROLLBACK_STATUS_CONFLICT_PAUSED => {
+            RollbackStatusKind::ConflictPaused => {
                 resume_rollback_execute(&repo, pool, session_id, record, &mut on_progress)
             }
-            status => Err(rollback_state_error(format!(
-                "unexpected active rollback status: {status}"
+            other @ (RollbackStatusKind::Idle
+            | RollbackStatusKind::Completed
+            | RollbackStatusKind::Aborted) => Err(rollback_state_error(format!(
+                "unexpected active rollback status: {}",
+                other.as_db_str()
             ))),
         };
     }
@@ -595,7 +668,7 @@ where
             done: total,
             total,
             current_sha: None,
-            status: ROLLBACK_STATUS_COMPLETED.to_string(),
+            status: RollbackStatusKind::Completed,
         },
         revert_shas,
         head_sha: head_sha(&repo)?,
@@ -662,7 +735,7 @@ where
         done: current_idx as i64 + 1,
         total,
         current_sha: Some(current_sha),
-        status: ROLLBACK_STATUS_IN_PROGRESS.to_string(),
+        status: RollbackStatusKind::InProgress,
     });
 
     run_revert_loop(
@@ -683,7 +756,7 @@ where
             done: total,
             total,
             current_sha: None,
-            status: ROLLBACK_STATUS_COMPLETED.to_string(),
+            status: RollbackStatusKind::Completed,
         },
         revert_shas,
         head_sha: head_sha(repo)?,
@@ -715,7 +788,7 @@ where
                     done: idx as i64 + 1,
                     total,
                     current_sha: Some(sha),
-                    status: ROLLBACK_STATUS_IN_PROGRESS.to_string(),
+                    status: RollbackStatusKind::InProgress,
                 });
             }
             Err(err @ RollbackError::ConflictDetected { .. }) => {
@@ -767,7 +840,7 @@ pub fn rollback_status(pool: &DbPool, session_id: &str) -> Result<RollbackStatus
     let Some(record) = RollbackOpDao::latest_for_session(pool, session_id)? else {
         return Ok(RollbackStatus {
             session_id: session_id.to_string(),
-            status: ROLLBACK_STATUS_IDLE.to_string(),
+            status: RollbackStatusKind::Idle,
             current_idx: 0,
             total: 0,
             current_sha: None,
@@ -831,7 +904,7 @@ pub fn revert_sequence(
             done: total,
             total,
             current_sha: None,
-            status: ROLLBACK_STATUS_COMPLETED.to_string(),
+            status: RollbackStatusKind::Completed,
         },
         revert_shas,
         head_sha: head_sha(repo)?,
@@ -902,7 +975,7 @@ fn status_from_record(record: &RollbackOpRecord) -> Result<RollbackStatus, Rollb
         .map(|entry| entry.sha.clone());
     Ok(RollbackStatus {
         session_id: record.session_id.clone(),
-        status: record.status.clone(),
+        status: record.status,
         current_idx: record.current_idx,
         total: plan.len() as i64,
         current_sha,
@@ -1348,6 +1421,66 @@ mod tests {
         );
     }
 
+    // ── MVP-20 Phase D · RollbackStatusKind 类型化（spec §K status union 保真）──
+    //
+    // RED 依据：spec §K 契约 status = "idle" | "in_progress" | "conflict_paused"
+    // | "completed" | "aborted"（snake_case · 同时是 DB TEXT 持久值 / SQL 字面量）。
+    // 裸 String 无法在编译期阻止 SessionDetailView.tsx 的 `status:"starting"` 类
+    // 非法值（实证 · Phase A/B/C 失真点）。引入 enum + DB round-trip 后该类越界
+    // 越过 IPC 边界即类型错误。
+
+    #[test]
+    fn rollback_status_kind_db_roundtrip() {
+        use RollbackStatusKind::*;
+        for kind in [Idle, InProgress, ConflictPaused, Completed, Aborted] {
+            let s = kind.as_db_str();
+            assert_eq!(
+                RollbackStatusKind::from_db_str(s).unwrap(),
+                kind,
+                "round-trip failed for {s}"
+            );
+        }
+        // DB TEXT 值必须与既有 SQL 字面量 / spec §K union 一致（snake_case）
+        assert_eq!(Idle.as_db_str(), "idle");
+        assert_eq!(InProgress.as_db_str(), "in_progress");
+        assert_eq!(ConflictPaused.as_db_str(), "conflict_paused");
+        assert_eq!(Completed.as_db_str(), "completed");
+        assert_eq!(Aborted.as_db_str(), "aborted");
+        // 未知值 → 显式错误（不静默 fallback · 防 DB 脏数据被吞）
+        assert!(RollbackStatusKind::from_db_str("starting").is_err());
+        assert!(RollbackStatusKind::from_db_str("").is_err());
+    }
+
+    #[test]
+    fn rollback_status_kind_serde_snake_case() {
+        // serde 序列化结果 = ts-rs 生成 union literal 的依据（spec §K）
+        assert_eq!(
+            serde_json::to_string(&RollbackStatusKind::InProgress).unwrap(),
+            "\"in_progress\""
+        );
+        assert_eq!(
+            serde_json::to_string(&RollbackStatusKind::ConflictPaused).unwrap(),
+            "\"conflict_paused\""
+        );
+        assert_eq!(
+            serde_json::from_str::<RollbackStatusKind>("\"aborted\"").unwrap(),
+            RollbackStatusKind::Aborted
+        );
+    }
+
+    #[test]
+    fn rollback_status_carries_typed_kind() {
+        // RollbackStatus / RollbackProgress 的 status 字段必须是 typed enum
+        let status = RollbackStatus {
+            session_id: "s".into(),
+            status: RollbackStatusKind::Completed,
+            current_idx: 1,
+            total: 2,
+            current_sha: None,
+        };
+        assert_eq!(status.status, RollbackStatusKind::Completed);
+    }
+
     #[test]
     fn test_dirty_working_tree_guard() {
         let fixture = GitFixture::new();
@@ -1489,7 +1622,7 @@ mod tests {
             .expect("in-progress rollback record");
 
         assert_eq!(record.id, id);
-        assert_eq!(record.status, "in_progress");
+        assert_eq!(record.status, RollbackStatusKind::InProgress);
         assert_eq!(record.current_idx, 0);
         assert_eq!(record.plan_entries().unwrap()[0].sha, "abc123");
     }
@@ -1550,7 +1683,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.revert_shas.len(), 2);
-        assert_eq!(result.progress.status, "completed");
+        assert_eq!(result.progress.status, RollbackStatusKind::Completed);
         assert_eq!(progress_events.len(), 1);
         assert_eq!(progress_events[0].done, 2);
         assert_eq!(progress_events[0].total, 2);
@@ -1558,7 +1691,7 @@ mod tests {
         let record = RollbackOpDao::latest_for_session(&pool, &session_id)
             .unwrap()
             .unwrap();
-        assert_eq!(record.status, "completed");
+        assert_eq!(record.status, RollbackStatusKind::Completed);
         assert!(record
             .plan_entries()
             .unwrap()
@@ -1643,7 +1776,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .status,
-            "completed"
+            RollbackStatusKind::Completed
         );
     }
 
@@ -1680,7 +1813,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .status,
-            "aborted"
+            RollbackStatusKind::Aborted
         );
         assert_eq!(
             fs::read_to_string(fixture.path.join("abort-int.txt")).unwrap(),
@@ -1709,7 +1842,7 @@ mod tests {
                 .unwrap()
                 .unwrap()
                 .status,
-            "conflict_paused"
+            RollbackStatusKind::ConflictPaused
         );
     }
 
@@ -1733,7 +1866,7 @@ mod tests {
         let status = detect_in_progress(&fixture.repo, &pool, "session-crash").unwrap();
 
         assert!(status.is_some());
-        assert_eq!(status.unwrap().status, "in_progress");
+        assert_eq!(status.unwrap().status, RollbackStatusKind::InProgress);
     }
 
     fn insert_workspace_and_session(

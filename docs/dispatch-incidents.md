@@ -364,29 +364,31 @@ status: proposed
 
 ## §4 参考实现
 
-### 4.1 · 推荐参考（session 12 验证成功 · 高可复用）
+> ⚠️ **范本文件不进 git**（`.gitignore:116` = `spike-tmp/` 整个 gitignored · clone repo 后不可见 · 本机 `spike-tmp/dispatch/` + `_archived/` 有则可查 · 无则不可依赖）· [ADR-022](./adr/ADR-022-dispatch-template-ref-path-staleness.md) accepted @ 2026-05-17 方案 d 起 · 本节**只保留每个历史范本的结构特征**（institutional knowledge · 为什么它是好范本）· **不给可点击 git 路径**。写 dispatch 时照 `.claude/rules/dispatch-prompt-template.md` §3 标准模板 + 下列特征。
 
-- `spike-tmp/dispatch/MVP-04-storage-prep-opencode-prompt.md`（2026-04-20 · MVP phased · OpenCode 第 2 次 recover 成功 · 36 单元测试 + ts-rs 5 bindings · 最完整 MVP 拆分 prompt 范本）
-- `spike-tmp/dispatch/MVP-07-kimi-prompt.md`（2026-04-20 · **Kimi 远程 API 标杆** · 335 行 · 附 spec 原文 140 行 + 双路径兼容 · 解决本地 CLI 模板复制给远程 API 失败的根因）
-- `spike-tmp/dispatch/SPIKE-06-pr2-codex-prompt.md`（2026-04-20 · Codex CLI · 36 脱敏样本 + R1 保留独立 section · 最完整 Spike 4 样齐全 prompt）
-- `spike-tmp/dispatch/MVP-05-kimi-prompt.md`（2026-04-20 · Kimi 第 5 次 · Pane 分屏 §H 布局模型约束 · 14 min 最快交付）
-- `spike-tmp/dispatch/MVP-02-opencode-prompt.md`（2026-04-19 · 第一个应用硬约束 + 禁止清单的完整模板 · session 10 后 2.8 子进程清理增补）
+### 4.1 · 推荐参考特征（session 12 验证成功 · 高可复用 · 按特征复刻 · 非按文件复制）
 
-### 4.2 · 历史对照（反面教材 · 避免重踩）
+- **MVP phased 范本特征**（原 MVP-04 storage-prep · 2026-04-20 · OpenCode 第 2 次 recover 成功）：MVP 多 phase 拆分 + 每 phase 36 单元测试 + ts-rs 5 bindings 清单齐全 · 最完整 MVP 拆分结构
+- **远程 API 标杆特征**（原 MVP-07 kimi · 2026-04-20）：335 行 · prompt 内附 spec 原文 ~140 行 + §2.9 双路径兼容 · 解决"本地 CLI 模板直接复制给远程 API agent 读不到文件"的根因
+- **Spike 4 样齐全特征**（原 SPIKE-06-pr2 codex · 2026-04-20）：36 脱敏样本 + R1 保留独立 section + report/code/raw/冷备四样归档要求显式 · 最严格 decision-grade 结构
+- **最快交付特征**（原 MVP-05 kimi · 2026-04-20 · 14 min）：单 phase 紧凑 + §H 布局模型约束清晰锚定 spec 章节
+- **硬约束+禁止清单完整模板特征**（原 MVP-02 opencode · 2026-04-19）：第一个应用完整硬约束段 + 禁止清单 · 简洁本地 CLI 范式（session 10 后增补 §2.8 子进程清理）
 
-- `spike-tmp/dispatch/SPIKE-04.5-a3-opencode-prompt.md`（2026-04-19 · 第一次踩"自行 accept"坑 · OpenCode 绕过 benchmark 自标 Arbiter 选定 · 触发 §2.1 规则化）
-- `spike-tmp/dispatch/SPIKE-05.5-codex-prompt.md`（2026-04-19 · 未含硬约束段 · "重构前对照"参考 · 对比 §2 成型前后的完整度）
+### 4.2 · 历史对照特征（反面教材 · 避免重踩）
 
-### 4.3 · 参考选择指南
+- **自行 accept 反例**（原 SPIKE-04.5-a3 opencode · 2026-04-19）：OpenCode 绕过 benchmark 自标"Arbiter 选定" · 触发 §2.1 规则化（prompt 必须显式禁自行 accept decision-grade）
+- **缺硬约束段反例**（原 SPIKE-05.5 codex · 2026-04-19）：未含硬约束段 · 作为"§2 成型前后完整度对比"参考 · 说明无硬约束段的 prompt 风险面
 
-> ⚠️ 本表也复制在规范正文 §4（写 dispatch 时直接用）· 此处为完整 §4 的一部分保留。
+### 4.3 · 参考选择指南（结构侧重 · 与规范正文 §4 同步 · 均不给 git 路径）
 
-| 任务类型                           | 推荐模板                                 | 原因                                                        |
-| ---------------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
-| MVP 实施（有多 phase）             | `MVP-04-storage-prep-opencode-prompt.md` | Phase A 拆分 + 测试覆盖率要求 + ts-rs bindings 要求齐全     |
-| MVP / Spec review（Kimi 远程 API） | `MVP-07-kimi-prompt.md`                  | 双路径兼容 + 附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
-| Spike（decision-grade · 4 样齐全） | `SPIKE-06-pr2-codex-prompt.md`           | 最严格 artifact 归档 + raw 溯源 + R1 保留独立 section       |
-| Chore / 文档 · 本地 CLI agent      | `MVP-02-opencode-prompt.md`              | 简洁 + 8 硬约束 + 禁止清单                                  |
+> ⚠️ 本表与规范正文 `.claude/rules/dispatch-prompt-template.md` §4 同步（写 dispatch 时用正文那份）· 此处为完整 §4 附录的一部分保留 · [ADR-022](./adr/ADR-022-dispatch-template-ref-path-staleness.md) 方案 d 起均改为结构侧重描述（不给可点击范本文件名）。
+
+| 任务类型                            | 结构侧重（在 §3 标准模板基础上强化）                                      |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| MVP 实施（有多 phase）              | Phase 拆分 + 每 phase 测试覆盖率要求 + ts-rs bindings 清单齐全            |
+| MVP / Spec review（远程 API agent） | §2.9 双路径兼容 + prompt 内附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
+| Spike（decision-grade · 4 样齐全）  | 最严格 artifact 归档（report+code+raw+冷备）+ raw 溯源 + R1 独立 section  |
+| Chore / 文档 · 本地 CLI agent       | 简洁 + 16 硬约束全列 + 禁止清单 + §2.10 markdown prettier check           |
 
 ---
 

@@ -1,0 +1,278 @@
+/* MVP-20 §D Rollback UI components */
+
+/* ── Preview Modal ── */
+
+.vs-rollback-preview-dialog {
+  max-width: 560px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.vs-rollback-title-warning {
+  color: var(--color-status-error, var(--danger));
+}
+
+.vs-rollback-preview-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.vs-rollback-preview-summary {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  margin: 0 0 var(--space-3);
+}
+
+.vs-rollback-commit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vs-rollback-commit-item {
+  background: var(--bg-2);
+  border-radius: var(--r-6);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.75rem;
+}
+
+.vs-rollback-commit-item[data-low-confidence] {
+  border-left: 3px solid var(--warning, oklch(0.78 0.14 75));
+}
+
+.vs-rollback-commit-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.vs-rollback-commit-label input[type="checkbox"] {
+  flex: 0 0 auto;
+}
+
+.vs-rollback-commit-indicator {
+  flex: 0 0 auto;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.vs-rollback-commit-indicator[data-low] {
+  color: var(--warning, oklch(0.78 0.14 75));
+}
+
+.vs-rollback-commit-indicator:not([data-low]) {
+  color: var(--success, oklch(0.76 0.16 145));
+}
+
+.vs-rollback-commit-sha {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.vs-rollback-commit-msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-1);
+}
+
+.vs-rollback-commit-confidence {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-3);
+}
+
+.vs-rollback-low-confidence-hint {
+  font-size: 0.6875rem;
+  color: var(--warning, oklch(0.78 0.14 75));
+  padding-left: calc(var(--space-2) + 18px);
+  margin-top: 2px;
+}
+
+.vs-rollback-files-summary {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line-soft);
+  margin-top: var(--space-2);
+}
+
+.vs-rollback-files-toggle {
+  appearance: none;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-left: var(--space-2);
+}
+
+.vs-rollback-low-confidence-banner {
+  background: oklch(0.78 0.14 75 / 0.15);
+  color: var(--warning, oklch(0.78 0.14 75));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-6);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: var(--space-3);
+}
+
+/* ── Confirm Dialog ── */
+
+.vs-rollback-confirm-dialog {
+  max-width: 440px;
+}
+
+.vs-rollback-confirm-list {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  padding-left: var(--space-4);
+  margin: var(--space-2) 0;
+}
+
+.vs-rollback-confirm-list li {
+  margin-bottom: var(--space-1);
+}
+
+.vs-rollback-confirm-input[data-valid] {
+  border-color: var(--success, oklch(0.76 0.16 145));
+}
+
+.vs-rollback-confirm-input[data-invalid] {
+  border-color: var(--color-status-error, var(--danger));
+}
+
+.vs-rollback-execute-btn {
+  appearance: none;
+  border: none;
+  background: var(--color-status-error, var(--danger));
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--r-6);
+  cursor: pointer;
+}
+
+.vs-rollback-execute-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Progress Banner ── */
+
+.vs-rollback-progress-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  background: oklch(0.78 0.14 75 / 0.12);
+  font-size: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.vs-rollback-progress-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-1);
+}
+
+.vs-rollback-progress-icon {
+  font-size: 1rem;
+}
+
+.vs-rollback-progress-pct {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.vs-rollback-progress-bar-track {
+  height: 4px;
+  background: var(--bg-3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.vs-rollback-progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.2s ease-out;
+}
+
+.vs-rollback-progress-current {
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.vs-rollback-abort-btn {
+  appearance: none;
+  border: 1px solid var(--color-status-error, var(--danger));
+  background: none;
+  color: var(--color-status-error, var(--danger));
+  font-size: 0.6875rem;
+  padding: 2px var(--space-2);
+  border-radius: var(--r-6);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.vs-rollback-abort-btn:hover {
+  background: oklch(0.72 0.19 25 / 0.12);
+}
+
+/* ── Session Detail rollback button/badge ── */
+
+.vs-session-rollback-btn {
+  appearance: none;
+  border: none;
+  background: var(--color-status-error, var(--danger));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--r-6);
+  cursor: pointer;
+}
+
+.vs-session-rollback-btn:hover {
+  filter: brightness(1.1);
+}
+
+.vs-session-rollback-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vs-session-rolled-back-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px var(--space-2);
+  border-radius: var(--r-6);
+  background: var(--bg-2);
+  color: var(--text-3);
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-rollback-progress-bar-fill {
+    transition: none;
+  }
+}

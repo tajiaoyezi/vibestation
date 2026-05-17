@@ -438,7 +438,7 @@ rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 
 
 ### 3.0 · 文件命名规范（audit M2 · 2026-04-21）
 
-dispatch prompt 文件统一放 `spike-tmp/dispatch/` · 命名格式：
+dispatch prompt 文件统一放 `spike-tmp/dispatch/`（⚠️ **`.gitignore:116` = `spike-tmp/` · 整个目录 gitignored · 不进 git · clone repo 后不可见** · 范本是本地工作产物 · 引用范本时不要给可点击 git 路径 · 见 [ADR-022](../../docs/adr/ADR-022-dispatch-template-ref-path-staleness.md) 事实修正）· 命名格式：
 
 ```
 <TASK-ID>[-<phase-or-pr-suffix>]-<agent>-prompt.md
@@ -576,16 +576,18 @@ GO 🚀
 
 ## 4 · 参考实现 · 选择指南
 
-写 dispatch 时按任务类型选模板：
+> ⚠️ **范本文件不进 git**（`.gitignore:116` = `spike-tmp/` · 整个 gitignored · clone repo 后不可见）· 历史范本仅在本地 `spike-tmp/dispatch/` + `spike-tmp/dispatch/_archived/`（本机有则可查 · 无则不可依赖）· 故本节**不给可点击范本路径** · 改为按任务类型给"该照哪个结构写"的指引（[ADR-022](../../docs/adr/ADR-022-dispatch-template-ref-path-staleness.md) accepted @ 2026-05-17 方案 d · 文档不再承诺 git 不存在的路径）。
 
-| 任务类型                           | 推荐模板                                 | 原因                                                        |
-| ---------------------------------- | ---------------------------------------- | ----------------------------------------------------------- |
-| MVP 实施（有多 phase）             | `MVP-04-storage-prep-opencode-prompt.md` | Phase A 拆分 + 测试覆盖率要求 + ts-rs bindings 要求齐全     |
-| MVP / Spec review（Kimi 远程 API） | `MVP-07-kimi-prompt.md`                  | 双路径兼容 + 附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
-| Spike（decision-grade · 4 样齐全） | `SPIKE-06-pr2-codex-prompt.md`           | 最严格 artifact 归档 + raw 溯源 + R1 保留独立 section       |
-| Chore / 文档 · 本地 CLI agent      | `MVP-02-opencode-prompt.md`              | 简洁 + 15 硬约束 + 禁止清单                                 |
+写 dispatch 时按任务类型决定结构 · **以本文件 §3 标准模板为骨架** · 叠加下列任务类型的侧重点：
 
-> 📎 推荐参考全列表（5 个高可复用范本 + 选择原因）/ 历史对照（反面教材 SPIKE-04.5 / SPIKE-05.5）→ [dispatch-incidents.md §4](../../docs/dispatch-incidents.md#ev-4)
+| 任务类型                            | 结构侧重（在 §3 模板基础上强化）                                          |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| MVP 实施（有多 phase）              | Phase 拆分 + 每 phase 测试覆盖率要求 + ts-rs bindings 清单齐全            |
+| MVP / Spec review（远程 API agent） | §2.9 双路径兼容 + prompt 内附 spec 原文 + §G ts-rs contract + §H 决策锁定 |
+| Spike（decision-grade · 4 样齐全）  | 最严格 artifact 归档（report+code+raw+冷备）+ raw 溯源 + R1 独立 section  |
+| Chore / 文档 · 本地 CLI agent       | 简洁 + 16 硬约束全列 + 禁止清单 + §2.10 markdown prettier check           |
+
+> 📎 范本的**特征描述**（每个历史范本"为什么是范本"的结构特征 · 不依赖文件可点击）/ 历史对照（反面教材 SPIKE-04.5 / SPIKE-05.5）→ [dispatch-incidents.md §4](../../docs/dispatch-incidents.md#ev-4)（该附录已同步去断链 · 仅描述特征不给 git 路径）
 
 ---
 

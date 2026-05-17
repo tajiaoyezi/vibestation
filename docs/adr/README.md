@@ -7,26 +7,26 @@
 
 ## 📂 ADR 索引
 
-| ID                                                           | 标题                                                                                | 状态         | 决策表 #                 | Spike / PR                                                                     |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- | ------------ | ------------------------ | ------------------------------------------------------------------------------ |
-| [ADR-001](./ADR-001-license-apache-2.0.md)                   | 许可证 = Apache License 2.0（不签 CLA）                                             | **accepted** | #1                       | 锁定 @ Phase 1                                                                 |
-| [ADR-002](./ADR-002-mvp-scope-b-compromise.md)               | MVP 范围 = B 折中方案                                                               | **accepted** | #2                       | 锁定 @ Phase 1                                                                 |
-| [ADR-003](./ADR-003-pty-architecture.md)                     | PTY 架构 = portable-pty + 共享读线程 + mpsc                                         | **accepted** | #15                      | [SPIKE-05.5](../spikes/SPIKE-05.5-report.md) accepted @ 2026-04-19             |
-| [ADR-004](./ADR-004-frontend-stack.md)                       | 前端栈 = SolidJS + TypeScript + Vite + xterm.js                                     | **accepted** | #6                       | 锁定 @ Phase 1                                                                 |
-| [ADR-005](./ADR-005-local-storage.md)                        | 本地存储 = rusqlite（redb 因坏库检测 FAIL superseded）                              | **accepted** | #14                      | [SPIKE-04.5](../spikes/SPIKE-04.5-report.md) accepted @ 2026-04-19             |
-| [ADR-006](./ADR-006-desktop-framework.md)                    | 桌面框架 = Tauri 2（fallback: Electron 28+ · Ubuntu Phase B pending caveat）        | **accepted** | #19                      | macOS Phase A 强 PASS · SPIKE-01/02 Ubuntu validated · PR #50 @ 2026-04-19     |
-| [ADR-007](./ADR-007-git-stack.md)                            | Git 栈 = git2 0.20（写）+ gix 0.70（读优化）                                        | **accepted** | #13                      | [SPIKE-03](../spikes/SPIKE-03-report.md) accepted @ 2026-04-19                 |
-| [ADR-008](./ADR-008-diff-renderer-custom.md)                 | Diff 渲染 = 自建（非 Monaco）                                                       | **accepted** | #7                       | 锁定 @ Phase 1                                                                 |
-| [ADR-009](./ADR-009-ai-aware-v1-vision.md)                   | AI-Aware Pane 联动 = v1.0 vision（对外不宣传）                                      | **accepted** | #3                       | 锁定 @ Phase 1                                                                 |
-| [ADR-010](./ADR-010-cargo-workspace-2-crate.md)              | Cargo workspace = 2 crate（app + core）                                             | **accepted** | #5                       | 锁定 @ Phase 1                                                                 |
-| [ADR-011](./ADR-011-runtime-evidence-location.md)            | Runtime evidence 路径锁 `docs/runtime-evidence/<task-id>/`                          | **accepted** | #18                      | Session 10 FU-2 · PR #44/#45 @ 2026-04-19                                      |
-| [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）      | **accepted** | —（治理规则）            | Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21                        |
-| [ADR-013](./ADR-013-spike-cold-backup-degradation.md)        | Spike 冷备归档 v1 强制 → v2 推荐（22% 合规率实证 · 3 场景判断清单保留特殊情况）     | **accepted** | —（项目规则）            | Session 13 中 · audit M-1 根因 @ 2026-04-21                                    |
-| [ADR-014](./ADR-014-ipc-contract-source-of-truth-ts-rs.md)   | IPC contract source of truth = Rust struct + ts-rs codegen（H2 根因消除）           | **accepted** | —（规范类 · 未在锁定表） | Session 13 中 · SPIKE-08 §A PASS @ 2026-04-20 + PR #63 rollout                 |
-| [ADR-015](./ADR-015-telemetry-stack-sentry.md)               | Telemetry crash stack = Sentry SDK + sanitized payload                              | **accepted** | #10 实施子决策           | MVP-10 Phase B pre-spike @ 2026-04-25 · accepted @ 2026-04-26                  |
-| [ADR-016](./ADR-016-admin-override-trailer-exemption.md)     | v2-D.1 → v2-D.2 · admin direct push trailer 豁免 + 审计 marker 要求                 | **accepted** | —（治理规则）            | Session 23 · session 21 7 个 admin push audit 项闭合 @ 2026-05-03              |
-| [ADR-021](./ADR-021-ci-mandate-staleness.md)                 | CLAUDE.md「合入后 CI 验证」mandate 相对 ci.yml 已 stale                             | **proposed** | —（治理规则）            | session 32 续 8 PR merge 零 auto CI · ci.yml 仅 workflow_dispatch @ 2026-05-16 |
-| [ADR-022](./ADR-022-dispatch-template-ref-path-staleness.md) | dispatch-prompt-template.md §4 参考实现引用路径 stale（top-level 实在 \_archived/） | **proposed** | —（治理规则）            | PR #329 压缩后 · spike-tmp/dispatch/ cleanup 导致路径断链 @ 2026-05-16         |
+| ID                                                           | 标题                                                                                 | 状态         | 决策表 #                 | Spike / PR                                                                      |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------ | ------------------------ | ------------------------------------------------------------------------------- |
+| [ADR-001](./ADR-001-license-apache-2.0.md)                   | 许可证 = Apache License 2.0（不签 CLA）                                              | **accepted** | #1                       | 锁定 @ Phase 1                                                                  |
+| [ADR-002](./ADR-002-mvp-scope-b-compromise.md)               | MVP 范围 = B 折中方案                                                                | **accepted** | #2                       | 锁定 @ Phase 1                                                                  |
+| [ADR-003](./ADR-003-pty-architecture.md)                     | PTY 架构 = portable-pty + 共享读线程 + mpsc                                          | **accepted** | #15                      | [SPIKE-05.5](../spikes/SPIKE-05.5-report.md) accepted @ 2026-04-19              |
+| [ADR-004](./ADR-004-frontend-stack.md)                       | 前端栈 = SolidJS + TypeScript + Vite + xterm.js                                      | **accepted** | #6                       | 锁定 @ Phase 1                                                                  |
+| [ADR-005](./ADR-005-local-storage.md)                        | 本地存储 = rusqlite（redb 因坏库检测 FAIL superseded）                               | **accepted** | #14                      | [SPIKE-04.5](../spikes/SPIKE-04.5-report.md) accepted @ 2026-04-19              |
+| [ADR-006](./ADR-006-desktop-framework.md)                    | 桌面框架 = Tauri 2（fallback: Electron 28+ · Ubuntu Phase B pending caveat）         | **accepted** | #19                      | macOS Phase A 强 PASS · SPIKE-01/02 Ubuntu validated · PR #50 @ 2026-04-19      |
+| [ADR-007](./ADR-007-git-stack.md)                            | Git 栈 = git2 0.20（写）+ gix 0.70（读优化）                                         | **accepted** | #13                      | [SPIKE-03](../spikes/SPIKE-03-report.md) accepted @ 2026-04-19                  |
+| [ADR-008](./ADR-008-diff-renderer-custom.md)                 | Diff 渲染 = 自建（非 Monaco）                                                        | **accepted** | #7                       | 锁定 @ Phase 1                                                                  |
+| [ADR-009](./ADR-009-ai-aware-v1-vision.md)                   | AI-Aware Pane 联动 = v1.0 vision（对外不宣传）                                       | **accepted** | #3                       | 锁定 @ Phase 1                                                                  |
+| [ADR-010](./ADR-010-cargo-workspace-2-crate.md)              | Cargo workspace = 2 crate（app + core）                                              | **accepted** | #5                       | 锁定 @ Phase 1                                                                  |
+| [ADR-011](./ADR-011-runtime-evidence-location.md)            | Runtime evidence 路径锁 `docs/runtime-evidence/<task-id>/`                           | **accepted** | #18                      | Session 10 FU-2 · PR #44/#45 @ 2026-04-19                                       |
+| [ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) | v2-D → v2-D.1 · 单人项目 Arbiter approval 规则简化（删 24h 补 comment 硬要求）       | **accepted** | —（治理规则）            | Session 13 开场 · session 12 audit H1 根因 @ 2026-04-21                         |
+| [ADR-013](./ADR-013-spike-cold-backup-degradation.md)        | Spike 冷备归档 v1 强制 → v2 推荐（22% 合规率实证 · 3 场景判断清单保留特殊情况）      | **accepted** | —（项目规则）            | Session 13 中 · audit M-1 根因 @ 2026-04-21                                     |
+| [ADR-014](./ADR-014-ipc-contract-source-of-truth-ts-rs.md)   | IPC contract source of truth = Rust struct + ts-rs codegen（H2 根因消除）            | **accepted** | —（规范类 · 未在锁定表） | Session 13 中 · SPIKE-08 §A PASS @ 2026-04-20 + PR #63 rollout                  |
+| [ADR-015](./ADR-015-telemetry-stack-sentry.md)               | Telemetry crash stack = Sentry SDK + sanitized payload                               | **accepted** | #10 实施子决策           | MVP-10 Phase B pre-spike @ 2026-04-25 · accepted @ 2026-04-26                   |
+| [ADR-016](./ADR-016-admin-override-trailer-exemption.md)     | v2-D.1 → v2-D.2 · admin direct push trailer 豁免 + 审计 marker 要求                  | **accepted** | —（治理规则）            | Session 23 · session 21 7 个 admin push audit 项闭合 @ 2026-05-03               |
+| [ADR-021](./ADR-021-ci-mandate-staleness.md)                 | CLAUDE.md「合入后 CI 验证」→「合入后质量门验证」· 承认 no-auto-CI 既定（方案 b）     | **accepted** | —（治理规则）            | proposed @ 2026-05-16 · accepted @ 2026-05-17 · session 33 · Arbiter tajiaoyezi |
+| [ADR-022](./ADR-022-dispatch-template-ref-path-staleness.md) | dispatch 范本引用断链 · 文档不再承诺 git 路径（方案 d · 原 Context 经主 agent 证伪） | **accepted** | —（治理规则）            | proposed @ 2026-05-16 · accepted @ 2026-05-17 · session 33 · Arbiter tajiaoyezi |
 
 ---
 
@@ -64,8 +64,10 @@
 | ADR-014 | IPC contract ts-rs      | 治理升级 S13     | SPIKE-08       | 2026-04-21    | PR #63     |
 | ADR-015 | Sentry telemetry        | MVP 子决策 S20   | MVP-10 Phase B | 2026-04-26    | PR #152    |
 | ADR-016 | v2-D.2 admin override   | 治理升级 S23     | —              | 2026-05-03    | PR #218    |
+| ADR-021 | CI mandate → 质量门     | 治理对齐 S33     | —              | 2026-05-17    | session 33 |
+| ADR-022 | dispatch 范本去断链     | 治理对齐 S33     | —              | 2026-05-17    | session 33 |
 
-**当前统计**：16 accepted · 0 proposed · 0 rejected · 0 deprecated。
+**当前统计**：19 accepted · 1 superseded（ADR-017 → ADR-018）· 0 proposed · 0 rejected · 0 deprecated（共 20 · session 33 ADR-021/022 flip 后实测核准 · 原「16 accepted · 0 proposed」双重 stale 同步修正）。
 
 ---
 
@@ -119,6 +121,8 @@
 | ADR-014 | SPIKE-08 §A ts-rs PASS · session 13 audit X-4 · H2 compile-time drift 前移                  | Session 13              | PR #63 rollout                 |
 | ADR-015 | MVP-10 Phase B pre-spike · Sentry SDK sanitized payload 4 步验证通过                        | Session 20              | PR #152 · Arbiter @ 2026-04-26 |
 | ADR-016 | Session 21 GitHub Actions billing 暂停 · 7 个 admin direct push 触发治理盲区                | Session 23              | PR #218                        |
+| ADR-021 | session 32 续 8 PR merge 零 auto CI · ci.yml 仅 workflow_dispatch · mandate 与现实漂移      | Session 32→33           | session 33 · Arbiter 方案 b    |
+| ADR-022 | PR #329 压缩遗留 + spike-tmp/ 整个 gitignored · dispatch 范本引用断链（原 Context 经证伪）  | Session 32→33           | session 33 · Arbiter 方案 d    |
 
 ---
 
@@ -224,7 +228,7 @@ gh pr create --title "docs(adr): 新增 ADR-017 <标题>"
 - `#11` Landing page = Astro → `implementation-plan.md §12`
 - `#20` Branch protection 机械化 → `.githooks/pre-push` + `package.json prepare`
 
-**治理 / 规范 / 项目规则类（4 条 accepted · 不在决策表）**：ADR-012 · ADR-013 · ADR-014 · ADR-016
+**治理 / 规范 / 项目规则类（6 条 accepted · 不在决策表）**：ADR-012 · ADR-013 · ADR-014 · ADR-016 · ADR-021（CI mandate → 质量门）· ADR-022（dispatch 范本去断链）
 
 **MVP 实施子决策（1 条 accepted）**：ADR-015（Sentry telemetry stack · session 20 解锁 SDK 编码）
 

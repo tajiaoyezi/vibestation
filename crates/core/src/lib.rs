@@ -27,6 +27,7 @@ pub mod pty_pool;
 pub mod rail_graph_events;
 pub mod rebase_ops;
 pub mod sanitize;
+pub mod sessions;
 pub mod tabs;
 pub mod telemetry;
 pub mod workspace;
@@ -125,6 +126,7 @@ pub use rebase_ops::{
     MergeRequest, MergeStatus, MergeStrategy, RebaseControlRequest, RebaseInteractivePlan,
     RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus,
 };
+pub use sessions::{AiSession, LinkState, SessionCommitLink, SessionError, SessionStatus};
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,
     TabState, TabsDao,

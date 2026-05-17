@@ -15,6 +15,7 @@
 import { type Component, createMemo, Show } from "solid-js";
 import { useSessions } from "../../stores/sessions-context";
 import { isLinkConfirmed } from "../../stores/sessions";
+import "./sessionBadge.css";
 
 export interface SessionBadgeProps {
   /** Short SHA of the commit whose session links to display. */

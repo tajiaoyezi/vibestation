@@ -1,36 +1,36 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, fireEvent, screen, cleanup } from "@solidjs/testing-library";
 import { RollbackPreviewModal } from "../../../src/panels/SessionDetail/RollbackPreviewModal";
-import type { RollbackPreview } from "../../../src/panels/SessionDetail/rollbackContract";
+import type { RollbackPreview } from "../../../src/bindings";
 
 // 每个测试后卸载已 mount 组件 · 移除其 document keydown listener
 // 否则跨测试累积泄漏污染后续测试文件（reviewer-fix · 仿 sessionDetail.test.tsx 既有模式）
 afterEach(() => cleanup());
 
 const highConfidencePreview: RollbackPreview = {
-  session_id: "sess-42",
+  sessionId: "sess-42",
   commits: [
-    { sha: "abc1234567890", message: "feat: refactor core", author: "AI", timestamp: 1700000000, confidence: 0.97, include: true, files_changed: 3 },
-    { sha: "bcd2345678901", message: "fix: stage path bug", author: "AI", timestamp: 1700000100, confidence: 0.95, include: true, files_changed: 1 },
-    { sha: "cde3456789012", message: "test: add stage tests", author: "AI", timestamp: 1700000200, confidence: 0.94, include: true, files_changed: 2 },
+    { sha: "abc1234567890", message: "feat: refactor core", author: "AI", timestamp: 1700000000, confidence: 0.97, include: true, filesChanged: 3 },
+    { sha: "bcd2345678901", message: "fix: stage path bug", author: "AI", timestamp: 1700000100, confidence: 0.95, include: true, filesChanged: 1 },
+    { sha: "cde3456789012", message: "test: add stage tests", author: "AI", timestamp: 1700000200, confidence: 0.94, include: true, filesChanged: 2 },
   ],
-  total_files_changed: 6,
-  total_insertions: 120,
-  total_deletions: 30,
-  has_low_confidence: false,
+  totalFilesChanged: 6,
+  totalInsertions: 120,
+  totalDeletions: 30,
+  hasLowConfidence: false,
 };
 
 const mixedConfidencePreview: RollbackPreview = {
-  session_id: "sess-42",
+  sessionId: "sess-42",
   commits: [
-    { sha: "abc1234567890", message: "feat: refactor core", author: "AI", timestamp: 1700000000, confidence: 0.97, include: true, files_changed: 3 },
-    { sha: "def4567890123", message: "chore: format Cargo.toml", author: "AI", timestamp: 1700000300, confidence: 0.72, include: false, files_changed: 1 },
-    { sha: "efg5678901234", message: "refactor: extract enum", author: "AI", timestamp: 1700000400, confidence: 0.99, include: true, files_changed: 2 },
+    { sha: "abc1234567890", message: "feat: refactor core", author: "AI", timestamp: 1700000000, confidence: 0.97, include: true, filesChanged: 3 },
+    { sha: "def4567890123", message: "chore: format Cargo.toml", author: "AI", timestamp: 1700000300, confidence: 0.72, include: false, filesChanged: 1 },
+    { sha: "efg5678901234", message: "refactor: extract enum", author: "AI", timestamp: 1700000400, confidence: 0.99, include: true, filesChanged: 2 },
   ],
-  total_files_changed: 6,
-  total_insertions: 80,
-  total_deletions: 20,
-  has_low_confidence: true,
+  totalFilesChanged: 6,
+  totalInsertions: 80,
+  totalDeletions: 20,
+  hasLowConfidence: true,
 };
 
 describe("RollbackPreviewModal", () => {
@@ -112,7 +112,7 @@ describe("RollbackPreviewModal", () => {
     );
   });
 
-  it("shows low confidence warning banner when has_low_confidence is true", () => {
+  it("shows low confidence warning banner when hasLowConfidence is true", () => {
     render(() => (
       <RollbackPreviewModal
         preview={mixedConfidencePreview}

@@ -15,7 +15,20 @@ import type {
 import { isLinkActive, isLinkConfirmed } from "../../stores/sessions";
 import { SessionUnbindModal } from "./SessionUnbindModal";
 import { SessionRebindModal } from "./SessionRebindModal";
+import { RollbackPreviewModal } from "../SessionDetail/RollbackPreviewModal";
+import { RollbackConfirmDialog } from "../SessionDetail/RollbackConfirmDialog";
+import { RollbackProgressBanner } from "../SessionDetail/RollbackProgressBanner";
+import {
+  rollbackPreview,
+  rollbackExecute,
+  rollbackAbort,
+} from "../SessionDetail/rollbackApi";
+import type {
+  RollbackPreview,
+  RollbackProgress,
+} from "../SessionDetail/rollbackContract";
 import "./sessionDetail.css";
+import "../SessionDetail/rollback.css";
 
 function fmtTime(epoch: number): string {
   return new Date(epoch).toLocaleString();
@@ -80,6 +93,16 @@ export function SessionDetailView(): JSX.Element {
   const [rebindTarget, setRebindTarget] =
     createSignal<SessionCommitLink | null>(null);
 
+  const [rollbackPreviewData, setRollbackPreviewData] =
+    createSignal<RollbackPreview | null>(null);
+  const [rollbackConfirmShas, setRollbackConfirmShas] = createSignal<
+    string[] | null
+  >(null);
+  const [rollbackProgress, setRollbackProgress] =
+    createSignal<RollbackProgress | null>(null);
+  const [rolledBack, setRolledBack] = createSignal(false);
+  const [rollbackLoading, setRollbackLoading] = createSignal(false);
+
   const handleUnbind = async (
     link: SessionCommitLink,
     reason: string,
@@ -131,6 +154,53 @@ export function SessionDetailView(): JSX.Element {
     }
   };
 
+  const handleRollbackClick = async () => {
+    setRollbackLoading(true);
+    try {
+      const preview = await rollbackPreview(sessionId);
+      setRollbackPreviewData(preview);
+    } catch {
+      /* IPC not wired yet — M2 dependency */
+    } finally {
+      setRollbackLoading(false);
+    }
+  };
+
+  const handlePreviewConfirm = (shas: string[]) => {
+    setRollbackPreviewData(null);
+    setRollbackConfirmShas(shas);
+  };
+
+  const handleConfirmExecute = async () => {
+    const shas = rollbackConfirmShas();
+    if (!shas) return;
+    setRollbackConfirmShas(null);
+    setRollbackProgress({
+      done: 0,
+      total: shas.length,
+      current_sha: "",
+      status: "starting",
+    });
+    try {
+      await rollbackExecute(sessionId, shas);
+      setRolledBack(true);
+    } catch {
+      /* IPC not wired yet — M2 dependency */
+    } finally {
+      setRollbackProgress(null);
+    }
+  };
+
+  const handleRollbackAbort = async () => {
+    try {
+      await rollbackAbort(sessionId);
+    } catch {
+      /* IPC not wired yet — M2 dependency */
+    } finally {
+      setRollbackProgress(null);
+    }
+  };
+
   return (
     <div class="vs-session-detail" role="region" aria-label="Session detail">
       <Show when={ctx.store.lastError}>
@@ -150,6 +220,16 @@ export function SessionDetailView(): JSX.Element {
               Dismiss
             </button>
           </div>
+        )}
+      </Show>
+
+      <Show when={rollbackProgress()}>
+        {(prog) => (
+          <RollbackProgressBanner
+            sessionId={sessionId}
+            progress={prog()}
+            onAbort={() => void handleRollbackAbort()}
+          />
         )}
       </Show>
 
@@ -193,6 +273,9 @@ export function SessionDetailView(): JSX.Element {
               links={data().links}
               onEnd={handleEndSession}
               onRecalcAll={handleRecalcAll}
+              onRollback={() => void handleRollbackClick()}
+              rollbackLoading={rollbackLoading()}
+              rolledBack={rolledBack()}
             />
           </>
         )}
@@ -220,6 +303,27 @@ export function SessionDetailView(): JSX.Element {
             onRebind={(targetId, reason) =>
               handleRebind(link(), targetId, reason)
             }
+          />
+        )}
+      </Show>
+
+      <Show when={rollbackPreviewData()}>
+        {(preview) => (
+          <RollbackPreviewModal
+            preview={preview()}
+            onCancel={() => setRollbackPreviewData(null)}
+            onConfirm={handlePreviewConfirm}
+          />
+        )}
+      </Show>
+
+      <Show when={rollbackConfirmShas()}>
+        {(shas) => (
+          <RollbackConfirmDialog
+            sessionId={sessionId}
+            commitCount={shas().length}
+            onCancel={() => setRollbackConfirmShas(null)}
+            onExecute={() => void handleConfirmExecute()}
           />
         )}
       </Show>
@@ -389,6 +493,9 @@ function SessionActions(props: {
   links: SessionCommitLink[];
   onEnd: (session: AiSession) => Promise<void>;
   onRecalcAll: (links: SessionCommitLink[]) => Promise<void>;
+  onRollback: () => void;
+  rollbackLoading: boolean;
+  rolledBack: boolean;
 }): JSX.Element {
   return (
     <div class="vs-session-actions">
@@ -408,6 +515,24 @@ function SessionActions(props: {
           aria-label="Recalculate all commit bindings"
         >
           Recalc all
+        </button>
+      </Show>
+      <Show
+        when={!props.rolledBack}
+        fallback={
+          <span class="vs-session-rolled-back-badge" title="此 session 已回滚">
+            已回滚
+          </span>
+        }
+      >
+        <button
+          class="vs-session-rollback-btn"
+          onClick={() => props.onRollback()}
+          disabled={props.rollbackLoading || props.links.length === 0}
+          aria-label={`回滚 Session #${props.session.id} 的所有 AI commit`}
+          title={props.links.length === 0 ? "无可回滚的 commit" : undefined}
+        >
+          {props.rollbackLoading ? "加载中…" : "↩ 一键回滚"}
         </button>
       </Show>
     </div>

@@ -133,7 +133,12 @@ pub use rebase_ops::{
     RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus,
 };
 pub use rollback_ops::{
-    build_revert_plan, RevertCandidate, RevertPlan, RevertPlanEntry, RollbackError,
+    abort_revert, abort_revert_completed, build_revert_message, build_revert_plan,
+    check_preconditions, detect_in_progress as rollback_detect_in_progress, revert_commit,
+    revert_sequence, rollback_abort, rollback_execute, rollback_execute_with_progress,
+    rollback_preview, rollback_status, RevertCandidate, RevertPlan, RevertPlanEntry,
+    RevertSequenceResult, RollbackAbortResult, RollbackCommitEntry, RollbackError, RollbackOpDao,
+    RollbackPlanRecordEntry, RollbackPreview, RollbackProgress, RollbackStatus,
     MIN_AUTO_CONFIDENCE,
 };
 pub use session_dao::{AiSessionDao, SessionCommitLinkDao};

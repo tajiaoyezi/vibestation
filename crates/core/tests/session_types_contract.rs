@@ -117,6 +117,11 @@ fn session_types_preserve_canonical_serde_and_ts_contract() {
     assert!(session_decl.contains("endedAt: number | null"));
     assert!(session_decl.contains("endReason: string | null"));
     assert!(session_decl.contains("metadataJson: string"));
+    // i64 counts must map to TS `number` (not default `bigint`) — locks the
+    // project binding convention so a future regen cannot silently revert.
+    assert!(session_decl.contains("promptCount: number"));
+    assert!(session_decl.contains("tokenCount: number | null"));
+    assert!(session_decl.contains("eventCount: number"));
 
     let link_decl = SessionCommitLink::decl(&cfg);
     assert!(link_decl.contains("commitSha: string"));

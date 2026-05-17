@@ -19,8 +19,14 @@ pub struct AiSession {
     #[ts(type = "number | null")]
     pub ended_at: Option<i64>,
     pub end_reason: Option<String>,
+    // i64 counts cross the IPC boundary as serde JSON numbers; map to TS `number`
+    // (not ts-rs default `bigint`) to match the project binding convention used by
+    // every existing `*Count` field (branchCount/commitCount/paneCount/...).
+    #[ts(type = "number")]
     pub prompt_count: i64,
+    #[ts(type = "number | null")]
     pub token_count: Option<i64>,
+    #[ts(type = "number")]
     pub event_count: i64,
     pub status: SessionStatus,
     pub parser_version: Option<String>,

@@ -23,10 +23,7 @@ import {
   rollbackExecute,
   rollbackAbort,
 } from "../SessionDetail/rollbackApi";
-import type {
-  RollbackPreview,
-  RollbackProgress,
-} from "../SessionDetail/rollbackContract";
+import type { RollbackPreview, RollbackProgress } from "../../bindings";
 import "./sessionDetail.css";
 import "../SessionDetail/rollback.css";
 
@@ -178,7 +175,7 @@ export function SessionDetailView(): JSX.Element {
     setRollbackProgress({
       done: 0,
       total: shas.length,
-      current_sha: "",
+      currentSha: null,
       status: "starting",
     });
     try {

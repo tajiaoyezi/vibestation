@@ -2,8 +2,8 @@
 id: MVP-19
 type: mvp
 title: AI session ↔ commit 自动绑定
-status: ready
-owner:
+status: in-progress
+owner: Claude Code
 phase: v1.0
 depends_on: ["MVP-18"]
 blocks: []
@@ -18,7 +18,7 @@ reviewer: Cursor · self-review
 
 # MVP-19: AI session ↔ commit 自动绑定
 
-> **状态**：`ready`（**v1.0 vision** · session 32 Arbiter approve flip · README / landing 完全不宣传 · 实施仍 gated on MVP-18 done）
+> **状态**：`in-progress`（owner: Claude Code · 2026-05-17 认领实施 · **Arbiter waive MVP-18-done gate**：tajiaoyezi 2026-05-17 "waive gate, 全速 MVP-19" —— 显式 waive 本 spec 原 "实施仍 gated on MVP-18 done"。依据：MVP-19 真实上游依赖 = MVP-18 pane 联动**能力**（Wave 1+2 merged + escalate #2 闭合 · 功能性完成）· Phase D/E 是验证产物非功能前置。每 MVP-19 PR body Arbiter approval trailer 引此 waive · 多 phase 任务 status 至 Phase E 收尾 gate 才翻 done）· **v1.0 vision** · README / landing 完全不宣传
 > **依赖**：MVP-18（pane 联动能力上游）
 > **战略依据**：[`implementation-plan.md §10.1 砍到 v1.0`](../implementation-plan.md) · [`§5.3.6`](../implementation-plan.md)
 > **详化时间**：2026-05-14 session 31 · Cursor self-review（单人项目 v2-D.2）

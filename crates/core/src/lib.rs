@@ -28,6 +28,7 @@ pub mod rail_graph_events;
 pub mod rebase_ops;
 pub mod sanitize;
 pub mod session_dao;
+pub mod session_ipc;
 pub mod session_lifecycle;
 pub mod sessions;
 pub mod tabs;
@@ -129,6 +130,14 @@ pub use rebase_ops::{
     RebaseInteractiveStep, RebaseOp, RebaseOpError, RebaseStartRequest, RebaseStatus,
 };
 pub use session_dao::{AiSessionDao, SessionCommitLinkDao};
+pub use session_ipc::{
+    SessionBindCommitRequest, SessionBindCommitResult, SessionBindMode, SessionCommitBoundEvent,
+    SessionCommitUnboundEvent, SessionDetailRequest, SessionDetailResult, SessionEndRequest,
+    SessionEndResult, SessionEndedEvent, SessionErrorEvent, SessionLinkUpdatedEvent,
+    SessionListRequest, SessionListResult, SessionRebindRequest, SessionRebindResult,
+    SessionRecalcRequest, SessionRecalcResult, SessionStartRequest, SessionStartResult,
+    SessionStartedEvent, SessionUnbindRequest, SessionUnbindResult,
+};
 pub use sessions::{AiSession, LinkState, SessionCommitLink, SessionError, SessionStatus};
 pub use tabs::{
     TabCloseRequest, TabCreateRequest, TabListResponse, TabRenameRequest, TabReorderRequest,

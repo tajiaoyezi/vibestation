@@ -2,7 +2,7 @@
 id: MVP-05
 type: mvp
 title: Pane 分屏（单层 · 最多 4 Pane · Smart Layouts）
-status: ready
+status: done
 owner:
 phase: W6-W7
 depends_on: ["MVP-04"]

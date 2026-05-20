@@ -2,7 +2,7 @@
 id: MVP-14
 type: mvp
 title: Pane 高级布局（任意嵌套 + Dual AI / Triple / Quad + 导航 + 最大化）
-status: in-progress
+status: done
 owner: Claude Code
 phase: v0.3
 depends_on: ["MVP-05"]

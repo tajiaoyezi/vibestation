@@ -2,7 +2,7 @@
 id: MVP-09
 type: mvp
 title: Stage/Unstage + Commit 操作（git2 写）
-status: ready
+status: done
 owner:
 phase: W10-W11
 depends_on: ["MVP-08", "SPIKE-04"]

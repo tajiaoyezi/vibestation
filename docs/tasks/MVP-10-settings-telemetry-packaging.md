@@ -2,7 +2,7 @@
 id: MVP-10
 type: mvp
 title: 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）
-status: ready
+status: done
 owner:
 phase: W11-W12
 depends_on:

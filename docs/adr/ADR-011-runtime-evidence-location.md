@@ -1,10 +1,13 @@
 # ADR-011: MVP / Feature runtime 证据存储位置标准化
 
-**状态**：accepted
-**日期**：2026-04-19（proposed） · 2026-04-19（accepted · session 10 末）
+**状态**：**superseded by [ADR-023](./ADR-023-capture-mandate-removed.md)**（2026-05-20）
+**原状态**：accepted（2026-04-19）
+**日期**：2026-04-19（proposed） · 2026-04-19（accepted · session 10 末） · **2026-05-20（superseded · session 34）**
 **决策者**：Claude Code (Opus 4.7 · session 10 末 · 提议) · User (Arbiter · 拍板选项 A · "按你的推荐来")
 **对应 `CLAUDE.md` 决策表**：A 栏 #18（本 PR 新增）
 **对应 Spike / MVP**：[MVP-02](../tasks/MVP-02-workspace-management.md)（触发本 ADR 的事件源）
+
+> ⚠️ **2026-05-20 · 本 ADR 已 superseded by [ADR-023](./ADR-023-capture-mandate-removed.md)**：MVP / feature 类 capture mandate 移除 · 项目级 `.claude/rules/runtime-evidence-location.md` 已删除 · 已捕证据保留作 audit history · 全局 rule 15 不动。详见 ADR-023。本 ADR 内容保留作 历史记录。
 
 ---
 
@@ -19,6 +22,7 @@
 此分歧若不标准化 · 未来每个 MVP / feature PR 都可能出现"作者随机选一个路径"· 证据散落 · 未来 agent 难溯源。
 
 **不决策的后果**：
+
 - 每个 MVP 作者 / dispatch 接收方 各自选路径 · 碎片化
 - runtime 证据可能分布在 `docs/runtime-evidence/` · `spike-tmp/img/` · PR comment · 某个未知目录
 - 未来 agent clone repo 无法系统性复现 MVP 验收过程
@@ -64,13 +68,13 @@
 
 **与选项 B / C 的关键差别**：
 
-| 维度 | A 进 git | B gitignored | C PR comment |
-|---|---|---|---|
-| clone 可见 | ✅ | ❌（本机） | ❌（需 GitHub UI） |
-| PR 关闭后查找 | ✅（文件路径稳定） | ❌（本机丢 = 失证据） | ⚠（可访问但 UI 差） |
-| repo 体积 | +1-3 MB/MVP | 0 | 0 |
-| 未来 agent 重现 | ✅（零依赖） | ❌（依赖本机） | ⚠（依赖 GitHub 服务） |
-| 和 Spike 归档一致 | ✅ | ❌ | ❌ |
+| 维度              | A 进 git           | B gitignored          | C PR comment          |
+| ----------------- | ------------------ | --------------------- | --------------------- |
+| clone 可见        | ✅                 | ❌（本机）            | ❌（需 GitHub UI）    |
+| PR 关闭后查找     | ✅（文件路径稳定） | ❌（本机丢 = 失证据） | ⚠（可访问但 UI 差）   |
+| repo 体积         | +1-3 MB/MVP        | 0                     | 0                     |
+| 未来 agent 重现   | ✅（零依赖）       | ❌（依赖本机）        | ⚠（依赖 GitHub 服务） |
+| 和 Spike 归档一致 | ✅                 | ❌                    | ❌                    |
 
 ## 后果（Consequences）
 
@@ -129,5 +133,6 @@ ADR accepted 后 · 已同步更新以下（本 PR 完成 ✅）：
 ---
 
 **修订历史**：
+
 - 2026-04-19 · 初版 · Claude Code (Opus 4.7 · session 10 末 · FU-2 draft · 提议选项 A) · PR #44 merged commit `025371d`
 - 2026-04-19 · accepted · User 拍板选项 A（"按你的推荐来"）· 翻转 PR · 同步实施 6 步

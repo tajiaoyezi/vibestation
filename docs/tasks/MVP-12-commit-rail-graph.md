@@ -2,7 +2,7 @@
 id: MVP-12
 type: mvp
 title: 自绘 commit rail graph（Git Log 图形化）
-status: ready
+status: done
 owner:
 phase: v0.3
 depends_on: ["MVP-07"]

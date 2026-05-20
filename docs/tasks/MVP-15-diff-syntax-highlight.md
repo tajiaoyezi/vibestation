@@ -2,7 +2,7 @@
 id: MVP-15
 type: mvp
 title: Diff 语法高亮（shiki lazy load · 对齐 W21）
-status: ready
+status: done
 owner:
 phase: v0.3
 depends_on: ["MVP-08"]
@@ -105,6 +105,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
   ```
 
 - [ ] **IntersectionObserver 封装示例**：
+
   ```typescript
   // web/src/lib/shiki/lazy-loader.ts
   export class ShikiLazyLoader {
@@ -142,6 +143,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
     }
   }
   ```
+
 - [ ] **语言映射表示例**：
 
   ```typescript

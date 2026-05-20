@@ -2,7 +2,7 @@
 id: MVP-04
 type: mvp
 title: 多 Tab 终端（PTY + xterm.js + Shell/CLI 兼容）
-status: ready
+status: done
 owner: Codex CLI
 phase: W4-W6
 depends_on: ["MVP-03", "SPIKE-05", "SPIKE-06"]

@@ -2,7 +2,7 @@
 id: MVP-19
 type: mvp
 title: AI session ↔ commit 自动绑定
-status: in-progress
+status: done
 owner: Claude Code
 phase: v1.0
 depends_on: ["MVP-18"]

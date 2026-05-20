@@ -2,7 +2,7 @@
 id: MVP-13
 type: mvp
 title: 分支 create / checkout / delete + Fuzzy Switcher
-status: ready
+status: done
 owner:
 phase: v0.2
 depends_on: ["MVP-07", "MVP-09"]

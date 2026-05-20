@@ -24,6 +24,10 @@ reviewer: Kimi
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"截图 / 录屏 / GUI capture / Phase D-F runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（cargo test / vitest / Criterion bench / 性能 DevTools 数字）保留为 done gate。已捕证据（`docs/runtime-evidence/mvp-04/*.png` + `metrics-phase-f.md` + 多 phase 子目录）保留作 v0.1 ship audit ref · 不删除。
+
+---
+
 ## 🎯 目标（Goal）
 
 主内容区实现多 Tab 终端，每 Tab 独立 PTY + xterm.js 渲染，支持 zsh/bash/vim/htop/yes/tmux/Claude CLI/Codex CLI 运行。100% 通过 `§10.6 终端正确性矩阵`。
@@ -39,6 +43,7 @@ reviewer: Kimi
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - Tab 基础操作：新建 / 关闭 / 重命名 / 切换
 - Tab 切换不丢 buffer（每 Tab 的 scroll back 独立）
 - 每 Tab 独立 PTY 进程 + 独立 xterm.js 实例
@@ -50,6 +55,7 @@ reviewer: Kimi
 - Shell 选择：macOS 默认 zsh / Linux 默认 bash，可在设置改
 
 **Don't**：
+
 - Pane 分屏（→ MVP-05）
 - 配置导入（→ MVP-06）
 - AI CLI 联动（v1.0 vision，禁区）
@@ -57,16 +63,17 @@ reviewer: Kimi
 
 ## 🛠 实施进度（2026-04-21 更新 · audit H3+L1）
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done | [#72](https://github.com/tajiaoyezi/vibestation/pull/72) |
-| Phase B · PTY runtime | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递 | ✅ done | [#82](https://github.com/tajiaoyezi/vibestation/pull/82) |
-| Phase C · xterm 前端 | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入 | ✅ done | [#91](https://github.com/tajiaoyezi/vibestation/pull/91) |
-| Phase D · shell 兼容 | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏） | 🟡 部分 done（代码 done · §I 22 用例 + 22 截图 + 2 录屏 follow-up）| [#113](https://github.com/tajiaoyezi/vibestation/pull/113) |
-| Phase E · 持久化 | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（随 tabs 行删除自动清理 · sqlite 已验证） | ✅ done | — |
-| Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/` | ✅ done | — |
+| Phase                  | 范围                                                                                                                              | 状态                                                                                                                          | PR                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Phase A · storage prep | migration v5 tabs 表 + TabsDao 6 CRUD + 2 scrollback 方法 + 5 IPC commands + Tauri ACL tabs.toml + ts-rs 5 bindings + 36 单元测试 | ✅ done                                                                                                                       | [#72](https://github.com/tajiaoyezi/vibestation/pull/72)   |
+| Phase B · PTY runtime  | portable-pty 启动 · stdin/stdout 桥接 · bounded mpsc + drop-oldest（SPIKE-05 架构）· resize/signal 传递                           | ✅ done                                                                                                                       | [#82](https://github.com/tajiaoyezi/vibestation/pull/82)   |
+| Phase C · xterm 前端   | xterm.js 5.5 渲染 · SolidJS 组件集成 · WebGL → Canvas → DOM fallback · theme token 接入                                           | ✅ done                                                                                                                       | [#91](https://github.com/tajiaoyezi/vibestation/pull/91)   |
+| Phase D · shell 兼容   | zsh/bash/fish 默认选择（`app_settings.default_shell`）· Claude CLI / Codex CLI 实机（SPIKE-06 §A 已脱敏）                         | ✅ done（代码 done @ PR #113 · §I 22 用例 cargo 化 7 passed + 15 ignored · 22 截图 + 2 录屏 deprecated 2026-05-20 · ADR-023） | [#113](https://github.com/tajiaoyezi/vibestation/pull/113) |
+| Phase E · 持久化       | `scrollback_append` + `scrollback_fetch` IPC 串起前后端 · 关 Tab 清 scrollback（随 tabs 行删除自动清理 · sqlite 已验证）          | ✅ done                                                                                                                       | —                                                          |
+| Phase F · runtime 证据 | ≥ 3 张截图或 30s 录屏 · 覆盖 create/close/rename/switch/scrollback · 放 `docs/runtime-evidence/mvp-04/`                           | ✅ done                                                                                                                       | —                                                          |
 
 **Phase E · 持久化补充验收（本 PR）**
+
 - [x] PTY stdout 持续写入 scrollback（100ms debounce / 100 行阈值，whichever first）
 - [x] 关 workspace 重开后，已存在 Tab 的 scrollback 完整恢复（顺序 + 内容）
 - [x] 多 Tab scrollback 隔离（关重开后各自不串）
@@ -75,12 +82,13 @@ reviewer: Kimi
 - [x] PTY exit 时强制 flush 剩余 pending buffer（不丢最后几行）
 
 **Phase F · runtime 证据补充验收（本 PR）**
+
 - [x] Runtime 证据已提交到 `docs/runtime-evidence/mvp-04/`（5 张截图 + `metrics-phase-f.md`）
 - [x] create / rename / switch / close / scrollback 画面均有覆盖
 - [x] A.5 / E.2 tab switch latency 已量化（AX 自动化 2-tab 样本 median `20 ms`）
 - [x] E.4 已量化：页面内同步 JS 执行 `sync max = 3 ms`（frame delta `19 ms` 作为上下文记录于 evidence note）
 
-**下次 agent 起点**：Phase D 代码已落地（PR #113 · resolve_default_shell + check_shell_exists + default_shell_get/set IPC + ACL + 5 单元测试）· §I 22 用例 + 22 截图 + 2 录屏 follow-up（需运行态 Tauri app 手动捕获 · CLI agent 无法）· 完成后 MVP-04 整体可标 done。下游 MVP-05 / MVP-06 已可启动（spec 全部 implementation-ready 化 · 不依赖 22 用例 follow-up）。
+**下次 agent 起点**：Phase A/B/C/D/E/F 全 done · 22 截图 + 2 录屏 manual capture follow-up 已 deprecated（2026-05-20 · ADR-023）· MVP-04 spec status flip done 由 PR-5 统一执行。下游 MVP-05 / MVP-06 已可启动（spec 全部 implementation-ready 化）。
 
 **migration 版本规划**（L-2 · 本 MVP 不做 v6）：
 
@@ -88,7 +96,7 @@ reviewer: Kimi
 - `migration v6` 由 **MVP-05** 引入（panes 表或 `tabs.layout` 列 · 见 MVP-05 §H Pane 布局模型）· 不是本 MVP 范围
 - 未来 agent 实施 MVP-04 Phase B-F 时**不得**新建 migration · 只读写 tabs / scrollback 表
 
-**保持 `status: ready`**：整体 MVP-04 未 done · 允许下次 agent 直接认领 Phase B 起点。
+**spec status**：2026-05-20 capture mandate 已 removed（ADR-023）· Phase A-F 代码全 done · `status: ready → done` 由 PR-5 统一翻转。
 
 ## 🖼 UI 引用
 
@@ -149,17 +157,18 @@ reviewer: Kimi
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|------|------|
-| 单元 | PTY 状态机、mpsc channel 背压（阻塞/丢弃策略）|
-| 集成 | portable-pty + mpsc + xterm 端到端流通 |
-| E2E | 创建 Tab → 运行命令 → 切 Tab → 关 Tab |
-| 兼容矩阵 | `§10.6` 全量手动 + 自动回归 |
-| Soak | 10 Tab × 10 分钟 yes，RSS / channel depth 记录（对齐 SPIKE-05 B.1）|
+| 层次     | 范围                                                                |
+| -------- | ------------------------------------------------------------------- |
+| 单元     | PTY 状态机、mpsc channel 背压（阻塞/丢弃策略）                      |
+| 集成     | portable-pty + mpsc + xterm 端到端流通                              |
+| E2E      | 创建 Tab → 运行命令 → 切 Tab → 关 Tab                               |
+| 兼容矩阵 | `§10.6` 全量手动 + 自动回归                                         |
+| Soak     | 10 Tab × 10 分钟 yes，RSS / channel depth 记录（对齐 SPIKE-05 B.1） |
 
 ## 💾 数据模型变更
 
 新 table `tabs`：
+
 ```rust
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
@@ -197,13 +206,13 @@ pub struct TabState {
 
 ### G.1 本 MVP 涉及的 IPC struct 清单（预期）
 
-| Rust struct | 用途 | 前端 import 路径 |
-|-------------|------|-----------------|
-| `TabState` | Tab 全量状态（list/get） | `import type { TabState } from "../bindings/TabState"` |
+| Rust struct        | 用途                              | 前端 import 路径                                                       |
+| ------------------ | --------------------------------- | ---------------------------------------------------------------------- |
+| `TabState`         | Tab 全量状态（list/get）          | `import type { TabState } from "../bindings/TabState"`                 |
 | `TabCreateRequest` | 新建 Tab 参数（shell / cwd 可选） | `import type { TabCreateRequest } from "../bindings/TabCreateRequest"` |
-| `TabCloseRequest` | 关闭 Tab 参数（tab_id） | `import type { TabCloseRequest } from "../bindings/TabCloseRequest"` |
-| `TabRenameRequest` | 重命名 Tab 参数（tab_id + name） | `import type { TabRenameRequest } from "../bindings/TabRenameRequest"` |
-| `TabListResponse` | 某 workspace 下 Tab 列表 | `import type { TabListResponse } from "../bindings/TabListResponse"` |
+| `TabCloseRequest`  | 关闭 Tab 参数（tab_id）           | `import type { TabCloseRequest } from "../bindings/TabCloseRequest"`   |
+| `TabRenameRequest` | 重命名 Tab 参数（tab_id + name）  | `import type { TabRenameRequest } from "../bindings/TabRenameRequest"` |
+| `TabListResponse`  | 某 workspace 下 Tab 列表          | `import type { TabListResponse } from "../bindings/TabListResponse"`   |
 
 > 实际 struct 名和字段以实施 PR 为准，但**必须**全部走 ts-rs 自动生成。
 
@@ -253,11 +262,11 @@ pub struct TabState {
 
 实测分布（macOS 本地 · zsh + bash 可用 · fish 未装 silent skip）：
 
-| 状态 | 数量 | 含义 |
-|---|---|---|
-| ✅ PASS（cargo test 真实 PTY 后端验证） | 7 | shell 启动 sentinel · `$TERM=xterm-256color` 一致性 · UTF-8 中文 round-trip |
-| ⏭️ IGNORE-runtime（标 `#[ignore]` · 需 Tauri runtime + xterm 渲染 + 用户交互） | 15 | Tab 补全 · history 上下箭头 · fish autosuggestion · CLI login flow / 流式 / Ctrl+C 残帧 / 退出 / 长输出滚动 |
-| ❌ FAIL | 0 | — |
+| 状态                                                                           | 数量 | 含义                                                                                                        |
+| ------------------------------------------------------------------------------ | ---- | ----------------------------------------------------------------------------------------------------------- |
+| ✅ PASS（cargo test 真实 PTY 后端验证）                                        | 7    | shell 启动 sentinel · `$TERM=xterm-256color` 一致性 · UTF-8 中文 round-trip                                 |
+| ⏭️ IGNORE-runtime（标 `#[ignore]` · 需 Tauri runtime + xterm 渲染 + 用户交互） | 15   | Tab 补全 · history 上下箭头 · fish autosuggestion · CLI login flow / 流式 / Ctrl+C 残帧 / 退出 / 长输出滚动 |
+| ❌ FAIL                                                                        | 0    | —                                                                                                           |
 
 **ignore 的 15 case 不算未做** · 它们覆盖的是 spec §I.4 明确归到运行态截图 / 录屏的范畴（Tab 补全交互 · xterm 灰字渲染 · CLI login + LLM endpoint）· cargo test 层无法稳定模拟 · 必须靠 `pnpm tauri:dev` 手动验证 + `docs/runtime-evidence/mvp-04/phase-d/<case>.{jpg,mp4}` 截图归档。
 
@@ -266,49 +275,52 @@ pub struct TabState {
 **fish 缺失策略**：本机无 fish 时 cases 09 / 12 走 `eprintln! + return` 模式 silent skip · 不 panic · 不阻塞 PR（spec §I.5 明确 fish 是 non-blocker）。CI 装了 fish 自动跑。
 
 **仍需 follow-up**：
+
 - 22 张截图 + 2 段 30s 录屏（`docs/runtime-evidence/mvp-04/phase-d/`）· 按 ADR-011 R3 命名 · 需 Tauri runtime 手动捕获
 - Phase D 整体 done 翻转判据：本 §I.0 + 22 张截图 + 2 录屏 全到位
 
 ### §I.1 默认 shell 矩阵（macOS · 3 shell × 4 测试项 = 12 用例）
 
-| 测试组 | 测试项 | 通过判定 | 失败处理 |
-|---|---|---|---|
-| **zsh**（macOS 默认）| 启动 → 显示 prompt | < 3 s 内 prompt 可见，无 panic / 白屏 | **blocker** · 阻塞 v0.1 GA |
-| zsh | `echo $TERM` | 输出 `"xterm-256color"`（一致性测）| **blocker** |
-| zsh | Tab 补全 `ls /u` + Tab → `/usr/` | 候选列表显示；单一时直接补全 | **blocker** |
-| zsh | 中文 IME 输入 + 输出 | 输入"你好"显示"你好"，无乱码 | **blocker** · UTF-8 是 v0.1 必需 |
-| **bash** | 启动 → 显示 prompt | < 3 s | **blocker** |
-| bash | `echo $TERM` | `"xterm-256color"` | **blocker** |
-| bash | Tab 补全 | 候选列表 | **blocker** |
-| bash | history 上下箭头 | 显示历史命令 | **blocker** |
-| **fish** | 启动 → 显示 prompt | < 3 s，fish 风格 prompt 显示 | **non-blocker** · 推 v0.2 若 fail |
-| fish | autosuggestion 灰字 | 输入 `ec` → 灰字 `echo` 提示 | **non-blocker** |
-| fish | Tab 补全 | fish 风格补全（含描述）| **non-blocker** |
-| fish | 中文 IME | 显示正确 | **non-blocker** |
+| 测试组                | 测试项                           | 通过判定                              | 失败处理                          |
+| --------------------- | -------------------------------- | ------------------------------------- | --------------------------------- |
+| **zsh**（macOS 默认） | 启动 → 显示 prompt               | < 3 s 内 prompt 可见，无 panic / 白屏 | **blocker** · 阻塞 v0.1 GA        |
+| zsh                   | `echo $TERM`                     | 输出 `"xterm-256color"`（一致性测）   | **blocker**                       |
+| zsh                   | Tab 补全 `ls /u` + Tab → `/usr/` | 候选列表显示；单一时直接补全          | **blocker**                       |
+| zsh                   | 中文 IME 输入 + 输出             | 输入"你好"显示"你好"，无乱码          | **blocker** · UTF-8 是 v0.1 必需  |
+| **bash**              | 启动 → 显示 prompt               | < 3 s                                 | **blocker**                       |
+| bash                  | `echo $TERM`                     | `"xterm-256color"`                    | **blocker**                       |
+| bash                  | Tab 补全                         | 候选列表                              | **blocker**                       |
+| bash                  | history 上下箭头                 | 显示历史命令                          | **blocker**                       |
+| **fish**              | 启动 → 显示 prompt               | < 3 s，fish 风格 prompt 显示          | **non-blocker** · 推 v0.2 若 fail |
+| fish                  | autosuggestion 灰字              | 输入 `ec` → 灰字 `echo` 提示          | **non-blocker**                   |
+| fish                  | Tab 补全                         | fish 风格补全（含描述）               | **non-blocker**                   |
+| fish                  | 中文 IME                         | 显示正确                              | **non-blocker**                   |
 
 ### §I.2 CLI 实机矩阵（Claude CLI + Codex CLI · 每个 5 测试项 = 10 用例）
 
-| CLI | 测试项 | 通过判定 | 失败处理 |
-|---|---|---|---|
-| **Claude CLI**（`claude`）| 启动 → login flow（已登录则跳过）| 启动 < 5 s，显示登录提示或 ready prompt | **blocker**（v0.1 核心 use case）|
-| Claude CLI | 输入"你好" → 流式回复 | 流式 stream 显示中文，无乱码，完整结束 | **blocker** |
-| Claude CLI | Ctrl+C 中断流式输出中途 | 流式 stop，进入 prompt，无残帧污染下一条 prompt | **blocker** · 残帧污染是 R1 风险 |
-| Claude CLI | 退出（`exit` / Ctrl+D）| shell 回到当前 Tab，PTY 进程清理 | **blocker** |
-| Claude CLI | 长输出（5000+ token 回复）滚动 | 滚动流畅，scrollback 全保留 | **blocker**（覆盖 §Acceptance E 性能）|
-| **Codex CLI**（`codex`）| 启动 → login flow | < 5 s，ready | **blocker** |
-| Codex CLI | 单轮对话输入/输出 | 显示正确 | **blocker** |
-| Codex CLI | Ctrl+C 中断 | stop，prompt，无残帧 | **blocker** |
-| Codex CLI | 退出 | shell 回 prompt | **blocker** |
-| Codex CLI | 长输出滚动 | 流畅，scrollback 保留 | **blocker** |
+| CLI                        | 测试项                            | 通过判定                                        | 失败处理                               |
+| -------------------------- | --------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| **Claude CLI**（`claude`） | 启动 → login flow（已登录则跳过） | 启动 < 5 s，显示登录提示或 ready prompt         | **blocker**（v0.1 核心 use case）      |
+| Claude CLI                 | 输入"你好" → 流式回复             | 流式 stream 显示中文，无乱码，完整结束          | **blocker**                            |
+| Claude CLI                 | Ctrl+C 中断流式输出中途           | 流式 stop，进入 prompt，无残帧污染下一条 prompt | **blocker** · 残帧污染是 R1 风险       |
+| Claude CLI                 | 退出（`exit` / Ctrl+D）           | shell 回到当前 Tab，PTY 进程清理                | **blocker**                            |
+| Claude CLI                 | 长输出（5000+ token 回复）滚动    | 滚动流畅，scrollback 全保留                     | **blocker**（覆盖 §Acceptance E 性能） |
+| **Codex CLI**（`codex`）   | 启动 → login flow                 | < 5 s，ready                                    | **blocker**                            |
+| Codex CLI                  | 单轮对话输入/输出                 | 显示正确                                        | **blocker**                            |
+| Codex CLI                  | Ctrl+C 中断                       | stop，prompt，无残帧                            | **blocker**                            |
+| Codex CLI                  | 退出                              | shell 回 prompt                                 | **blocker**                            |
+| Codex CLI                  | 长输出滚动                        | 流畅，scrollback 保留                           | **blocker**                            |
 
 ### §I.3 Ubuntu / Windows 跳过条款（明确 macOS-first）
 
 > **Ubuntu Phase D 后续补**（spec frontmatter 已显示 SPIKE-01/02 Phase B Ubuntu blocked）：
+>
 > - 所有 §I.1 / §I.2 用例，Ubuntu 平台标 **deferred**，v0.1 macOS-first GA 后再补
 > - blocker 用例，Ubuntu fail 推 v0.2，不阻塞 v0.1
 > - non-blocker 用例，Ubuntu fail 推 v0.3
 >
 > **Windows skip**：
+>
 > - MVP-04 spec line 8 明确 Windows 推 v0.4
 > - §I 测试矩阵不涵盖 Windows
 > - Windows shell（PowerShell / cmd / WSL）测试矩阵 v0.4 单独 spec
@@ -342,15 +354,15 @@ pub struct TabState {
 
 实施 agent 跑 §I 矩阵，遇 fail 按以下决策：
 
-| Fail 类型 | 处理 |
-|---|---|
-| zsh / bash 启动 fail | **blocker** · 修代码 · 不交 PR |
-| fish 启动 fail | **non-blocker** · §已知风险加条目 · spec 标 v0.2 修 · PR 可交 |
-| Claude CLI 残帧污染 | **blocker** · R1 风险 · 修代码（PTY 输出处理 / xterm reset 序列）· 不交 PR |
-| Claude CLI Ctrl+C fail | **blocker** · 修信号传递（PTY signal 链路）· 不交 PR |
-| 中文 IME 乱码 | **blocker** · UTF-8 编码问题 · 修 PTY / xterm encoding · 不交 PR |
-| 长输出滚动卡顿 | **non-blocker**（若 §Acceptance E 性能已过）· §已知风险加条目 |
-| Codex CLI 退出残留进程 | **blocker** · 修 PTY 进程清理 · 不交 PR |
+| Fail 类型                 | 处理                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| zsh / bash 启动 fail      | **blocker** · 修代码 · 不交 PR                                                  |
+| fish 启动 fail            | **non-blocker** · §已知风险加条目 · spec 标 v0.2 修 · PR 可交                   |
+| Claude CLI 残帧污染       | **blocker** · R1 风险 · 修代码（PTY 输出处理 / xterm reset 序列）· 不交 PR      |
+| Claude CLI Ctrl+C fail    | **blocker** · 修信号传递（PTY signal 链路）· 不交 PR                            |
+| 中文 IME 乱码             | **blocker** · UTF-8 编码问题 · 修 PTY / xterm encoding · 不交 PR                |
+| 长输出滚动卡顿            | **non-blocker**（若 §Acceptance E 性能已过）· §已知风险加条目                   |
+| Codex CLI 退出残留进程    | **blocker** · 修 PTY 进程清理 · 不交 PR                                         |
 | 不在 §I 矩阵的新发现 fail | 实施 agent 判断 · blocker 在 spec §已知风险 段加新条目 + Arbiter approve 后推后 |
 
 ## 🔗 相关
@@ -364,6 +376,7 @@ pub struct TabState {
 ---
 
 **自审四问（2026-04-20）**：
+
 1. **递归完备性**：Acceptance 清单覆盖 Tab/PTY/兼容矩阵/粘贴/性能/错误/IPC contract 全维度 ✅
 2. **反向场景**：若 TS derive 漏加 → `pnpm typecheck` 立即 FAIL（H2 proof 制度化）· 若 PTY fallback 触发 → Acceptance B 仍通过（独立 PTY 不共享）✅
 3. **边界适用性**：10 Tab / 1 Tab / 0 Tab（新建 workspace 默认 1 Tab）都适用；macOS/Linux 双平台 shell 默认不同 ✅

@@ -23,6 +23,10 @@ reviewer: Kimi
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"截图 / 录屏 / GUI capture / Phase D runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（panes::tests:: 63 + pane_service::tests:: 23 + pane_layout_bench 7 micro-bench / 性能 DevTools 数字）保留为 done gate。`docs/runtime-evidence/mvp-05/CAPTURE-PLAYBOOK.md` + `metrics-mvp-05.md` + `scripts/capture/mvp-05/` 已 deprecated · 由 PR-4 删除。
+
+---
+
 ## 🎯 目标（Goal）
 
 每个 Tab 内支持**单层**嵌套分屏（最多 4 Pane：1 次右分 + 1 次下分），提供 Smart Layouts 预设（Solo / AI+Runner），拖拽分隔条调整比例。
@@ -38,6 +42,7 @@ reviewer: Kimi
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - Pane 分屏快捷键：
   - `⌘\` 右分屏
   - `⌘⇧\` 下分屏
@@ -52,6 +57,7 @@ reviewer: Kimi
 - 当前聚焦 Pane 高亮边框
 
 **Don't**：
+
 - 任意嵌套（v0.2+）
 - 方向键跳邻居 Pane / ⌘Enter 最大化（v0.2+）
 - Dual AI / Triple Review / Quad 预设（v0.2+）
@@ -59,19 +65,19 @@ reviewer: Kimi
 
 ## 🛠 实施进度
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · storage prep | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成 | ✅ done | spec 早期 PR |
-| Phase B Step 2 · layout pure functions | 4 pure functions（split_layout / close_pane_in_layout / update_split_ratio / apply_smart_layout）+ 17 单元测试 + 7 micro-bench（48-210 ns）· panes.rs +647 行 | ✅ done | [#141](https://github.com/tajiaoyezi/vibestation/pull/141) |
-| Phase B Step 1 · pane_pty IPC | `pane_pty_*` 5 IPC commands · §H.6 锁 A 独立命名空间 · 独立 `PtyManager` 实例 · 反向映射 PtyEvent → PanePtyEvent · 3 unit tests | ✅ done | [#142](https://github.com/tajiaoyezi/vibestation/pull/142) |
-| Phase B Step 2 · IPC layer | 5 layout IPC commands（pane_split / close / focus / layout_apply / split_ratio_update）· transactional pane_service 500 行 · §H.3 atomicity（rusqlite Transaction · 任意一步 fail 全 rollback）· 13 unit tests | ✅ done | [#143](https://github.com/tajiaoyezi/vibestation/pull/143) |
-| Phase C · 前端分屏 UI scaffolding | `pane_init_for_tab` IPC（idempotent · 2 tests）+ 3 SolidJS 组件（PaneTerminal · PaneSplitView · PaneSplitter）+ usePaneShortcuts hook + CSS · **0 集成 Terminal.tsx** · 独立 typecheck/lint 通过 | ✅ done | [#144](https://github.com/tajiaoyezi/vibestation/pull/144) |
-| Phase C · §D 拖拽 splitter 60FPS | PaneSplitter 拖拽实现 · onPointerDown/Move/Up + setPointerCapture · rAF 节流 60FPS · clamp [0.1, 0.9] · Esc 取消 · 双击复位 50/50 · ::before 扩展 hit area | ✅ done | [#147](https://github.com/tajiaoyezi/vibestation/pull/147) |
-| Phase C · §C SmartLayoutMenu 组件 | 230 行 modal 组件 · 2 preset 卡片 · dry-run 预览 will-close panes · UX 决策（红色 Confirm 替代嵌套 dialog）· async onApply | ✅ done | [#148](https://github.com/tajiaoyezi/vibestation/pull/148) |
-| Phase C · §A/§B/§E 集成 | Terminal.tsx 集成 PaneSplitView 渲染 · ⌘\\ ⌘⇧\\ ⌘⌃W shortcuts wire · pane_focus on click · backend PaneListResponse 加 focusedPaneId · 双路渲染（pane mode / legacy） | ✅ done | [#149](https://github.com/tajiaoyezi/vibestation/pull/149) |
-| Phase C · §C wire | SmartLayoutMenu 集成 · ⌘⇧P keydown listener · onApply 调 pane_layout_apply · pendingPaste 时 suppress · Sub-agent C 报告 backend preset 翻译错误修正（直接传 camelCase 不翻译） | ✅ done | [#150](https://github.com/tajiaoyezi/vibestation/pull/150) |
-| Phase C · §F 性能仪表化 + Phase D capture script | F.4-F.6 inline performance.now() console.info 输出 · F.1 measure-memory.sh + F.2/F.3 DevTools manual procedure · capture-phase-d.sh 自动化 6 截图 + 录屏指引 · metrics-mvp-05.md 测量手册 | 🟡 partial done · 仪表化完成 · 实测数字待 Arbiter 本地 30 min capture | [#151](https://github.com/tajiaoyezi/vibestation/pull/151) |
-| Phase D · runtime 证据捕获 | 6 PNG 截图 + 30s 录屏 · 用 capture-phase-d.sh + screencapture -V 30 实际跑 · 填 metrics-mvp-05.md F.1-F.6 实测数字 | ⏳ todo · ~30 min Arbiter 本地（v0.1 GA gate 前推荐做） | — |
+| Phase                                  | 范围                                                                                                                                                                                                           | 状态                                                    | PR                                                         |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
+| Phase A · storage prep                 | migration v6（`CREATE TABLE panes` + `tabs` 加 `layout` / `focused_pane_id` 列）+ `PanesDao` CRUD + 单元测试 + ts-rs bindings 生成                                                                             | ✅ done                                                 | spec 早期 PR                                               |
+| Phase B Step 2 · layout pure functions | 4 pure functions（split_layout / close_pane_in_layout / update_split_ratio / apply_smart_layout）+ 17 单元测试 + 7 micro-bench（48-210 ns）· panes.rs +647 行                                                  | ✅ done                                                 | [#141](https://github.com/tajiaoyezi/vibestation/pull/141) |
+| Phase B Step 1 · pane_pty IPC          | `pane_pty_*` 5 IPC commands · §H.6 锁 A 独立命名空间 · 独立 `PtyManager` 实例 · 反向映射 PtyEvent → PanePtyEvent · 3 unit tests                                                                                | ✅ done                                                 | [#142](https://github.com/tajiaoyezi/vibestation/pull/142) |
+| Phase B Step 2 · IPC layer             | 5 layout IPC commands（pane_split / close / focus / layout_apply / split_ratio_update）· transactional pane_service 500 行 · §H.3 atomicity（rusqlite Transaction · 任意一步 fail 全 rollback）· 13 unit tests | ✅ done                                                 | [#143](https://github.com/tajiaoyezi/vibestation/pull/143) |
+| Phase C · 前端分屏 UI scaffolding      | `pane_init_for_tab` IPC（idempotent · 2 tests）+ 3 SolidJS 组件（PaneTerminal · PaneSplitView · PaneSplitter）+ usePaneShortcuts hook + CSS · **0 集成 Terminal.tsx** · 独立 typecheck/lint 通过               | ✅ done                                                 | [#144](https://github.com/tajiaoyezi/vibestation/pull/144) |
+| Phase C · §D 拖拽 splitter 60FPS       | PaneSplitter 拖拽实现 · onPointerDown/Move/Up + setPointerCapture · rAF 节流 60FPS · clamp [0.1, 0.9] · Esc 取消 · 双击复位 50/50 · ::before 扩展 hit area                                                     | ✅ done                                                 | [#147](https://github.com/tajiaoyezi/vibestation/pull/147) |
+| Phase C · §C SmartLayoutMenu 组件      | 230 行 modal 组件 · 2 preset 卡片 · dry-run 预览 will-close panes · UX 决策（红色 Confirm 替代嵌套 dialog）· async onApply                                                                                     | ✅ done                                                 | [#148](https://github.com/tajiaoyezi/vibestation/pull/148) |
+| Phase C · §A/§B/§E 集成                | Terminal.tsx 集成 PaneSplitView 渲染 · ⌘\\ ⌘⇧\\ ⌘⌃W shortcuts wire · pane_focus on click · backend PaneListResponse 加 focusedPaneId · 双路渲染（pane mode / legacy）                                          | ✅ done                                                 | [#149](https://github.com/tajiaoyezi/vibestation/pull/149) |
+| Phase C · §C wire                      | SmartLayoutMenu 集成 · ⌘⇧P keydown listener · onApply 调 pane_layout_apply · pendingPaste 时 suppress · Sub-agent C 报告 backend preset 翻译错误修正（直接传 camelCase 不翻译）                                | ✅ done                                                 | [#150](https://github.com/tajiaoyezi/vibestation/pull/150) |
+| Phase C · §F 性能仪表化                | F.4-F.6 inline performance.now() console.info 输出 · F.1 measure-memory.sh + F.2/F.3 DevTools manual procedure（capture script + metrics 模板 deprecated 2026-05-20 · ADR-023）                                | ✅ done                                                 | [#151](https://github.com/tajiaoyezi/vibestation/pull/151) |
+| Phase D · runtime 证据捕获             | 6 PNG 截图 + 30s 录屏 · F.1-F.6 实测数字                                                                                                                                                                       | ✅ done（capture 要求 deprecated 2026-05-20 · ADR-023） | —                                                          |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
@@ -93,7 +99,7 @@ reviewer: Kimi
 - [ ] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 · 13 个 struct 见 §G.5）
 - [ ] fixture：用 `tempfile` crate 运行时生成 sqlite + tabs 行 · 不要硬编码本地路径（仿 MVP-09 §C.1）
 
-**下次 agent 起点**（session 19 末更新）：**Phase D runtime 证据实测捕获**（v0.1 GA gate 前推荐 · ~30 min Arbiter 本地）· 跑 `bash scripts/capture/mvp-05/capture-phase-d.sh` 自动化 capture 6 PNG · 用 `screencapture -V 30 -x -l <wid>` 录屏 · 跑 `bash scripts/capture/mvp-05/measure-memory.sh` 测 F.1 内存 · 用 DevTools Performance 测 F.2/F.3 拖拽 60FPS · 在 webview console 看 F.4/F.5/F.6 自动 log · 填 `docs/runtime-evidence/mvp-05/metrics-mvp-05.md` 实测数字。完整 Phase C 已 done（spec §A-§E + §F 仪表化 + §C SmartLayoutMenu wire 全 PR #141-#150 落地 · 9 PR 序列）。
+**下次 agent 起点**（2026-05-20 · capture mandate removed · ADR-023）：Phase A/B/C 代码 done（spec §A-§E + §F 仪表化 + §C SmartLayoutMenu wire 全 PR #141-#150 落地 · 9 PR 序列）· Phase D capture follow-up 已 deprecated · MVP-05 spec status flip done 由 PR-5 统一执行。
 
 **依赖关系说明**：MVP-05 Phase A/B 可以和 MVP-04 Phase C/D/E/F **并行**启动（文件域物理隔离）· Phase C 前端分屏 UI 必须等 MVP-04 Phase C xterm 前端 done（共享 Terminal 组件基础）。
 
@@ -151,12 +157,12 @@ reviewer: Kimi
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|------|------|
-| 单元 | Pane 布局树模型（`LayoutNode` 递归，MVP 限深度 ≤ 2）+ 非法操作拒绝 + 原子回滚 |
-| 视觉回归 | 4 种合法布局截图对比原型 |
-| E2E | 完整流程：分屏 → 拖拽 → 关 → 应用 Layout → 二次确认取消/确认 |
-| 手动 QA | 多屏不同 DPI 下分隔条精度 |
+| 层次     | 范围                                                                          |
+| -------- | ----------------------------------------------------------------------------- |
+| 单元     | Pane 布局树模型（`LayoutNode` 递归，MVP 限深度 ≤ 2）+ 非法操作拒绝 + 原子回滚 |
+| 视觉回归 | 4 种合法布局截图对比原型                                                      |
+| E2E      | 完整流程：分屏 → 拖拽 → 关 → 应用 Layout → 二次确认取消/确认                  |
+| 手动 QA  | 多屏不同 DPI 下分隔条精度                                                     |
 
 #### C.1 · fixture 准备脚本 + Criterion bench 模板
 
@@ -263,18 +269,18 @@ criterion_main!(benches);
 
 ### G.1 预期 IPC struct 清单
 
-| Struct / Enum | 用途 | 备注 |
-|---|---|---|
-| `PaneState` | Pane 状态同步 | 排除 `scroll_back`，同 MVP-04 `TabState` 排除模式 |
-| `PaneCreateRequest` | 新建 Pane | `{ tab_id, parent_pane_id, direction: SplitDir, shell }` |
-| `PaneCloseRequest` | 关闭 Pane | `{ pane_id }` |
-| `LayoutNode` | 布局树节点 | 递归 tagged union（`Single` / `Split`） |
-| `SplitDir` | 分割方向 | 简单 string union：`"horizontal"` / `"vertical"` |
-| `LayoutApplyRequest` | 应用 Smart Layout | `{ tab_id, preset: "solo" \| "ai_runner", confirmed: bool }` |
-| `SplitRatioUpdateRequest` | 更新分割比例 | `{ pane_id, new_ratio: f32 }` |
-| `PaneFocusRequest` | 切换焦点 | `{ tab_id, focused_pane_id }` |
-| `PaneListResponse` | Pane 列表 + 当前布局 | `{ panes: Vec<PaneState>, layout: LayoutNode }` |
-| `PaneScrollbackFetchRequest` | 拉取 scrollback | `{ pane_id, offset, limit }`（独立接口，同 MVP-04 `tab_scrollback_fetch` 模式） |
+| Struct / Enum                | 用途                 | 备注                                                                            |
+| ---------------------------- | -------------------- | ------------------------------------------------------------------------------- |
+| `PaneState`                  | Pane 状态同步        | 排除 `scroll_back`，同 MVP-04 `TabState` 排除模式                               |
+| `PaneCreateRequest`          | 新建 Pane            | `{ tab_id, parent_pane_id, direction: SplitDir, shell }`                        |
+| `PaneCloseRequest`           | 关闭 Pane            | `{ pane_id }`                                                                   |
+| `LayoutNode`                 | 布局树节点           | 递归 tagged union（`Single` / `Split`）                                         |
+| `SplitDir`                   | 分割方向             | 简单 string union：`"horizontal"` / `"vertical"`                                |
+| `LayoutApplyRequest`         | 应用 Smart Layout    | `{ tab_id, preset: "solo" \| "ai_runner", confirmed: bool }`                    |
+| `SplitRatioUpdateRequest`    | 更新分割比例         | `{ pane_id, new_ratio: f32 }`                                                   |
+| `PaneFocusRequest`           | 切换焦点             | `{ tab_id, focused_pane_id }`                                                   |
+| `PaneListResponse`           | Pane 列表 + 当前布局 | `{ panes: Vec<PaneState>, layout: LayoutNode }`                                 |
+| `PaneScrollbackFetchRequest` | 拉取 scrollback      | `{ pane_id, offset, limit }`（独立接口，同 MVP-04 `tab_scrollback_fetch` 模式） |
 
 ### G.2 derive 模板
 
@@ -392,32 +398,32 @@ pub struct PaneScrollbackFetchRequest {
 
 MVP-05 实施前必须明确复用 / 新增边界，避免和 MVP-04 Phase A/B 已生成 binding 冲突：
 
-| 已有 binding | MVP-05 §G.1 涉及 | 决策 | 理由 |
-|---|---|---|---|
-| `TabState`（MVP-04 Phase A 已生成）| §G.1 `PaneListResponse` 的 `tab_id` 字段 | ⛔ 不复用为输入 · 仅引用 `tab_id` | `TabState` 含 `scroll_back` · 不适合作为 Pane 上下文 · MVP-05 只需要 `tab_id` 引用 |
-| `PtySpawnRequest`（MVP-04 Phase B 已生成）| §H.6 锁 A 选项独立 `pane_pty_*` | ⛔ 不复用 · 新建 `PanePtySpawnRequest` | 改 `PtySpawnRequest` 会破坏 MVP-04 Phase B 已落地 binding（5 IPC + 前端调用）· 独立命名空间避免 |
-| `TabsDao`（MVP-04 Phase A）| MVP-05 Phase A `PanesDao` | ⛔ 不复用 · 新建 `PanesDao` 但仿 `TabsDao` 模式 | `TabsDao` 操作 `tabs` 表 · `PanesDao` 操作 `panes` 表 · 表不同 DAO 不混 |
-| `migrate_v5`（MVP-04 Phase A）| MVP-05 Phase A `migrate_v6` | ⛔ 不复用 · 新建 `migrate_v6` | migration 单调递增 · v5 已锁 `tabs` 表 · v6 加 `panes` 表 + `tabs` 2 列（§H.4 SQL 已写）|
+| 已有 binding                               | MVP-05 §G.1 涉及                         | 决策                                            | 理由                                                                                            |
+| ------------------------------------------ | ---------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `TabState`（MVP-04 Phase A 已生成）        | §G.1 `PaneListResponse` 的 `tab_id` 字段 | ⛔ 不复用为输入 · 仅引用 `tab_id`               | `TabState` 含 `scroll_back` · 不适合作为 Pane 上下文 · MVP-05 只需要 `tab_id` 引用              |
+| `PtySpawnRequest`（MVP-04 Phase B 已生成） | §H.6 锁 A 选项独立 `pane_pty_*`          | ⛔ 不复用 · 新建 `PanePtySpawnRequest`          | 改 `PtySpawnRequest` 会破坏 MVP-04 Phase B 已落地 binding（5 IPC + 前端调用）· 独立命名空间避免 |
+| `TabsDao`（MVP-04 Phase A）                | MVP-05 Phase A `PanesDao`                | ⛔ 不复用 · 新建 `PanesDao` 但仿 `TabsDao` 模式 | `TabsDao` 操作 `tabs` 表 · `PanesDao` 操作 `panes` 表 · 表不同 DAO 不混                         |
+| `migrate_v5`（MVP-04 Phase A）             | MVP-05 Phase A `migrate_v6`              | ⛔ 不复用 · 新建 `migrate_v6`                   | migration 单调递增 · v5 已锁 `tabs` 表 · v6 加 `panes` 表 + `tabs` 2 列（§H.4 SQL 已写）        |
 
 ### G.5 · MVP-05 新增 binding 清单（明确数量）
 
 以下 **13 个 binding** 为 MVP-05 **新增** · 实施时 `web/src/bindings/` 应新增 13 个 `.ts` 文件：
 
-| Rust struct / enum | 用途 | 前端 import 路径 |
-|---|---|---|
-| `PaneState` | Pane 状态同步 · 排除 `scroll_back` | `import type { PaneState } from "../bindings/PaneState"` |
-| `PaneCreateRequest` | 新建 Pane | `import type { PaneCreateRequest } from "../bindings/PaneCreateRequest"` |
-| `PaneCloseRequest` | 关闭 Pane | `import type { PaneCloseRequest } from "../bindings/PaneCloseRequest"` |
-| `LayoutNode` | 布局树节点 · 递归 tagged union | `import type { LayoutNode } from "../bindings/LayoutNode"` |
-| `SplitDir` | 分割方向 · string union | `import type { SplitDir } from "../bindings/SplitDir"` |
-| `LayoutApplyRequest` | 应用 Smart Layout | `import type { LayoutApplyRequest } from "../bindings/LayoutApplyRequest"` |
-| `SplitRatioUpdateRequest` | 更新分割比例 | `import type { SplitRatioUpdateRequest } from "../bindings/SplitRatioUpdateRequest"` |
-| `PaneFocusRequest` | 切换焦点 | `import type { PaneFocusRequest } from "../bindings/PaneFocusRequest"` |
-| `PaneListResponse` | Pane 列表 + 当前布局 | `import type { PaneListResponse } from "../bindings/PaneListResponse"` |
-| `PaneScrollbackFetchRequest` | 拉取 scrollback | `import type { PaneScrollbackFetchRequest } from "../bindings/PaneScrollbackFetchRequest"` |
-| `PanePtySpawnRequest` | Pane PTY spawn · 独立命名 | `import type { PanePtySpawnRequest } from "../bindings/PanePtySpawnRequest"` |
-| `PanePtyStdoutEvent` | Pane PTY stdout event | `import type { PanePtyStdoutEvent } from "../bindings/PanePtyStdoutEvent"` |
-| `PanePtyExitedEvent` | Pane PTY exited event | `import type { PanePtyExitedEvent } from "../bindings/PanePtyExitedEvent"` |
+| Rust struct / enum           | 用途                               | 前端 import 路径                                                                           |
+| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------ |
+| `PaneState`                  | Pane 状态同步 · 排除 `scroll_back` | `import type { PaneState } from "../bindings/PaneState"`                                   |
+| `PaneCreateRequest`          | 新建 Pane                          | `import type { PaneCreateRequest } from "../bindings/PaneCreateRequest"`                   |
+| `PaneCloseRequest`           | 关闭 Pane                          | `import type { PaneCloseRequest } from "../bindings/PaneCloseRequest"`                     |
+| `LayoutNode`                 | 布局树节点 · 递归 tagged union     | `import type { LayoutNode } from "../bindings/LayoutNode"`                                 |
+| `SplitDir`                   | 分割方向 · string union            | `import type { SplitDir } from "../bindings/SplitDir"`                                     |
+| `LayoutApplyRequest`         | 应用 Smart Layout                  | `import type { LayoutApplyRequest } from "../bindings/LayoutApplyRequest"`                 |
+| `SplitRatioUpdateRequest`    | 更新分割比例                       | `import type { SplitRatioUpdateRequest } from "../bindings/SplitRatioUpdateRequest"`       |
+| `PaneFocusRequest`           | 切换焦点                           | `import type { PaneFocusRequest } from "../bindings/PaneFocusRequest"`                     |
+| `PaneListResponse`           | Pane 列表 + 当前布局               | `import type { PaneListResponse } from "../bindings/PaneListResponse"`                     |
+| `PaneScrollbackFetchRequest` | 拉取 scrollback                    | `import type { PaneScrollbackFetchRequest } from "../bindings/PaneScrollbackFetchRequest"` |
+| `PanePtySpawnRequest`        | Pane PTY spawn · 独立命名          | `import type { PanePtySpawnRequest } from "../bindings/PanePtySpawnRequest"`               |
+| `PanePtyStdoutEvent`         | Pane PTY stdout event              | `import type { PanePtyStdoutEvent } from "../bindings/PanePtyStdoutEvent"`                 |
+| `PanePtyExitedEvent`         | Pane PTY exited event              | `import type { PanePtyExitedEvent } from "../bindings/PanePtyExitedEvent"`                 |
 
 > 加上引用 MVP-04 的 `TabState`（不重新生成）= 实施时 bindings 目录共新增 **13 个 `.ts` 文件**。
 
@@ -429,24 +435,24 @@ MVP-05 实施前必须明确复用 / 新增边界，避免和 MVP-04 Phase A/B �
 
 ### H.1 LayoutNode 深度约束
 
-| 版本 | 最大深度 | 最大 Pane 数 | 说明 |
-|---|---|---|---|
-| MVP-05（v0.1） | ≤ 2 | 4 | 根节点 + 一层 Split：2×2 / 1×2 / 2×1 / Solo |
-| v0.2 | ≤ 4 | 8+ | 放开深度限制，支持任意嵌套、Dual AI / Triple Review / Quad 预设 |
-| v0.3 | 跨窗口 | 无上限 | Pane Detach，LayoutTree 分布多窗口，需 window_id 索引 |
+| 版本           | 最大深度 | 最大 Pane 数 | 说明                                                            |
+| -------------- | -------- | ------------ | --------------------------------------------------------------- |
+| MVP-05（v0.1） | ≤ 2      | 4            | 根节点 + 一层 Split：2×2 / 1×2 / 2×1 / Solo                     |
+| v0.2           | ≤ 4      | 8+           | 放开深度限制，支持任意嵌套、Dual AI / Triple Review / Quad 预设 |
+| v0.3           | 跨窗口   | 无上限       | Pane Detach，LayoutTree 分布多窗口，需 window_id 索引           |
 
 - MVP-05 实施时，**深度检查必须在 Rust 侧**（core crate）硬编码 `MAX_LAYOUT_DEPTH = 2`，前端仅做乐观预检；任何超出深度的 split 请求返回 `Err(LayoutError::MaxDepthExceeded)`。
 
 ### H.2 合法 / 非法布局矩阵（单元测试必覆盖）
 
-| 布局 | depth | pane_count | 状态 |
-|---|---|---|---|
-| Solo | 1 | 1 | ✅ 合法 |
-| 水平 2 Pane（右分） | 2 | 2 | ✅ 合法 |
-| 垂直 2 Pane（下分） | 2 | 2 | ✅ 合法 |
-| 2×2（右分后再下分） | 2 | 4 | ✅ 合法 |
-| 3 横（右分后，右 Pane 再右分） | 3 | 3 | ❌ **MVP-05 拒绝** |
-| 3 竖（下分后，下 Pane 再下分） | 3 | 3 | ❌ **MVP-05 拒绝** |
+| 布局                           | depth | pane_count | 状态               |
+| ------------------------------ | ----- | ---------- | ------------------ |
+| Solo                           | 1     | 1          | ✅ 合法            |
+| 水平 2 Pane（右分）            | 2     | 2          | ✅ 合法            |
+| 垂直 2 Pane（下分）            | 2     | 2          | ✅ 合法            |
+| 2×2（右分后再下分）            | 2     | 4          | ✅ 合法            |
+| 3 横（右分后，右 Pane 再右分） | 3     | 3          | ❌ **MVP-05 拒绝** |
+| 3 竖（下分后，下 Pane 再下分） | 3     | 3          | ❌ **MVP-05 拒绝** |
 
 - 单元测试至少覆盖上表 6 种组合 + 边界回滚测试（非法操作后 layout tree 不变）。
 
@@ -548,10 +554,10 @@ PRAGMA user_version = 6;
 
 MVP-04 Phase B（PR #82）已落地 5 个 `tab_pty_*` IPC commands（spawn/stdin/resize/signal/kill · payload 用 `tab_id`）。MVP-05 Pane 独立 PTY · IPC 层有两条路径：
 
-| 选项 | IPC 命名 | 和 MVP-04 Phase B 关系 | 前端改动 | 推荐度 |
-|---|---|---|---|---|
-| A · 新建 `pane_pty_*` 5 commands | `pane_pty_spawn` / `stdin` / `resize` / `signal` / `kill` | 独立命名空间 · MVP-04 不改 | 前端增加 pane 分支 · `tab_pty_*` 保留 | ✅ 推荐 |
-| B · 复用 `tab_pty_*` + 加 paneId 参数 | `tab_pty_spawn({ tabId, paneId? })` | 破坏 `PtySpawnRequest` struct（已有 ts-rs binding） | 前端所有 `tab_pty_*` 调用加 `paneId` | ❌ 不推荐 |
+| 选项                                  | IPC 命名                                                  | 和 MVP-04 Phase B 关系                              | 前端改动                              | 推荐度    |
+| ------------------------------------- | --------------------------------------------------------- | --------------------------------------------------- | ------------------------------------- | --------- |
+| A · 新建 `pane_pty_*` 5 commands      | `pane_pty_spawn` / `stdin` / `resize` / `signal` / `kill` | 独立命名空间 · MVP-04 不改                          | 前端增加 pane 分支 · `tab_pty_*` 保留 | ✅ 推荐   |
+| B · 复用 `tab_pty_*` + 加 paneId 参数 | `tab_pty_spawn({ tabId, paneId? })`                       | 破坏 `PtySpawnRequest` struct（已有 ts-rs binding） | 前端所有 `tab_pty_*` 调用加 `paneId`  | ❌ 不推荐 |
 
 **锁定 A**（独立命名）· 理由：
 

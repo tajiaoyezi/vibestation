@@ -26,6 +26,10 @@ reviewer: Cursor · self-review
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"§I.4 Phase D 细分 / §I.5 Phase E 细分 / Phase E 15 GUI 截图 + 30s 录屏 + perf metrics + Lighthouse WCAG / 跨平台 capture / runtime evidence 打包归档" 类 acceptance 项 / Phase 表行** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（session_lifecycle / session_dao / session_service 851 passed + session_redaction 30 passed + telemetry_pii 6 passed + 前端 session subset 78 vitest · MVP-19 #384 已建立的 readiness 体检验证范围）保留为 done gate。`docs/runtime-evidence/mvp-19/CAPTURE-PLAYBOOK.md` + `PRE-CAPTURE-READINESS.md` + `metrics-mvp-19.md` 由 PR-4 删除。
+
+---
+
 ## 占位语义保留（原始骨架）
 
 把一次完整的 AI 对话（Claude / Codex CLI session）识别为一个**逻辑工作单元**，并自动关联到它期间产生的 commits，使得：

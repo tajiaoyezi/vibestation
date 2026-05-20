@@ -26,6 +26,10 @@ reviewer: Claude Code
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"Phase D 截图 / 录屏 / GUI capture / runtime evidence / manual QA capture / 跨平台 Linux capture" 类 acceptance 项 / Phase 表行** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（rebase_ops::tests:: 54 + 3-way conflict + crash recovery 全链 / 性能 DevTools 数字）保留为 done gate。
+
+---
+
 ## 🎯 目标（Goal）
 
 在 MVP-13 分支 CRUD 之后 · 补齐三大分支历史改写操作：**rebase（含交互式 5 op）/ merge（ff/no-ff/squash）/ cherry-pick（单 commit 或 range）** + 完整的 **冲突解决 UI**（复用 MVP-08 Diff 视图 + 3-way marker）+ **中断恢复**（continue / abort / skip · 含 crash recovery）· 让用户不再需要回终端做大部分高级 Git 工作。
@@ -94,12 +98,12 @@ reviewer: Claude Code
 
 MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 
-| Phase | 范围 | 估时 | 状态 |
-|-------|------|------|------|
-| Phase A · git2 后端 + IPC | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof | 3d | ✅ done |
-| Phase B · UI 主体（rebase editor + 冲突解决） | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ✅ done · PR #257 · runtime screenshots 按用户要求跳过 |
-| Phase C · 中断恢复 + crash recovery | rebase_state 表持久化 · app 启动检测 .git/rebase-merge · 全局 banner UI · continue / abort / skip 路径 | 1d | ✅ done · PR #259 |
-| Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑 | 0.5d | 🟢 部分 done · macOS Criterion bench done by PR #266 · GUI screenshot + Linux 跨平台 deferred |
+| Phase                                             | 范围                                                                                                                                             | 估时 | 状态                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---- | --------------------------------------------------------------------------------------------- |
+| Phase A · git2 后端 + IPC                         | rebase_ops.rs 后端（rebase / merge / cherry-pick API + 状态机 + RebaseState 持久化）· 9 IPC + 18 ts-rs binding + 50+ 单元测试 + H2 proof         | 3d   | ✅ done                                                                                       |
+| Phase B · UI 主体（rebase editor + 冲突解决）     | 交互式 rebase editor 组件 + 3-way conflict Diff 视图（扩展 MVP-08）+ conflict banner + Git Log 右键菜单 + Smart Layouts merge / cherry-pick 入口 | 2.5d | ✅ done · PR #257 · runtime screenshots 按用户要求跳过                                        |
+| Phase C · 中断恢复 + crash recovery               | rebase_state 表持久化 · app 启动检测 .git/rebase-merge · 全局 banner UI · continue / abort / skip 路径                                           | 1d   | ✅ done · PR #259                                                                             |
+| Phase D · runtime 证据 + Criterion bench + 跨平台 | 截图（rebase editor / 3-way conflict / 各类操作）+ 性能量化（10 / 100 commit rebase · 5 / 50 file conflict）+ macOS + Linux 双平台跑             | 0.5d | 🟢 部分 done · macOS Criterion bench done by PR #266 · GUI screenshot + Linux 跨平台 deferred |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动 · 复用 MVP-09/13 模式）：
 
@@ -253,14 +257,14 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元（core） | `rebase_ops.rs` 所有函数（rebase / merge / cherrypick / conflict 检测）+ `RebaseOpError` enum 全 variant + 状态机转换 | `cargo test --package vibestation-core rebase_ops::` · fixture: tempfile + git2::Repository::init |
-| 集成 | IPC 链路：前端 invoke → Rust → git2 → 真实 repo · 包含交互式 rebase / 3-way conflict / 中断恢复 / crash recovery 四大边界 | `cargo test --features integration` |
-| Criterion bench | rebase 10 / 100 commit · merge 50 commit · cherry-pick 1 / 10 commit · 5 / 50 file conflict | `crates/core/benches/rebase_bench.rs` |
-| E2E（Playwright） | golden path：交互式 rebase 5 op 全用 + 3-way conflict 3 种 action + crash recovery 流程 | `web/tests/e2e/rebase.spec.ts` |
-| 视觉回归 | RebaseEditor modal · 3-way Diff 视图 · ConflictBanner · CrashBanner · MergeDialog / CherryPickDialog | Playwright screenshot diff |
-| 手动 QA | macOS / Linux 双平台跑：UTF-8 文件 conflict / 二进制文件 conflict（git2 不能 3-way · 给 fallback "Use ours/theirs" 选项） | 手动 capture |
+| 层次              | 范围                                                                                                                      | 覆盖路径                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 单元（core）      | `rebase_ops.rs` 所有函数（rebase / merge / cherrypick / conflict 检测）+ `RebaseOpError` enum 全 variant + 状态机转换     | `cargo test --package vibestation-core rebase_ops::` · fixture: tempfile + git2::Repository::init |
+| 集成              | IPC 链路：前端 invoke → Rust → git2 → 真实 repo · 包含交互式 rebase / 3-way conflict / 中断恢复 / crash recovery 四大边界 | `cargo test --features integration`                                                               |
+| Criterion bench   | rebase 10 / 100 commit · merge 50 commit · cherry-pick 1 / 10 commit · 5 / 50 file conflict                               | `crates/core/benches/rebase_bench.rs`                                                             |
+| E2E（Playwright） | golden path：交互式 rebase 5 op 全用 + 3-way conflict 3 种 action + crash recovery 流程                                   | `web/tests/e2e/rebase.spec.ts`                                                                    |
+| 视觉回归          | RebaseEditor modal · 3-way Diff 视图 · ConflictBanner · CrashBanner · MergeDialog / CherryPickDialog                      | Playwright screenshot diff                                                                        |
+| 手动 QA           | macOS / Linux 双平台跑：UTF-8 文件 conflict / 二进制文件 conflict（git2 不能 3-way · 给 fallback "Use ours/theirs" 选项） | 手动 capture                                                                                      |
 
 ### C.1 · fixture 准备脚本
 
@@ -364,7 +368,7 @@ migration：在 `crates/app/migrations/` 新建 `0042_rebase_state.sql` · 启�
 
 - `CLAUDE.md` #13 Git 栈混用决策（写 git2）· #7 Diff 自建（MVP-08 已锁定 · MVP-16 复用扩展）
 - ADR-007 Git 栈混用决策
-- `implementation-plan.md` §10.1 v0.3 砍到 rebase/merge/cherry-pick · §6.2 git_rebase_*/git_merge_*/git_cherrypick_* IPC · §11 W18-W19
+- `implementation-plan.md` §10.1 v0.3 砍到 rebase/merge/cherry-pick · §6.2 git*rebase*_/git*merge*_/git*cherrypick*\* IPC · §11 W18-W19
 - 上游：MVP-08（Diff 视图基础 + 2-way 数据流）· MVP-09（git2 写路径基础设施 · CommitError / ts-rs / permission / capability 模式）· MVP-13（branch CRUD · checkout 链路 + dirty tree 阻塞）· SPIKE-04（git2 写 smoke test）
 - 下游：无（v0.3 自成功能）· v1.0 reflog 集成 + AI conflict resolution
 
@@ -376,26 +380,26 @@ migration：在 `crates/app/migrations/` 新建 `0042_rebase_state.sql` · 启�
 
 ### G.1 本 MVP 涉及的 IPC struct 清单
 
-| Rust struct | 用途 | 前端 import 路径 |
-|-------------|------|-----------------|
-| `RebaseStartRequest` | 启动 rebase · `{ workspaceId, branch, onto, interactive: bool }` | 新增 |
-| `RebaseInteractivePlan` | 交互式 rebase plan · `{ steps: RebaseInteractiveStep[] }` | 新增 |
-| `RebaseInteractiveStep` | 单 step · `{ stepId, op, commitSha, messageOverride: string \| null }` | 新增 |
-| `RebaseOp` | 枚举：`Pick / Reword / Squash / Fixup / Drop / Edit` | 新增 |
-| `RebaseStatus` | 状态查询 · `{ inProgress: bool, operation: string \| null, currentStep, totalSteps, conflictingFiles: string[] }` | 新增 |
-| `RebaseControlRequest` | continue / abort / skip · `{ workspaceId, action: "continue" \| "abort" \| "skip" }` | 新增 |
-| `MergeRequest` | 启动 merge · `{ workspaceId, sourceBranch, strategy: "ff" \| "no-ff" \| "squash", commitMessage: string \| null }` | 新增 |
-| `MergeStrategy` | 枚举：`FastForward / NoFastForward / Squash` | 新增 |
-| `MergeStatus` | 输出 · `{ outcome: "fast-forwarded" \| "merge-commit" \| "squash-commit" \| "conflict", conflictingFiles: string[] }` | 新增 |
-| `CherryPickRequest` | `{ workspaceId, commitShas: string[], autoCommit: bool }` | 新增 |
-| `CherryPickStatus` | `{ currentIndex, totalCommits, conflictingFiles: string[] }` | 新增 |
-| `ConflictedFile` | 单 conflict 文件 · `{ path, hunks: ConflictHunk[], resolved: bool }` | 新增 |
-| `ConflictHunk` | 单 hunk · `{ id, baseContent, oursContent, theirsContent, resolved: bool, resolution: ConflictResolution \| null }` | 新增 |
-| `ConflictResolution` | 枚举（含 payload tagged union）：`AcceptOurs / AcceptTheirs / AcceptBoth / Manual { content: string }` | 新增 |
-| `ConflictResolveFileRequest` | `{ workspaceId, filePath, resolutions: ConflictHunkResolution[] }` | 新增 |
-| `ConflictHunkResolution` | `{ hunkId, resolution: ConflictResolution }` | 新增 |
-| `RebaseOpError` | 错误枚举 · 含 payload tagged union | 新增 |
-| `CrashRecoveryState` | 启动检测结果 · `{ inProgress: bool, operation: string \| null, branch: string \| null, currentStep, totalSteps }` | 新增 |
+| Rust struct                  | 用途                                                                                                                  | 前端 import 路径 |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `RebaseStartRequest`         | 启动 rebase · `{ workspaceId, branch, onto, interactive: bool }`                                                      | 新增             |
+| `RebaseInteractivePlan`      | 交互式 rebase plan · `{ steps: RebaseInteractiveStep[] }`                                                             | 新增             |
+| `RebaseInteractiveStep`      | 单 step · `{ stepId, op, commitSha, messageOverride: string \| null }`                                                | 新增             |
+| `RebaseOp`                   | 枚举：`Pick / Reword / Squash / Fixup / Drop / Edit`                                                                  | 新增             |
+| `RebaseStatus`               | 状态查询 · `{ inProgress: bool, operation: string \| null, currentStep, totalSteps, conflictingFiles: string[] }`     | 新增             |
+| `RebaseControlRequest`       | continue / abort / skip · `{ workspaceId, action: "continue" \| "abort" \| "skip" }`                                  | 新增             |
+| `MergeRequest`               | 启动 merge · `{ workspaceId, sourceBranch, strategy: "ff" \| "no-ff" \| "squash", commitMessage: string \| null }`    | 新增             |
+| `MergeStrategy`              | 枚举：`FastForward / NoFastForward / Squash`                                                                          | 新增             |
+| `MergeStatus`                | 输出 · `{ outcome: "fast-forwarded" \| "merge-commit" \| "squash-commit" \| "conflict", conflictingFiles: string[] }` | 新增             |
+| `CherryPickRequest`          | `{ workspaceId, commitShas: string[], autoCommit: bool }`                                                             | 新增             |
+| `CherryPickStatus`           | `{ currentIndex, totalCommits, conflictingFiles: string[] }`                                                          | 新增             |
+| `ConflictedFile`             | 单 conflict 文件 · `{ path, hunks: ConflictHunk[], resolved: bool }`                                                  | 新增             |
+| `ConflictHunk`               | 单 hunk · `{ id, baseContent, oursContent, theirsContent, resolved: bool, resolution: ConflictResolution \| null }`   | 新增             |
+| `ConflictResolution`         | 枚举（含 payload tagged union）：`AcceptOurs / AcceptTheirs / AcceptBoth / Manual { content: string }`                | 新增             |
+| `ConflictResolveFileRequest` | `{ workspaceId, filePath, resolutions: ConflictHunkResolution[] }`                                                    | 新增             |
+| `ConflictHunkResolution`     | `{ hunkId, resolution: ConflictResolution }`                                                                          | 新增             |
+| `RebaseOpError`              | 错误枚举 · 含 payload tagged union                                                                                    | 新增             |
+| `CrashRecoveryState`         | 启动检测结果 · `{ inProgress: bool, operation: string \| null, branch: string \| null, currentStep, totalSteps }`     | 新增             |
 
 > 实际 struct 名和字段以实施 PR 为准 · 但**必须**全部走 ts-rs 自动生成。
 
@@ -486,48 +490,48 @@ pub enum ConflictResolution {
 
 MVP-16 实施前必须明确复用 / 新增边界：
 
-| 已有 binding | MVP-16 §G.1 涉及 | 决策 | 理由 |
-|---|---|---|---|
-| `BranchInfo` / `BranchKind`（MVP-13 PR #220）| `MergeRequest.sourceBranch` 前端展示用 | ✅ 前端**复用**（不新建）· 调 MVP-13 `branch_list` IPC 拿数据 | 一致性 + 不重复定义 |
-| `GitStatusResponse` / `FileChange`（MVP-08）| Dirty tree 检测 + conflict 文件列表 | ✅ 前端**复用** GitStatusResponse · `ConflictedFile` 新建（不复用 FileChange · 因为 conflict 含 base/ours/theirs 多了语义）| 复用状态查询 · 但 conflict 数据结构独立 |
-| `CommitError`（MVP-09）| 新 `RebaseOpError` enum | ⛔ 不复用 · 新建独立 enum | 错误语义完全不同（Rebase 不涉及 IdentityMissing · 但有 ConflictUnresolved / OperationInProgress 等专属语义） |
-| `BranchError`（MVP-13）| 不直接涉及（rebase 调 branch checkout 时通过 IPC 间接调）| ⛔ 不复用 · MVP-16 不直接抛 BranchError | 跨 IPC 边界 · branch_checkout 失败时 MVP-13 IPC 自带 error 处理 |
-| `CommitInfo` / `GitLogEntry`（MVP-07）| `RebaseInteractiveStep.commitSha` 前端展示用（拿 short message / author）| ✅ 前端**复用**（不重新定义 commit metadata）· 调 MVP-07 IPC 拿数据 | 避免 commit 元数据双源 |
+| 已有 binding                                  | MVP-16 §G.1 涉及                                                          | 决策                                                                                                                        | 理由                                                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `BranchInfo` / `BranchKind`（MVP-13 PR #220） | `MergeRequest.sourceBranch` 前端展示用                                    | ✅ 前端**复用**（不新建）· 调 MVP-13 `branch_list` IPC 拿数据                                                               | 一致性 + 不重复定义                                                                                          |
+| `GitStatusResponse` / `FileChange`（MVP-08）  | Dirty tree 检测 + conflict 文件列表                                       | ✅ 前端**复用** GitStatusResponse · `ConflictedFile` 新建（不复用 FileChange · 因为 conflict 含 base/ours/theirs 多了语义） | 复用状态查询 · 但 conflict 数据结构独立                                                                      |
+| `CommitError`（MVP-09）                       | 新 `RebaseOpError` enum                                                   | ⛔ 不复用 · 新建独立 enum                                                                                                   | 错误语义完全不同（Rebase 不涉及 IdentityMissing · 但有 ConflictUnresolved / OperationInProgress 等专属语义） |
+| `BranchError`（MVP-13）                       | 不直接涉及（rebase 调 branch checkout 时通过 IPC 间接调）                 | ⛔ 不复用 · MVP-16 不直接抛 BranchError                                                                                     | 跨 IPC 边界 · branch_checkout 失败时 MVP-13 IPC 自带 error 处理                                              |
+| `CommitInfo` / `GitLogEntry`（MVP-07）        | `RebaseInteractiveStep.commitSha` 前端展示用（拿 short message / author） | ✅ 前端**复用**（不重新定义 commit metadata）· 调 MVP-07 IPC 拿数据                                                         | 避免 commit 元数据双源                                                                                       |
 
 ### G.6 · MVP-16 新增 binding 清单（明确数量）
 
 以下 **18 个 binding** 为 MVP-16 **新增** · 实施时 `web/src/bindings/` 将新增 18 个 `.ts` 文件：
 
-| Rust struct / enum | 用途 | 前端 import 路径 |
-|---|---|---|
-| `RebaseStartRequest` | rebase 启动输入 | `import type { RebaseStartRequest } from "../bindings/RebaseStartRequest"` |
-| `RebaseInteractivePlan` | plan 输入 | `import type { RebaseInteractivePlan } from "../bindings/RebaseInteractivePlan"` |
-| `RebaseInteractiveStep` | plan 单 step | `import type { RebaseInteractiveStep } from "../bindings/RebaseInteractiveStep"` |
-| `RebaseOp` | 枚举 5 op | `import type { RebaseOp } from "../bindings/RebaseOp"` |
-| `RebaseStatus` | 状态查询输出 | `import type { RebaseStatus } from "../bindings/RebaseStatus"` |
-| `RebaseControlRequest` | continue / abort / skip 输入 | 新增 |
-| `MergeRequest` | merge 启动输入 | 新增 |
-| `MergeStrategy` | 枚举 ff/no-ff/squash | 新增 |
-| `MergeStatus` | merge 输出 | 新增 |
-| `CherryPickRequest` | cherry-pick 输入 | 新增 |
-| `CherryPickStatus` | cherry-pick 输出 | 新增 |
-| `ConflictedFile` | conflict 文件 | 新增 |
-| `ConflictHunk` | conflict hunk | 新增 |
-| `ConflictResolution` | resolution 枚举（tagged union）| 新增 |
-| `ConflictResolveFileRequest` | resolve 输入 | 新增 |
-| `ConflictHunkResolution` | resolve hunk | 新增 |
-| `RebaseOpError` | 错误枚举（tagged union）| 新增 |
-| `CrashRecoveryState` | 启动检测输出 | 新增 |
+| Rust struct / enum           | 用途                            | 前端 import 路径                                                                 |
+| ---------------------------- | ------------------------------- | -------------------------------------------------------------------------------- |
+| `RebaseStartRequest`         | rebase 启动输入                 | `import type { RebaseStartRequest } from "../bindings/RebaseStartRequest"`       |
+| `RebaseInteractivePlan`      | plan 输入                       | `import type { RebaseInteractivePlan } from "../bindings/RebaseInteractivePlan"` |
+| `RebaseInteractiveStep`      | plan 单 step                    | `import type { RebaseInteractiveStep } from "../bindings/RebaseInteractiveStep"` |
+| `RebaseOp`                   | 枚举 5 op                       | `import type { RebaseOp } from "../bindings/RebaseOp"`                           |
+| `RebaseStatus`               | 状态查询输出                    | `import type { RebaseStatus } from "../bindings/RebaseStatus"`                   |
+| `RebaseControlRequest`       | continue / abort / skip 输入    | 新增                                                                             |
+| `MergeRequest`               | merge 启动输入                  | 新增                                                                             |
+| `MergeStrategy`              | 枚举 ff/no-ff/squash            | 新增                                                                             |
+| `MergeStatus`                | merge 输出                      | 新增                                                                             |
+| `CherryPickRequest`          | cherry-pick 输入                | 新增                                                                             |
+| `CherryPickStatus`           | cherry-pick 输出                | 新增                                                                             |
+| `ConflictedFile`             | conflict 文件                   | 新增                                                                             |
+| `ConflictHunk`               | conflict hunk                   | 新增                                                                             |
+| `ConflictResolution`         | resolution 枚举（tagged union） | 新增                                                                             |
+| `ConflictResolveFileRequest` | resolve 输入                    | 新增                                                                             |
+| `ConflictHunkResolution`     | resolve hunk                    | 新增                                                                             |
+| `RebaseOpError`              | 错误枚举（tagged union）        | 新增                                                                             |
+| `CrashRecoveryState`         | 启动检测输出                    | 新增                                                                             |
 
 总 **18 个新 binding**（vs 复用 5 个 上游 binding · 总暴露给前端 23 个 type）。
 
 ### G.7 · Tauri event 清单
 
-| Event name | Payload 字段 | 触发点 |
-|---|---|---|
-| `git:rebase-progress` | `{ workspaceId, currentStep, totalSteps, currentCommit }` | rebase 每 step 完成时 |
-| `git:conflict-detected` | `{ workspaceId, operation, conflictingFiles: string[] }` | rebase / merge / cherrypick 检测到 conflict 时 |
-| `git:operation-done` | `{ workspaceId, operation, success: bool, message: string }` | rebase / merge / cherrypick 完成（成功 / abort）时 |
+| Event name              | Payload 字段                                                 | 触发点                                             |
+| ----------------------- | ------------------------------------------------------------ | -------------------------------------------------- |
+| `git:rebase-progress`   | `{ workspaceId, currentStep, totalSteps, currentCommit }`    | rebase 每 step 完成时                              |
+| `git:conflict-detected` | `{ workspaceId, operation, conflictingFiles: string[] }`     | rebase / merge / cherrypick 检测到 conflict 时     |
+| `git:operation-done`    | `{ workspaceId, operation, success: bool, message: string }` | rebase / merge / cherrypick 完成（成功 / abort）时 |
 
 前端 listen 三 event · `git:operation-done` success 时刷 Git Log + Status 面板。
 
@@ -564,11 +568,11 @@ MVP-16 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 
 **理由**（v0.3 锁定避免实施期反复讨论）：
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **自实现 plan 状态机**（**v0.3 选定**） | 完全控制 5 op 行为 · UI 可完整呈现 · 跨平台一致 · 不依赖 git2 内部 | 需要写状态机代码（~300 行）· 测试 fixture 必须覆盖 5 op 全场景 | ✅ 控制力 + 可测试性 |
-| (b) 依赖 git2 内置 + 自定义 todo 文件 | git2 自动管理 .git/rebase-merge | git2 0.20 不暴露 todo 编辑接口 · 必须直接写 .git/rebase-merge/todo · 跨 git 版本格式不稳 · 无法被 git2 重新 parse | ❌ 脆弱 |
-| (c) 子进程调 `git rebase -i`（用 GIT_SEQUENCE_EDITOR 环境变量） | 用 git 官方实现 · 行为对齐 100% | fork + exec 慢 · 跨平台 PATH 依赖 · 解析 stdout 脆弱 · 用户 git 版本不一致 | ❌ 见 §H.2 |
+| 选项                                                            | 优点                                                               | 缺点                                                                                                              | v0.3 评估            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------- |
+| (a) **自实现 plan 状态机**（**v0.3 选定**）                     | 完全控制 5 op 行为 · UI 可完整呈现 · 跨平台一致 · 不依赖 git2 内部 | 需要写状态机代码（~300 行）· 测试 fixture 必须覆盖 5 op 全场景                                                    | ✅ 控制力 + 可测试性 |
+| (b) 依赖 git2 内置 + 自定义 todo 文件                           | git2 自动管理 .git/rebase-merge                                    | git2 0.20 不暴露 todo 编辑接口 · 必须直接写 .git/rebase-merge/todo · 跨 git 版本格式不稳 · 无法被 git2 重新 parse | ❌ 脆弱              |
+| (c) 子进程调 `git rebase -i`（用 GIT_SEQUENCE_EDITOR 环境变量） | 用 git 官方实现 · 行为对齐 100%                                    | fork + exec 慢 · 跨平台 PATH 依赖 · 解析 stdout 脆弱 · 用户 git 版本不一致                                        | ❌ 见 §H.2           |
 
 **实现要点**：
 
@@ -585,25 +589,25 @@ MVP-16 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 
 ### H.4 git2 0.20 API 使用要点（实施参考）
 
-| 操作 | git2 API 调用链 |
-|------|----------------|
-| Start rebase | `Repository::rebase(branch, upstream, onto, opts)` 拿 `Rebase` 对象 · 但 MVP-16 自管 plan · 不直接用 Rebase::next（仅用作 fallback 模式 · interactive=false 时） |
-| Interactive step (pick) | `Repository::cherrypick(target_commit, opts)` · 检测 `index.has_conflicts()` |
-| Interactive step (reword) | cherrypick 后 `Repository::head()?.peel_to_commit()?.amend(None, None, None, Some(msg), None, None)` |
-| Interactive step (squash/fixup) | cherrypick → `Commit::parents()` 拿 parent → 用 `git2::merge_commits` 合并 tree → `Commit::amend` 或 `Commit::tree` · message 拼接（squash）或丢弃（fixup） |
-| Interactive step (drop) | 跳过 · 进下一 step |
-| Interactive step (edit) | cherrypick 后 set rebase_state 为 paused · 等 user `rebase_continue` |
-| Merge ff | `Repository::merge_analysis(target)` → `MergeAnalysis::is_fast_forward()` → `Repository::set_head_detached(target)` + `Repository::checkout_tree` |
-| Merge no-ff | `Repository::merge` → 写 `MERGE_HEAD` · 检测 conflict · 无 conflict 时 `Repository::commit` 创建 merge commit |
-| Merge squash | `Repository::merge_commits(ours, theirs)` 拿 tree → `Commit::tree(tree)` 创建单 commit（不写 MERGE_HEAD） |
-| Merge abort | `Repository::cleanup_state()` · 重置 working tree（用 `Repository::checkout_head` 强制） |
-| Cherry-pick single | `Repository::cherrypick(commit, opts)` · 检测 `CHERRY_PICK_HEAD` · auto_commit 时 `Repository::commit` 创建 commit |
-| Cherry-pick range | loop 每 commit · 单 commit cherry-pick · failure 进 conflict resolver |
-| Conflict detection | `Repository::index()?.has_conflicts()` · `Repository::index()?.conflicts()` 拿 IndexConflict iter |
-| Conflict resolution | 用户 resolution 写 working tree 文件 · `Index::add_path(path)` · `Index::write` · 解决后所有文件 → `cleanup_state` 不调（rebase / cherrypick 后续 step 还要） |
-| Cleanup state | `Repository::cleanup_state()` 清 .git/MERGE_HEAD / REBASE_HEAD / CHERRY_PICK_HEAD |
-| Crash detection | check `repo.path().join("rebase-merge").exists()` / `rebase-apply` / `MERGE_HEAD` / `CHERRY_PICK_HEAD` |
-| 错误分诊 | `git2::Error::class()` / `Error::code()` → 映射到 `RebaseOpError` enum |
+| 操作                            | git2 API 调用链                                                                                                                                                  |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Start rebase                    | `Repository::rebase(branch, upstream, onto, opts)` 拿 `Rebase` 对象 · 但 MVP-16 自管 plan · 不直接用 Rebase::next（仅用作 fallback 模式 · interactive=false 时） |
+| Interactive step (pick)         | `Repository::cherrypick(target_commit, opts)` · 检测 `index.has_conflicts()`                                                                                     |
+| Interactive step (reword)       | cherrypick 后 `Repository::head()?.peel_to_commit()?.amend(None, None, None, Some(msg), None, None)`                                                             |
+| Interactive step (squash/fixup) | cherrypick → `Commit::parents()` 拿 parent → 用 `git2::merge_commits` 合并 tree → `Commit::amend` 或 `Commit::tree` · message 拼接（squash）或丢弃（fixup）      |
+| Interactive step (drop)         | 跳过 · 进下一 step                                                                                                                                               |
+| Interactive step (edit)         | cherrypick 后 set rebase_state 为 paused · 等 user `rebase_continue`                                                                                             |
+| Merge ff                        | `Repository::merge_analysis(target)` → `MergeAnalysis::is_fast_forward()` → `Repository::set_head_detached(target)` + `Repository::checkout_tree`                |
+| Merge no-ff                     | `Repository::merge` → 写 `MERGE_HEAD` · 检测 conflict · 无 conflict 时 `Repository::commit` 创建 merge commit                                                    |
+| Merge squash                    | `Repository::merge_commits(ours, theirs)` 拿 tree → `Commit::tree(tree)` 创建单 commit（不写 MERGE_HEAD）                                                        |
+| Merge abort                     | `Repository::cleanup_state()` · 重置 working tree（用 `Repository::checkout_head` 强制）                                                                         |
+| Cherry-pick single              | `Repository::cherrypick(commit, opts)` · 检测 `CHERRY_PICK_HEAD` · auto_commit 时 `Repository::commit` 创建 commit                                               |
+| Cherry-pick range               | loop 每 commit · 单 commit cherry-pick · failure 进 conflict resolver                                                                                            |
+| Conflict detection              | `Repository::index()?.has_conflicts()` · `Repository::index()?.conflicts()` 拿 IndexConflict iter                                                                |
+| Conflict resolution             | 用户 resolution 写 working tree 文件 · `Index::add_path(path)` · `Index::write` · 解决后所有文件 → `cleanup_state` 不调（rebase / cherrypick 后续 step 还要）    |
+| Cleanup state                   | `Repository::cleanup_state()` 清 .git/MERGE_HEAD / REBASE_HEAD / CHERRY_PICK_HEAD                                                                                |
+| Crash detection                 | check `repo.path().join("rebase-merge").exists()` / `rebase-apply` / `MERGE_HEAD` / `CHERRY_PICK_HEAD`                                                           |
+| 错误分诊                        | `git2::Error::class()` / `Error::code()` → 映射到 `RebaseOpError` enum                                                                                           |
 
 ### H.5 conflict 解决流程锁定（3-way · 不退化为 2-way）
 
@@ -611,11 +615,11 @@ MVP-16 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 
 **理由**：
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **3-way（base + ours + theirs）**（**v0.3 选定**） | 用户能看到 base · 决策更准确（特别 squash / cherry-pick 复杂场景）· 对齐 GitKraken / Fork / SmartGit | UI 三栏复杂 · 视觉空间紧 · 性能（50 file 时 3 栏渲染）· 需要从 git2 拿 base content | ✅ JetBrains 级体验必需 |
-| (b) 2-way（ours vs theirs）| UI 简单 | 用户无法判断改动是否冲突基础（如 ours 加了一行 · theirs 也加了一行 · 但是不同行 · 实际不冲突 · 2-way 看不出来） | ❌ UX 退化 |
-| (c) 不做 UI · 让用户用外部 mergetool（vimdiff / VSCode）| 实现简单 | 工作流断裂 · 不是 JetBrains 级 | ❌ |
+| 选项                                                     | 优点                                                                                                 | 缺点                                                                                                            | v0.3 评估               |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| (a) **3-way（base + ours + theirs）**（**v0.3 选定**）   | 用户能看到 base · 决策更准确（特别 squash / cherry-pick 复杂场景）· 对齐 GitKraken / Fork / SmartGit | UI 三栏复杂 · 视觉空间紧 · 性能（50 file 时 3 栏渲染）· 需要从 git2 拿 base content                             | ✅ JetBrains 级体验必需 |
+| (b) 2-way（ours vs theirs）                              | UI 简单                                                                                              | 用户无法判断改动是否冲突基础（如 ours 加了一行 · theirs 也加了一行 · 但是不同行 · 实际不冲突 · 2-way 看不出来） | ❌ UX 退化              |
+| (c) 不做 UI · 让用户用外部 mergetool（vimdiff / VSCode） | 实现简单                                                                                             | 工作流断裂 · 不是 JetBrains 级                                                                                  | ❌                      |
 
 **实现要点**：
 
@@ -635,24 +639,24 @@ MVP-16 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 
 ### H.7 跨平台兼容性
 
-| 平台 | 状态 | 说明 |
-|------|------|------|
-| macOS（Apple Silicon / Intel） | ✅ v0.3 支持 | git2 0.20 + libgit2 vendored · APFS case-insensitive · UTF-8 文件 conflict 验证 |
+| 平台                             | 状态         | 说明                                                                                                                   |
+| -------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| macOS（Apple Silicon / Intel）   | ✅ v0.3 支持 | git2 0.20 + libgit2 vendored · APFS case-insensitive · UTF-8 文件 conflict 验证                                        |
 | Linux（Ubuntu 24 X11 / Wayland） | ✅ v0.3 支持 | git2 0.20 同样可用 · ext4 case-sensitive · `feat/x` ≠ `feat/X` · binary file conflict fallback `Use ours / Use theirs` |
-| Windows | ❌ v0.4+ | NTFS case-insensitive + path separator `\` · 同 MVP-13 §H.7 推后 |
+| Windows                          | ❌ v0.4+     | NTFS case-insensitive + path separator `\` · 同 MVP-13 §H.7 推后                                                       |
 
 ### H.8 与 MVP-13 / MVP-21 边界
 
 MVP-16 仅本地操作 · **不调用任何网络**。
 
-| 场景 | MVP-16 责任 | MVP-13 责任 | MVP-21 责任 |
-|------|-------------|-------------|-------------|
-| Rebase / merge / cherry-pick 本地 | ✅ | ❌ | ❌ |
-| Branch CRUD（rebase 前需切分支）| 通过 IPC 调 MVP-13 | ✅ | ❌ |
-| 拿 commit list / metadata（rebase plan 用）| 通过 IPC 调 MVP-07 | ❌（MVP-07 责任）| ❌ |
-| Push rebased branch（force-push） | ❌ | ❌ | ✅（用户手动触发 MVP-21 push --force） |
-| Fetch upstream（rebase onto origin/main 前）| ❌ | ❌ | ✅（用户先 fetch · MVP-16 不隐式 fetch） |
-| Pull（merge / rebase remote）| 仅 merge 逻辑复用 · MVP-21 调 MVP-16 merge IPC？ | ❌ | ✅（MVP-21 已实现 · 不调 MVP-16） |
+| 场景                                         | MVP-16 责任                                      | MVP-13 责任       | MVP-21 责任                              |
+| -------------------------------------------- | ------------------------------------------------ | ----------------- | ---------------------------------------- |
+| Rebase / merge / cherry-pick 本地            | ✅                                               | ❌                | ❌                                       |
+| Branch CRUD（rebase 前需切分支）             | 通过 IPC 调 MVP-13                               | ✅                | ❌                                       |
+| 拿 commit list / metadata（rebase plan 用）  | 通过 IPC 调 MVP-07                               | ❌（MVP-07 责任） | ❌                                       |
+| Push rebased branch（force-push）            | ❌                                               | ❌                | ✅（用户手动触发 MVP-21 push --force）   |
+| Fetch upstream（rebase onto origin/main 前） | ❌                                               | ❌                | ✅（用户先 fetch · MVP-16 不隐式 fetch） |
+| Pull（merge / rebase remote）                | 仅 merge 逻辑复用 · MVP-21 调 MVP-16 merge IPC？ | ❌                | ✅（MVP-21 已实现 · 不调 MVP-16）        |
 
 实施时严格隔离 · 避免 MVP-16 PR 引入网络代码 / 跨 task 状态混乱。
 
@@ -687,20 +691,20 @@ MVP-16 仅本地操作 · **不调用任何网络**。
 
 ## 详化完成度评估（Arbiter 审 PR 时参考）
 
-| 12 段必含 | 状态 | 备注 |
-|----------|------|------|
-| 1. frontmatter | ✅ | id / type / title / status:draft / depends_on / phase / estimate / plan_ref / risk_ref / reviewer 占位 |
-| 2. 🎯 目标 Goal | ✅ | 一句话核心 + plan_ref link + 战略价值 |
-| 3. 📖 背景 Context | ✅ | implementation-plan + CLAUDE.md + 路线图 W18-W19 + 上游已落地 + 战略价值 |
-| 4. 🛠 实施进度表 | ✅ | Phase A/B/C/D 拆分 + Phase A 13 项起点 checklist |
-| 5. 🎨 功能范围 Scope | ✅ | Do 5 大组（rebase / merge / cherry-pick / conflict / 中断恢复）/ Don't 8 项 |
-| 6. 🖼 UI 引用 | ✅ | design 原型 line 引用 + 7 类 UI 元素描述（含新建 RebaseEditor / 3-way Diff / ConflictBanner / CrashBanner / MergeDialog / CherryPickDialog） |
-| 7. ✅ Acceptance | ✅ | A-G 7 大组 / 40 项 checkbox · 每项含具体测法 |
-| 8. 🧪 测试策略 | ✅ | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + 11 个 fixture + 7 个 bench 模板 |
-| 9. 💾 数据模型变更 | ✅ | rebase_state 表新建 + migration 0042 + 3 反模式禁止 |
-| 10. §G IPC Contract | ✅ | 18 struct + derive 模板 + G.5 复用决策 + G.6 新增 18 binding 清单 + G.7 Tauri event 3 个 |
-| 11. §H 决策锁定 | ✅ | H.1-H.8 8 子段 · 含 plan 状态机自实现表 + git2 API 表 + 3-way 锁定表 + 跨平台矩阵 + 与 MVP-13/21 边界 |
-| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅ | 5 风险 + 4 Notes + 7 相关 + 7 条自审 + 完成度 100% |
+| 12 段必含                                 | 状态 | 备注                                                                                                                                         |
+| ----------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. frontmatter                            | ✅   | id / type / title / status:draft / depends_on / phase / estimate / plan_ref / risk_ref / reviewer 占位                                       |
+| 2. 🎯 目标 Goal                           | ✅   | 一句话核心 + plan_ref link + 战略价值                                                                                                        |
+| 3. 📖 背景 Context                        | ✅   | implementation-plan + CLAUDE.md + 路线图 W18-W19 + 上游已落地 + 战略价值                                                                     |
+| 4. 🛠 实施进度表                          | ✅   | Phase A/B/C/D 拆分 + Phase A 13 项起点 checklist                                                                                             |
+| 5. 🎨 功能范围 Scope                      | ✅   | Do 5 大组（rebase / merge / cherry-pick / conflict / 中断恢复）/ Don't 8 项                                                                  |
+| 6. 🖼 UI 引用                             | ✅   | design 原型 line 引用 + 7 类 UI 元素描述（含新建 RebaseEditor / 3-way Diff / ConflictBanner / CrashBanner / MergeDialog / CherryPickDialog） |
+| 7. ✅ Acceptance                          | ✅   | A-G 7 大组 / 40 项 checkbox · 每项含具体测法                                                                                                 |
+| 8. 🧪 测试策略                            | ✅   | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + 11 个 fixture + 7 个 bench 模板                                                         |
+| 9. 💾 数据模型变更                        | ✅   | rebase_state 表新建 + migration 0042 + 3 反模式禁止                                                                                          |
+| 10. §G IPC Contract                       | ✅   | 18 struct + derive 模板 + G.5 复用决策 + G.6 新增 18 binding 清单 + G.7 Tauri event 3 个                                                     |
+| 11. §H 决策锁定                           | ✅   | H.1-H.8 8 子段 · 含 plan 状态机自实现表 + git2 API 表 + 3-way 锁定表 + 跨平台矩阵 + 与 MVP-13/21 边界                                        |
+| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅   | 5 风险 + 4 Notes + 7 相关 + 7 条自审 + 完成度 100%                                                                                           |
 
 **完成度**：12/12 = **100%**（建议 Arbiter approve PR 后翻 status: ready）。
 

@@ -24,6 +24,10 @@ reviewer: Droid · self-review
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"Phase E runtime evidence + Criterion 性能量化 / 15 张 GUI 截图 + 30s 录屏 / Linux 跨平台 smoke / §F.1 Criterion bench file 待补" 类 acceptance 项 / Phase 表行** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（rollback_ops 38 + mvp20_contract 3 + 前端 rollback subset 52 + a11y 5 控件代码就位 + RollbackStatusKind union 保真 + crash recovery 镜像 MVP-16）保留为 done gate。`docs/runtime-evidence/mvp-20/CAPTURE-PLAYBOOK.md` + `PRE-CAPTURE-READINESS.md` + `metrics-mvp-20.md` 由 PR-4 删除。
+
+---
+
 ## §A 目标（Goal）
 
 为"AI 辅助编程"工作流提供 **session 级一键安全回滚**：当用户与 AI（Claude CLI / Codex CLI 等）的一轮对话（session）产生了若干 commits，事后发现整体方向不对，可以 **在 UI 中一键触发 `git revert` 序列**，将该 session 的所有 commit 用新的 revert commit 安全撤销，**保留完整历史**（不破坏 `git log` 记录），恢复到 session 开始前的代码状态。

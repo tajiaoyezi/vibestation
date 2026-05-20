@@ -22,6 +22,10 @@ reviewer: Kimi
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"截图 / GUI capture / Phase C runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（88 单测覆盖 parser + IPC + UI + keybinding canonical · CI 全绿 · IPC contract 一致）保留为 done gate。
+
+---
+
 ## 🎯 目标（Goal）
 
 从用户已有的终端配置（Ghostty / iTerm2 / Alacritty）自动导入字体、主题、快捷键、shell 偏好到 Vibestation，降低切换成本。
@@ -34,27 +38,29 @@ reviewer: Kimi
 
 ## 🛠 实施进度（2026-05-01 · vibe-sprint v0.1）
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · parser 基础 | `crates/core/src/config_import/` 新模块：Ghostty TOML + iTerm2 plist（binary/text · Default Bookmark Guid → default profile）+ Alacritty TOML/YAML 双格式 · 提 font/shell/theme · `ImportedField` 5 variants · 16 单元测试 · 边界 graceful（文件不存在 / 格式损坏 / 字段缺失 / 未知字段）| ✅ done | [#80](https://github.com/tajiaoyezi/vibestation/pull/80) |
-| Phase A+ · 字段深化 | `ImportedField::AnsiColor { index: u8, hex: String }` 新增 · iTerm2 `Ansi 0-15 Color` RGB→hex 转换 · Ghostty `keybind = X=Y` 重复行逐行扫（toml filter 降级）· Alacritty `[[keyboard.bindings]]` TOML 0.14+ + `key_bindings:` YAML 0.13- · +10 测试（total 26）| ✅ done | [#81](https://github.com/tajiaoyezi/vibestation/pull/81) |
-| Phase B · IPC + UI + apply | `crates/core/src/config_import/ipc.rs`（7 ts-rs struct + `KeyBindingResolution` enum · spec §G.1 全覆盖 · 9 单测） · `keybinding.rs`（canonical form §H.3 · 17 单测 · `Cmd > Ctrl > Alt > Shift` 排序 · unicode `⌘⌃⌥⇧` 别名）· 4 个 Tauri command（`config_import_scan` / `_preview` / `_detect_conflicts` / `_apply`） · `permissions/config-import.toml` 4 permission · `default.json` capability 引用 · Calm Studio `ConfigImportDialog` 3+1 step（select · preview · confirm · result） · 字体 fallback 检测（`document.fonts.check`） · `app_settings` 写入 font_family / font_size / theme / default_shell / imported_keybindings JSON · ANSI color v0.1 不入 DB（v0.2+ 增 ansi_palette） · 总计 +62 测试（26 → 88） | ✅ done | TBD |
-| Phase C · runtime 证据 | GUI capture · Arbiter 已降级 P3 · 留 Arbiter 后续本地补 ≥ 3 张截图（`docs/runtime-evidence/mvp-06/01-import-dialog-step1.png` · `02-preview-list.png` · `03-conflict-warning.png` · 04 confirm summary · 05 result success） | ⏳ P3 deferred（CI 全绿 · IPC contract 一致 · 单测覆盖核心逻辑） | — |
+| Phase                      | 范围                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 状态                                                                                                     | PR                                                       |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Phase A · parser 基础      | `crates/core/src/config_import/` 新模块：Ghostty TOML + iTerm2 plist（binary/text · Default Bookmark Guid → default profile）+ Alacritty TOML/YAML 双格式 · 提 font/shell/theme · `ImportedField` 5 variants · 16 单元测试 · 边界 graceful（文件不存在 / 格式损坏 / 字段缺失 / 未知字段）                                                                                                                                                                                                                                                                                                                                                                                                                                  | ✅ done                                                                                                  | [#80](https://github.com/tajiaoyezi/vibestation/pull/80) |
+| Phase A+ · 字段深化        | `ImportedField::AnsiColor { index: u8, hex: String }` 新增 · iTerm2 `Ansi 0-15 Color` RGB→hex 转换 · Ghostty `keybind = X=Y` 重复行逐行扫（toml filter 降级）· Alacritty `[[keyboard.bindings]]` TOML 0.14+ + `key_bindings:` YAML 0.13- · +10 测试（total 26）                                                                                                                                                                                                                                                                                                                                                                                                                                                            | ✅ done                                                                                                  | [#81](https://github.com/tajiaoyezi/vibestation/pull/81) |
+| Phase B · IPC + UI + apply | `crates/core/src/config_import/ipc.rs`（7 ts-rs struct + `KeyBindingResolution` enum · spec §G.1 全覆盖 · 9 单测） · `keybinding.rs`（canonical form §H.3 · 17 单测 · `Cmd > Ctrl > Alt > Shift` 排序 · unicode `⌘⌃⌥⇧` 别名）· 4 个 Tauri command（`config_import_scan` / `_preview` / `_detect_conflicts` / `_apply`） · `permissions/config-import.toml` 4 permission · `default.json` capability 引用 · Calm Studio `ConfigImportDialog` 3+1 step（select · preview · confirm · result） · 字体 fallback 检测（`document.fonts.check`） · `app_settings` 写入 font_family / font_size / theme / default_shell / imported_keybindings JSON · ANSI color v0.1 不入 DB（v0.2+ 增 ansi_palette） · 总计 +62 测试（26 → 88） | ✅ done                                                                                                  | TBD                                                      |
+| Phase C · runtime 证据     | GUI capture 5 张截图                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | ✅ done（capture 要求 deprecated 2026-05-20 · ADR-023 · CI 全绿 · IPC contract 一致 · 单测覆盖核心逻辑） | —                                                        |
 
 **Phase B 累计产出**：
+
 - 新增 `crates/core/src/config_import/ipc.rs`（~440 行 · 9 单测）+ `keybinding.rs`（~330 行 · 17 单测）· `mod.rs` 重命名 `ImportScanResult → RawScanResult`（IPC 类型独立 · 内部 PathBuf 不进 IPC）
 - 新增 `web/src/dialogs/ConfigImport/ConfigImportDialog.tsx`（~640 行 · 4 step + 字段/冲突/字体 UI）+ `styles.css`（~480 行）+ `index.ts`
 - 新增 `crates/app/permissions/config-import.toml`（4 permission）
 - 修改 `crates/app/src/lib.rs` 加 4 IPC commands · `crates/app/build.rs` 加 8 个 ts-rs export · `crates/app/capabilities/default.json` 加 4 permission 引用 · `crates/core/src/lib.rs` 重新 re-export
 - 修改 `web/src/App.tsx`（importVisible state + ConfigImportDialog mount）· `PrimarySidebar.tsx`（onOpenImport prop · 空状态 link）· `panels/Settings/SettingsPanel.tsx`（header "Import…" 按钮）· `styles.css` + Settings styles 加触发样式
 
-**保持 `status: ready`**：Acceptance 全过 · 但 spec 仍要 P3 runtime capture 后翻 done · v2-D.1 流程下保持 ready 让 Arbiter approve PR + capture 后翻转。
+**spec status**：2026-05-20 capture mandate 已 removed（ADR-023）· Phase A/A+/B/C 代码全 done · Acceptance 全过 · `status: ready → done` 由 PR-5 统一翻转。
 
 ---
 
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - 首次启动（欢迎页或设置页）可触发"导入现有配置"
 - 自动扫描以下默认路径：
   - Ghostty (mac/linux): `~/.config/ghostty/config` 或 `~/Library/Application Support/com.mitchellh.ghostty/config`
@@ -69,6 +75,7 @@ reviewer: Kimi
 - 导入结果写入 rusqlite `app_settings`
 
 **Don't**：
+
 - Windows Terminal / Warp / Kitty 导入（v0.2+）
 - 双向同步（Vibestation 改动回写到原终端）（v0.2+）
 - 导入 profiles（多 profile）（v0.2+）
@@ -124,23 +131,24 @@ reviewer: Kimi
 
 **v0.1 macOS-first 降级表**：
 
-| 平台 | Ghostty | iTerm2 | Alacritty |
-|---|---|---|---|
-| macOS | ✅ v0.1 | ✅ v0.1 | N/A（linux only）|
-| Linux（Ubuntu · v0.1.x 低优先 或 v0.2）| ✅ | N/A（macOS only）| ✅ |
-| Windows | ❌ 不支持 · toast 提示 | — | — |
+| 平台                                    | Ghostty                | iTerm2            | Alacritty         |
+| --------------------------------------- | ---------------------- | ----------------- | ----------------- |
+| macOS                                   | ✅ v0.1                | ✅ v0.1           | N/A（linux only） |
+| Linux（Ubuntu · v0.1.x 低优先 或 v0.2） | ✅                     | N/A（macOS only） | ✅                |
+| Windows                                 | ❌ 不支持 · toast 提示 | —                 | —                 |
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|------|------|
-| 单元（core）| 三种格式解析器 + 字段映射 |
-| 集成 | 真实配置文件 fixture 导入端到端 |
-| 手动 QA | 三个平台准备真实用户配置，对比导入前后 |
+| 层次         | 范围                                   |
+| ------------ | -------------------------------------- |
+| 单元（core） | 三种格式解析器 + 字段映射              |
+| 集成         | 真实配置文件 fixture 导入端到端        |
+| 手动 QA      | 三个平台准备真实用户配置，对比导入前后 |
 
 ## 💾 数据模型变更
 
 无新 table。导入结果写入 `app_settings`：
+
 - `font_family` / `font_size` / `theme` / `shell` / `keybindings`
 
 ## ⚠️ 已知风险
@@ -168,15 +176,15 @@ reviewer: Kimi
 
 ### G.1 预期 IPC struct 清单
 
-| Rust struct | 用途 | 前端 import |
-|---|---|---|
-| `ImportSource` | 导入源枚举 · string union | `./bindings/ImportSource` |
-| `ImportScanResult` | 扫描单个源的结果（path_exists · parsed_fields · errors）| `./bindings/ImportScanResult` |
-| `ImportPreview` | 预览数据（跨 source 合并 · 用户可勾选字段）| `./bindings/ImportPreview` |
-| `ImportFieldType` | 字段类型（font/theme/shell/keybindings · tagged union 含 payload）| `./bindings/ImportFieldType` |
-| `ImportApplyRequest` | 应用导入（source + 勾选字段集合）| `./bindings/ImportApplyRequest` |
-| `ImportApplyResult` | 应用结果（applied · conflicts · errors）| `./bindings/ImportApplyResult` |
-| `KeyBindingConflict` | 冲突描述（vibe_key · source_key · resolution · 用户决策）| `./bindings/KeyBindingConflict` |
+| Rust struct          | 用途                                                               | 前端 import                     |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------- |
+| `ImportSource`       | 导入源枚举 · string union                                          | `./bindings/ImportSource`       |
+| `ImportScanResult`   | 扫描单个源的结果（path_exists · parsed_fields · errors）           | `./bindings/ImportScanResult`   |
+| `ImportPreview`      | 预览数据（跨 source 合并 · 用户可勾选字段）                        | `./bindings/ImportPreview`      |
+| `ImportFieldType`    | 字段类型（font/theme/shell/keybindings · tagged union 含 payload） | `./bindings/ImportFieldType`    |
+| `ImportApplyRequest` | 应用导入（source + 勾选字段集合）                                  | `./bindings/ImportApplyRequest` |
+| `ImportApplyResult`  | 应用结果（applied · conflicts · errors）                           | `./bindings/ImportApplyResult`  |
+| `KeyBindingConflict` | 冲突描述（vibe_key · source_key · resolution · 用户决策）          | `./bindings/KeyBindingConflict` |
 
 ### G.2 derive 模板
 
@@ -252,12 +260,12 @@ pub enum KeyBindingResolution { KeepVibe, Override }
 
 ### H.2 · 三家导入优先级 + 降级树
 
-| 投入 | 覆盖 |
-|---|---|
-| ≤ 15h | 仅 Ghostty（macOS + Linux · 覆盖主 persona C） |
-| 15-24h | Ghostty + iTerm2（macOS 完整覆盖） |
-| 24h+（本 MVP 估 3d ≈ 24h）| 三家全做 |
-| **v0.1 macOS-first 场景** | Alacritty 延到 v0.2 · MVP-06 实施时不做 Alacritty · 其 IPC struct 预留但不 wire · Spec 正文明示此场景 |
+| 投入                       | 覆盖                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| ≤ 15h                      | 仅 Ghostty（macOS + Linux · 覆盖主 persona C）                                                        |
+| 15-24h                     | Ghostty + iTerm2（macOS 完整覆盖）                                                                    |
+| 24h+（本 MVP 估 3d ≈ 24h） | 三家全做                                                                                              |
+| **v0.1 macOS-first 场景**  | Alacritty 延到 v0.2 · MVP-06 实施时不做 Alacritty · 其 IPC struct 预留但不 wire · Spec 正文明示此场景 |
 
 ### H.3 · 快捷键冲突用户决策
 
@@ -276,9 +284,9 @@ pub enum KeyBindingResolution { KeepVibe, Override }
 
 ## 📋 上游依赖状态检查
 
-| 依赖 | 状态 | 评估 |
-|---|---|---|
-| MVP-04 | ready · Phase A storage done（PR #72 · `app_settings` 表已存在）| 解阻塞 · MVP-06 直接 write app_settings |
+| 依赖   | 状态                                                             | 评估                                    |
+| ------ | ---------------------------------------------------------------- | --------------------------------------- |
+| MVP-04 | ready · Phase A storage done（PR #72 · `app_settings` 表已存在） | 解阻塞 · MVP-06 直接 write app_settings |
 
 ---
 

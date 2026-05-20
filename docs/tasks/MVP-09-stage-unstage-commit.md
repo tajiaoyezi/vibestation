@@ -22,6 +22,10 @@ reviewer: Kimi
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"截图 / 录屏 / GUI capture / Phase D runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（git_ops::tests:: 12 + Phase D §D Criterion Linux 基线 stage 0.26ms / commit 0.35ms / stage_1k 31.5ms · 余量 380×/1400×/63× + §E 集成测试 pre-commit hook fail / DetachedHead / IdentityMissing 全覆盖）保留为 done gate。
+
+---
+
 ## 🎯 目标（Goal）
 
 在 Git Status 面板上支持 Stage / Unstage 单文件或整体操作，+ Commit UI（勾文件 + 输入 message + 可选 amend）。**不含 push/pull/fetch**（v0.2）。
@@ -37,6 +41,7 @@ reviewer: Kimi
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - Stage 操作：
   - 单文件 Stage：Status 面板每行 ✓ 按钮
   - Stage All Unstaged：组标题 "Stage All" 按钮
@@ -52,6 +57,7 @@ reviewer: Kimi
 - 快捷键：`⌘↵`（mac）/ `Ctrl+↵` 提交
 
 **Don't**：
+
 - Push / Pull / Fetch（v0.2）
 - Branch operations（v0.2）
 - Rebase / Merge / Cherry-pick（v0.3）
@@ -62,12 +68,12 @@ reviewer: Kimi
 
 MVP-09 估时 4d，拆 4 Phase 串行实施：
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · git2 写路径后端 + IPC | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试 | ✅ done | [#116](https://github.com/tajiaoyezi/vibestation/pull/116) |
-| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）| ✅ done | [#118](https://github.com/tajiaoyezi/vibestation/pull/118) |
-| Phase C · Commit UI + 错误流 | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh | ✅ done · spec §C.1-§C.4 全过 · CommitBar dialog/toast 19 CSS class 全填 + Hook stderr "Copy" 按钮（spec §C.4 "可复制"）+ exit code 显示 | [#159](https://github.com/tajiaoyezi/vibestation/pull/159) |
-| Phase D · runtime 证据 + 性能量化 | 截图 / 录屏 + Stage/Commit 性能量化 + 放 `docs/runtime-evidence/mvp-09/` | 🟡 性能量化 done · 截图 / 录屏待 GUI capture · §D Criterion bench Linux 基线 stage 0.26ms / commit 0.35ms / stage_1k 31.5ms（远低于 spec 性能要求 380×/1400×/63× 余量）+ §E 集成测试（pre-commit hook fail · DetachedHead · IdentityMissing 全覆盖）| [#156](https://github.com/tajiaoyezi/vibestation/pull/156) |
+| Phase                                     | 范围                                                                                                                                                                                                                                                                                     | 状态                                                                                                                                     | PR                                                         |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Phase A · git2 写路径后端 + IPC           | stage / unstage / commit / amend 后端封装 + IPC commands + ts-rs bindings + 单元 / 集成测试                                                                                                                                                                                              | ✅ done                                                                                                                                  | [#116](https://github.com/tajiaoyezi/vibestation/pull/116) |
+| Phase B · Status 面板操作接线 + Commit UI | 复用 MVP-08 Status 面板，接单文件/批量 stage/unstage、乐观 UI、刷新链路 + CommitBar（消息框/Amend/错误对话框）                                                                                                                                                                           | ✅ done                                                                                                                                  | [#118](https://github.com/tajiaoyezi/vibestation/pull/118) |
+| Phase C · Commit UI + 错误流              | message composer / amend / identity dialog / detached HEAD / pre-commit hook stderr / Git Log refresh                                                                                                                                                                                    | ✅ done · spec §C.1-§C.4 全过 · CommitBar dialog/toast 19 CSS class 全填 + Hook stderr "Copy" 按钮（spec §C.4 "可复制"）+ exit code 显示 | [#159](https://github.com/tajiaoyezi/vibestation/pull/159) |
+| Phase D · 性能量化                        | Stage/Commit 性能量化 · 截图 / 录屏 capture 要求 deprecated 2026-05-20（ADR-023）· §D Criterion bench Linux 基线 stage 0.26ms / commit 0.35ms / stage_1k 31.5ms（远低于 spec 性能要求 380×/1400×/63× 余量）+ §E 集成测试（pre-commit hook fail · DetachedHead · IdentityMissing 全覆盖） | ✅ done                                                                                                                                  | [#156](https://github.com/tajiaoyezi/vibestation/pull/156) |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
@@ -85,7 +91,7 @@ MVP-09 估时 4d，拆 4 Phase 串行实施：
 - [x] ts-rs binding 自动生成到 `web/src/bindings/`（`build.rs` 触发 + 手动同步 9 个文件）
 - [x] fixture：`git_ops.rs` 内嵌单元测试用 `tempfile` crate 运行时生成 · 不依赖本地物理目录
 
-**下次 agent 起点**：Phase A/B/C 全 done · Phase D 性能量化 done（PR #156）· 仅缺 Phase D runtime 截图 / 录屏（GUI capture · Arbiter 本地）。所有 spec acceptance 项除 GUI evidence 外都已满足。spec status 翻 `done` 需等 GUI evidence 补齐后由 Arbiter approve。
+**下次 agent 起点**（2026-05-20 · capture mandate removed · ADR-023）：Phase A/B/C/D 代码全 done · Criterion 性能量化 + §E 集成测试全过 · 所有 spec acceptance 项已满足（GUI evidence 要求已 supersede）· MVP-09 spec status flip done 由 PR-5 统一执行。
 
 **依赖关系说明**：MVP-09 依赖 MVP-08 Status 面板存在；自身四个 phase 内部串行。MVP-09 文件域与 MVP-04 Phase F / MVP-08 实施 **完全隔离** · 可并行（MVP-09 只动 `crates/core/src/git_ops.rs` + `crates/app/src/lib.rs` 注册 + `web/src/panels/CommitBar/`）。
 
@@ -215,12 +221,12 @@ fn create_fixture_1000_files() -> TempDir { /* for 循环 generate 1000 文件 �
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|------|------|
-| 单元 | git2 wrapper（Repository / Index / Tree / Signature）|
-| 集成 | Stage → Commit → Log 读新 commit 链路 |
-| E2E | 完整 flow：改文件 → Status → Stage → Commit → 验证新 commit |
-| 手动 QA | Amend / detached HEAD / 权限问题 / pre-commit hook |
+| 层次    | 范围                                                        |
+| ------- | ----------------------------------------------------------- |
+| 单元    | git2 wrapper（Repository / Index / Tree / Signature）       |
+| 集成    | Stage → Commit → Log 读新 commit 链路                       |
+| E2E     | 完整 flow：改文件 → Status → Stage → Commit → 验证新 commit |
+| 手动 QA | Amend / detached HEAD / 权限问题 / pre-commit hook          |
 
 ## 💾 数据模型变更
 
@@ -257,17 +263,17 @@ Commit UI 状态（message 草稿 / Amend 勾选态）持久化到现有 `app_se
 
 ### G.1 本 MVP 涉及的 IPC struct 清单（预期）
 
-| Rust struct | 用途 | 前端 import 路径 |
-|-------------|------|-----------------|
-| `StageRequest` | 批量 stage · 含 workspace_id + file_paths | `import type { StageRequest } from "../bindings/StageRequest"` |
-| `UnstageRequest` | 批量 unstage · 含 workspace_id + file_paths | `import type { UnstageRequest } from "../bindings/UnstageRequest"` |
-| `CommitRequest` | 提交参数 · 含 workspace_id + message + amend | `import type { CommitRequest } from "../bindings/CommitRequest"` |
-| `CommitResponse` | 提交结果 · 含 sha / short_sha / message / author / timestamp | `import type { CommitResponse } from "../bindings/CommitResponse"` |
-| `CommitAuthor` | Author / Committer 信息（name + email + timestamp） | `import type { CommitAuthor } from "../bindings/CommitAuthor"` · **复用** MVP-07 已有 binding · 见 §G.5 |
-| `GitConfigIdentity` | 读出的 user.name / user.email | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"` |
-| `SetGitIdentityRequest` | 设置 identity · name + email + scope | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
-| `StageResult` | 批量 stage 结果 · staged_count + failed 列表 | `import type { StageResult } from "../bindings/StageResult"` |
-| `CommitError` | 提交失败 enum · 含 payload | `import type { CommitError } from "../bindings/CommitError"` |
+| Rust struct             | 用途                                                         | 前端 import 路径                                                                                        |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `StageRequest`          | 批量 stage · 含 workspace_id + file_paths                    | `import type { StageRequest } from "../bindings/StageRequest"`                                          |
+| `UnstageRequest`        | 批量 unstage · 含 workspace_id + file_paths                  | `import type { UnstageRequest } from "../bindings/UnstageRequest"`                                      |
+| `CommitRequest`         | 提交参数 · 含 workspace_id + message + amend                 | `import type { CommitRequest } from "../bindings/CommitRequest"`                                        |
+| `CommitResponse`        | 提交结果 · 含 sha / short_sha / message / author / timestamp | `import type { CommitResponse } from "../bindings/CommitResponse"`                                      |
+| `CommitAuthor`          | Author / Committer 信息（name + email + timestamp）          | `import type { CommitAuthor } from "../bindings/CommitAuthor"` · **复用** MVP-07 已有 binding · 见 §G.5 |
+| `GitConfigIdentity`     | 读出的 user.name / user.email                                | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"`                                |
+| `SetGitIdentityRequest` | 设置 identity · name + email + scope                         | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"`                        |
+| `StageResult`           | 批量 stage 结果 · staged_count + failed 列表                 | `import type { StageResult } from "../bindings/StageResult"`                                            |
+| `CommitError`           | 提交失败 enum · 含 payload                                   | `import type { CommitError } from "../bindings/CommitError"`                                            |
 
 > 实际 struct 名和字段以实施 PR 为准，但**必须**全部走 ts-rs 自动生成。
 
@@ -324,21 +330,21 @@ pub enum CommitError {
 
 MVP-09 实施前必须明确复用 / 新增边界，避免和 MVP-07 / MVP-08 已生成 binding 冲突：
 
-| 已有 binding | MVP-09 §G.1 涉及 | 决策 | 理由 |
-|---|---|---|---|
-| `CommitAuthor { name, email, timestamp }`（MVP-07 已生成）| §G.1 `CommitAuthor` | **复用** · 不在 MVP-09 重新定义 | `CommitResponse.author / committer` 直接引用现有 binding；字段含 `timestamp: number`（对齐 MVP-07 derive 模式 `#[ts(type = "number")]`） |
-| `FileChange { path, status, additions, deletions }`（MVP-07 已生成 · MVP-08 §G.5 已锁复用）| Commit 面板输入来源 | **复用** · 不造平行类型 | MVP-09 Stage/Unstage 操作的对象来自 MVP-08 Status 面板；禁止新建 `StagedFile` / `StatusFile` / `GitStatusItem` 等平行 struct |
-| `GitStatusResponse`（MVP-08 将生成）| Commit 面板 staged 文件列表来源 | **复用** · 不重新定义 | MVP-09 只消费 `GitStatusResponse.staged` 数组，不重新查询 status |
+| 已有 binding                                                                                | MVP-09 §G.1 涉及                | 决策                            | 理由                                                                                                                                     |
+| ------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `CommitAuthor { name, email, timestamp }`（MVP-07 已生成）                                  | §G.1 `CommitAuthor`             | **复用** · 不在 MVP-09 重新定义 | `CommitResponse.author / committer` 直接引用现有 binding；字段含 `timestamp: number`（对齐 MVP-07 derive 模式 `#[ts(type = "number")]`） |
+| `FileChange { path, status, additions, deletions }`（MVP-07 已生成 · MVP-08 §G.5 已锁复用） | Commit 面板输入来源             | **复用** · 不造平行类型         | MVP-09 Stage/Unstage 操作的对象来自 MVP-08 Status 面板；禁止新建 `StagedFile` / `StatusFile` / `GitStatusItem` 等平行 struct             |
+| `GitStatusResponse`（MVP-08 将生成）                                                        | Commit 面板 staged 文件列表来源 | **复用** · 不重新定义           | MVP-09 只消费 `GitStatusResponse.staged` 数组，不重新查询 status                                                                         |
 
 #### G.5.0 · MVP-08 Phase A 实际生成的 binding（2026-04-23 · PR #100）
 
 MVP-08 Phase A（PR #100）已实际落地以下 binding · 本表锁定 MVP-09 的复用 / 排除决策：
 
-| Binding | 来源 | MVP-09 复用决策 |
-|---|---|---|
-| `FileChange { path: string, status: string, additions: number, deletions: number }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
-| `GitStatusResponse { staged: FileChange[], unstaged: FileChange[], untracked: FileChange[], error?: string }` | MVP-08 Phase A | ✅ 复用（§G.5 已锁） |
-| `DiffRequest` / `DiffResponse` / `DiffLine` / `DiffLineType` / `GitStatusPanelSettings` / `GitStatusGroup` | MVP-08 Phase A/B | ⛔ 不复用（语义无关 · MVP-09 不涉及 diff / panel 设置） |
+| Binding                                                                                                       | 来源             | MVP-09 复用决策                                         |
+| ------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------- |
+| `FileChange { path: string, status: string, additions: number, deletions: number }`                           | MVP-08 Phase A   | ✅ 复用（§G.5 已锁）                                    |
+| `GitStatusResponse { staged: FileChange[], unstaged: FileChange[], untracked: FileChange[], error?: string }` | MVP-08 Phase A   | ✅ 复用（§G.5 已锁）                                    |
+| `DiffRequest` / `DiffResponse` / `DiffLine` / `DiffLineType` / `GitStatusPanelSettings` / `GitStatusGroup`    | MVP-08 Phase A/B | ⛔ 不复用（语义无关 · MVP-09 不涉及 diff / panel 设置） |
 
 > 以上 6 个 Diff/Panel 相关 binding 明确排除 · 防止 Phase A agent 误 import。
 
@@ -346,15 +352,15 @@ MVP-08 Phase A（PR #100）已实际落地以下 binding · 本表锁定 MVP-09 
 
 以下 7 个 binding 为 MVP-09 **新增** · 实施时 `web/src/bindings/` 应新增 7 个 `.ts` 文件：
 
-| Rust struct / enum | 用途 | 前端 import 路径 |
-|---|---|---|
-| `StageRequest` / `UnstageRequest` | 输入侧 · 含 `workspace_id + file_paths` | `import type { StageRequest } from "../bindings/StageRequest"` |
-| `CommitRequest` | 输入侧 · 含 `workspace_id + message + amend` | `import type { CommitRequest } from "../bindings/CommitRequest"` |
-| `CommitResponse` | 输出侧 · 含 `sha + short_sha + message + author + timestamp` · **复用** `CommitAuthor` from MVP-07 | `import type { CommitResponse } from "../bindings/CommitResponse"` |
-| `StageResult` | 输出侧 · 含 `staged_count + failed: { path, error }[]` | `import type { StageResult } from "../bindings/StageResult"` |
-| `CommitError` | 错误枚举 · 含 `NoStagedFiles / IdentityMissing / HookFailed { stderr, exit_code } / DetachedHead / Git2Error { message }` | `import type { CommitError } from "../bindings/CommitError"` |
-| `GitConfigIdentity` | 读 · 含 `name + email` · 不含 timestamp · 与 `CommitAuthor` 区分 | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"` |
-| `SetGitIdentityRequest` | 写 · 含 `name + email + scope: "local" \| "global"` | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
+| Rust struct / enum                | 用途                                                                                                                      | 前端 import 路径                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `StageRequest` / `UnstageRequest` | 输入侧 · 含 `workspace_id + file_paths`                                                                                   | `import type { StageRequest } from "../bindings/StageRequest"`                   |
+| `CommitRequest`                   | 输入侧 · 含 `workspace_id + message + amend`                                                                              | `import type { CommitRequest } from "../bindings/CommitRequest"`                 |
+| `CommitResponse`                  | 输出侧 · 含 `sha + short_sha + message + author + timestamp` · **复用** `CommitAuthor` from MVP-07                        | `import type { CommitResponse } from "../bindings/CommitResponse"`               |
+| `StageResult`                     | 输出侧 · 含 `staged_count + failed: { path, error }[]`                                                                    | `import type { StageResult } from "../bindings/StageResult"`                     |
+| `CommitError`                     | 错误枚举 · 含 `NoStagedFiles / IdentityMissing / HookFailed { stderr, exit_code } / DetachedHead / Git2Error { message }` | `import type { CommitError } from "../bindings/CommitError"`                     |
+| `GitConfigIdentity`               | 读 · 含 `name + email` · 不含 timestamp · 与 `CommitAuthor` 区分                                                          | `import type { GitConfigIdentity } from "../bindings/GitConfigIdentity"`         |
+| `SetGitIdentityRequest`           | 写 · 含 `name + email + scope: "local" \| "global"`                                                                       | `import type { SetGitIdentityRequest } from "../bindings/SetGitIdentityRequest"` |
 
 > 加上复用 2 个（`FileChange` / `GitStatusResponse` / `CommitAuthor`）· 实施时 bindings 目录共新增 7 个 `.ts` 文件。
 
@@ -362,12 +368,12 @@ MVP-08 Phase A（PR #100）已实际落地以下 binding · 本表锁定 MVP-09 
 
 以下类型因语义不同，**不**复用现有 binding，保持为 MVP-09 新增：
 
-| Rust struct | 独立理由 |
-|---|---|
-| `GitConfigIdentity` | 表示 "identity 对话框可编辑表单 / git config 读取结果"，只含 `name + email`（无 timestamp）· 与 `CommitAuthor`（含 timestamp）语义不同 |
-| `SetGitIdentityRequest` | 写操作请求体 · 含 `scope` 字段（local / global）· 上游无对应类型 |
-| `StageResult` | MVP-09 专属批量操作结果 · 含 `staged_count + failed` 列表 · 上游无对应类型 |
-| `CommitError` | MVP-09 专属错误枚举 · 含 payload（stderr / exit_code / message）· 上游无对应类型 |
+| Rust struct             | 独立理由                                                                                                                               |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `GitConfigIdentity`     | 表示 "identity 对话框可编辑表单 / git config 读取结果"，只含 `name + email`（无 timestamp）· 与 `CommitAuthor`（含 timestamp）语义不同 |
+| `SetGitIdentityRequest` | 写操作请求体 · 含 `scope` 字段（local / global）· 上游无对应类型                                                                       |
+| `StageResult`           | MVP-09 专属批量操作结果 · 含 `staged_count + failed` 列表 · 上游无对应类型                                                             |
+| `CommitError`           | MVP-09 专属错误枚举 · 含 payload（stderr / exit_code / message）· 上游无对应类型                                                       |
 
 > **核心原则**：MVP-09 是 "写操作消费上游读结果" · 输入侧全部复用（`FileChange` / `GitStatusResponse` / `CommitAuthor`）· 输出侧和写请求侧保持独立（`CommitRequest` / `StageResult` / `CommitError` / `GitConfigIdentity`）。
 
@@ -396,13 +402,13 @@ MVP-09 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 
 ### H.4 git2 0.20 API 使用要点（实施参考）
 
-| 操作 | git2 API 调用链 |
-|------|----------------|
-| Stage 单文件 | `Repository::index()` → `Index::add_path(path)` → `Index::write()` |
+| 操作           | git2 API 调用链                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Stage 单文件   | `Repository::index()` → `Index::add_path(path)` → `Index::write()`                                                 |
 | Unstage 单文件 | `Repository::head()` → `HEAD tree 对应 path` → `Index::remove_path(path)` 或 `add_tree_entry()` → `Index::write()` |
-| Commit | `Repository::signature_default()` 读 config → `Repository::commit(parents, author, committer, message, tree, ...)` |
-| Amend | `Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))` |
-| 错误分诊 | `git2::Error::class()` / `git2::Error::code()` → 映射到 `CommitError` enum |
+| Commit         | `Repository::signature_default()` 读 config → `Repository::commit(parents, author, committer, message, tree, ...)` |
+| Amend          | `Commit::amend(Some("HEAD"), None, None, None, None, None, Some(message))`                                         |
+| 错误分诊       | `git2::Error::class()` / `git2::Error::code()` → 映射到 `CommitError` enum                                         |
 
 > MVP-09 不新增 git crate，只消费 MVP-08 Status 结果并对 git2 写路径落地。
 
@@ -417,6 +423,7 @@ MVP-09 是**纯写路径** · 对齐 CLAUDE.md 决策表 #13（2026-04-19 accept
 ---
 
 **自审四问（2026-04-20）**：
+
 1. **递归完备性**：Acceptance 清单覆盖 Stage/Unstage / Commit / 错误 / 性能 / fixture / IPC contract / Git 栈约束 全维度 ✅
 2. **反向场景**：若 TS derive 漏加 → `pnpm typecheck` 立即 FAIL（H2 proof 制度化）· 若 git2 stage 失败 → 乐观 UI revert + toast error（Acceptance A）· 若 identity 缺失 → 弹窗引导不阻塞（Acceptance C）· 若 hook 失败 → 保留 message + 显示 stderr（Acceptance C）✅
 3. **边界适用性**：0 staged / 1 staged / 1000 staged · 空 message / 长 message / 中文 message · detached HEAD / 正常 branch · 有 hook / 无 hook · 全适用 ✅

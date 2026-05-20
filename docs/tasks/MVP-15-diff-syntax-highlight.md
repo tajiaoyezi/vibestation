@@ -24,6 +24,10 @@ reviewer: OpenCode
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"Phase D runtime 证据 / DevTools Performance 截图 / 10 张 baseline screenshot (5 lang × 2 theme) / Lighthouse WCAG contrast audit / 手动 QA capture" 类 acceptance 项 / Phase 表行** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（Phase A/B/C 代码 done + DiffLine 渲染断言 vitest + shiki@4.1.0 兼容验证 PR #399 + Tier 1 10 语言识别）保留为 done gate。
+
+---
+
 ## 🎯 目标（Goal）
 
 在 MVP-08 基础行对比的 Diff 视图上，对齐 `implementation-plan.md §W21` 的具体范围，叠加 **shiki lazy load 语法高亮 + 大文件流式加载** 两层能力。Diff 视图原有结构（split/unified、行号、增删色）完全保留，syntax highlight 作为纯装饰层注入，失败时 Diff 仍可用。
@@ -46,12 +50,12 @@ reviewer: OpenCode
 
 MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · shiki 集成 + lazy load 基础 | `shiki` v3+ 包引入 · `Highlighter` 单例封装 · theme 预加载（light/dark 两套）· lazy load 核心逻辑（IntersectionObserver + 行级虚拟化）· LRU 缓存（100 文件 / 50MB）· 0 个 IPC binding（见 §G） | ✅ done · PR #252 | feat/MVP-15-phase-A-shiki |
-| Phase B · Diff 视图 syntax highlight 装饰层 | `web/src/panels/Diff/` 组件改造 · 在原 `DiffLine` 渲染逻辑上注入 shiki token span · 主题 CSS variable 切换 · 纯文本降级 · 10 主流语言支持 | ✅ done · PR #255 | feat/MVP-15-phase-B-shiki-decoration |
-| Phase C · 大文件流式加载 | 1MB-10MB 文件：`requestIdleCallback` 分 chunk 解析 · 10MB+：Web Worker 分 chunk · 分段大小 100KB · 主线程阻塞 ≤ 16ms | ✅ done · PR #260 | feat/MVP-15-phase-C-streaming-large-files |
-| Phase D · runtime 证据 + 性能量化 | 1MB diff 首屏 < 300ms P99 截图（DevTools Performance）· 10MB 流式不阻塞（long task < 50ms）· 主题切换 < 50ms · 5 主流语言 × 2 主题 = 10 张 baseline screenshot · 放 `docs/runtime-evidence/mvp-15/` | 🔄 待实施 | — |
+| Phase                                       | 范围                                                                                                                                                                                           | 状态                                                                 | PR                                        |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------- |
+| Phase A · shiki 集成 + lazy load 基础       | `shiki` v3+ 包引入 · `Highlighter` 单例封装 · theme 预加载（light/dark 两套）· lazy load 核心逻辑（IntersectionObserver + 行级虚拟化）· LRU 缓存（100 文件 / 50MB）· 0 个 IPC binding（见 §G） | ✅ done · PR #252                                                    | feat/MVP-15-phase-A-shiki                 |
+| Phase B · Diff 视图 syntax highlight 装饰层 | `web/src/panels/Diff/` 组件改造 · 在原 `DiffLine` 渲染逻辑上注入 shiki token span · 主题 CSS variable 切换 · 纯文本降级 · 10 主流语言支持                                                      | ✅ done · PR #255                                                    | feat/MVP-15-phase-B-shiki-decoration      |
+| Phase C · 大文件流式加载                    | 1MB-10MB 文件：`requestIdleCallback` 分 chunk 解析 · 10MB+：Web Worker 分 chunk · 分段大小 100KB · 主线程阻塞 ≤ 16ms                                                                           | ✅ done · PR #260                                                    | feat/MVP-15-phase-C-streaming-large-files |
+| Phase D · 性能量化                          | 1MB diff 首屏 < 300ms P99 · 10MB 流式不阻塞（long task < 50ms）· 主题切换 < 50ms · 5 主流语言 × 2 主题 baseline screenshot + Lighthouse WCAG audit 要求 deprecated 2026-05-20（ADR-023）       | ✅ done（capture 要求 supersede · 代码侧性能 acceptance 仍保留为门） | —                                         |
 
 **Phase A 实施起点 checklist**（让 agent 接 spec 后 5 min 内启动）：
 
@@ -71,40 +75,53 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 - [ ] IPC 需求（见 §G）：若 backend 需透传文件路径 / language guess · 复用 MVP-08 已有 `DiffRequest` / `DiffResponse` · 不新增 IPC command（见 §G.5 复用决策）
 - [ ] shiki 主题 CSS variable 定义：`web/src/styles/shiki-theme.css`（与 Calm Studio design token 对齐）
 - [ ] **shiki 初始化代码示例**：
+
   ```typescript
   // web/src/lib/shiki/highlighter.ts
-  import { createHighlighter, type Highlighter } from 'shiki';
-  
+  import { createHighlighter, type Highlighter } from "shiki";
+
   let highlighter: Highlighter | null = null;
-  
+
   export async function getHighlighter(): Promise<Highlighter> {
     if (!highlighter) {
       highlighter = await createHighlighter({
-        themes: ['github-light', 'github-dark'],
-        langs: ['javascript', 'typescript', 'rust', 'python', 'go', 'java', 'markdown', 'json', 'yaml', 'shell'],
+        themes: ["github-light", "github-dark"],
+        langs: [
+          "javascript",
+          "typescript",
+          "rust",
+          "python",
+          "go",
+          "java",
+          "markdown",
+          "json",
+          "yaml",
+          "shell",
+        ],
       });
     }
     return highlighter;
   }
   ```
+
 - [ ] **IntersectionObserver 封装示例**：
   ```typescript
   // web/src/lib/shiki/lazy-loader.ts
   export class ShikiLazyLoader {
     private observer: IntersectionObserver;
     private pendingLines = new Set<HTMLElement>();
-    
+
     constructor(private highlighter: Highlighter) {
       this.observer = new IntersectionObserver(
         (entries) => this.handleIntersection(entries),
-        { rootMargin: '200px' }
+        { rootMargin: "200px" },
       );
     }
-    
+
     observe(lineEl: HTMLElement) {
       this.observer.observe(lineEl);
     }
-    
+
     private handleIntersection(entries: IntersectionObserverEntry[]) {
       for (const entry of entries) {
         if (entry.isIntersecting) {
@@ -113,7 +130,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
         }
       }
     }
-    
+
     private processBatch() {
       requestIdleCallback(() => {
         const batch = Array.from(this.pendingLines).slice(0, 50);
@@ -126,38 +143,39 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
   }
   ```
 - [ ] **语言映射表示例**：
+
   ```typescript
   // web/src/lib/shiki/lang-map.ts
   export const EXT_TO_LANG: Record<string, string> = {
-    '.js': 'javascript',
-    '.ts': 'typescript',
-    '.tsx': 'tsx',
-    '.rs': 'rust',
-    '.py': 'python',
-    '.go': 'go',
-    '.java': 'java',
-    '.md': 'markdown',
-    '.json': 'json',
-    '.yaml': 'yaml',
-    '.yml': 'yaml',
-    '.sh': 'shell',
-    '.bash': 'shell',
-    '.zsh': 'shell',
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".tsx": "tsx",
+    ".rs": "rust",
+    ".py": "python",
+    ".go": "go",
+    ".java": "java",
+    ".md": "markdown",
+    ".json": "json",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".sh": "shell",
+    ".bash": "shell",
+    ".zsh": "shell",
   };
-  
+
   export const FILENAME_TO_LANG: Record<string, string> = {
-    'Dockerfile': 'dockerfile',
-    'Makefile': 'makefile',
-    'CMakeLists.txt': 'cmake',
+    Dockerfile: "dockerfile",
+    Makefile: "makefile",
+    "CMakeLists.txt": "cmake",
   };
-  
+
   export function detectLanguage(filePath: string): string | null {
-    const ext = filePath.slice(filePath.lastIndexOf('.'));
+    const ext = filePath.slice(filePath.lastIndexOf("."));
     if (EXT_TO_LANG[ext]) return EXT_TO_LANG[ext];
-    
-    const basename = filePath.split('/').pop() || '';
+
+    const basename = filePath.split("/").pop() || "";
     if (FILENAME_TO_LANG[basename]) return FILENAME_TO_LANG[basename];
-    
+
     return null;
   }
   ```
@@ -291,14 +309,14 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元（web）| shiki 适配层 + lazy loader + LRU cache + lang-map | `vitest` · `web/src/lib/shiki/__tests__/` |
-| 集成 | shiki parse 结果与 DiffLine 组件结合 · token → span 渲染正确 | `vitest` + `testing-library` |
-| E2E（Playwright）| golden path：打开 diff → 验证 syntax highlight 颜色 → 滚动加载 → 切换主题 | `web/tests/e2e/diff-syntax-highlight.spec.ts` |
-| 性能 | 1MB / 10MB diff 首屏 benchmark | Playwright + `performance.now()` · 或 vitest bench |
-| 视觉回归 | 5 主流语言 × 2 主题 = 10 screenshots | Playwright screenshot diff · baseline 存 `web/tests/e2e/snapshots/` |
-| 手动 QA | 不支持语言（`.xyz`）· 无后缀文件 · 50MB 大文件 · 主题切换 | 手动 capture |
+| 层次              | 范围                                                                      | 覆盖路径                                                            |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 单元（web）       | shiki 适配层 + lazy loader + LRU cache + lang-map                         | `vitest` · `web/src/lib/shiki/__tests__/`                           |
+| 集成              | shiki parse 结果与 DiffLine 组件结合 · token → span 渲染正确              | `vitest` + `testing-library`                                        |
+| E2E（Playwright） | golden path：打开 diff → 验证 syntax highlight 颜色 → 滚动加载 → 切换主题 | `web/tests/e2e/diff-syntax-highlight.spec.ts`                       |
+| 性能              | 1MB / 10MB diff 首屏 benchmark                                            | Playwright + `performance.now()` · 或 vitest bench                  |
+| 视觉回归          | 5 主流语言 × 2 主题 = 10 screenshots                                      | Playwright screenshot diff · baseline 存 `web/tests/e2e/snapshots/` |
+| 手动 QA           | 不支持语言（`.xyz`）· 无后缀文件 · 50MB 大文件 · 主题切换                 | 手动 capture                                                        |
 
 ### C.1 · fixture 准备
 
@@ -320,21 +338,32 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 
 ```typescript
 // web/src/lib/shiki/__tests__/bench/highlighter.bench.ts
-import { bench, describe } from 'vitest';
-import { getHighlighter } from '../highlighter';
+import { bench, describe } from "vitest";
+import { getHighlighter } from "../highlighter";
 
-describe('shiki lazy load', () => {
-  bench('parse 1MB JS file', async () => {
-    const highlighter = await getHighlighter();
-    const code = await fetch('/fixtures/1mb.js').then(r => r.text());
-    await highlighter.codeToTokens(code, { lang: 'javascript', theme: 'github-light' });
-  }, { time: 5 });
+describe("shiki lazy load", () => {
+  bench(
+    "parse 1MB JS file",
+    async () => {
+      const highlighter = await getHighlighter();
+      const code = await fetch("/fixtures/1mb.js").then((r) => r.text());
+      await highlighter.codeToTokens(code, {
+        lang: "javascript",
+        theme: "github-light",
+      });
+    },
+    { time: 5 },
+  );
 
-  bench('theme switch', async () => {
-    const highlighter = await getHighlighter();
-    // 预 parse 好的 tokens · 仅切换 theme
-    highlighter.setTheme('github-dark');
-  }, { time: 5 });
+  bench(
+    "theme switch",
+    async () => {
+      const highlighter = await getHighlighter();
+      // 预 parse 好的 tokens · 仅切换 theme
+      highlighter.setTheme("github-dark");
+    },
+    { time: 5 },
+  );
 });
 ```
 
@@ -344,25 +373,27 @@ describe('shiki lazy load', () => {
 
 ```typescript
 // web/tests/e2e/diff-syntax-highlight.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-const LANGUAGES = ['javascript', 'typescript', 'rust', 'python', 'go'];
-const THEMES = ['light', 'dark'];
+const LANGUAGES = ["javascript", "typescript", "rust", "python", "go"];
+const THEMES = ["light", "dark"];
 
 for (const lang of LANGUAGES) {
   for (const theme of THEMES) {
     test(`${lang} ${theme} syntax highlight`, async ({ page }) => {
       await page.goto(`/diff?file=fixtures/1mb.${lang}&theme=${theme}`);
-      await page.waitForSelector('.token-keyword', { timeout: 5000 });
-      
+      await page.waitForSelector(".token-keyword", { timeout: 5000 });
+
       // 截图对比
-      const diffView = page.locator('.diff-view');
-      expect(await diffView.screenshot()).toMatchSnapshot(`${lang}-${theme}.png`);
-      
+      const diffView = page.locator(".diff-view");
+      expect(await diffView.screenshot()).toMatchSnapshot(
+        `${lang}-${theme}.png`,
+      );
+
       // 验证 token 颜色
-      const keyword = page.locator('.token-keyword').first();
-      const color = await keyword.evaluate(el => getComputedStyle(el).color);
-      expect(color).not.toBe('rgb(0, 0, 0)'); // 不是默认黑色
+      const keyword = page.locator(".token-keyword").first();
+      const color = await keyword.evaluate((el) => getComputedStyle(el).color);
+      expect(color).not.toBe("rgb(0, 0, 0)"); // 不是默认黑色
     });
   }
 }
@@ -372,39 +403,39 @@ for (const lang of LANGUAGES) {
 
 ```typescript
 // web/tests/e2e/diff-performance.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test('1MB JS diff first paint < 300ms', async ({ page }) => {
-  await page.goto('/');
-  
+test("1MB JS diff first paint < 300ms", async ({ page }) => {
+  await page.goto("/");
+
   const startTime = await page.evaluate(() => performance.now());
   await page.click('[data-testid="status-file-1mb.js"]');
-  await page.waitForSelector('.diff-view', { timeout: 5000 });
+  await page.waitForSelector(".diff-view", { timeout: 5000 });
   const endTime = await page.evaluate(() => performance.now());
-  
+
   const duration = endTime - startTime;
   expect(duration).toBeLessThan(300);
 });
 
-test('10MB file scroll no long task', async ({ page }) => {
-  await page.goto('/diff?file=fixtures/10mb.js');
-  await page.waitForSelector('.diff-view');
-  
+test("10MB file scroll no long task", async ({ page }) => {
+  await page.goto("/diff?file=fixtures/10mb.js");
+  await page.waitForSelector(".diff-view");
+
   // 注入 PerformanceObserver 监听 long task
   await page.evaluate(() => {
     window.longTasks = [];
     const observer = new PerformanceObserver((list) => {
       window.longTasks.push(...list.getEntries());
     });
-    observer.observe({ entryTypes: ['longtask'] });
+    observer.observe({ entryTypes: ["longtask"] });
   });
-  
+
   // 滚动到底部
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await page.waitForTimeout(2000);
-  
+
   const longTasks = await page.evaluate(() => window.longTasks);
-  const maxDuration = Math.max(...longTasks.map(t => t.duration), 0);
+  const maxDuration = Math.max(...longTasks.map((t) => t.duration), 0);
   expect(maxDuration).toBeLessThan(50);
 });
 ```
@@ -417,12 +448,12 @@ test('10MB file scroll no long task', async ({ page }) => {
 
 shiki 相关状态全部运行时内存（session 级别 · 关掉即丢）：
 
-| 状态 | 位置 | 持久化 |
-|------|------|--------|
+| 状态                     | 位置                                            | 持久化        |
+| ------------------------ | ----------------------------------------------- | ------------- |
 | Theme 偏好（light/dark） | `app_settings` 表（MVP-03 已建）· key `"theme"` | ✅ 跨 session |
-| shiki `Highlighter` 单例 | 前端内存（`web/src/lib/shiki/highlighter.ts`） | ❌ session |
-| LRU cache（parse 结果） | 前端内存（`web/src/lib/shiki/cache.ts`） | ❌ session |
-| 语言映射表 | 前端常量（`web/src/lib/shiki/lang-map.ts`） | ❌ 代码内 |
+| shiki `Highlighter` 单例 | 前端内存（`web/src/lib/shiki/highlighter.ts`）  | ❌ session    |
+| LRU cache（parse 结果）  | 前端内存（`web/src/lib/shiki/cache.ts`）        | ❌ session    |
+| 语言映射表               | 前端常量（`web/src/lib/shiki/lang-map.ts`）     | ❌ 代码内     |
 
 **禁止**：不在 rusqlite 缓存 shiki parse 结果（parse 是 CPU 密集型 · 缓存收益 < 序列化成本）。
 
@@ -483,15 +514,16 @@ MVP-15 是**纯前端装饰层** · backend 不改 diff 计算逻辑 · IPC 需�
 
 **决策：MVP-15 不新增 IPC command** · 复用 MVP-08 已有 binding · 仅在前端扩展字段。
 
-| 已有 binding | MVP-15 使用 | 决策 | 理由 |
-|---|---|---|---|
-| `DiffRequest`（MVP-08） | 复用 · 前端调用时附加 `lang_hint?: string` | ✅ **复用** · 不新建 | MVP-08 已有 `file_path` · 前端可从后缀推导语言 · 作为 hint 传 backend（backend 可忽略） |
-| `DiffResponse`（MVP-08） | 复用 · `DiffLine.content` 字段不变 | ✅ **复用** · 不新建 | syntax highlight 在前端解析 `content` → shiki tokens · backend 不感知 |
-| `GitStatusResponse`（MVP-08） | 复用 · 文件列表来源 | ✅ **复用** | MVP-15 从 Status 面板点击文件 → 复用 MVP-08 链路 |
+| 已有 binding                  | MVP-15 使用                                | 决策                 | 理由                                                                                    |
+| ----------------------------- | ------------------------------------------ | -------------------- | --------------------------------------------------------------------------------------- |
+| `DiffRequest`（MVP-08）       | 复用 · 前端调用时附加 `lang_hint?: string` | ✅ **复用** · 不新建 | MVP-08 已有 `file_path` · 前端可从后缀推导语言 · 作为 hint 传 backend（backend 可忽略） |
+| `DiffResponse`（MVP-08）      | 复用 · `DiffLine.content` 字段不变         | ✅ **复用** · 不新建 | syntax highlight 在前端解析 `content` → shiki tokens · backend 不感知                   |
+| `GitStatusResponse`（MVP-08） | 复用 · 文件列表来源                        | ✅ **复用**          | MVP-15 从 Status 面板点击文件 → 复用 MVP-08 链路                                        |
 
 **实际新增 binding 数：0**（MVP-15 纯前端 · 无 backend 改动）。
 
 > 若 Phase A 实施时发现必须 backend 提供 language guess（如根据文件内容用 `tree-sitter` 检测语言）· 则新增 1 个 IPC：
+>
 > - `LanguageDetectRequest` · `LanguageDetectResponse` · 但此方案需 Arbiter 评估 · 当前 spec 锁定前端自主检测（后缀 + 文件名映射）。
 
 ### G.2 若新增 IPC 的 derive 模板（预留 · 当前不实施）
@@ -538,12 +570,12 @@ pub struct LanguageDetectResponse {
 
 MVP-15 实施前必须明确复用 / 新增边界：
 
-| MVP-08 已有 binding | MVP-15 使用场景 | 决策 | 理由 |
-|---|---|---|---|
-| `DiffRequest` | 触发 diff 计算 · MVP-15 附加 `lang_hint`（前端可选字段 · backend 忽略） | ✅ **复用** | 不改 Rust struct · 前端调用时加字段即可（TypeScript 允许额外字段） |
-| `DiffResponse` | diff 结果 · `DiffLine.content` 被 shiki parse | ✅ **复用** | backend 不改输出 · 前端消费时扩展 |
-| `DiffLine` | 每行内容 · MVP-15 前端解析 `content` → tokens | ✅ **复用** | 不新增字段 · tokens 是前端运行时计算 |
-| `GitStatusResponse` | 文件列表来源 | ✅ **复用** | MVP-08 已有链路 |
+| MVP-08 已有 binding | MVP-15 使用场景                                                         | 决策        | 理由                                                               |
+| ------------------- | ----------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------ |
+| `DiffRequest`       | 触发 diff 计算 · MVP-15 附加 `lang_hint`（前端可选字段 · backend 忽略） | ✅ **复用** | 不改 Rust struct · 前端调用时加字段即可（TypeScript 允许额外字段） |
+| `DiffResponse`      | diff 结果 · `DiffLine.content` 被 shiki parse                           | ✅ **复用** | backend 不改输出 · 前端消费时扩展                                  |
+| `DiffLine`          | 每行内容 · MVP-15 前端解析 `content` → tokens                           | ✅ **复用** | 不新增字段 · tokens 是前端运行时计算                               |
+| `GitStatusResponse` | 文件列表来源                                                            | ✅ **复用** | MVP-08 已有链路                                                    |
 
 ### G.6 · MVP-15 新增 binding 清单
 
@@ -561,14 +593,15 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：使用 `shiki` v3+ 作为语法高亮引擎（浏览器端）。
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **shiki v3+**（**v0.3 选定**） | 浏览器原生 WASM · 语言覆盖广 · VS Code 同款 grammar · 社区活跃 | WASM 包大（5MB+）· 首次 load 慢 | ✅ `§W21` 锁定 |
-| (b) tree-sitter | 解析准确 · 可增量更新 · 适合大文件 | 浏览器端需 WASM + JS binding · 语言 grammar 维护成本高 · 未经 `§W21` 批准 | ⛔ 需先改 `§W21` + ADR |
-| (c) highlight.js | 包小（~50KB）· 无 WASM | 语言覆盖少 · 解析质量低 · 无懒加载 | ❌ 不满足 Tier 1 覆盖 |
-| (d) Prism.js | 包小 · 插件多 | 解析质量低 · 无 WASM · 语言覆盖少 | ❌ 不满足 |
+| 选项                               | 优点                                                           | 缺点                                                                      | v0.3 评估              |
+| ---------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------- |
+| (a) **shiki v3+**（**v0.3 选定**） | 浏览器原生 WASM · 语言覆盖广 · VS Code 同款 grammar · 社区活跃 | WASM 包大（5MB+）· 首次 load 慢                                           | ✅ `§W21` 锁定         |
+| (b) tree-sitter                    | 解析准确 · 可增量更新 · 适合大文件                             | 浏览器端需 WASM + JS binding · 语言 grammar 维护成本高 · 未经 `§W21` 批准 | ⛔ 需先改 `§W21` + ADR |
+| (c) highlight.js                   | 包小（~50KB）· 无 WASM                                         | 语言覆盖少 · 解析质量低 · 无懒加载                                        | ❌ 不满足 Tier 1 覆盖  |
+| (d) Prism.js                       | 包小 · 插件多                                                  | 解析质量低 · 无 WASM · 语言覆盖少                                         | ❌ 不满足              |
 
 **依据**：
+
 - `§W21` 明确锁定 shiki · 不预 decision tree-sitter
 - shiki v3 浏览器友好（WASM lazy load）· 支持 100+ 语言 · 与 VS Code 共享 TextMate grammar
 
@@ -583,13 +616,14 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：Progressive Enhancement — 先 render diff 结构（无高亮）→ 再对 viewport 内行 lazy load shiki。
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **先 diff + 后 shiki**（**v0.3 选定**） | 用户先看到内容 · 再变彩色 · 感知快 | 两次渲染（纯文本 → 高亮）· 有轻微 flicker | ✅ 满足 `§W21` 1MB < 300ms |
-| (b) 等 shiki 全量 parse 完再 render | 无 flicker · 一次到位 | 首屏慢（1MB parse 可能 > 1s）· 用户白等 | ❌ 不满足硬指标 |
-| (c) 后端 pre-parse | 前端零计算 · 直接渲染 tokens | 增加 IPC payload（tokens 数组比纯文本大 5-10x）· backend 引入 shiki | ❌ `§W21` 锁定前端 |
+| 选项                                        | 优点                               | 缺点                                                                | v0.3 评估                  |
+| ------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------- | -------------------------- |
+| (a) **先 diff + 后 shiki**（**v0.3 选定**） | 用户先看到内容 · 再变彩色 · 感知快 | 两次渲染（纯文本 → 高亮）· 有轻微 flicker                           | ✅ 满足 `§W21` 1MB < 300ms |
+| (b) 等 shiki 全量 parse 完再 render         | 无 flicker · 一次到位              | 首屏慢（1MB parse 可能 > 1s）· 用户白等                             | ❌ 不满足硬指标            |
+| (c) 后端 pre-parse                          | 前端零计算 · 直接渲染 tokens       | 增加 IPC payload（tokens 数组比纯文本大 5-10x）· backend 引入 shiki | ❌ `§W21` 锁定前端         |
 
 **依据**：
+
 - `§W21` 硬指标 1MB < 300ms 要求先呈现
 - MVP-08 已有 diff 渲染 < 200ms · 叠加 shiki lazy load viewport 内行 < 100ms · 总和 < 300ms
 
@@ -597,13 +631,14 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：运行时内存 LRU 缓存 · session 级别 · 关掉即丢。
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **LRU 内存缓存**（**v0.3 选定**） | 快（< 5ms 命中）· 实现简单 | session 丢失 · 重启后重新 parse | ✅ 复杂度优先 |
-| (b) IndexedDB 持久化 | 跨 session 保留 · 二次打开更快 | 序列化开销大（tokens 数组 → IndexedDB）· 容量管理复杂 | ⏸ v0.4 评估 |
-| (c) 不缓存 | 内存最小 | 重复 parse 浪费 CPU | ❌  unacceptable |
+| 选项                                  | 优点                           | 缺点                                                  | v0.3 评估       |
+| ------------------------------------- | ------------------------------ | ----------------------------------------------------- | --------------- |
+| (a) **LRU 内存缓存**（**v0.3 选定**） | 快（< 5ms 命中）· 实现简单     | session 丢失 · 重启后重新 parse                       | ✅ 复杂度优先   |
+| (b) IndexedDB 持久化                  | 跨 session 保留 · 二次打开更快 | 序列化开销大（tokens 数组 → IndexedDB）· 容量管理复杂 | ⏸ v0.4 评估     |
+| (c) 不缓存                            | 内存最小                       | 重复 parse 浪费 CPU                                   | ❌ unacceptable |
 
 **依据**：
+
 - parse 结果是纯内存对象 · IndexedDB 序列化收益 < 成本
 - 100 文件 / 50MB 预算：单文件平均 500KB parse 结果 · 覆盖日常场景
 
@@ -611,13 +646,14 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：DOM 不重建 · 仅替换 `data-shiki-theme` 属性 · CSS variable 切换 token 颜色。
 
-| 选项 | 优点 | 缺点 | v0.3 评估 |
-|------|------|------|-----------|
-| (a) **CSS variable + data-attribute**（**v0.3 选定**） | 快（< 50ms）· 滚动位置保留 · 无 flicker | 需要预定义所有 token 的 light/dark 颜色映射 | ✅ 满足 D.1 |
-| (b) 重 parse + 重 render | 实现简单（直接调 shiki 换 theme） | 慢（> 1s for 1MB）· 滚动位置丢失 | ❌ 不满足 |
-| (c) 两套 DOM 并存（light + dark） | 切换瞬时 | 内存翻倍 · DOM 膨胀 | ❌  unacceptable |
+| 选项                                                   | 优点                                    | 缺点                                        | v0.3 评估       |
+| ------------------------------------------------------ | --------------------------------------- | ------------------------------------------- | --------------- |
+| (a) **CSS variable + data-attribute**（**v0.3 选定**） | 快（< 50ms）· 滚动位置保留 · 无 flicker | 需要预定义所有 token 的 light/dark 颜色映射 | ✅ 满足 D.1     |
+| (b) 重 parse + 重 render                               | 实现简单（直接调 shiki 换 theme）       | 慢（> 1s for 1MB）· 滚动位置丢失            | ❌ 不满足       |
+| (c) 两套 DOM 并存（light + dark）                      | 切换瞬时                                | 内存翻倍 · DOM 膨胀                         | ❌ unacceptable |
 
 **依据**：
+
 - shiki theme 对象预加载两套 · 切换时零网络请求
 - CSS variable 重算由 browser 优化 · 比 JS 重 render 快 10x+
 
@@ -625,13 +661,14 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：分档处理 · 小文件主线程 · 大文件 Worker。
 
-| 文件大小 | 策略 | 理由 |
-|----------|------|------|
-| < 1MB | 主线程直接 parse | 内容少 · parse < 16ms · 不阻塞 |
+| 文件大小   | 策略                           | 理由                                      |
+| ---------- | ------------------------------ | ----------------------------------------- |
+| < 1MB      | 主线程直接 parse               | 内容少 · parse < 16ms · 不阻塞            |
 | 1MB - 10MB | `requestIdleCallback` 分 chunk | 内容中等 · idle 时间片解析 · 不抢用户交互 |
-| > 10MB | Web Worker 分 chunk | 内容大 · 必须 offload · 主线程零阻塞 |
+| > 10MB     | Web Worker 分 chunk            | 内容大 · 必须 offload · 主线程零阻塞      |
 
 **依据**：
+
 - 60fps = 16ms/frame · 主线程 parse 必须 ≤ 16ms
 - Worker 通信开销 ~20ms · 仅在大文件时值得
 
@@ -639,15 +676,16 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：Playwright screenshot diff · 10 张 baseline。
 
-| 语言 | light theme | dark theme |
-|------|-------------|------------|
-| JavaScript | ✅ | ✅ |
-| TypeScript | ✅ | ✅ |
-| Rust | ✅ | ✅ |
-| Python | ✅ | ✅ |
-| Go | ✅ | ✅ |
+| 语言       | light theme | dark theme |
+| ---------- | ----------- | ---------- |
+| JavaScript | ✅          | ✅         |
+| TypeScript | ✅          | ✅         |
+| Rust       | ✅          | ✅         |
+| Python     | ✅          | ✅         |
+| Go         | ✅          | ✅         |
 
 **依据**：
+
 - 覆盖 Tier 1 主流语言 · 验证 shiki grammar 正确性
 - 2 主题验证 CSS variable 切换无颜色错乱
 - baseline 存 `web/tests/e2e/snapshots/` · CI 自动 diff
@@ -656,16 +694,17 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 **决策**：MVP-15 仅装饰层 · 失败时 Diff 仍可用。
 
-| 场景 | MVP-08 责任 | MVP-15 责任 |
-|------|-------------|-------------|
-| Diff 计算（similar 算法） | ✅ | ❌ |
-| Diff 渲染（split/unified + 行号 + 增删色） | ✅ | ❌ |
-| Syntax highlight 叠加 | ❌ | ✅ |
-| 主题切换（全局 light/dark） | ✅（框架级） | ✅（shiki theme 联动） |
-| 大文件降级（> 1MB 提示） | ✅ | ❌ |
-| 大文件语法高亮禁用（> 50MB） | ❌ | ✅ |
+| 场景                                       | MVP-08 责任  | MVP-15 责任            |
+| ------------------------------------------ | ------------ | ---------------------- |
+| Diff 计算（similar 算法）                  | ✅           | ❌                     |
+| Diff 渲染（split/unified + 行号 + 增删色） | ✅           | ❌                     |
+| Syntax highlight 叠加                      | ❌           | ✅                     |
+| 主题切换（全局 light/dark）                | ✅（框架级） | ✅（shiki theme 联动） |
+| 大文件降级（> 1MB 提示）                   | ✅           | ❌                     |
+| 大文件语法高亮禁用（> 50MB）               | ❌           | ✅                     |
 
 **依据**：
+
 - MVP-08 已 production 可用 · MVP-15 不应破坏已有功能
 - shiki parse 失败 → catch error → 纯文本降级（MVP-08 原有逻辑接管）
 
@@ -699,20 +738,20 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
 
 ## 详化完成度评估（Arbiter 审 PR 时参考）
 
-| 12 段必含 | 状态 | 备注 |
-|----------|------|------|
-| 1. frontmatter | ✅ | id / type / title / status:draft / depends_on / phase / estimate / plan_ref / risk_ref / reviewer 占位 |
-| 2. 🎯 目标 Goal | ✅ | 一句话核心 + plan_ref link + 硬指标 |
-| 3. 📖 背景 Context | ✅ | implementation-plan + CLAUDE.md + 路线图 W21 + 上游 MVP-08 已落地 |
-| 4. 🛠 实施进度表 | ✅ | Phase A/B/C/D 拆分 + Phase A 起点 checklist |
-| 5. 🎨 功能范围 Scope | ✅ | Do 6 项 / Don't 6 项 · 含 Tier 1/2 语言清单 |
-| 6. 🖼 UI 引用 | ✅ | MVP-08 基础 + syntax highlight 叠加 + chip + 主题切换 |
-| 7. ✅ Acceptance | ✅ | A-G 7 大组 / 35+ 项 checkbox · 每项含具体测法（P99 / 文件大小 / 语言） |
-| 8. 🧪 测试策略 | ✅ | 单元 / 集成 / E2E / 性能 / 视觉回归 / 手动 QA + fixture 脚本 + bench 模板 |
-| 9. 💾 数据模型变更 | ✅ | 无新表 · 运行时内存状态 + 持久化 theme 偏好 |
-| 10. §G IPC Contract | ✅ | 0 新增 binding（纯前端）+ G.5 复用决策 + G.6 预留 |
-| 11. §H 决策锁定 | ✅ | H.1-H.8 8 子段 · 含技术栈表 / 渲染策略表 / 缓存策略表 / 主题切换表 / Worker 分档表 / MVP-08 边界表 |
-| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅ | 5 风险 + 5 Notes + 6 相关 + 7 条自审 |
+| 12 段必含                                 | 状态 | 备注                                                                                                   |
+| ----------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------ |
+| 1. frontmatter                            | ✅   | id / type / title / status:draft / depends_on / phase / estimate / plan_ref / risk_ref / reviewer 占位 |
+| 2. 🎯 目标 Goal                           | ✅   | 一句话核心 + plan_ref link + 硬指标                                                                    |
+| 3. 📖 背景 Context                        | ✅   | implementation-plan + CLAUDE.md + 路线图 W21 + 上游 MVP-08 已落地                                      |
+| 4. 🛠 实施进度表                          | ✅   | Phase A/B/C/D 拆分 + Phase A 起点 checklist                                                            |
+| 5. 🎨 功能范围 Scope                      | ✅   | Do 6 项 / Don't 6 项 · 含 Tier 1/2 语言清单                                                            |
+| 6. 🖼 UI 引用                             | ✅   | MVP-08 基础 + syntax highlight 叠加 + chip + 主题切换                                                  |
+| 7. ✅ Acceptance                          | ✅   | A-G 7 大组 / 35+ 项 checkbox · 每项含具体测法（P99 / 文件大小 / 语言）                                 |
+| 8. 🧪 测试策略                            | ✅   | 单元 / 集成 / E2E / 性能 / 视觉回归 / 手动 QA + fixture 脚本 + bench 模板                              |
+| 9. 💾 数据模型变更                        | ✅   | 无新表 · 运行时内存状态 + 持久化 theme 偏好                                                            |
+| 10. §G IPC Contract                       | ✅   | 0 新增 binding（纯前端）+ G.5 复用决策 + G.6 预留                                                      |
+| 11. §H 决策锁定                           | ✅   | H.1-H.8 8 子段 · 含技术栈表 / 渲染策略表 / 缓存策略表 / 主题切换表 / Worker 分档表 / MVP-08 边界表     |
+| 12. ⚠️ 已知风险 + Notes + 相关 + 自审四问 | ✅   | 5 风险 + 5 Notes + 6 相关 + 7 条自审                                                                   |
 
 **完成度**：12/12 = **100%**（建议 Arbiter approve PR 后翻 status: ready）。
 

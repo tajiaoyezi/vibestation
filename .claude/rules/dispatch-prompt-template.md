@@ -76,13 +76,15 @@ spec 的 `Acceptance` 所有 checkbox **必须** 在 PR body 逐项：
 
 ### 2.3 · Runtime 证据必交（按 task 层级区分）
 
-| 任务类型                              | Runtime 证据要求                                                                                                                                                                          |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Spike**（decision-grade benchmark） | 按 `.claude/rules/spike-delivery-checklist.md` "4 样齐全"（report + code + raw + cold backup）· report 数字必须 raw 可溯源                                                                |
-| **MVP**（产品功能）                   | 至少 3 张截图或 1 段 30s 录屏 · 覆盖核心 golden path + 关键边界 · 放 `docs/runtime-evidence/<task-id>/`（**进 git** · 见 [ADR-011](../../docs/adr/ADR-011-runtime-evidence-location.md)） |
-| **Docs / chore**（纯文档）            | CI 通过即可 · 无 runtime 要求                                                                                                                                                             |
+> ⚠️ **2026-05-20 · MVP capture mandate removed**（ADR-023 supersede ADR-011）：MVP 类「3 张截图 + 30s 录屏」硬要求已 supersede · 不再阻塞 spec done flip。已捕证据继续保留作 ship audit · 但**新 MVP PR 不强制 capture**。仅 Spike 类仍按 `spike-delivery-checklist.md` 4 样齐全。
 
-关键：**CI 绿 ≠ runtime 过**（见 `~/.claude/rules/15-runtime-verification-gate.md` · 项目级落地见 `.claude/rules/runtime-evidence-location.md`）· GUI / IPC 类代码必须有 runtime 证据。
+| 任务类型                              | Runtime 证据要求                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Spike**（decision-grade benchmark） | 按 `.claude/rules/spike-delivery-checklist.md` "4 样齐全"（report + code + raw + cold backup）· report 数字必须 raw 可溯源                 |
+| **MVP**（产品功能）                   | 代码侧 acceptance（cargo test / vitest / Criterion bench / 性能 DevTools 数字）即可 · 截图 / 录屏 / GUI capture 已 supersede（2026-05-20） |
+| **Docs / chore**（纯文档）            | CI 通过即可 · 无 runtime 要求                                                                                                              |
+
+关键：**CI 绿 ≠ runtime 过**（见 `~/.claude/rules/15-runtime-verification-gate.md`）· GUI / IPC 类代码 reviewer 仍可按 §2.14 启 dev mode 自验 critical UX path · 但不强制 capture 截图归档。
 
 ### 2.4 · 独立 worktree · 不得在主 working tree 开 agent 任务分支
 

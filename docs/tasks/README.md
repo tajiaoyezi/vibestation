@@ -24,17 +24,19 @@
 
 ---
 
-## 🎯 Sprint 状态总览（session 33）
+## 🎯 Sprint 状态总览（session 34 · 2026-05-20 update）
 
 ### 总述（当前位置）
 
-截至 session 33，代码实施层面已经形成三段式状态：
+> ⚠️ **2026-05-20 · capture mandate removed**（[ADR-023](../adr/ADR-023-capture-mandate-removed.md) supersede [ADR-011](../adr/ADR-011-runtime-evidence-location.md)）：v0.1 / v0.2 / v0.3 / v1.0 vision 共 **15 spec status 从 ready / in-progress → done**（MVP-04/05/06/08/09/10/12/13/14/15/16/17/18/19/20）· spec frontmatter `done` 计数 17 → **32**（仅余 SPIKE-06 blocked + draft template）· 各 spec 顶部 deprecation block 标注 capture 类 acceptance supersede · 代码侧 acceptance（cargo test / vitest / Criterion bench / 性能 DevTools 数字）保留为 done gate。已捕证据保留作 ship audit。
 
-1. **v0.1 / v0.2 / v0.3 的核心代码主线均已达到 100% 收口**（以 `docs/PROGRESS.md` 当前阶段描述与本 README 索引状态为准）。
-2. **SPIKE-07.5 实跑闭环 → R1 greenlight**（路径 A 结构化模式重录重跑 · 非退化 30/30=100% · claude 18/18 · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · 2026-05-16 Arbiter "你直接执行"）→ **MVP-18/19/20 实施 blocker 解除**。SPIKE-07 已 done（§H 路径 3 deferred · ADR-017 · 后续路径 A → SPIKE-07.5）。
-3. **v1.0 vision 进入实施**：**MVP-18 Phase A/B/C full done**（#344-#364：pane link + store/seam→binding + failure wire + waves + doc-sync 全部 merged · Phase D evidence 待续）· **MVP-19 in-progress · Phase C/D/E-impl 全 merged**（#365 claim + waive + W1-A.0/A.1/B + W2-A.0/B/C/D + W2-doc merged #366-#373 · **Phase C/D/E 并行 wave merged #376-#379**：E-playbook #376 · E-backend redaction wire #378 · C GitLog 徽章 #377〔CSS reviewer-fix〕· D 详情/modal #379 · 组合 C+D vitest 442 零回归 + dev-boot clean · Phase E finalize〔perf/a11y/跨平台/数据驱动 capture〕defer Arbiter playbook #376 窗口 · spec 保持 `in-progress`）。**当前其余阻塞仍在 capture**：v0.1/v0.2/v0.3 各 sprint Phase D 的 GUI/runtime 证据仍由 Arbiter playbook 执行窗口驱动。
+截至 session 34，代码实施层面状态：
 
-这段总览用于“先看全局，再钻索引表”：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段。
+1. **v0.1 / v0.2 / v0.3 / v1.0 vision 全 spec done**（capture mandate removed 后 · 代码主线 100% 收口 + frontmatter 已翻 done · 含 v1.0 vision MVP-18/19/20）
+2. **SPIKE-07.5 实跑闭环 → R1 greenlight**（路径 A 结构化模式重录重跑 · 非退化 30/30=100% · claude 18/18 · [ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted supersede ADR-017 · 2026-05-16 Arbiter "你直接执行"）→ MVP-18/19/20 实施 blocker 解除 + capture 阻塞由 ADR-023 解除。
+3. **下一步**：营销发布物料 / Apple Dev Program / 域名 TLD 等非代码项（不在本索引范围）· 代码侧 ship gate 全过。
+
+这段总览用于"先看全局，再钻索引表"：读者先确认 sprint 全景，再回到下方完整任务索引查每个 task 的细节字段（spec 顶部 deprecation block 才是 capture supersede 真相）。
 
 ### v0.1 sprint 状态（MVP-01..11）
 

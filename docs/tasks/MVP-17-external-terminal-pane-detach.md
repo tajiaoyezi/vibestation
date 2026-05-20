@@ -2,7 +2,7 @@
 id: MVP-17
 type: mvp
 title: 外部终端弹出（Pop to External）+ Pane Detach
-status: ready
+status: done
 owner:
 phase: v0.3
 depends_on: ["MVP-04", "MVP-14"]

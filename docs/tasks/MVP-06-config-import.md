@@ -2,7 +2,7 @@
 id: MVP-06
 type: mvp
 title: 配置导入（Ghostty + iTerm2 + Alacritty）
-status: ready
+status: done
 owner:
 phase: W7-W8
 depends_on: ["MVP-04"]

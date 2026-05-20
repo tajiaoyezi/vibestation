@@ -2,7 +2,7 @@
 id: MVP-18
 type: mvp
 title: AI-Aware Pane 联动（订阅 + 失败反哺）
-status: in-progress
+status: done
 owner: Claude Code
 phase: v1.0
 depends_on: ["MVP-14", "SPIKE-07"]

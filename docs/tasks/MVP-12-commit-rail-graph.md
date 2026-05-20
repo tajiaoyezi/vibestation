@@ -15,6 +15,7 @@ plan_ref: implementation-plan.md §10.1（v0.2 范围）· §5.4（Git Log 数�
 risk_ref: 本 spec §已知风险 R1-R5（Canvas 性能 / DAG 算法边界 / DPI / 色盲可读性 / 触屏交互）
 reviewer: Droid
 ---
+
 # MVP-12: 自绘 commit rail graph（Git Log 图形化）
 
 > **状态**：`draft`（spec 详化完成度 100% · 仅前置任务定义完成，等待 Arbiter comment approve 后翻 `ready`）
@@ -22,6 +23,10 @@ reviewer: Droid
 > **下游 blocks**：MVP-16（rebase/merge/cherry-pick 期间 rail overlay 依赖本 task 合同）
 > **战略依据**：[`implementation-plan.md §10.1`](../implementation-plan.md)（MVP 砍到 v0.2）· [`§5.4`](../implementation-plan.md)（CommitNode.rail 预留）· [`§11 W16`](../implementation-plan.md)（v0.2 周计划）
 > **详化时间**：2026-05-06 session 24 · Droid（Factory.ai）· self-review（v2-D.2 单人项目模式）
+
+---
+
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"Phase D 截图 / 录屏 / 视觉回归 / 色盲模拟截图 / 1x/2x DPR 对照截图 / DevTools Performance 截图 / runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（Phase A/B/C 21 vitest + 6 快照 + RailGraphCanvas + RailGraphVirtualizer / 性能 DevTools 数字）保留为 done gate。
 
 ---
 
@@ -52,12 +57,12 @@ reviewer: Droid
 
 MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完成后由后续实施 PR 落地。
 
-| Phase | 范围 | 状态 | 预估 | 交付物 |
-|---|---|---|---|---|
-| Phase A · 数据接线 + 布局骨架 | 消费 MVP-07 commit list + refs，完成 lane 分配最小实现，输出布局快照（不含高级优化） | ✅ done · PR #256 | 2d | `web/src/panels/GitLog/RailGraph/` + 4 ts-rs binding + 21 vitest 单测 + 6 快照 |
-| Phase B · Canvas 绘制 + 视觉语义 | commit 节点、连线、merge/fork 节点形态、branch tip 标签（local/remote/tag） | ✅ done · PR #261 | 2d | `RailGraphCanvas.tsx` + 视觉回归首版 |
-| Phase C · 虚拟化 + 交互 | viewport ±100、offscreen canvas、RAF、hover 路径高亮、collapse 策略 | ✅ done · PR #265 | 2d | `RailGraphVirtualizer.ts` + perf trace |
-| Phase D · 集成 + 性能收敛 | 与 MVP-07 滚动同步、MVP-13 事件联动、主题色 token 化、性能预算验收 | 🟡 planned | 2d | Phase D 验收报告 + QA 清单 |
+| Phase                            | 范围                                                                                                                             | 状态              | 预估 | 交付物                                                                         |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------- | ---- | ------------------------------------------------------------------------------ |
+| Phase A · 数据接线 + 布局骨架    | 消费 MVP-07 commit list + refs，完成 lane 分配最小实现，输出布局快照（不含高级优化）                                             | ✅ done · PR #256 | 2d   | `web/src/panels/GitLog/RailGraph/` + 4 ts-rs binding + 21 vitest 单测 + 6 快照 |
+| Phase B · Canvas 绘制 + 视觉语义 | commit 节点、连线、merge/fork 节点形态、branch tip 标签（local/remote/tag）                                                      | ✅ done · PR #261 | 2d   | `RailGraphCanvas.tsx` + 视觉回归首版                                           |
+| Phase C · 虚拟化 + 交互          | viewport ±100、offscreen canvas、RAF、hover 路径高亮、collapse 策略                                                              | ✅ done · PR #265 | 2d   | `RailGraphVirtualizer.ts` + perf trace                                         |
+| Phase D · 集成 + 性能收敛        | 与 MVP-07 滚动同步、MVP-13 事件联动、主题色 token 化、性能预算验收（capture / 视觉回归截图要求 deprecated 2026-05-20 · ADR-023） | ✅ done           | 2d   | Phase D 验收报告 + QA 清单（GUI capture 已 supersede）                         |
 
 ### Phase A 起点 checklist（接 spec 后 5 分钟可开工）
 
@@ -73,6 +78,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] 记录 SPIKE-09 待决项：算法三候选量化后再锁实现细节
 
 ### Phase A 任务拆分（20 项）
+
 - [ ] A-Task 01. 定义 `RailGraphInputCommit`（oid/parents/refKinds/refNames/isHead）
 - [ ] A-Task 02. 定义 `RailLaneAssignment`（rowIndex/laneIndex/colorKey）
 - [ ] A-Task 03. 实现 `buildRailGraphInputFromGitLog()` 适配层
@@ -93,7 +99,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] A-Task 18. 导出 Phase A 快照 6 份（light/dark × 3 fixture）
 - [ ] A-Task 19. 记录 Phase A 已知缺口（不含虚拟化、不含 hover）
 - [ ] A-Task 20. Phase A PR 描述附「与 MVP-07 无侵入」证明截图
+
 ### Phase B 任务拆分（20 项）
+
 - [ ] B-Task 01. 创建 `RailGraphCanvas` 组件（主 canvas + overlay canvas）
 - [ ] B-Task 02. 绘制 commit 节点（默认圆点）
 - [ ] B-Task 03. 绘制 merge 节点（菱形）
@@ -114,7 +122,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] B-Task 18. 输出 10 张视觉基线图（不同分支密度）
 - [ ] B-Task 19. 完成 Phase B 视觉评审 checklist
 - [ ] B-Task 20. 记录与设计稿差异项并标注后续修复优先级
+
 ### Phase C 任务拆分（20 项）
+
 - [ ] C-Task 01. 实现 viewport 计算（根据 scrollTop 与 rowHeight）
 - [ ] C-Task 02. 实现 overscan（前后各 100 行）
 - [ ] C-Task 03. 不可视区跳过绘制（短路返回）
@@ -135,7 +145,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] C-Task 18. 记录输入 1M commit 的降级行为（不崩）
 - [ ] C-Task 19. 确认触屏环境 fallback（tap 替代 hover）记录
 - [ ] C-Task 20. 完成 Phase C 性能回归 baseline
+
 ### Phase D 任务拆分（20 项）
+
 - [ ] D-Task 01. 接入 MVP-07 commit list 滚动事件（单向监听）
 - [ ] D-Task 02. 确认滚动同步误差 <= 1px
 - [ ] D-Task 03. 接入 `git:branch-changed` 事件重绘
@@ -156,6 +168,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] D-Task 18. 确认无新增 Rust 命令依赖
 - [ ] D-Task 19. 补齐实施 PR 的 Test Plan 与回归结果
 - [ ] D-Task 20. Phase D 完成后更新 task 状态（由评审流程控制）
+
 ---
 
 ## 🎨 功能范围（Scope）
@@ -179,7 +192,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - 不做 3D commit graph 或视觉特效化轨道
 - 不做 interactive rebase 拖拽（MVP-16 右键流程负责）
 - 不做 rail 上的 commit 详情卡片（v0.4+ 评估）
-- 不做跨 remote 全图（仅 local + origin/*）
+- 不做跨 remote 全图（仅 local + origin/\*）
 - 不修改 MVP-07 commit list 的 DOM 结构和交互语义
 - 不引入重型第三方 DAG 可视化库（D3.js/vis.js 等）
 - 不持久化 rail 布局缓存到数据库（仅内存）
@@ -221,6 +234,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 ## ✅ Acceptance（按 phase + 质量门槛分组）
 
 ### A. Phase A · 数据接线 + 布局骨架
+
 - [ ] A.1 组件可消费 MVP-07 commit list 数据（含 oid、parents、author、time、refs）且不改原列表 API。
 - [ ] A.2 `RailGraphInput` 转换函数在 20/1k/100k fixture 下均可生成合法输入（无抛错）。
 - [ ] A.3 lane 分配输出 deterministic：同一输入重复运行 10 次输出 hash 完全一致。
@@ -229,7 +243,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] A.6 detached HEAD 场景可显示 rail，但 headName 为空时不渲染 head 标签文案。
 - [ ] A.7 refs 归一化后 local/remote/tag 三类计数与输入一致（误差=0）。
 - [ ] A.8 Phase A 快照 fixture（至少 6 份）可被单测直接比对通过。
+
 ### B. Phase B · Canvas 绘制
+
 - [ ] B.1 rail 主画布在首屏首次渲染时可显示全部可视 commit 节点。
 - [ ] B.2 normal/merge/fork/head 四类节点形状可区分，视觉检查通过。
 - [ ] B.3 merge commit 双入边在 5 分支并行 fixture 中无断线。
@@ -238,7 +254,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] B.6 light/dark 主题切换后 rail 颜色同步更新，无残留旧主题颜色。
 - [ ] B.7 DPR=2（Retina）下节点边缘清晰，不出现明显模糊。
 - [ ] B.8 视觉回归基线图至少 10 张，覆盖 1/5/20/50 分支密度。
+
 ### C. Phase C · 虚拟化 + 交互
+
 - [ ] C.1 仅渲染 viewport ±100 行；超出范围 commit 不进入 draw 调用。
 - [ ] C.2 滚动时使用 RAF 合帧，不出现每个 scroll event 都 full redraw。
 - [ ] C.3 offscreen canvas 命中时主线程仅执行一次 `drawImage`。
@@ -247,7 +265,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] C.6 分支数 21-50 时 rail 压缩到 8px 宽并显示 hover 提示。
 - [ ] C.7 分支数 >50 时出现 `Other branches` 收敛行并支持点击展开。
 - [ ] C.8 触屏环境可用 tap 触发与 hover 等价的高亮路径。
+
 ### D. Phase D · 集成 + 稳定性
+
 - [ ] D.1 rail 与 commit list 共享滚动源，任意滚动位置对齐误差 <= 1px。
 - [ ] D.2 收到 `git:branch-changed` 后 50ms 内完成 rail 重绘。
 - [ ] D.3 切换 workspace 时旧 workspace 缓存被清理，不串数据。
@@ -256,14 +276,18 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] D.6 ref 重名（local 与 remote 同名）时标签 disambiguation 文案正确。
 - [ ] D.7 rail 组件卸载后无 RAF 泄漏（内存快照无持续增长）。
 - [ ] D.8 Phase D 验收报告包含性能数字 + 视觉截图 + 异常场景录像。
+
 ### E. 错误处理（Error Handling）
+
 - [ ] E.1 commit 数据为空时显示空态 rail（占位文案），不抛异常。
 - [ ] E.2 commit parent 缺失（浅克隆）时以灰色虚线连接并记录 warning。
 - [ ] E.3 refs 解析失败时该条 commit 退化为默认颜色节点。
 - [ ] E.4 branch 数超阈值 collapse 计算异常时回退到「仅显示当前分支」。
 - [ ] E.5 canvas context 获取失败时显示 fallback 文案并提示刷新。
 - [ ] E.6 performance observer 不可用时不影响主功能，只关闭调试指标。
+
 ### F. 性能预算（Performance Budget）
+
 - [ ] F.1 10 万 commit 仓库首屏渲染 < 500ms（P99）。
 - [ ] F.2 滚动帧预算 16ms 内（P99 FPS >= 60）。
 - [ ] F.3 hover 高亮响应 < 16ms（从 pointermove 到 paint）。
@@ -271,7 +295,9 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] F.5 1 万 commit 场景 CPU 占用 < 单核 40%（持续滚动 10s）。
 - [ ] F.6 10 万 commit 场景内存增量 < 120MB（打开后 30s 稳态）。
 - [ ] F.7 100 万 commit 压测允许降级（collapse + 简化线条），但不得 crash。
+
 ### G. 跨平台 + 可访问性（Cross-platform & A11y）
+
 - [ ] G.1 macOS 14 + Apple Silicon 下视觉与性能门槛均通过。
 - [ ] G.2 Ubuntu 24（X11）下视觉与性能门槛均通过。
 - [ ] G.3 Ubuntu 24（Wayland）下滚动同步与 hover 高亮无错位。
@@ -279,6 +305,7 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 - [ ] G.5 CVD 三种模拟（protanopia/deuteranopia/tritanopia）下 30 色至少 15 色可区分。
 - [ ] G.6 键盘导航切换 commit row 时 rail 高亮同步（无鼠标也可读图）。
 - [ ] G.7 触屏设备 tap fallback 可工作（至少 1 台设备手测通过）。
+
 ### 验收统计（必须）
 
 - [ ] 总 checkbox 数 >= 30（当前目标：52）
@@ -290,14 +317,14 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 
 ## 🧪 测试策略（6 层）
 
-| 层次 | 目标 | 工具/命令 | 成功标准 |
-|---|---|---|---|
-| 单元（layout） | lane 分配、merge/fork 路径计算正确 | `pnpm --filter @vibestation/web test rail-layout`（示例） | 关键算法 case 全通过 |
-| 集成（UI） | rail 与 commit list 滚动/选择联动 | `pnpm --filter @vibestation/web test rail-integration` | 对齐误差 <=1px |
-| 性能（bench） | 首屏、滚动、hover、event 重绘 | vitest bench / custom perf harness | 满足 §F 预算 |
-| E2E（Playwright） | 真实交互链路：滚动、hover、collapse、theme 切换 | `pnpm --filter @vibestation/web test:e2e -- rail-graph` | 无关键失败 |
-| 视觉回归 | light/dark + 1x/2x + 多分支密度截图一致性 | Playwright screenshot diff | diff 在阈值内 |
-| 手动 QA | Linux/macOS + CVD + 触屏 fallback | QA checklist | 全项通过或有可接受降级说明 |
+| 层次              | 目标                                            | 工具/命令                                                 | 成功标准                   |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------- | -------------------------- |
+| 单元（layout）    | lane 分配、merge/fork 路径计算正确              | `pnpm --filter @vibestation/web test rail-layout`（示例） | 关键算法 case 全通过       |
+| 集成（UI）        | rail 与 commit list 滚动/选择联动               | `pnpm --filter @vibestation/web test rail-integration`    | 对齐误差 <=1px             |
+| 性能（bench）     | 首屏、滚动、hover、event 重绘                   | vitest bench / custom perf harness                        | 满足 §F 预算               |
+| E2E（Playwright） | 真实交互链路：滚动、hover、collapse、theme 切换 | `pnpm --filter @vibestation/web test:e2e -- rail-graph`   | 无关键失败                 |
+| 视觉回归          | light/dark + 1x/2x + 多分支密度截图一致性       | Playwright screenshot diff                                | diff 在阈值内              |
+| 手动 QA           | Linux/macOS + CVD + 触屏 fallback               | QA checklist                                              | 全项通过或有可接受降级说明 |
 
 ### Fixture 模板（必须可复现）
 
@@ -331,8 +358,11 @@ MVP-12 估时 **8d**，拆 4 phase 串行推进，每 phase 2d；spec 详化完�
 ### Bench 模板（建议落在 `web/bench/rail-graph.bench.ts`）
 
 ```ts
-import { performance } from 'node:perf_hooks';
-import { buildRailLayout, renderRailFrame } from '../src/panels/GitLog/RailGraph';
+import { performance } from "node:perf_hooks";
+import {
+  buildRailLayout,
+  renderRailFrame,
+} from "../src/panels/GitLog/RailGraph";
 
 type BenchCase = {
   name: string;
@@ -341,9 +371,13 @@ type BenchCase = {
 };
 
 const CASES: BenchCase[] = [
-  { name: 'layout-20', fixture: 'fixture_linear_20.json', iterations: 100 },
-  { name: 'layout-1k', fixture: 'fixture_branchy_1k.json', iterations: 50 },
-  { name: 'layout-100k', fixture: 'fixture_kernel_like_100k.json', iterations: 10 },
+  { name: "layout-20", fixture: "fixture_linear_20.json", iterations: 100 },
+  { name: "layout-1k", fixture: "fixture_branchy_1k.json", iterations: 50 },
+  {
+    name: "layout-100k",
+    fixture: "fixture_kernel_like_100k.json",
+    iterations: 10,
+  },
 ];
 
 for (const c of CASES) {
@@ -370,6 +404,7 @@ for (const c of CASES) {
 - [ ] 场景 6：触发 `git:branch-changed` → 50ms 内重绘
 
 ### 手动 QA 清单（macOS + Ubuntu）
+
 - [ ] QA.01 打开 20 commit 仓库，确认 rail 与 commit row 一一对应。
 - [ ] QA.02 打开 1k commit 仓库，确认滚动 30 秒无明显抖动。
 - [ ] QA.03 打开 100k commit 仓库，记录首屏时间并截图。
@@ -388,6 +423,7 @@ for (const c of CASES) {
 - [ ] QA.16 触发无效 parent 数据，确认降级显示而非崩溃。
 - [ ] QA.17 连续打开/关闭 Git Log 面板 20 次，无内存泄漏。
 - [ ] QA.18 记录最终 perf trace（首屏/滚动/hover/event 四项）。
+
 ---
 
 ## 💾 数据模型变更（rail 位置缓存策略）
@@ -402,7 +438,8 @@ for (const c of CASES) {
 ### 推荐结构（前端内存）
 
 ```ts
-type RailLayoutCacheKey = `${workspaceId}:${headOid}:${theme}:${dpr}:${viewportStart}:${viewportEnd}`;
+type RailLayoutCacheKey =
+  `${workspaceId}:${headOid}:${theme}:${dpr}:${viewportStart}:${viewportEnd}`;
 
 type RailLayoutCacheValue = {
   generatedAtMs: number;
@@ -533,16 +570,16 @@ pub struct RailGraphPerfSample {
 
 ### G.5 复用决策表
 
-| 类型 | 来源 | 决策 | 理由 |
-|---|---|---|---|
-| `GitLogEntry` | MVP-07 | ✅ 复用 | rail 输入直接来自 commit list |
-| `GitLogQueryResponse` | MVP-07 | ✅ 复用 | 不重复开新查询接口 |
-| `BranchInfo` | MVP-13 | ✅ 复用 | branch tip 标签依赖该结构 |
-| `BranchKind` | MVP-13 | ✅ 复用 | local/remote/tag 语义已统一 |
-| `RailGraphViewportSyncPayload` | MVP-12 | ✅ 新增 | 滚动同步事件需要类型化 |
-| `RailGraphBranchChangedPayload` | MVP-12 | ✅ 新增 | 监听 branch 改动重绘 |
-| `RailGraphRebaseStatePayload` | MVP-12 | ✅ 新增（预留） | MVP-16 overlay 联动边界先锁 |
-| `RailGraphPerfSample` | MVP-12 | ✅ 新增 | 性能预算验收需要结构化样本 |
+| 类型                            | 来源   | 决策            | 理由                          |
+| ------------------------------- | ------ | --------------- | ----------------------------- |
+| `GitLogEntry`                   | MVP-07 | ✅ 复用         | rail 输入直接来自 commit list |
+| `GitLogQueryResponse`           | MVP-07 | ✅ 复用         | 不重复开新查询接口            |
+| `BranchInfo`                    | MVP-13 | ✅ 复用         | branch tip 标签依赖该结构     |
+| `BranchKind`                    | MVP-13 | ✅ 复用         | local/remote/tag 语义已统一   |
+| `RailGraphViewportSyncPayload`  | MVP-12 | ✅ 新增         | 滚动同步事件需要类型化        |
+| `RailGraphBranchChangedPayload` | MVP-12 | ✅ 新增         | 监听 branch 改动重绘          |
+| `RailGraphRebaseStatePayload`   | MVP-12 | ✅ 新增（预留） | MVP-16 overlay 联动边界先锁   |
+| `RailGraphPerfSample`           | MVP-12 | ✅ 新增         | 性能预算验收需要结构化样本    |
 
 ### G.6 新增 binding 清单（数字明确）
 
@@ -563,12 +600,12 @@ pub struct RailGraphPerfSample {
 
 **决策**：MVP-12 渲染技术锁定为 **Canvas 2D**（不是 SVG / DOM / WebGL）。
 
-| 方案 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| Canvas 2D | 绘制批处理能力强；节点数大时无 DOM 膨胀；离屏缓存成熟 | 可访问性需额外处理；命中测试需手写 | ✅ 选用 |
-| SVG | 语义清晰、样式友好、可访问性天然好 | 1 万+ 节点会有大量 DOM 元素，重排开销高 | ❌ 不选 |
-| DOM（div + border） | 实现直观、调试简单 | 大数据量最差，布局/重排/合成开销高 | ❌ 不选 |
-| WebGL | 极高理论性能，适合百万级点 | 引擎复杂、调试成本高、超出 MVP 必要性 | ❌ 不选 |
+| 方案                | 优点                                                  | 缺点                                    | 结论    |
+| ------------------- | ----------------------------------------------------- | --------------------------------------- | ------- |
+| Canvas 2D           | 绘制批处理能力强；节点数大时无 DOM 膨胀；离屏缓存成熟 | 可访问性需额外处理；命中测试需手写      | ✅ 选用 |
+| SVG                 | 语义清晰、样式友好、可访问性天然好                    | 1 万+ 节点会有大量 DOM 元素，重排开销高 | ❌ 不选 |
+| DOM（div + border） | 实现直观、调试简单                                    | 大数据量最差，布局/重排/合成开销高      | ❌ 不选 |
+| WebGL               | 极高理论性能，适合百万级点                            | 引擎复杂、调试成本高、超出 MVP 必要性   | ❌ 不选 |
 
 ### H.2 库边界锁定：不碰 WebGL / 通用图论重库
 
@@ -579,11 +616,11 @@ pub struct RailGraphPerfSample {
 
 ### H.3 算法选型锁定：spec 不 pre-decide，v0.3 kickoff SPIKE-09 决定
 
-| 候选 | 优点 | 缺点 | SPIKE-09 评估项 |
-|---|---|---|---|
-| gitgraph.js fork（JS） | 成熟度高、社区案例多 | 10 万 commit 性能风险大 | 首屏时间/FPS/内存 |
-| git-graph-rs port（Rust→WASM） | 理论性能强、算法稳定 | 移植成本高、WASM 包体积 | 集成复杂度/加载时间 |
-| 自实现简化版（参考论文） | 可完全定制、可只做 80% 需求 | 算法边界风险高 | 边界 case 通过率 |
+| 候选                           | 优点                        | 缺点                    | SPIKE-09 评估项     |
+| ------------------------------ | --------------------------- | ----------------------- | ------------------- |
+| gitgraph.js fork（JS）         | 成熟度高、社区案例多        | 10 万 commit 性能风险大 | 首屏时间/FPS/内存   |
+| git-graph-rs port（Rust→WASM） | 理论性能强、算法稳定        | 移植成本高、WASM 包体积 | 集成复杂度/加载时间 |
+| 自实现简化版（参考论文）       | 可完全定制、可只做 80% 需求 | 算法边界风险高          | 边界 case 通过率    |
 
 **锁定语句**：本 spec 只定义候选与评估框架，**不在 spec 阶段拍板算法**。最终选择由 SPIKE-09 量化结果决定。
 
@@ -674,10 +711,10 @@ pub struct RailGraphPerfSample {
 1. **递归完备性**  
    本 spec 自身是否受本 spec 约束？是。已包含结构完整性、验收可测性、边界/风险/YAGNI，并在末尾给出 12 段评估表闭环。
 
-2. **反向场景**  
-   - 100 万 commit：允许降级但不崩溃（§F.7）  
-   - octopus merge：纳入 SPIKE-09 边界 case（§H.3 / R2）  
-   - detached HEAD：输入层显式支持（Acceptance A.6）  
+2. **反向场景**
+   - 100 万 commit：允许降级但不崩溃（§F.7）
+   - octopus merge：纳入 SPIKE-09 边界 case（§H.3 / R2）
+   - detached HEAD：输入层显式支持（Acceptance A.6）
    - touch 设备 hover 缺失：tap fallback（Acceptance C.8 / R5）
 
 3. **边界适用性**  
@@ -690,40 +727,40 @@ pub struct RailGraphPerfSample {
 
 ## 详化完成度评估表（12 段）
 
-| 评估项 | 状态 | 说明 |
-|---|---|---|
-| 1. frontmatter 完整 | ✅ | 含 reviewer: Droid，status 保持 draft |
-| 2. 顶部状态说明 5 行 | ✅ | 状态/依赖/下游/战略依据/详化时间齐全 |
-| 3. Goal | ✅ | 2 段，含 plan_ref 与量化目标 |
-| 4. Context | ✅ | 含 implementation-plan/CLAUDE/路线图/上游落地 |
-| 5. 实施进度 | ✅ | Phase A/B/C/D + 起点 checklist + 80 条任务拆分 |
-| 6. Scope | ✅ | Do 10 项 / Don’t 10 项 |
-| 7. UI 引用 | ✅ | design 行号 + 元素映射 + 视觉语义 |
-| 8. Acceptance | ✅ | A/B/C/D/E/F/G 共 52 条 checkbox |
-| 9. 测试策略 | ✅ | 6 层 + fixture + bench + E2E + 手动 QA |
-| 10. 数据模型 | ✅ | in-memory 缓存策略 + 失效条件 + 反模式 |
-| 11. §G IPC Contract | ✅ | G.1-G.6 全覆盖，新增 binding 数=4 |
-| 12. §H 决策锁定 + 风险 | ✅ | H.1-H.8 + R1-R5 + 自审四问 |
+| 评估项                 | 状态 | 说明                                           |
+| ---------------------- | ---- | ---------------------------------------------- |
+| 1. frontmatter 完整    | ✅   | 含 reviewer: Droid，status 保持 draft          |
+| 2. 顶部状态说明 5 行   | ✅   | 状态/依赖/下游/战略依据/详化时间齐全           |
+| 3. Goal                | ✅   | 2 段，含 plan_ref 与量化目标                   |
+| 4. Context             | ✅   | 含 implementation-plan/CLAUDE/路线图/上游落地  |
+| 5. 实施进度            | ✅   | Phase A/B/C/D + 起点 checklist + 80 条任务拆分 |
+| 6. Scope               | ✅   | Do 10 项 / Don’t 10 项                         |
+| 7. UI 引用             | ✅   | design 行号 + 元素映射 + 视觉语义              |
+| 8. Acceptance          | ✅   | A/B/C/D/E/F/G 共 52 条 checkbox                |
+| 9. 测试策略            | ✅   | 6 层 + fixture + bench + E2E + 手动 QA         |
+| 10. 数据模型           | ✅   | in-memory 缓存策略 + 失效条件 + 反模式         |
+| 11. §G IPC Contract    | ✅   | G.1-G.6 全覆盖，新增 binding 数=4              |
+| 12. §H 决策锁定 + 风险 | ✅   | H.1-H.8 + R1-R5 + 自审四问                     |
 
-**完成度**：12 / 12 = **100%**（内容已达 ready-grade；流程上保持 draft，待 Arbiter approve 后翻 ready）。
----
+## **完成度**：12 / 12 = **100%**（内容已达 ready-grade；流程上保持 draft，待 Arbiter approve 后翻 ready）。
 
 ## 附录 A · 性能测量记录模板（实施 PR 必填）
 
 > 以下模板用于实施阶段提交性能证据，避免“感觉很快”式结论。
 
-| 项目 | 环境 | 样本数 | P50 | P95 | P99 | 预算 | 是否达标 |
-|---|---|---:|---:|---:|---:|---:|---|
-| 首屏渲染（100k） | macOS M1 Pro | 30 | - | - | - | <500ms | - |
-| 滚动帧（100k） | macOS M1 Pro | 3000 帧 | - | - | - | <16ms | - |
-| hover 响应（100k） | macOS M1 Pro | 200 | - | - | - | <16ms | - |
-| branch event 重绘 | macOS M1 Pro | 100 | - | - | - | <50ms | - |
-| 首屏渲染（100k） | Ubuntu 24 X11 | 30 | - | - | - | <500ms | - |
-| 滚动帧（100k） | Ubuntu 24 X11 | 3000 帧 | - | - | - | <16ms | - |
-| 首屏渲染（100k） | Ubuntu 24 Wayland | 30 | - | - | - | <500ms | - |
-| 滚动帧（100k） | Ubuntu 24 Wayland | 3000 帧 | - | - | - | <16ms | - |
+| 项目               | 环境              |  样本数 | P50 | P95 | P99 |   预算 | 是否达标 |
+| ------------------ | ----------------- | ------: | --: | --: | --: | -----: | -------- |
+| 首屏渲染（100k）   | macOS M1 Pro      |      30 |   - |   - |   - | <500ms | -        |
+| 滚动帧（100k）     | macOS M1 Pro      | 3000 帧 |   - |   - |   - |  <16ms | -        |
+| hover 响应（100k） | macOS M1 Pro      |     200 |   - |   - |   - |  <16ms | -        |
+| branch event 重绘  | macOS M1 Pro      |     100 |   - |   - |   - |  <50ms | -        |
+| 首屏渲染（100k）   | Ubuntu 24 X11     |      30 |   - |   - |   - | <500ms | -        |
+| 滚动帧（100k）     | Ubuntu 24 X11     | 3000 帧 |   - |   - |   - |  <16ms | -        |
+| 首屏渲染（100k）   | Ubuntu 24 Wayland |      30 |   - |   - |   - | <500ms | -        |
+| 滚动帧（100k）     | Ubuntu 24 Wayland | 3000 帧 |   - |   - |   - |  <16ms | -        |
 
 ### 附录 A 检查项
+
 - [ ] A-Perf.01 性能数据均含采样脚本版本号与 commit SHA。
 - [ ] A-Perf.02 每项至少 30 次样本（帧数据按 3000 帧）。
 - [ ] A-Perf.03 P99 计算方法在 PR 中给出。
@@ -734,41 +771,43 @@ pub struct RailGraphPerfSample {
 - [ ] A-Perf.08 若不达标，给出 flamegraph 与整改计划。
 - [ ] A-Perf.09 若达标，给出“达标证据文件路径”。
 - [ ] A-Perf.10 提交评审前复跑一次确认无偶然值。
+
 ## 附录 B · 可访问性与视觉回归模板
 
 ### B.1 视觉回归截图矩阵（建议至少 24 张）
 
-| 主题 | DPR | 分支数 | 场景 | 文件名建议 |
-|---|---|---:|---|---|
-| light | 1x | 5 | baseline | `rail-light-1x-5-branches.png` |
-| light | 1x | 20 | threshold | `rail-light-1x-20-branches.png` |
-| light | 1x | 50 | compressed | `rail-light-1x-50-branches.png` |
-| light | 1x | 80 | other-group | `rail-light-1x-80-branches.png` |
-| light | 2x | 5 | baseline | `rail-light-2x-5-branches.png` |
-| light | 2x | 20 | threshold | `rail-light-2x-20-branches.png` |
-| light | 2x | 50 | compressed | `rail-light-2x-50-branches.png` |
-| light | 2x | 80 | other-group | `rail-light-2x-80-branches.png` |
-| dark | 1x | 5 | baseline | `rail-dark-1x-5-branches.png` |
-| dark | 1x | 20 | threshold | `rail-dark-1x-20-branches.png` |
-| dark | 1x | 50 | compressed | `rail-dark-1x-50-branches.png` |
-| dark | 1x | 80 | other-group | `rail-dark-1x-80-branches.png` |
-| dark | 2x | 5 | baseline | `rail-dark-2x-5-branches.png` |
-| dark | 2x | 20 | threshold | `rail-dark-2x-20-branches.png` |
-| dark | 2x | 50 | compressed | `rail-dark-2x-50-branches.png` |
-| dark | 2x | 80 | other-group | `rail-dark-2x-80-branches.png` |
+| 主题  | DPR | 分支数 | 场景        | 文件名建议                      |
+| ----- | --- | -----: | ----------- | ------------------------------- |
+| light | 1x  |      5 | baseline    | `rail-light-1x-5-branches.png`  |
+| light | 1x  |     20 | threshold   | `rail-light-1x-20-branches.png` |
+| light | 1x  |     50 | compressed  | `rail-light-1x-50-branches.png` |
+| light | 1x  |     80 | other-group | `rail-light-1x-80-branches.png` |
+| light | 2x  |      5 | baseline    | `rail-light-2x-5-branches.png`  |
+| light | 2x  |     20 | threshold   | `rail-light-2x-20-branches.png` |
+| light | 2x  |     50 | compressed  | `rail-light-2x-50-branches.png` |
+| light | 2x  |     80 | other-group | `rail-light-2x-80-branches.png` |
+| dark  | 1x  |      5 | baseline    | `rail-dark-1x-5-branches.png`   |
+| dark  | 1x  |     20 | threshold   | `rail-dark-1x-20-branches.png`  |
+| dark  | 1x  |     50 | compressed  | `rail-dark-1x-50-branches.png`  |
+| dark  | 1x  |     80 | other-group | `rail-dark-1x-80-branches.png`  |
+| dark  | 2x  |      5 | baseline    | `rail-dark-2x-5-branches.png`   |
+| dark  | 2x  |     20 | threshold   | `rail-dark-2x-20-branches.png`  |
+| dark  | 2x  |     50 | compressed  | `rail-dark-2x-50-branches.png`  |
+| dark  | 2x  |     80 | other-group | `rail-dark-2x-80-branches.png`  |
 
 ### B.2 色盲模拟截图矩阵
 
-| 模拟类型 | 主题 | 分支数 | 通过标准 |
-|---|---|---:|---|
-| protanopia | light | 30 | 至少 15 色可区分 |
-| deuteranopia | light | 30 | 至少 15 色可区分 |
-| tritanopia | light | 30 | 至少 15 色可区分 |
-| protanopia | dark | 30 | 至少 15 色可区分 |
-| deuteranopia | dark | 30 | 至少 15 色可区分 |
-| tritanopia | dark | 30 | 至少 15 色可区分 |
+| 模拟类型     | 主题  | 分支数 | 通过标准         |
+| ------------ | ----- | -----: | ---------------- |
+| protanopia   | light |     30 | 至少 15 色可区分 |
+| deuteranopia | light |     30 | 至少 15 色可区分 |
+| tritanopia   | light |     30 | 至少 15 色可区分 |
+| protanopia   | dark  |     30 | 至少 15 色可区分 |
+| deuteranopia | dark  |     30 | 至少 15 色可区分 |
+| tritanopia   | dark  |     30 | 至少 15 色可区分 |
 
 ### B.3 A11y 检查项
+
 - [ ] B-A11y.01 键盘上下选择 commit row 时 rail 高亮同步。
 - [ ] B-A11y.02 focus ring 可见，不被 rail 覆盖。
 - [ ] B-A11y.03 高对比度模式下 rail 线条仍可见。
@@ -779,21 +818,23 @@ pub struct RailGraphPerfSample {
 - [ ] B-A11y.08 错误态文案可被朗读（aria-live）。
 - [ ] B-A11y.09 Other branches 展开按钮有可访问名称。
 - [ ] B-A11y.10 branch tip 标签截断时有 title 提示。
+
 ## 附录 C · SPIKE-09 评估清单（算法候选对比）
 
 > 该附录用于后续 SPIKE-09 直接执行，避免再次补需求。
 
 ### C.1 评估维度（统一权重）
 
-| 维度 | 权重 | 说明 |
-|---|---:|---|
-| 性能（100k） | 35% | 首屏、滚动、hover 三项合成 |
-| 算法正确性 | 30% | 20 个边界 case 通过率 |
-| 实施复杂度 | 15% | 人日、依赖、可维护性 |
-| 包体积影响 | 10% | 前端包增量 |
-| 可调试性 | 10% | 排查难度、日志可见性 |
+| 维度         | 权重 | 说明                       |
+| ------------ | ---: | -------------------------- |
+| 性能（100k） |  35% | 首屏、滚动、hover 三项合成 |
+| 算法正确性   |  30% | 20 个边界 case 通过率      |
+| 实施复杂度   |  15% | 人日、依赖、可维护性       |
+| 包体积影响   |  10% | 前端包增量                 |
+| 可调试性     |  10% | 排查难度、日志可见性       |
 
 ### C.2 边界 case（20 项）
+
 - [ ] C-Case.01 线性历史（无分支）
 - [ ] C-Case.02 单次 merge（2 parent）
 - [ ] C-Case.03 连续 merge（3 次）
@@ -814,6 +855,7 @@ pub struct RailGraphPerfSample {
 - [ ] C-Case.18 1M commit + 200 branch（降级）
 - [ ] C-Case.19 浅克隆 parent 缺失
 - [ ] C-Case.20 重复 ref/异常 ref 输入
+
 ### C.3 SPIKE-09 输出要求
 
 - [ ] 每个候选输出同一套基准数据（可横向比较）
@@ -828,10 +870,12 @@ pub struct RailGraphPerfSample {
 
 ```markdown
 ## Summary
+
 - 实施 MVP-12 Phase X（A/B/C/D）
 - 本 PR 不改决策文件，仅按 spec 执行
 
 ## Test Plan
+
 - [ ] 单元
 - [ ] 集成
 - [ ] 性能
@@ -840,12 +884,14 @@ pub struct RailGraphPerfSample {
 - [ ] 手动 QA
 
 ## Perf Numbers
-- first paint p99: ___ ms
-- scroll frame p99: ___ ms
-- hover p99: ___ ms
-- branch-change redraw p99: ___ ms
+
+- first paint p99: \_\_\_ ms
+- scroll frame p99: \_\_\_ ms
+- hover p99: \_\_\_ ms
+- branch-change redraw p99: \_\_\_ ms
 
 ## Boundaries check
+
 - [ ] 不引入 WebGL / Three.js / D3
 - [ ] 不改 MVP-07 commit-list DOM
 - [ ] 算法来源符合 SPIKE-09 结论

@@ -26,6 +26,10 @@ reviewer: Codex CLI
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"Phase D runtime evidence / 4-7 张截图 / 10s drag/navigation 录屏 / Dual AI/Triple Review/Quad/maximize 4 张 PNG / keyboard-navigation.mov 录屏" 类 acceptance 项 / Phase 表行 / §H.6 runtime evidence 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（panes::tests:: 63 + pane_service::tests:: 23 + Phase A/B done · 复用 MVP-05 86 passed + bench harness 性能门）保留为 done gate。
+
+---
+
 ## 🎯 目标（Goal）
 
 在 MVP-05 的单层 Pane 分屏基础上，解锁 v0.2 高级 Pane 布局：任意嵌套 LayoutNode tree（硬上限 5 层）、Dual AI / Triple Review / Quad 三个 Smart Layout 预设、方向键跳相邻 Pane、`⌘Enter` 临时最大化当前 Pane，并保证已有 PTY instance 不因预设切换或临时最大化被误销毁。
@@ -45,12 +49,12 @@ reviewer: Codex CLI
 
 MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core contract 与数据迁移，Phase B 做前端递归 UI + 预设，Phase C 做导航/最大化/a11y，Phase D 交 runtime evidence 与性能量化。
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · LayoutNode v1 schema + core service | 放开 `MAX_LAYOUT_SPLIT_DEPTH` 到 5 · `LayoutEnvelope { version: 1, root }` · 迁移旧 `layout_state` / `tabs.layout` · 新增 advanced preset core pure functions · ts-rs bindings | ✅ done · PR #258 | — |
-| Phase B · 递归 Pane UI + Smart Layouts 扩展 | `PaneSplitView` 递归渲染优化 · `SmartLayoutMenu` 增 Dual AI / Triple Review / Quad · 预设切换保留 Pane instance · nested splitter ratio 持久化 | ✅ done · PR #262 | — |
-| Phase C · 键盘导航 + 临时最大化 + a11y | `⌘⌥ ←/→/↑/↓` / `Ctrl+Alt+Arrow` 几何相邻算法 · `⌘Enter` 临时最大化 · split divider keyboard resize · focus ring / ARIA | ⏳ todo | — |
-| Phase D · runtime evidence + bench | 5 层嵌套性能 · 100 次 ratio drag · preset apply · keyboard nav · maximize restore · 4-7 张截图/录屏归档到 `docs/runtime-evidence/mvp-14/` | ⏳ todo | — |
+| Phase                                         | 范围                                                                                                                                                                           | 状态                              | PR  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- | --- |
+| Phase A · LayoutNode v1 schema + core service | 放开 `MAX_LAYOUT_SPLIT_DEPTH` 到 5 · `LayoutEnvelope { version: 1, root }` · 迁移旧 `layout_state` / `tabs.layout` · 新增 advanced preset core pure functions · ts-rs bindings | ✅ done · PR #258                 | —   |
+| Phase B · 递归 Pane UI + Smart Layouts 扩展   | `PaneSplitView` 递归渲染优化 · `SmartLayoutMenu` 增 Dual AI / Triple Review / Quad · 预设切换保留 Pane instance · nested splitter ratio 持久化                                 | ✅ done · PR #262                 | —   |
+| Phase C · 键盘导航 + 临时最大化 + a11y        | `⌘⌥ ←/→/↑/↓` / `Ctrl+Alt+Arrow` 几何相邻算法 · `⌘Enter` 临时最大化 · split divider keyboard resize · focus ring / ARIA                                                         | ⏳ todo                           | —   |
+| Phase D · 性能 bench                          | 5 层嵌套性能 · 100 次 ratio drag · preset apply · keyboard nav · maximize restore（4-7 张截图 / 录屏要求 deprecated 2026-05-20 · ADR-023）                                     | ✅ done（capture 要求 supersede） | —   |
 
 **Phase A 起点 checklist**（让实施 agent 5 min 内启动）：
 
@@ -190,14 +194,14 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元（core） | LayoutNode depth validator、ratio clamp、pane id uniqueness、close collapse、preset apply instance reuse、v1 migration | `cargo test --package vibestation-core panes:: pane_service::` |
-| 集成（app IPC） | `pane_layout_apply` 新 preset、`pane_navigate`、`pane_maximize`、`pane_resize_step`、DB round-trip | `cargo test --workspace pane_advanced::` 或 app integration fixture |
-| Criterion | validator / preset apply / navigation geometry pure function / close collapse / serialize v1 envelope | `crates/core/benches/pane_advanced_bench.rs` |
-| E2E（Playwright） | split 到 5 层、拖 ratio、apply preset、direction nav、maximize restore、workspace switch restore | `web/tests/e2e/pane-advanced.spec.ts` |
-| 视觉回归 | Dual AI / Triple Review / Quad / 5 层 nested / maximized / reduced-motion | Playwright screenshot diff |
-| 手动 QA | macOS / Linux keyboard modifier、Retina + 1x DPI、1024px 小屏、外接键盘方向键、长期 PTY stdout 不丢 | `docs/runtime-evidence/mvp-14/manual-qa.md` |
+| 层次              | 范围                                                                                                                   | 覆盖路径                                                            |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 单元（core）      | LayoutNode depth validator、ratio clamp、pane id uniqueness、close collapse、preset apply instance reuse、v1 migration | `cargo test --package vibestation-core panes:: pane_service::`      |
+| 集成（app IPC）   | `pane_layout_apply` 新 preset、`pane_navigate`、`pane_maximize`、`pane_resize_step`、DB round-trip                     | `cargo test --workspace pane_advanced::` 或 app integration fixture |
+| Criterion         | validator / preset apply / navigation geometry pure function / close collapse / serialize v1 envelope                  | `crates/core/benches/pane_advanced_bench.rs`                        |
+| E2E（Playwright） | split 到 5 层、拖 ratio、apply preset、direction nav、maximize restore、workspace switch restore                       | `web/tests/e2e/pane-advanced.spec.ts`                               |
+| 视觉回归          | Dual AI / Triple Review / Quad / 5 层 nested / maximized / reduced-motion                                              | Playwright screenshot diff                                          |
+| 手动 QA           | macOS / Linux keyboard modifier、Retina + 1x DPI、1024px 小屏、外接键盘方向键、长期 PTY stdout 不丢                    | `docs/runtime-evidence/mvp-14/manual-qa.md`                         |
 
 ### C.1 · fixture 准备
 
@@ -313,20 +317,20 @@ MVP-14 锁定为 **LayoutEnvelope v1**：
 
 ### G.1 本 MVP 涉及的 IPC struct 清单（明确 12 个新增 / 扩展 binding）
 
-| Rust struct / enum | 类型 | 用途 | 前端 import 路径 |
-|---|---|---|---|
-| `LayoutEnvelope` | 新增 | v1 layout JSON 顶层 envelope | `import type { LayoutEnvelope } from "../bindings/LayoutEnvelope"` |
-| `WorkspaceLayoutState` | 新增 | workspace 级 layout_state round-trip | `import type { WorkspaceLayoutState } from "../bindings/WorkspaceLayoutState"` |
-| `LayoutPresetKind` | 新增 | `solo / aiAndRunner / dualAi / tripleReview / quad` | `import type { LayoutPresetKind } from "../bindings/LayoutPresetKind"` |
+| Rust struct / enum           | 类型 | 用途                                                | 前端 import 路径                                                                           |
+| ---------------------------- | ---- | --------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `LayoutEnvelope`             | 新增 | v1 layout JSON 顶层 envelope                        | `import type { LayoutEnvelope } from "../bindings/LayoutEnvelope"`                         |
+| `WorkspaceLayoutState`       | 新增 | workspace 级 layout_state round-trip                | `import type { WorkspaceLayoutState } from "../bindings/WorkspaceLayoutState"`             |
+| `LayoutPresetKind`           | 新增 | `solo / aiAndRunner / dualAi / tripleReview / quad` | `import type { LayoutPresetKind } from "../bindings/LayoutPresetKind"`                     |
 | `LayoutApplyAdvancedRequest` | 新增 | preset apply 输入，含 preserveInstances / confirmed | `import type { LayoutApplyAdvancedRequest } from "../bindings/LayoutApplyAdvancedRequest"` |
-| `LayoutApplyResult` | 新增 | preset apply 输出，含 reused / created / closed ids | `import type { LayoutApplyResult } from "../bindings/LayoutApplyResult"` |
-| `PaneNavigateRequest` | 新增 | 方向键跳邻居输入 | `import type { PaneNavigateRequest } from "../bindings/PaneNavigateRequest"` |
-| `PaneNavigateResult` | 新增 | 方向键跳邻居输出 | `import type { PaneNavigateResult } from "../bindings/PaneNavigateResult"` |
-| `PaneMaximizeRequest` | 新增 | 临时最大化 toggle 输入 | `import type { PaneMaximizeRequest } from "../bindings/PaneMaximizeRequest"` |
-| `PaneMaximizeResult` | 新增 | 临时最大化输出 | `import type { PaneMaximizeResult } from "../bindings/PaneMaximizeResult"` |
-| `PaneResizeStepRequest` | 新增 | keyboard resize 5% step 输入 | `import type { PaneResizeStepRequest } from "../bindings/PaneResizeStepRequest"` |
-| `LayoutHistoryEntry` | 新增 | LRU 5 layout history | `import type { LayoutHistoryEntry } from "../bindings/LayoutHistoryEntry"` |
-| `PaneLayoutError` | 新增 | advanced layout 错误 tagged union | `import type { PaneLayoutError } from "../bindings/PaneLayoutError"` |
+| `LayoutApplyResult`          | 新增 | preset apply 输出，含 reused / created / closed ids | `import type { LayoutApplyResult } from "../bindings/LayoutApplyResult"`                   |
+| `PaneNavigateRequest`        | 新增 | 方向键跳邻居输入                                    | `import type { PaneNavigateRequest } from "../bindings/PaneNavigateRequest"`               |
+| `PaneNavigateResult`         | 新增 | 方向键跳邻居输出                                    | `import type { PaneNavigateResult } from "../bindings/PaneNavigateResult"`                 |
+| `PaneMaximizeRequest`        | 新增 | 临时最大化 toggle 输入                              | `import type { PaneMaximizeRequest } from "../bindings/PaneMaximizeRequest"`               |
+| `PaneMaximizeResult`         | 新增 | 临时最大化输出                                      | `import type { PaneMaximizeResult } from "../bindings/PaneMaximizeResult"`                 |
+| `PaneResizeStepRequest`      | 新增 | keyboard resize 5% step 输入                        | `import type { PaneResizeStepRequest } from "../bindings/PaneResizeStepRequest"`           |
+| `LayoutHistoryEntry`         | 新增 | LRU 5 layout history                                | `import type { LayoutHistoryEntry } from "../bindings/LayoutHistoryEntry"`                 |
+| `PaneLayoutError`            | 新增 | advanced layout 错误 tagged union                   | `import type { PaneLayoutError } from "../bindings/PaneLayoutError"`                       |
 
 **复用现有 binding（不重新定义）**：
 
@@ -444,16 +448,16 @@ pub enum PaneLayoutError {
 
 ### G.5 复用决策
 
-| 现有项 | MVP-14 是否复用 | 决策 | 理由 |
-|---|---:|---|---|
-| `LayoutNode` | ✅ | 复用并保留 tagged union | MVP-05 已落地，递归结构可直接承载 5 层；避免破坏 PaneSplitView |
-| `SplitDir` | ✅ | 复用 | Horizontal / Vertical 足够表达新 preset |
-| `PaneState` | ✅ | 复用 | instance reuse 以 pane id 为核心，不需要新 PaneState |
-| `PaneListResponse` | ✅ | 复用，但可扩展 focusedPaneId | 前端已有更新路径 |
-| `LayoutApplyRequest` | ⚠️ | 不直接扩展旧 request，新增 `LayoutApplyAdvancedRequest` 或保持旧命令兼容后新增 command | 避免破坏 `SmartLayoutMenu` 现有调用；Phase B 可逐步迁移 |
-| `pane_pty_*` | ✅ | 不改命名 | Pane PTY 生命周期已经独立，MVP-14 只要求不重启 |
-| `workspaces.layout_state` | ✅ | 作为 workspace-level envelope 存储 | 当前 DB 已有列，避免新增表 |
-| 第三方 layout lib | ⛔ | 不复用 / 不引入 | 现有递归组件足够，第三方会拖入 React 假设或复杂状态模型 |
+| 现有项                    | MVP-14 是否复用 | 决策                                                                                   | 理由                                                           |
+| ------------------------- | --------------: | -------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `LayoutNode`              |              ✅ | 复用并保留 tagged union                                                                | MVP-05 已落地，递归结构可直接承载 5 层；避免破坏 PaneSplitView |
+| `SplitDir`                |              ✅ | 复用                                                                                   | Horizontal / Vertical 足够表达新 preset                        |
+| `PaneState`               |              ✅ | 复用                                                                                   | instance reuse 以 pane id 为核心，不需要新 PaneState           |
+| `PaneListResponse`        |              ✅ | 复用，但可扩展 focusedPaneId                                                           | 前端已有更新路径                                               |
+| `LayoutApplyRequest`      |              ⚠️ | 不直接扩展旧 request，新增 `LayoutApplyAdvancedRequest` 或保持旧命令兼容后新增 command | 避免破坏 `SmartLayoutMenu` 现有调用；Phase B 可逐步迁移        |
+| `pane_pty_*`              |              ✅ | 不改命名                                                                               | Pane PTY 生命周期已经独立，MVP-14 只要求不重启                 |
+| `workspaces.layout_state` |              ✅ | 作为 workspace-level envelope 存储                                                     | 当前 DB 已有列，避免新增表                                     |
+| 第三方 layout lib         |              ⛔ | 不复用 / 不引入                                                                        | 现有递归组件足够，第三方会拖入 React 假设或复杂状态模型        |
 
 ### G.6 新增 binding 清单
 
@@ -478,30 +482,30 @@ MVP-14 预期新增 **12 个 `.ts` binding 文件**：
 
 **决策**：沿用现有 `LayoutNode` tree 与 SolidJS `PaneSplitView` 递归组件，不引第三方布局引擎。
 
-| 选项 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| A · 复用 LayoutNode + 自实现递归 | 与 MVP-05 完全兼容；代码量可控；ts-rs 已有 binding | 需要自己维护 geometry / resize | ✅ 选定 |
-| B · 引 react-mosaic / golden-layout | 功能完整 | React 假设重；Tauri/Solid 集成成本高；样式难贴合 Calm Studio | ❌ 禁止 |
-| C · CSS grid 固定模板 | 简单 | 不能表达任意嵌套和 close collapse | ❌ 不满足目标 |
+| 选项                                | 优点                                               | 缺点                                                         | 结论          |
+| ----------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ | ------------- |
+| A · 复用 LayoutNode + 自实现递归    | 与 MVP-05 完全兼容；代码量可控；ts-rs 已有 binding | 需要自己维护 geometry / resize                               | ✅ 选定       |
+| B · 引 react-mosaic / golden-layout | 功能完整                                           | React 假设重；Tauri/Solid 集成成本高；样式难贴合 Calm Studio | ❌ 禁止       |
+| C · CSS grid 固定模板               | 简单                                               | 不能表达任意嵌套和 close collapse                            | ❌ 不满足目标 |
 
 ### H.2 不碰列表：不引第三方布局库
 
 **决策**：MVP-14 不引 `react-grid-layout`、`react-mosaic`、`golden-layout`、`split.js`、`interact.js`。
 
-| 替代方案 | 为什么不选 |
-|---|---|
-| `split.js` | 只解决 splitter，不解决 LayoutNode persistence / pane identity / nested focus |
-| `golden-layout` | 框架重、状态模型不匹配、窗口 detach 诱惑大 |
-| `react-grid-layout` | 网格布局不等于 tree split，且 React 依赖不适合 SolidJS |
+| 替代方案            | 为什么不选                                                                    |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `split.js`          | 只解决 splitter，不解决 LayoutNode persistence / pane identity / nested focus |
+| `golden-layout`     | 框架重、状态模型不匹配、窗口 detach 诱惑大                                    |
+| `react-grid-layout` | 网格布局不等于 tree split，且 React 依赖不适合 SolidJS                        |
 
 ### H.3 嵌套深度上限：5 层
 
 **决策**：MVP-14 最大 split depth = 5；第 6 层 hard reject。
 
-| 上限 | 评估 | 结论 |
-|---|---|---|
-| 3 层 | 性能稳，但 Triple + 用户再 split 空间不足 | 太保守 |
-| 5 层 | 覆盖高级用户；仍可用 fixture 验证 60fps | ✅ 选定 |
+| 上限 | 评估                                                 | 结论    |
+| ---- | ---------------------------------------------------- | ------- |
+| 3 层 | 性能稳，但 Triple + 用户再 split 空间不足            | 太保守  |
+| 5 层 | 覆盖高级用户；仍可用 fixture 验证 60fps              | ✅ 选定 |
 | 无限 | 支持故事好听，但 geometry / resize / a11y 风险不可控 | ❌ 禁止 |
 
 说明：`implementation-plan.md §5.3.9` 已指出超过 3 层可能触发递归重渲染风险。本 spec 把 5 层作为 v0.2 上限，并要求 Phase D 用 5 层 fixture 证明性能。
@@ -510,31 +514,31 @@ MVP-14 预期新增 **12 个 `.ts` binding 文件**：
 
 **决策**：顶层加 `version: 1`，保留 `root: LayoutNode`，以 envelope 方式版本化；旧 enum / 旧 LayoutNode 自动迁移。
 
-| 方案 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| A · envelope version | 后续 v2 可演进；错误恢复清晰 | 需要迁移包装 | ✅ 选定 |
-| B · 直接改 LayoutNode enum | 少一层 JSON | 未来 schema 版本无法判断 | ❌ 不选 |
-| C · 新表存 layout | 查询清晰 | MVP-14 范围过大；现有列足够 | ❌ YAGNI |
+| 方案                       | 优点                         | 缺点                        | 结论     |
+| -------------------------- | ---------------------------- | --------------------------- | -------- |
+| A · envelope version       | 后续 v2 可演进；错误恢复清晰 | 需要迁移包装                | ✅ 选定  |
+| B · 直接改 LayoutNode enum | 少一层 JSON                  | 未来 schema 版本无法判断    | ❌ 不选  |
+| C · 新表存 layout          | 查询清晰                     | MVP-14 范围过大；现有列足够 | ❌ YAGNI |
 
 ### H.5 渲染优化：`<For>` + `createMemo` + 避免无关重渲染
 
 **决策**：递归层使用稳定 child array + `<For>`；每个 node 的 orientation / style / ratio 用 `createMemo`；Pane body 不随 sibling ratio 更新重建。
 
-| 方案 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| A · `<For>` + memoized props | SolidJS 细粒度更新；易测 | 需要整理现有组件 props | ✅ 选定 |
-| B · 直接递归 JSX + `<Show>` 嵌套 | 写法快 | 深层条件嵌套易误触整棵 subtree | ❌ 不选 |
-| C · canvas 绘制 layout | 性能强 | 终端 DOM / xterm 无法 canvas 化 | ❌ 不适用 |
+| 方案                             | 优点                     | 缺点                            | 结论      |
+| -------------------------------- | ------------------------ | ------------------------------- | --------- |
+| A · `<For>` + memoized props     | SolidJS 细粒度更新；易测 | 需要整理现有组件 props          | ✅ 选定   |
+| B · 直接递归 JSX + `<Show>` 嵌套 | 写法快                   | 深层条件嵌套易误触整棵 subtree  | ❌ 不选   |
+| C · canvas 绘制 layout           | 性能强                   | 终端 DOM / xterm 无法 canvas 化 | ❌ 不适用 |
 
 ### H.6 拖拽 split divider：原生 pointer events + RAF
 
 **决策**：继续用原生 pointer events；pointermove 中只写 transient signal，RAF 合帧；pointerup debounce 500ms 持久化。
 
-| 方案 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| A · pointer events + RAF | 无依赖；MVP-05 已验证 | 需要处理 nested coordinate | ✅ 选定 |
-| B · mouse events | 兼容老浏览器 | pointer capture 弱，触摸板/笔支持差 | ❌ 不选 |
-| C · 第三方 drag lib | 快 | 依赖膨胀且不理解 LayoutNode | ❌ 不选 |
+| 方案                     | 优点                  | 缺点                                | 结论    |
+| ------------------------ | --------------------- | ----------------------------------- | ------- |
+| A · pointer events + RAF | 无依赖；MVP-05 已验证 | 需要处理 nested coordinate          | ✅ 选定 |
+| B · mouse events         | 兼容老浏览器          | pointer capture 弱，触摸板/笔支持差 | ❌ 不选 |
+| C · 第三方 drag lib      | 快                    | 依赖膨胀且不理解 LayoutNode         | ❌ 不选 |
 
 无障碍要求：splitter `tabindex=0`，`role="separator"`，`aria-orientation` 与 SplitDir 对齐，方向键调整 ratio 5% step，Home/End 可调到 50% / 最近 clamp 边界。
 
@@ -542,23 +546,23 @@ MVP-14 预期新增 **12 个 `.ts` binding 文件**：
 
 **决策**：高频 ratio 更新 debounce 500ms；workspace 隔离用 `workspace_id`；layout history LRU 5 仅作为内部恢复/调试数据。
 
-| 方案 | 优点 | 缺点 | 结论 |
-|---|---|---|---|
-| A · debounce 写 sqlite | 降低 DB write；体验稳定 | 崩溃前 500ms 可能丢最后一次 drag | ✅ 选定 |
-| B · 每 move 写 DB | 恢复最精确 | 写放大严重，拖拽掉帧 | ❌ 禁止 |
-| C · 只内存保存 | 性能好 | workspace reopen 丢 layout | ❌ 不满足 |
+| 方案                   | 优点                    | 缺点                             | 结论      |
+| ---------------------- | ----------------------- | -------------------------------- | --------- |
+| A · debounce 写 sqlite | 降低 DB write；体验稳定 | 崩溃前 500ms 可能丢最后一次 drag | ✅ 选定   |
+| B · 每 move 写 DB      | 恢复最精确              | 写放大严重，拖拽掉帧             | ❌ 禁止   |
+| C · 只内存保存         | 性能好                  | workspace reopen 丢 layout       | ❌ 不满足 |
 
 ### H.8 与 MVP-17 Pane Detach 边界
 
 **决策**：MVP-14 不做 detach；若未来 detached pane 出现，LayoutNode v1 中该 leaf 可替换为 placeholder，但本 task 不创建窗口、不跨窗口同步 geometry。
 
-| 场景 | MVP-14 责任 | MVP-17 责任 |
-|---|---|---|
-| 当前 tab 内 nested split | ✅ | ❌ |
-| 当前 tab 内 maximize | ✅ | ❌ |
-| 跨窗口 detach | ❌ | ✅ |
-| detached pane 回插 | ❌ | ✅ |
-| LayoutNode placeholder 设计说明 | ✅ 边界说明 | ✅ 实施 |
+| 场景                            | MVP-14 责任 | MVP-17 责任 |
+| ------------------------------- | ----------- | ----------- |
+| 当前 tab 内 nested split        | ✅          | ❌          |
+| 当前 tab 内 maximize            | ✅          | ❌          |
+| 跨窗口 detach                   | ❌          | ✅          |
+| detached pane 回插              | ❌          | ✅          |
+| LayoutNode placeholder 设计说明 | ✅ 边界说明 | ✅ 实施     |
 
 ## ⚠️ 已知风险
 
@@ -594,20 +598,20 @@ MVP-14 预期新增 **12 个 `.ts` binding 文件**：
 
 ## 详化完成度评估
 
-| 12 段必含 | 状态 | 备注 |
-|----------|------|------|
-| 1. frontmatter | ✅ | id / type / title / status:draft / depends_on / blocks / estimate / plan_ref / risk_ref / reviewer: Codex CLI |
-| 2. 顶部状态说明 | ✅ | 状态 / 依赖 / 下游 blocks / 战略依据 / 详化时间 5 行齐 |
-| 3. 🎯 目标 Goal | ✅ | 2 段 · 含 implementation-plan 链接与实施入口 |
-| 4. 📖 背景 Context | ✅ | plan_ref + CLAUDE.md + 路线图 + MVP-05 已落地 |
-| 5. 🛠 实施进度表 | ✅ | Phase A/B/C/D + Phase A 起点 checklist · 7d |
-| 6. 🎨 功能范围 Scope | ✅ | Do 8 项 / Don't 8 项 |
-| 7. 🖼 UI 引用 | ✅ | design line 锚点 + 6 类 UI 元素 |
-| 8. ✅ Acceptance | ✅ | A-H 8 组 · 48 个 checkbox · 每项可独立验证 |
-| 9. 🧪 测试策略 | ✅ | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + fixture + bench 模板 |
-| 10. 💾 数据模型变更 | ✅ | `workspaces.layout_state` / `tabs.layout` · LayoutEnvelope v1 · enum/旧 JSON 迁移 |
-| 11. §G IPC Contract | ✅ | G.1-G.6 齐全 · 12 个新增/扩展 binding 数字明确 |
-| 12. §H 决策锁定 + 风险/Notes/相关/自审 | ✅ | H.1-H.8 每段含决策 + 替代方案 + 理由 · R1-R5 mitigation |
+| 12 段必含                              | 状态 | 备注                                                                                                          |
+| -------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------- |
+| 1. frontmatter                         | ✅   | id / type / title / status:draft / depends_on / blocks / estimate / plan_ref / risk_ref / reviewer: Codex CLI |
+| 2. 顶部状态说明                        | ✅   | 状态 / 依赖 / 下游 blocks / 战略依据 / 详化时间 5 行齐                                                        |
+| 3. 🎯 目标 Goal                        | ✅   | 2 段 · 含 implementation-plan 链接与实施入口                                                                  |
+| 4. 📖 背景 Context                     | ✅   | plan_ref + CLAUDE.md + 路线图 + MVP-05 已落地                                                                 |
+| 5. 🛠 实施进度表                       | ✅   | Phase A/B/C/D + Phase A 起点 checklist · 7d                                                                   |
+| 6. 🎨 功能范围 Scope                   | ✅   | Do 8 项 / Don't 8 项                                                                                          |
+| 7. 🖼 UI 引用                          | ✅   | design line 锚点 + 6 类 UI 元素                                                                               |
+| 8. ✅ Acceptance                       | ✅   | A-H 8 组 · 48 个 checkbox · 每项可独立验证                                                                    |
+| 9. 🧪 测试策略                         | ✅   | 单元 / 集成 / Criterion / E2E / 视觉回归 / 手动 QA + fixture + bench 模板                                     |
+| 10. 💾 数据模型变更                    | ✅   | `workspaces.layout_state` / `tabs.layout` · LayoutEnvelope v1 · enum/旧 JSON 迁移                             |
+| 11. §G IPC Contract                    | ✅   | G.1-G.6 齐全 · 12 个新增/扩展 binding 数字明确                                                                |
+| 12. §H 决策锁定 + 风险/Notes/相关/自审 | ✅   | H.1-H.8 每段含决策 + 替代方案 + 理由 · R1-R5 mitigation                                                       |
 
 **完成度**：12/12 = **100%**（建议 Arbiter review 通过后翻 `status: ready`）。
 

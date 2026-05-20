@@ -5,7 +5,18 @@ title: 设置面板 + Telemetry opt-in + 打包发布（v0.1 GA）
 status: ready
 owner:
 phase: W11-W12
-depends_on: ["MVP-01", "MVP-02", "MVP-03", "MVP-04", "MVP-05", "MVP-06", "MVP-07", "MVP-08", "MVP-09"]
+depends_on:
+  [
+    "MVP-01",
+    "MVP-02",
+    "MVP-03",
+    "MVP-04",
+    "MVP-05",
+    "MVP-06",
+    "MVP-07",
+    "MVP-08",
+    "MVP-09",
+  ]
 depends_on_notes: "MVP-10 = v0.1 GA 发布 gate · 不是技术依赖 · 而是 '所有 v0.1 功能齐全才能打包发布' 的 phase gate。depends_on 数组列 9 个 MVP 是为了 README/PROGRESS 可视化时 'MVP-10 阻塞链' 能完整显示 · 不代表 MVP-10 的代码依赖这些 MVP 的 API。实施时可以 MVP-01-09 并行收尾的同时启动 MVP-10 的设置面板 + Telemetry 对话框 · 仅 §打包阶段需等其他 MVP 全 done。"
 blocks: []
 blocked_by: []
@@ -24,6 +35,10 @@ reviewer: Kimi
 
 ---
 
+> ⚠️ **2026-05-20 · capture mandate removed**（ADR-023 supersede ADR-011）：本 spec 中所有 **"§F.04 DevTools network panel / 截图 / GUI capture / runtime evidence" 类 acceptance 项 / Phase 表行 / 起点 hint 段** 已 supersede · 不再阻塞 spec done flip。inline 文字保留作 audit 历史 · 但**功能上 deprecated**。代码侧 acceptance（app_settings::tests:: 9 + Sentry SDK 19 测试 + PII SHA-256 hash + Linux AppImage 7.61 MB + sha256 + X11 启动验证）保留为 done gate。`docs/runtime-evidence/mvp-10/CAPTURE-GUIDE.md` 已 deprecated · 由 PR-4 删除。已捕 evidence（§F.01/02/03 4 PNG + sentry-spike/ 3 截图 + phase-d/ Linux AppImage 证据）保留作 v0.1 ship audit。
+
+---
+
 ## 🎯 目标（Goal）
 
 完成 v0.1 发布前的最后一个 MVP：设置面板、Telemetry 首次启动 opt-in 对话框、macOS 公证、Linux AppImage 签名、README/CHANGELOG/SECURITY 就位。
@@ -39,6 +54,7 @@ reviewer: Kimi
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - 设置面板（Settings app window 或 drawer）：
   - 外观：theme（light/dark/auto）+ font family / size
   - 终端：default shell + pasta 保护 toggle
@@ -63,6 +79,7 @@ reviewer: Kimi
   - privacy-policy.md
 
 **Don't**：
+
 - Telemetry 服务端（收集端点由 CI 期间 Phase 4 做）
 - Auto-update 服务端（Tauri plugin 已集成但 update manifest 服务端 v0.2+）
 - Windows 打包(v0.4)
@@ -72,17 +89,18 @@ reviewer: Kimi
 
 MVP-10 估时 5 d · 拆 5 Phase 实施（Phase A/B 可在 MVP-01..09 收尾期间并行启动 · Phase C/D/E 必须等 MVP-01..09 全 done）：
 
-| Phase | 范围 | 依赖 | 状态 | PR |
-|---|---|---|---|---|
-| Phase A · 设置面板 | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ⌘, 快捷键 | 无（可与 MVP-01..09 并行）| ✅ done | [#114](https://github.com/tajiaoyezi/vibestation/pull/114) |
-| Phase B · Telemetry opt-in + Sentry 集成 | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成 + PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效 | Phase A（设置面板存在才能改 toggle） + ADR-015 accepted | ✅ done · ADR-015 accepted [#152](https://github.com/tajiaoyezi/vibestation/pull/152) · SDK 编码 [#155](https://github.com/tajiaoyezi/vibestation/pull/155)（4 commits · 19 测试全过 · `default_integrations: false` + PII SHA-256 hash + before_send 删 trace）· §C.4 endpoint UI + §G.4 H2 proof + §F capture guide [#158](https://github.com/tajiaoyezi/vibestation/pull/158) · §B.1 modal mount-time click guard [#161](https://github.com/tajiaoyezi/vibestation/pull/161) **critical bug fix**（webview 启动 race · 200ms guard）· §F.02 theme dual-path fix [#163](https://github.com/tajiaoyezi/vibestation/pull/163) **secondary fix**（ThemeProvider listen settings_changed event · 实时生效闭环）· §F evidence 3/4 done（01/02/03 · 仅 §F.04 DevTools 待 Arbiter）| [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) · [#152](https://github.com/tajiaoyezi/vibestation/pull/152) / [#155](https://github.com/tajiaoyezi/vibestation/pull/155) / [#158](https://github.com/tajiaoyezi/vibestation/pull/158) / [#161](https://github.com/tajiaoyezi/vibestation/pull/161) / [#163](https://github.com/tajiaoyezi/vibestation/pull/163) |
-| Phase C · macOS 公证 + notarization | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证 | Phase A/B done · MVP-01..09 全 done · Apple Developer Program approved | 🟡 **deferred to v0.2** · v0.1 GA 改 unsigned 模式 · README + Release notes 写明 Gatekeeper bypass 指引（`xattr -cr /Applications/Vibestation.app`）· $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.2 升级触发：README 反馈"装不上"超 5 次 / 公开 landing page 上线 / macOS 用户基础超 100 任一即触发 | — |
-| Phase D · Linux AppImage + sha256 | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证 | Phase A/B done · MVP-01..09 全 done | ✅ done · 7.61 MB AppImage（< 80 MB · 余量 10.5×）+ sha256 + X11 启动验证（Ubuntu 24.04.4 LTS · GNOME on X11 · 截图 1920×1080 / 135 KB）· Wayland skip（当前 session X11 · follow-up：Ubuntu 用户切 Wayland session 重测 · 主 agent macOS 无法补测）· GPG skip（spec 标可选 · v0.2）· icon 命名 follow-up（`Vibestation.png` → `vibestation-app.png` symlink · 当前手动补丁 · v0.2 改 `tauri.conf.json`）· 证据 `docs/runtime-evidence/mvp-10/phase-d/` | [#174](https://github.com/tajiaoyezi/vibestation/pull/174) |
-| Phase E · 非功能文件 + GitHub Release（unsigned 模式）| README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + unsigned macOS .dmg + Linux .deb/.AppImage + Release page assets + macOS Gatekeeper bypass 指引 | Phase A/B/D done（Phase C 推 v0.2）| ⏳ todo · 非功能文件全已存在（README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy）· Linux artifact 已就位（PR #174 · 7.61 MB AppImage + sha256）· 仅缺 v0.1.0 tag + unsigned macOS .dmg artifact | — |
+| Phase                                                  | 范围                                                                                                                                                                     | 依赖                                                                   | 状态                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | PR                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase A · 设置面板                                     | 4 分组 SolidJS 组件（外观/终端/Git/隐私）+ AppSettings KV store + ⌘, 快捷键                                                                                              | 无（可与 MVP-01..09 并行）                                             | ✅ done                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | [#114](https://github.com/tajiaoyezi/vibestation/pull/114)                                                                                                                                                                                                                                                                                                           |
+| Phase B · Telemetry opt-in + Sentry 集成               | 首次启动对话框（阻塞欢迎页）+ Sentry SDK 集成 + PII 脱敏 + opt-in 状态持久化 + 设置 toggle 实时生效                                                                      | Phase A（设置面板存在才能改 toggle） + ADR-015 accepted                | ✅ done · ADR-015 accepted [#152](https://github.com/tajiaoyezi/vibestation/pull/152) · SDK 编码 [#155](https://github.com/tajiaoyezi/vibestation/pull/155)（4 commits · 19 测试全过 · `default_integrations: false` + PII SHA-256 hash + before_send 删 trace）· §C.4 endpoint UI + §G.4 H2 proof + §F capture guide [#158](https://github.com/tajiaoyezi/vibestation/pull/158) · §B.1 modal mount-time click guard [#161](https://github.com/tajiaoyezi/vibestation/pull/161) **critical bug fix**（webview 启动 race · 200ms guard）· §F.02 theme dual-path fix [#163](https://github.com/tajiaoyezi/vibestation/pull/163) **secondary fix**（ThemeProvider listen settings_changed event · 实时生效闭环）· §F evidence 3/4 done（01/02/03 · 仅 §F.04 DevTools 待 Arbiter） | [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) · [#152](https://github.com/tajiaoyezi/vibestation/pull/152) / [#155](https://github.com/tajiaoyezi/vibestation/pull/155) / [#158](https://github.com/tajiaoyezi/vibestation/pull/158) / [#161](https://github.com/tajiaoyezi/vibestation/pull/161) / [#163](https://github.com/tajiaoyezi/vibestation/pull/163) |
+| Phase C · macOS 公证 + notarization                    | tauri-cli build → signed `.app` + `.dmg` + notarytool submit + stapling + Gatekeeper 验证                                                                                | Phase A/B done · MVP-01..09 全 done · Apple Developer Program approved | 🟡 **deferred to v0.2** · v0.1 GA 改 unsigned 模式 · README + Release notes 写明 Gatekeeper bypass 指引（`xattr -cr /Applications/Vibestation.app`）· $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.2 升级触发：README 反馈"装不上"超 5 次 / 公开 landing page 上线 / macOS 用户基础超 100 任一即触发                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | —                                                                                                                                                                                                                                                                                                                                                                    |
+| Phase D · Linux AppImage + sha256                      | tauri-cli build → AppImage（< 80 MB）+ sha256 校验和 + Ubuntu 24 Wayland/X11 启动验证                                                                                    | Phase A/B done · MVP-01..09 全 done                                    | ✅ done · 7.61 MB AppImage（< 80 MB · 余量 10.5×）+ sha256 + X11 启动验证（Ubuntu 24.04.4 LTS · GNOME on X11 · 截图 1920×1080 / 135 KB）· Wayland skip（当前 session X11 · follow-up：Ubuntu 用户切 Wayland session 重测 · 主 agent macOS 无法补测）· GPG skip（spec 标可选 · v0.2）· icon 命名 follow-up（`Vibestation.png` → `vibestation-app.png` symlink · 当前手动补丁 · v0.2 改 `tauri.conf.json`）· 证据 `docs/runtime-evidence/mvp-10/phase-d/`                                                                                                                                                                                                                                                                                                                        | [#174](https://github.com/tajiaoyezi/vibestation/pull/174)                                                                                                                                                                                                                                                                                                           |
+| Phase E · 非功能文件 + GitHub Release（unsigned 模式） | README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy + v0.1.0 tag + unsigned macOS .dmg + Linux .deb/.AppImage + Release page assets + macOS Gatekeeper bypass 指引 | Phase A/B/D done（Phase C 推 v0.2）                                    | ⏳ todo · 非功能文件全已存在（README/CONTRIBUTING/CoC/CHANGELOG/SECURITY/privacy-policy）· Linux artifact 已就位（PR #174 · 7.61 MB AppImage + sha256）· 仅缺 v0.1.0 tag + unsigned macOS .dmg artifact                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | —                                                                                                                                                                                                                                                                                                                                                                    |
 
-**下次 agent 起点**：Phase A/B 全 done · 仅 §F.04（telemetry decline 0 outbound · DevTools network panel 验证）需 Arbiter 本地 5 min capture。**Phase C 推 v0.2**（Apple Dev Program $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.1 改 unsigned dmg + README Gatekeeper bypass 指引模式 · 见 §I.D §K 风险段）。**Phase D Ubuntu Claude 进行中**（session 20 dispatch · `spike-tmp/dispatch/MVP-10-phase-D-linux-appimage-ubuntu-claude-prompt.md`）。**Phase E** 接续 Phase D 完成后 · v0.1.0 tag + unsigned macOS .dmg + Linux artifact + GitHub Release（unsigned 模式）。**dead code cleanup**：`crates/app/src/lib.rs::theme_set` IPC handler + capability + permission 在 PR #163 后已无 frontend 调用方 · 已于 PR #172 清理（session 20）。
+**下次 agent 起点**（2026-05-20 · capture mandate removed · ADR-023）：Phase A/B/D 全 done · §F.04 DevTools network panel manual capture 已 deprecated（实际 v0.1.0/v0.1.1 已 ship · code-side Sentry SDK 19 测试 + PII hash 验过）。**Phase C 推 v0.2**（Apple Dev Program $99/y + 2-2 周审批不阻塞 v0.1 alpha 发版 · v0.1 改 unsigned dmg + README Gatekeeper bypass 指引模式 · 见 §I.D §K 风险段）。**Phase E** v0.1.0 tag + unsigned macOS .dmg + Linux artifact + GitHub Release（unsigned 模式）历史已 ship · MVP-10 spec status flip done 由 PR-5 统一执行。
 
 **依赖关系说明**：
+
 - Phase A/B 文件域：`crates/core/src/app_settings.rs`（已存在 · MVP-03 Phase A 建）+ `crates/app/src/lib.rs`（IPC 注册）+ `web/src/panels/Settings/`（新建）+ `web/src/dialogs/TelemetryOptIn/`（新建）
 - Phase C/D 文件域：`tauri.conf.json`（bundle 配置）+ `.github/workflows/release.yml`（CI 打包流程）+ `scripts/release.sh`（可选本地打包脚本）
 - Phase E 文件域：根目录非功能文件 · 不动代码
@@ -150,6 +168,7 @@ sequenceDiagram
 ```
 
 **实施约定**：
+
 - `WelcomePage` 组件用 SolidJS `Show` 包裹：`<Show when={telemetryOptInDecided()} fallback={null}>`
 - `telemetryOptInDecided` signal：mount 时 `invoke('settings_get')` 读 `telemetry_opt_in` · NULL → false / 非 NULL → true
 - 用户决策后：emit `'settings_changed'` event → 重新读 settings → `telemetryOptInDecided()` 变 true → WelcomePage 渲染
@@ -219,6 +238,7 @@ fn capture_panic_handles_repo_path() {
 ```
 
 **实施约定**（Phase B）：
+
 - `crates/core/src/telemetry.rs` 新建 · `capture_panic(panic_info: &str) -> CrashReportPayload`
 - 内部用 `sha2` crate 算 SHA-256(panic_info) → `stack_trace_hash`
 - 仅保留 OS type + version + `stack_trace_hash` 3 字段（`CrashReportPayload` struct 已锁 §G.2）
@@ -269,12 +289,12 @@ fn capture_panic_handles_repo_path() {
 
 ## 🧪 测试策略
 
-| 层次 | 范围 |
-|------|------|
-| 单元 | Telemetry payload 脱敏（C.3 正则断言）+ 设置持久化（rusqlite 读写）|
-| 集成 | 设置变更 → rusqlite 写入 → 进程重启 → 读取一致 |
-| E2E | 完整首次启动流程（Telemetry 对话框 → 决策 → 欢迎页）|
-| 手动 QA | 三平台打包验证 + notarization 实机测试 + Gatekeeper 干净 mac |
+| 层次    | 范围                                                                |
+| ------- | ------------------------------------------------------------------- |
+| 单元    | Telemetry payload 脱敏（C.3 正则断言）+ 设置持久化（rusqlite 读写） |
+| 集成    | 设置变更 → rusqlite 写入 → 进程重启 → 读取一致                      |
+| E2E     | 完整首次启动流程（Telemetry 对话框 → 决策 → 欢迎页）                |
+| 手动 QA | 三平台打包验证 + notarization 实机测试 + Gatekeeper 干净 mac        |
 
 ## 📸 运行时证据要求
 
@@ -306,16 +326,16 @@ CREATE TABLE IF NOT EXISTS app_settings (
 
 MVP-10 新增以下 key（**不新建 migration** · 对齐 YAGNI · 无 schema 变更）：
 
-| key | value 编码 | default（行缺失时语义）| 含义 |
-|---|---|---|---|
-| `telemetry_opt_in` | `"true"` / `"false"` / 行缺失 | 缺失 = 未决策 · 弹对话框（B.1）| Telemetry opt-in 状态 |
-| `paste_protection` | `"true"` / `"false"` | `"true"` | 粘贴保护 toggle（MVP-04 §D 已读取）|
-| `default_shell` | 路径（`/bin/zsh` 等）| `/bin/zsh`（mac）· `/bin/bash`（linux）| 新 Tab 默认 shell（MVP-04 已读取）|
-| `font_family` | 字体名 | `"JetBrains Mono"` | 终端字体 |
-| `font_size` | 数字字符串 | `"14"` | 终端字号 |
-| `theme` | `"light"` / `"dark"` / `"auto"` | `"auto"`（MVP-03 已读取 · 回填默认值）| 主题 |
-| `git_user_name` | string / 行缺失 | 缺失 = 从 `git config` 读 | Git 用户名 override |
-| `git_user_email` | string / 行缺失 | 缺失 = 从 `git config` 读 | Git 邮箱 override |
+| key                | value 编码                      | default（行缺失时语义）                 | 含义                                |
+| ------------------ | ------------------------------- | --------------------------------------- | ----------------------------------- |
+| `telemetry_opt_in` | `"true"` / `"false"` / 行缺失   | 缺失 = 未决策 · 弹对话框（B.1）         | Telemetry opt-in 状态               |
+| `paste_protection` | `"true"` / `"false"`            | `"true"`                                | 粘贴保护 toggle（MVP-04 §D 已读取） |
+| `default_shell`    | 路径（`/bin/zsh` 等）           | `/bin/zsh`（mac）· `/bin/bash`（linux） | 新 Tab 默认 shell（MVP-04 已读取）  |
+| `font_family`      | 字体名                          | `"JetBrains Mono"`                      | 终端字体                            |
+| `font_size`        | 数字字符串                      | `"14"`                                  | 终端字号                            |
+| `theme`            | `"light"` / `"dark"` / `"auto"` | `"auto"`（MVP-03 已读取 · 回填默认值）  | 主题                                |
+| `git_user_name`    | string / 行缺失                 | 缺失 = 从 `git config` 读               | Git 用户名 override                 |
+| `git_user_email`   | string / 行缺失                 | 缺失 = 从 `git config` 读               | Git 邮箱 override                   |
 
 Rust 侧 `AppSettings` struct（§G.2）对 KV 做类型包装 · 读写走 `AppSettingsStore::get(key)` / `set(key, value)` · 不走 `ALTER TABLE`。类型安全由 ts-rs 生成的 TypeScript 类型 + Rust struct 双向保证。
 
@@ -332,14 +352,14 @@ Rust 侧 `AppSettings` struct（§G.2）对 KV 做类型包装 · 读写走 `App
 
 ### G.1 预期 IPC struct 清单
 
-| Rust struct | 用途 | 前端 import |
-|---|---|---|
-| `AppSettings` | 全量 settings 查询 / 初始化回填 | `./bindings/AppSettings` |
-| `SettingsUpdateRequest` | 单字段或多字段 partial update | `./bindings/SettingsUpdateRequest` |
-| `TelemetryOptInRequest` | 首次启动 opt-in 用户决策 | `./bindings/TelemetryOptInRequest` |
-| `TelemetryStatus` | 当前 opt-in 状态 + 端点信息 | `./bindings/TelemetryStatus` |
-| `CrashReportPayload` | crash 上报 payload（脱敏）| `./bindings/CrashReportPayload` |
-| `AppVersionInfo` | 版本号 + OS type + 构建信息 | `./bindings/AppVersionInfo` |
+| Rust struct             | 用途                            | 前端 import                        |
+| ----------------------- | ------------------------------- | ---------------------------------- |
+| `AppSettings`           | 全量 settings 查询 / 初始化回填 | `./bindings/AppSettings`           |
+| `SettingsUpdateRequest` | 单字段或多字段 partial update   | `./bindings/SettingsUpdateRequest` |
+| `TelemetryOptInRequest` | 首次启动 opt-in 用户决策        | `./bindings/TelemetryOptInRequest` |
+| `TelemetryStatus`       | 当前 opt-in 状态 + 端点信息     | `./bindings/TelemetryStatus`       |
+| `CrashReportPayload`    | crash 上报 payload（脱敏）      | `./bindings/CrashReportPayload`    |
+| `AppVersionInfo`        | 版本号 + OS type + 构建信息     | `./bindings/AppVersionInfo`        |
 
 ### G.2 derive 模板（示例片段）
 
@@ -412,12 +432,12 @@ pub struct CrashReportPayload {
 
 **状态**：Phase B local pre-spike 已完成（2026-04-25）· [ADR-015](../adr/ADR-015-telemetry-stack-sentry.md) 已提出 `sentry` 0.47.0 + sanitized payload 方案 · Sentry Web UI 实收事件因无 DSN/Auth Token 未测 · 锁定权仍在 Arbiter；ADR accepted 前不得进入 Phase B SDK 编码。
 
-| 候选 | 成本 | 隐私 / 数据主权 | SDK 体积 | 备注 |
-|---|---|---|---|---|
-| Sentry SDK（sentry-rust）| 自托管免费 / Cloud 有免费 tier | 自托管 = 完全主权 | ~1.5 MB | Rust 原生支持最好 · 社区成熟 · crash symbolication 完善 |
-| Plausible self-hosted | 开源免费 · 需自建服务器 | 完全主权 | 无 SDK（HTTP POST）| 偏 analytics · crash 支持弱 |
-| PostHog free tier | Cloud 免费 tier 限 1M 事件/月 | 数据出域到 PostHog Cloud | ~500 KB | 功能最全 · 但 free tier 有 event 上限 |
-| 自建 HTTP POST | 零第三方依赖 | 完全主权 | 0 KB | 需自建收集端 + 符号化 + 聚合 UI · 工作量最大 |
+| 候选                      | 成本                           | 隐私 / 数据主权          | SDK 体积            | 备注                                                    |
+| ------------------------- | ------------------------------ | ------------------------ | ------------------- | ------------------------------------------------------- |
+| Sentry SDK（sentry-rust） | 自托管免费 / Cloud 有免费 tier | 自托管 = 完全主权        | ~1.5 MB             | Rust 原生支持最好 · 社区成熟 · crash symbolication 完善 |
+| Plausible self-hosted     | 开源免费 · 需自建服务器        | 完全主权                 | 无 SDK（HTTP POST） | 偏 analytics · crash 支持弱                             |
+| PostHog free tier         | Cloud 免费 tier 限 1M 事件/月  | 数据出域到 PostHog Cloud | ~500 KB             | 功能最全 · 但 free tier 有 event 上限                   |
+| 自建 HTTP POST            | 零第三方依赖                   | 完全主权                 | 0 KB                | 需自建收集端 + 符号化 + 聚合 UI · 工作量最大            |
 
 - **当前建议**：Sentry SDK 仍为默认候选（理由：Rust 原生 + crash 场景成熟 + 可自托管），但只作为 ADR-015 proposed 结论；不是已锁定决策。
 - **禁止**：直接 commit 收集端 API key / DSN 到仓库（走 `.env` + GitHub Actions secret）
@@ -444,9 +464,11 @@ pub struct CrashReportPayload {
    - 走 ADR `proposed` → Arbiter approve → `accepted` 流程（非 30 min 内完成 · 但 Spike 1–3 步在 30 min 内）
 
 **Spike 失败 fallback**：
+
 - 若 sentry-rust 集成失败 / payload 含 PII 无法禁用 / bundle > 2 MB · 立即 fallback 到 §H.1 候选 4（自建 HTTP POST）· 走另一份 ADR-NNN
 
 **2026-04-25 Spike 结果**：
+
 - Step 1 SDK 本地集成通过；本轮环境无 `SENTRY_DSN` / `SENTRY_AUTH_TOKEN`，未验证 Sentry Web UI 实收事件。
 - Step 2 PII 脱敏 4 测试通过；`default_integrations = false` 下捕获事件未含路径 / 终端内容 / IP / commit 信息。
 - Step 3 `cargo bloat` 对 `sentry_smoke` release example 显示 `.text` 1.8 MiB、file size 3.2 MiB；最终 Tauri artifact 仍需 Phase B/C 复测。
@@ -454,6 +476,7 @@ pub struct CrashReportPayload {
 - 证据目录：[docs/runtime-evidence/mvp-10/sentry-spike](../runtime-evidence/mvp-10/sentry-spike/README.md)。
 
 **禁止**：
+
 - 跳过 Spike 直接 `cargo add sentry` 进入 Phase B 编码 · 必须 ADR 走 Arbiter approve 后再编码
 - 在 spec 里直接锁 "Arbiter 选 Sentry SDK"（锁定权在 Arbiter · spec 仅写 Spike 流程）
 

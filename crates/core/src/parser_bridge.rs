@@ -313,8 +313,6 @@ fn is_supported_cli_kind(cli_kind: &str) -> bool {
 mod tests {
     use super::*;
 
-    // TODO(MVP-18 A3): switch inline samples to crates/core/tests/fixtures/pane_link once fixtures land.
-
     fn issue(
         severity: ParsedIssueSeverity,
         file: &str,

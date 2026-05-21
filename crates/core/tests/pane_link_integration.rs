@@ -14,6 +14,7 @@ use tempfile::TempDir;
 use vibestation_core::db::{self, DbPool};
 use vibestation_core::pane_links::{
     validate_link_request, PaneKind, PaneLinkDao, PaneLinkError, PaneLinkKind, PaneLinkRequest,
+    PaneUnlinkRequest,
 };
 use vibestation_core::workspace::WorkspaceStore;
 
@@ -171,10 +172,13 @@ fn pane_link_duplicate() {
     );
 }
 
-// ── §F.3 Catalog 场景 4：stale child → link row persists ────────────────────
+// ── §F.3 Catalog 场景 4：stale child → link row persists (no cascade delete) ─
 
 /// §F.3 `pane_link_stale_child`：child pane 概念上关闭后，link 行仍在（不级联删）。
-/// 本切片：create 后 link 行存在；不实现 unlink/stale DAO（§F.2 TODO 待后续切片）。
+/// 验证 §G.1 软删语义 + §E B.7 unlink 幂等：
+/// 1. create 后 deleted_at IS NULL（active）
+/// 2. unlink 一次 → removed=true · 行物理上仍在但 deleted_at 已写
+/// 3. unlink 再次 → removed=false（幂等 · 已删）
 #[test]
 fn pane_link_stale_child() {
     let (_dir, pool, ws) = fixture_workspace();
@@ -184,9 +188,7 @@ fn pane_link_stale_child() {
 
     let link = PaneLinkDao::create(&pool, &req).expect("create must succeed");
 
-    // 模拟 child pane 关闭：本切片只验证 link 行仍在（no cascade delete · §F.2 TODO）
-    // deleted_at 由 unlink DAO（后续切片）管理；此处 deleted_at IS NULL 即 active
-    let count: i64 = pool
+    let active_count: i64 = pool
         .get()
         .unwrap()
         .query_row(
@@ -195,9 +197,48 @@ fn pane_link_stale_child() {
             |r| r.get(0),
         )
         .unwrap();
+    assert_eq!(active_count, 1, "newly created link must be active");
+
+    let unlink_req = PaneUnlinkRequest {
+        workspace_id: ws.clone(),
+        link_id: link.id.clone(),
+    };
+    let first = PaneLinkDao::unlink(&pool, &unlink_req).expect("unlink must succeed");
+    assert_eq!(first.link_id, link.id);
+    assert!(
+        first.removed,
+        "§E B.7: first unlink must report removed=true"
+    );
+
+    let physical_count: i64 = pool
+        .get()
+        .unwrap()
+        .query_row(
+            "SELECT count(*) FROM pane_links WHERE id = ?1",
+            [&link.id],
+            |r| r.get(0),
+        )
+        .unwrap();
     assert_eq!(
-        count, 1,
-        "stale child: link row must remain active (no cascade delete in this slice)"
+        physical_count, 1,
+        "§G.1: soft-delete keeps row physically (audit/recoverable)"
+    );
+
+    let active_after: i64 = pool
+        .get()
+        .unwrap()
+        .query_row(
+            "SELECT count(*) FROM pane_links WHERE id = ?1 AND deleted_at IS NULL",
+            [&link.id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(active_after, 0, "§G.1: deleted_at must be set after unlink");
+
+    let second = PaneLinkDao::unlink(&pool, &unlink_req).expect("second unlink must succeed");
+    assert!(
+        !second.removed,
+        "§E B.7: repeat unlink must be idempotent (removed=false)"
     );
 }
 

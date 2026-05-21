@@ -421,8 +421,6 @@ fn map_non_whitespace_tokens(
 mod tests {
     use super::*;
 
-    // TODO(MVP-18 A3): switch inline samples to crates/core/tests/fixtures/pane_link once fixtures land.
-
     fn sanitize(raw: &str) -> SanitizedPrompt {
         sanitize_ai_prompt(raw, &SanitizeCtx::default()).expect("sanitize should succeed")
     }

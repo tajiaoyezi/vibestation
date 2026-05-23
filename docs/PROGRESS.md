@@ -25,7 +25,7 @@
 
 ## 📍 当前位置
 
-**阶段**：**session 33 · 2026-05-17 · MVP-20 Phase D 全 merged (#394) · v1.0 vision rollback 实施侧收口（仅余 Phase E capture）**：Phase A 全链（#385-#388）+ Phase C（#391/#392/#390）+ **Phase D #394**（status union 保真〔`RollbackStatusKind` typed enum · spec §K〕+ 全局 crash recovery〔`detect_crash_recovery` + 启动 emit + `lib/rollback-recovery` 状态机 + `RollbackRecoveryBanner` + App.tsx wire · 镜像 MVP-16 模式 · session 维度平行〕+ abort 边界覆盖 · TDD 全程 · 主 agent 自实施+self-review · §2.14 runtime smoke）· **下一步 = Phase E**（runtime 证据 + Criterion 性能量化 · defer Arbiter playbook 窗口 · spec 保持 `in-progress`：多 phase · 最终 capture phase 未完）
+**阶段**：**session 33 · 2026-05-17 · MVP-20 Phase D 全 merged (#394) · v1.0 vision rollback 实施侧收口（仅余 Phase E capture）**：Phase A 全链（#385-#388）+ Phase C（#391/#392/#390）+ **Phase D #394**（status union 保真〔`RollbackStatusKind` typed enum · spec §K〕+ 全局 crash recovery〔`detect_crash_recovery` + 启动 emit + `lib/rollback-recovery` 状态机 + `RollbackRecoveryBanner` + App.tsx wire · 镜像 MVP-16 模式 · session 维度平行〕+ abort 边界覆盖 · TDD 全程 · 主 agent 自实施+self-review · §2.14 runtime smoke）· **下一步 = Phase E**（runtime 证据 + Criterion 性能量化 · defer Arbiter playbook 窗口 · ~~spec 保持 `in-progress`：多 phase · 最终 capture phase 未完~~ **更新 2026-05-23 · ADR-023 PR #409 后 spec frontmatter 已 flip done · Phase E capture playbook 非 ship 阻塞**）
 **日期**：2026-05-17（session 33 · MVP-20 Phase A+C+D 全链 · merged #385-#394 · 均按 v2-D.2 + §2.14/2.15 流程 · 0 author 污染 · Phase D 主 agent 自实施 TDD）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：

@@ -1,6 +1,6 @@
 ---
 id: BUG-001
-status: draft
+status: done
 ---
 
 # BUG-001 · Pane 右分屏 lifecycle 状态机异常
@@ -161,12 +161,66 @@ const splitLayout = createMemo<SplitLayout>(
 
 ### 已交付的有效产出（保留进 git）
 
-- 本 spec stub 含完整 anchor + 失败尝试 audit · 下次直接接手
+- 本 spec stub 含完整 anchor + 失败尝试 audit · 下次类似 SolidJS reactive bug 直接套用
 - `web/tests/panels/Terminal/PaneSplitView.test.tsx` 新加 2 个测试 case：
   - PASS · `BUG-001 · collapses split → single when layout shrinks`（验证顶层 split→single 切换正常）
-  - **`.fails` 标记** · `BUG-001 · renders new pane when split nests deeper (real reproduce)`（vitest 维度 reproduce · 实际 root cause 需 dev webview 验证）
-  - 真修复后 `.fails` 删掉 · 测试 GREEN 即代表真修复 + 防回归
+  - PASS · `BUG-001 · renders new pane when split nests deeper (real reproduce)`（嵌套 split 渲染新 pane）
 - backend `apply_pane_close` 验证正确（panes.rs:1688 / 1720）· 排除一类假设
+
+## §K · 实际成功修复（session 34 第 6 路尝试）
+
+**方案**：plain getter function + JSX ternary 替代 createMemo + 嵌套 Show。
+
+```tsx
+// PaneSplitView.tsx · RenderSplit 关键代码
+const splitNode = (): SplitLayout | undefined =>
+  props.layout?.kind === "split" ? props.layout : undefined;
+const direction = (): SplitDir => splitNode()?.direction ?? "horizontal";
+const first = (): LayoutNode | undefined => splitNode()?.first;
+const second = (): LayoutNode | undefined => splitNode()?.second;
+// ...
+
+return (
+  <div class={`vs-pane-split vs-pane-split-${direction()}`} style={styleProp()}>
+    <div class="vs-pane-split-first">
+      {first() && (
+        <PaneSplitView layout={first()!} ...其他 props />
+      )}
+    </div>
+    <PaneSplitter direction={direction()} ratio={ratio()} ... />
+    <div class="vs-pane-split-second">
+      {second() && (
+        <PaneSplitView layout={second()!} ...其他 props />
+      )}
+    </div>
+  </div>
+);
+```
+
+**关键设计原则**：
+
+1. **Plain getter function 不是 createMemo**：每次 JSX 内访问都 evaluate `props.layout?.X`· SolidJS props proxy 保证 reactive · 但**不创建额外 owner.owned scope**（`createMemo` 会创建 owned computation · 嵌套递归 PaneSplitView 时 owner.owned 数组复杂度爆炸 · 触发 SolidJS internal cleanup race）
+2. **Optional chaining + nullable fallback**：`props.layout?.kind === "split" ? props.layout : undefined`· `<Match>` / `<Show>` 切换分支前的 short-window stale read 返回 undefined 而非 throw
+3. **JSX ternary `{cond && <X />}` 替代嵌套 `<Show>` render prop**：ternary 是 SolidJS 编译时识别的 reactive 模式 · 不创建额外 reactive scope · 不嵌套 owner
+
+**为什么前 5 路全失败 · 第 6 路成功**：
+
+| 路径 | createMemo | 嵌套 Show | 结果 |
+|---|---|---|---|
+| 1 · throw on stale | ✓ | ✗ | toast: invoked with non-X layout |
+| 2 · 嵌套 Show + nullable accessor | ✓ | ✓✓ | toast: `node.owned[i]` |
+| 3 · prev-fallback memo | ✓ | ✗ | toast: `node.owned[i]` |
+| 4 · 方案 A narrowed prop + Switch/Match | ✓ | ✗ | toast: `props.layout undefined` |
+| 5 · 方案 A + defensive memo | ✓✓ | ✓ | toast: `node.owned[i]` + 全空白 |
+| **6 · plain getter + JSX ternary** | **✗** | **✗** | **✅ 修复成功** |
+
+共同模式：`createMemo` 用得越多 / Show 嵌套越深 · owner.owned 复杂度越高 · 越易触发 SolidJS internal cleanup race。**plain getter 是 SolidJS reactive primitive · 不增加 reactive scope · 避开整个问题**。
+
+**经验沉淀**（写入 vibestation memory）：
+
+- SolidJS 中**递归组件**渲染嵌套结构时 · 内部派生字段**首选 plain getter function**· 避免 createMemo（除非性能 critical 且确定不嵌套）
+- 优先 `{cond && <X />}` ternary · 避免 `<Show when={cond}>{(x) => ...}</Show>` keyed render prop（嵌套 reactive scope 易触发 SolidJS internal cleanup race）
+- Optional chaining `props.X?.Y` 是 SolidJS unmount race 的标准防御 · 不是 type safety 弱化
 
 ---
 

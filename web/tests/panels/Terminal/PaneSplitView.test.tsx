@@ -226,7 +226,7 @@ describe("PaneSplitView", () => {
   // untrack 包装 / RenderSplit/Single 接收 narrowed prop type）。
   //
   // 修复后：把 `.fails` 删掉 · 测试 GREEN 即代表真修复 + 防回归。
-  it.fails("BUG-001 · renders new pane when split nests deeper (real reproduce)", () => {
+  it("BUG-001 · renders new pane when split nests deeper (real reproduce)", () => {
     const [layout, setLayout] = createSignal<LayoutNode>({
       kind: "split",
       direction: "horizontal",

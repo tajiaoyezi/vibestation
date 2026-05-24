@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vibestation — 多 Tab 终端 · Git 工作台 · Tauri 原生</title>
+<meta name="description" content="Vibestation 是一款为 CLI agent 用户打造的多 Tab 终端 + Git 工作台桌面应用。Tauri 2 原生构建，冷启动 < 200ms，开源 Apache 2.0。">
+<meta name="theme-color" content="#1a1d22" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+<link rel="canonical" href="https://tajiaoyezi.github.io/vibestation/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Vibestation — 多 Tab 终端 · Git 工作台 · Tauri 原生">
+<meta property="og:description" content="为 CLI agent 用户打造的多 Tab 终端与 JetBrains 级 Git 工作台，整合到一个原生窗口里。">
+<meta property="og:url" content="https://tajiaoyezi.github.io/vibestation/">
+<meta property="og:image" content="https://tajiaoyezi.github.io/vibestation/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  /* ─── tokens ────────────────────────────────────────────────────────── */
+  :root[data-theme="dark"] {
+    --bg-0: oklch(0.16 0.01 255);
+    --bg-1: oklch(0.19 0.01 255);
+    --bg-2: oklch(0.22 0.012 255);
+    --bg-3: oklch(0.27 0.013 255);
+    --line: oklch(0.28 0.012 255);
+    --line-soft: oklch(0.24 0.01 255);
+    --text-1: oklch(0.96 0.005 255);
+    --text-2: oklch(0.78 0.008 255);
+    --text-3: oklch(0.62 0.01 255);
+    --text-4: oklch(0.48 0.012 255);
+    --accent: oklch(0.72 0.16 240);
+    --accent-2: oklch(0.58 0.20 260);
+    --shadow-1: 0 1px 2px oklch(0 0 0 / 0.35), 0 12px 32px oklch(0 0 0 / 0.40);
+    --grid-line: oklch(1 0 0 / 0.025);
+    --diff-add: oklch(0.72 0.14 145);
+    --diff-mod: oklch(0.78 0.12 80);
+    --diff-del: oklch(0.68 0.18 25);
+    --diff-untracked: oklch(0.65 0.02 255);
+  }
+  :root[data-theme="light"] {
+    --bg-0: oklch(0.985 0.002 255);
+    --bg-1: oklch(0.975 0.003 255);
+    --bg-2: oklch(0.955 0.004 255);
+    --bg-3: oklch(0.93 0.005 255);
+    --line: oklch(0.88 0.006 255);
+    --line-soft: oklch(0.93 0.005 255);
+    --text-1: oklch(0.22 0.012 255);
+    --text-2: oklch(0.38 0.012 255);
+    --text-3: oklch(0.50 0.012 255);
+    --text-4: oklch(0.62 0.010 255);
+    --accent: oklch(0.55 0.18 245);
+    --accent-2: oklch(0.45 0.22 265);
+    --shadow-1: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px oklch(0 0 0 / 0.06);
+    --grid-line: oklch(0 0 0 / 0.035);
+    --diff-add: oklch(0.50 0.16 145);
+    --diff-mod: oklch(0.55 0.15 75);
+    --diff-del: oklch(0.55 0.20 25);
+    --diff-untracked: oklch(0.55 0.02 255);
+  }
+  :root {
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --maxw: 1180px;
+    --pad: clamp(20px, 4vw, 40px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg-0);
+    color: var(--text-1);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 220ms var(--ease), color 220ms var(--ease);
+  }
+  ::selection { background: color-mix(in oklab, var(--accent) 35%, transparent); }
+
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; font-feature-settings: "calt", "ss02"; }
+  h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; color: var(--text-1); }
+
+  .container {
+    max-width: var(--maxw);
+    margin: 0 auto;
+    padding: 0 var(--pad);
+  }
+
+  /* ─── grid background ─────────────────────────────────────────────── */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+  }
+
+  /* ─── nav ─────────────────────────────────────────────────────────── */
+  header.nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in oklab, var(--bg-0) 78%, transparent);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 14px 0;
+  }
+  .wordmark { color: var(--text-1); display: inline-flex; align-items: center; }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-links a {
+    color: var(--text-2);
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    transition: color 150ms var(--ease), background-color 150ms var(--ease);
+  }
+  .nav-links a:hover { color: var(--text-1); background: var(--bg-2); }
+  .nav-divider { width: 1px; height: 18px; background: var(--line); margin: 0 6px; }
+  .theme-toggle {
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    transition: all 150ms var(--ease);
+  }
+  .theme-toggle:hover { color: var(--text-1); border-color: var(--text-4); }
+  .theme-toggle .sun, .theme-toggle .moon { display: none; }
+  :root[data-theme="dark"] .theme-toggle .sun { display: block; }
+  :root[data-theme="light"] .theme-toggle .moon { display: block; }
+
+  @media (max-width: 640px) {
+    .nav-link-text { display: none; }
+    .nav-divider { display: none; }
+  }
+
+  /* ─── hero ────────────────────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    padding: clamp(56px, 10vw, 112px) 0 clamp(32px, 5vw, 64px);
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--bg-1);
+  }
+  .eyebrow .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--diff-add);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--diff-add) 22%, transparent);
+  }
+  h1.hero-title {
+    margin-top: 22px;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    font-weight: 600;
+    max-width: 18ch;
+  }
+  h1.hero-title .accent-mark {
+    position: relative;
+    color: var(--text-1);
+    white-space: nowrap;
+  }
+  h1.hero-title .accent-mark::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 0.04em;
+    height: 0.12em;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 999px;
+    opacity: 0.95;
+  }
+  .hero-sub {
+    margin-top: 24px;
+    color: var(--text-2);
+    font-size: clamp(15px, 1.5vw, 17px);
+    max-width: 56ch;
+    line-height: 1.65;
+  }
+  .hero-sub .kbd {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88em;
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: var(--bg-1);
+    color: var(--text-1);
+  }
+  .hero-cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 32px;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    transition: transform 120ms var(--ease), background-color 150ms var(--ease), border-color 150ms var(--ease), color 150ms var(--ease);
+    white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary {
+    background: var(--text-1);
+    color: var(--bg-0);
+  }
+  .btn-primary:hover {
+    background: color-mix(in oklab, var(--text-1) 90%, var(--accent));
+  }
+  .btn-secondary {
+    background: var(--bg-1);
+    color: var(--text-1);
+    border-color: var(--line);
+  }
+  .btn-secondary:hover { background: var(--bg-2); border-color: var(--text-4); }
+  .btn .arrow { transition: transform 200ms var(--ease); }
+  .btn:hover .arrow { transform: translateX(2px); }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 28px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-3);
+    padding: 4px 10px;
+    border: 1px solid var(--line-soft);
+    border-radius: 999px;
+    background: var(--bg-1);
+  }
+  .badge b {
+    color: var(--text-2);
+    font-weight: 500;
+  }
+  .badge .glyph {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--text-4);
+  }
+  .badge.alpha .glyph { background: var(--diff-mod); box-shadow: 0 0 0 3px color-mix(in oklab, var(--diff-mod) 20%, transparent); }
+
+  /* ─── code window mock ─────────────────────────────────────────────── */
+  .window-wrap {
+    margin-top: clamp(48px, 6vw, 72px);
+    position: relative;
+  }
+  .window-wrap::before {
+    /* soft accent glow under the window */
+    content: "";
+    position: absolute;
+    inset: -10% -2% -30% -2%;
+    background: radial-gradient(60% 50% at 50% 20%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 70%);
+    filter: blur(40px);
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .window {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 11px 14px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .traffic {
+    display: flex; gap: 7px;
+  }
+  .traffic span {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--bg-3);
+  }
+  .traffic .r { background: oklch(0.68 0.16 25); }
+  .traffic .y { background: oklch(0.80 0.14 80); }
+  .traffic .g { background: oklch(0.72 0.14 145); }
+  .titlebar .title {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .titlebar .title b { color: var(--text-2); font-weight: 500; }
+  .titlebar .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    display: flex; gap: 8px; align-items: center;
+  }
+
+  .window-body {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 460px;
+  }
+  @media (max-width: 720px) {
+    .window-body { grid-template-columns: 1fr; min-height: 0; }
+    .sidebar { border-right: 0 !important; border-bottom: 1px solid var(--line); }
+  }
+
+  .sidebar {
+    background: var(--bg-1);
+    border-right: 1px solid var(--line);
+    padding: 14px 10px;
+    font-size: 13px;
+  }
+  .sidebar-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-4);
+    padding: 6px 10px 10px;
+  }
+  .ws-list { display: flex; flex-direction: column; gap: 1px; }
+  .ws-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--text-2);
+    cursor: default;
+  }
+  .ws-item:hover { background: var(--bg-2); }
+  .ws-item.active {
+    background: color-mix(in oklab, var(--accent) 14%, var(--bg-2));
+    color: var(--text-1);
+  }
+  .ws-item.active .folder { color: var(--accent); }
+  .ws-item .folder {
+    width: 14px; height: 14px;
+    color: var(--text-4);
+    flex-shrink: 0;
+  }
+  .ws-item .name { font-weight: 500; }
+  .ws-item .branch {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-4);
+  }
+  .sidebar-section { margin-top: 18px; }
+
+  .pane-right {
+    display: grid;
+    grid-template-rows: 1fr 200px;
+    min-width: 0;
+  }
+  @media (max-width: 720px) {
+    .pane-right { grid-template-rows: auto auto; }
+  }
+
+  .terminal {
+    background: var(--bg-0);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .tabbar {
+    display: flex;
+    align-items: stretch;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--line);
+    padding-left: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+    border-right: 1px solid var(--line-soft);
+    position: relative;
+    cursor: default;
+    white-space: nowrap;
+  }
+  .tab .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-4); }
+  .tab.active {
+    background: var(--bg-0);
+    color: var(--text-1);
+  }
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 8px; right: 8px;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 2px 2px 0 0;
+  }
+  .tab.active .tab-dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 22%, transparent); }
+  .tab .x {
+    color: var(--text-4);
+    font-size: 11px;
+    margin-left: 2px;
+    opacity: 0;
+    transition: opacity 120ms var(--ease);
+  }
+  .tab:hover .x, .tab.active .x { opacity: 1; }
+  .tab-add {
+    padding: 9px 14px;
+    color: var(--text-4);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+
+  .terminal-body {
+    flex: 1;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--text-2);
+    overflow: hidden;
+  }
+  .term-line { white-space: pre; }
+  .term-line .prompt { color: var(--accent); }
+  .term-line .path { color: var(--text-3); }
+  .term-line .cmd { color: var(--text-1); }
+  .term-line .flag { color: oklch(0.75 0.13 80); }
+  .term-line .str { color: oklch(0.72 0.14 145); }
+  .term-line .dim { color: var(--text-4); }
+  .term-line .err { color: oklch(0.70 0.18 25); }
+  .term-line .ok { color: var(--diff-add); }
+  .term-line .caret {
+    display: inline-block;
+    width: 7px;
+    height: 1.05em;
+    vertical-align: -2px;
+    background: var(--accent);
+    animation: blink 1.05s steps(2) infinite;
+    margin-left: 2px;
+  }
+  @keyframes blink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+  /* git status panel */
+  .git-panel {
+    background: var(--bg-1);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-3);
+  }
+  .panel-head b { color: var(--text-1); font-weight: 500; }
+  .panel-head .branch-pill {
+    margin-left: auto;
+    padding: 2px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text-2);
+    font-size: 11px;
+    background: var(--bg-1);
+  }
+  .panel-head .branch-pill .arrow-up { color: var(--diff-add); }
+  .panel-head .branch-pill .arrow-down { color: var(--accent); }
+  .git-rows {
+    padding: 8px 6px;
+    overflow: auto;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .git-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    border-radius: var(--radius-sm);
+  }
+  .git-row:hover { background: var(--bg-2); }
+  .git-row .stat {
+    font-weight: 600;
+    text-align: center;
+    font-size: 11.5px;
+    padding: 1px 0;
+    border-radius: 3px;
+  }
+  .git-row .stat.m { color: var(--diff-mod); background: color-mix(in oklab, var(--diff-mod) 12%, transparent); }
+  .git-row .stat.a { color: var(--diff-add); background: color-mix(in oklab, var(--diff-add) 12%, transparent); }
+  .git-row .stat.d { color: var(--diff-del); background: color-mix(in oklab, var(--diff-del) 12%, transparent); }
+  .git-row .stat.u { color: var(--diff-untracked); background: color-mix(in oklab, var(--diff-untracked) 12%, transparent); }
+  .git-row .path { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .git-row .path .seg { color: var(--text-4); }
+  .git-row .delta { color: var(--text-4); font-size: 11px; }
+  .git-row .delta .add { color: var(--diff-add); }
+  .git-row .delta .del { color: var(--diff-del); }
+
+  /* ─── section heads ─────────────────────────────────────────────── */
+  section { position: relative; z-index: 1; }
+  .section {
+    padding: clamp(64px, 9vw, 112px) 0;
+    border-top: 1px solid var(--line-soft);
+  }
+  .section-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-3);
+    margin-bottom: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-eyebrow::before {
+    content: ""; width: 18px; height: 1px;
+    background: var(--accent);
+  }
+  .section-title {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    max-width: 20ch;
+  }
+  .section-sub {
+    margin-top: 14px;
+    color: var(--text-3);
+    max-width: 56ch;
+    font-size: 15px;
+  }
+
+  /* ─── features ────────────────────────────────────────────────────── */
+  .features {
+    margin-top: clamp(40px, 5vw, 64px);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line-soft);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  @media (max-width: 980px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .features { grid-template-columns: 1fr; } }
+
+  .feature {
+    background: var(--bg-1);
+    padding: 28px 24px 26px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    min-height: 220px;
+    position: relative;
+    transition: background-color 150ms var(--ease);
+  }
+  .feature:hover { background: var(--bg-2); }
+  .feature-glyph {
+    width: 32px; height: 32px;
+    color: var(--accent);
+  }
+  .feature h3 {
+    font-size: 18px;
+    color: var(--text-1);
+  }
+  .feature p {
+    margin: 0;
+    color: var(--text-3);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .feature-tag {
+    margin-top: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+  }
+
+  /* ─── roadmap ─────────────────────────────────────────────────────── */
+  .roadmap {
+    margin-top: clamp(40px, 5vw, 64px);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative;
+  }
+  .roadmap::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: 30px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      var(--accent) 0%,
+      var(--accent) 18%,
+      var(--line) 22%,
+      var(--line) 100%);
+  }
+  .road-node { padding: 0 18px 0 0; position: relative; }
+  .road-node:last-child { padding-right: 0; }
+  .road-dot {
+    position: relative;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--bg-0);
+    border: 2px solid var(--line);
+    margin: 23px 0 24px;
+  }
+  .road-node.current .road-dot {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--accent) 18%, transparent);
+  }
+  .road-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-1);
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .road-version .pill {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .road-node.current .road-version .pill {
+    background: color-mix(in oklab, var(--accent) 18%, transparent);
+    border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+    color: var(--accent);
+  }
+  .road-time {
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+  }
+  .road-list {
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .road-list li {
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.5;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .road-list li::before {
+    content: "—";
+    color: var(--text-4);
+    flex-shrink: 0;
+  }
+  @media (max-width: 880px) {
+    .roadmap { grid-template-columns: 1fr; gap: 8px; }
+    .roadmap::before { display: none; }
+    .road-node { padding: 16px 0 16px 24px; border-left: 1px solid var(--line); }
+    .road-dot { position: absolute; left: -7px; top: 22px; margin: 0; }
+  }
+
+  /* ─── install ─────────────────────────────────────────────────────── */
+  .install-wrap {
+    margin-top: clamp(40px, 5vw, 56px);
+    background: var(--bg-1);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .install-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+  }
+  .install-tab {
+    flex: 0 0 auto;
+    padding: 13px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-3);
+    border-right: 1px solid var(--line-soft);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .install-tab:hover { color: var(--text-1); }
+  .install-tab[aria-selected="true"] {
+    color: var(--text-1);
+    background: var(--bg-1);
+  }
+  .install-tab[aria-selected="true"]::after {
+    content: "";
+    position: absolute;
+    left: 16px; right: 16px;
+    bottom: -1px; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    border-radius: 2px 2px 0 0;
+  }
+  .install-tab .os-glyph {
+    width: 14px; height: 14px;
+    color: var(--text-3);
+  }
+  .install-panel {
+    padding: 26px clamp(20px, 3vw, 32px);
+    display: none;
+  }
+  .install-panel[data-active] { display: block; }
+  .install-step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--line-soft);
+  }
+  .install-step:last-child { border-bottom: 0; }
+  .step-no {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-4);
+    background: var(--bg-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 24px;
+  }
+  .step-content h4 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: var(--text-1);
+    font-weight: 500;
+  }
+  .step-content p {
+    margin: 0 0 10px;
+    color: var(--text-3);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .step-content p code {
+    background: var(--bg-2);
+    border: 1px solid var(--line-soft);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-1);
+  }
+  .codeblock {
+    position: relative;
+    background: var(--bg-0);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 12px 50px 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text-2);
+    overflow-x: auto;
+  }
+  .codeblock .prompt { color: var(--accent); user-select: none; }
+  .codeblock .dim { color: var(--text-4); }
+  .codeblock .cmd { color: var(--text-1); }
+  .codeblock .flag { color: oklch(0.75 0.13 80); }
+  .copy-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-3);
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    transition: all 150ms var(--ease);
+  }
+  .copy-btn:hover { color: var(--text-1); border-color: var(--text-4); }
+  .copy-btn.copied { color: var(--diff-add); border-color: color-mix(in oklab, var(--diff-add) 40%, var(--line)); }
+
+  /* ─── footer ──────────────────────────────────────────────────────── */
+  footer.footer {
+    border-top: 1px solid var(--line-soft);
+    padding: 48px 0 36px;
+    margin-top: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 760px) {
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .footer-brand { color: var(--text-2); font-size: 13.5px; line-height: 1.6; max-width: 38ch; margin-top: 14px; }
+  .footer-col h5 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+    margin: 0 0 12px;
+  }
+  .footer-col a {
+    display: block;
+    padding: 4px 0;
+    color: var(--text-2);
+    font-size: 13.5px;
+    transition: color 150ms var(--ease);
+  }
+  .footer-col a:hover { color: var(--text-1); }
+  .footer-bottom {
+    margin-top: 36px;
+    padding-top: 22px;
+    border-top: 1px solid var(--line-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-4);
+  }
+  .footer-bottom .pulse {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .footer-bottom .pulse .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--diff-add);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--diff-add) 20%, transparent);
+  }
+
+  /* ─── reveal ──────────────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 600ms var(--ease), transform 600ms var(--ease);
+    transition-delay: var(--rd, 0ms);
+  }
+  .reveal.is-in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+    .reveal { opacity: 1; transform: none; }
+  }
+
+  /* tiny utilities */
+  .row { display: flex; align-items: center; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div class="grid-bg" aria-hidden="true"></div>
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="#" class="wordmark" aria-label="Vibestation">
+      <svg viewBox="0 0 280 56" width="170" height="34" role="img" aria-label="Vibestation">
+        <g font-family="'JetBrains Mono', ui-monospace, monospace" font-weight="600" letter-spacing="-0.5">
+          <text x="8" y="38" font-size="30" fill="currentColor">vibe</text>
+          <text x="86" y="38" font-size="30" fill="currentColor" opacity="0.55">station</text>
+          <rect x="226" y="16" width="3" height="24" fill="currentColor">
+            <animate attributeName="opacity" values="1;1;0;0;1" dur="1.2s" repeatCount="indefinite"/>
+          </rect>
+        </g>
+      </svg>
+    </a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#features"><span class="nav-link-text">特性</span></a>
+      <a href="#install"><span class="nav-link-text">安装</span></a>
+      <a href="#roadmap"><span class="nav-link-text">路线图</span></a>
+      <a href="https://github.com/tajiaoyezi/vibestation" target="_blank" rel="noopener">GitHub</a>
+      <span class="nav-divider" aria-hidden="true"></span>
+      <button class="theme-toggle" id="theme-toggle" aria-label="切换主题" aria-pressed="false">
+        <svg class="sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+<!-- ─── HERO ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="reveal" style="--rd: 0ms">
+      <span class="eyebrow"><span class="dot"></span>v0.1.0 alpha · 现已开放下载</span>
+    </div>
+
+    <h1 class="hero-title reveal" style="--rd: 80ms">
+      多 Tab 终端，<br>
+      与 <span class="accent-mark">JetBrains 级</span> Git 工作台。
+    </h1>
+
+    <p class="hero-sub reveal" style="--rd: 180ms">
+      Vibestation 把 Claude Code / Codex 等 CLI agent 的多会话终端、Git log / status / diff 视图、跨项目管理整合到<strong style="color:var(--text-1);font-weight:500;">一个原生窗口</strong>里。<br>
+      为长时间和 CLI agent 协作的开发者，减少 <span class="kbd">⌘ Tab</span> 来回切换的认知成本。
+    </p>
+
+    <div class="hero-cta reveal" style="--rd: 280ms">
+      <a class="btn btn-primary" href="https://github.com/tajiaoyezi/vibestation/releases/latest" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载 · macOS / Ubuntu
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/tajiaoyezi/vibestation" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.78-.25.78-.56v-2.17c-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.7-1.28-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.78 1.2 1.78 1.2 1.03 1.78 2.72 1.27 3.39.97.1-.76.4-1.27.74-1.56-2.55-.29-5.24-1.28-5.24-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.9-.4.98.01 1.97.14 2.9.4 2.21-1.49 3.18-1.18 3.18-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.41-5.27 5.69.41.36.78 1.06.78 2.14v3.18c0 .31.2.67.79.55C20.22 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+        查看 GitHub
+        <svg class="arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+    </div>
+
+    <div class="badges reveal" style="--rd: 380ms" aria-label="项目状态">
+      <span class="badge alpha"><span class="glyph"></span><b>alpha</b></span>
+      <span class="badge"><span class="glyph"></span><b>Apache 2.0</b></span>
+      <span class="badge"><span class="glyph"></span><b>macOS · Linux</b></span>
+      <span class="badge"><span class="glyph"></span><b>Tauri 2</b></span>
+    </div>
+  </div>
+
+  <!-- ─── code window mock ─────────────────────────────────── -->
+  <div class="container window-wrap reveal" style="--rd: 480ms">
+    <div class="window" role="img" aria-label="Vibestation 应用界面示意">
+      <div class="titlebar">
+        <span class="traffic" aria-hidden="true"><span class="r"></span><span class="y"></span><span class="g"></span></span>
+        <span class="title"><b>vibestation</b> · <span style="color:var(--text-4)">~/work/vibestation</span></span>
+        <span class="meta">
+          <span>main</span>
+          <span>·</span>
+          <span>tauri 2</span>
+        </span>
+      </div>
+
+      <div class="window-body">
+        <!-- sidebar -->
+        <aside class="sidebar" aria-label="工作区列表">
+          <div class="sidebar-title">workspaces</div>
+          <div class="ws-list">
+            <div class="ws-item active">
+              <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="name">vibestation</span>
+              <span class="branch">main</span>
+            </div>
+            <div class="ws-item">
+              <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="name">next-app</span>
+              <span class="branch">dev</span>
+            </div>
+            <div class="ws-item">
+              <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="name">rust-cli</span>
+              <span class="branch">feat/x</span>
+            </div>
+            <div class="ws-item">
+              <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span class="name">docs-site</span>
+              <span class="branch">main</span>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-title">recent</div>
+            <div class="ws-list">
+              <div class="ws-item">
+                <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span class="name" style="font-family:'JetBrains Mono',monospace;font-size:12px;">a1f2c · refactor</span>
+              </div>
+              <div class="ws-item">
+                <svg class="folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span class="name" style="font-family:'JetBrains Mono',monospace;font-size:12px;">8be03 · ui polish</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- right pane -->
+        <div class="pane-right">
+          <!-- terminal -->
+          <div class="terminal">
+            <div class="tabbar" role="tablist">
+              <div class="tab active" role="tab" aria-selected="true">
+                <span class="tab-dot"></span>claude code<span class="x">×</span>
+              </div>
+              <div class="tab" role="tab">
+                <span class="tab-dot"></span>zsh — vibestation<span class="x">×</span>
+              </div>
+              <div class="tab" role="tab">
+                <span class="tab-dot"></span>cargo run<span class="x">×</span>
+              </div>
+              <div class="tab" role="tab">
+                <span class="tab-dot"></span>git<span class="x">×</span>
+              </div>
+              <div class="tab-add">+</div>
+            </div>
+            <div class="terminal-body" aria-hidden="true">
+              <div class="term-line"><span class="dim">~/work/vibestation</span> <span class="prompt">❯</span> <span class="cmd">claude</span> <span class="flag">--resume</span></div>
+              <div class="term-line"><span class="dim">  resuming session</span> <span class="str">sess_8be03f</span> <span class="dim">…</span> <span class="ok">ok</span></div>
+              <div class="term-line">&nbsp;</div>
+              <div class="term-line"><span class="dim">›</span> 把 <span class="cmd">src/git/diff.rs</span> 里的 unified diff parser 抽成独立 trait</div>
+              <div class="term-line"><span class="dim">›</span> 给三个实现（plain / patience / histogram）加测试</div>
+              <div class="term-line">&nbsp;</div>
+              <div class="term-line"><span class="dim">●</span> Read <span class="cmd">src/git/diff.rs</span> <span class="dim">(284 lines)</span></div>
+              <div class="term-line"><span class="dim">●</span> Read <span class="cmd">src/git/mod.rs</span> <span class="dim">(112 lines)</span></div>
+              <div class="term-line"><span class="dim">●</span> Edit <span class="cmd">src/git/diff.rs</span> <span class="ok">+62</span> <span class="err">−18</span></div>
+              <div class="term-line"><span class="dim">●</span> Bash <span class="str">cargo test --lib git::diff</span></div>
+              <div class="term-line"><span class="dim">  running 12 tests</span> <span class="dim">…</span> <span class="ok">12 passed</span></div>
+              <div class="term-line">&nbsp;</div>
+              <div class="term-line"><span class="prompt">❯</span> <span class="caret"></span></div>
+            </div>
+          </div>
+
+          <!-- git panel -->
+          <div class="git-panel">
+            <div class="panel-head">
+              <b>Git Status</b>
+              <span class="dim" style="color:var(--text-4)">4 changes</span>
+              <span class="branch-pill"><span class="arrow-up">↑2</span> · <span class="arrow-down">↓0</span> · main</span>
+            </div>
+            <div class="git-rows" role="list">
+              <div class="git-row" role="listitem">
+                <span class="stat m">M</span>
+                <span class="path"><span class="seg">src/git/</span>diff.rs</span>
+                <span class="delta"><span class="add">+62</span> <span class="del">−18</span></span>
+              </div>
+              <div class="git-row" role="listitem">
+                <span class="stat m">M</span>
+                <span class="path"><span class="seg">src/</span>main.rs</span>
+                <span class="delta"><span class="add">+4</span> <span class="del">−1</span></span>
+              </div>
+              <div class="git-row" role="listitem">
+                <span class="stat a">A</span>
+                <span class="path"><span class="seg">docs/</span>QUICKSTART.md</span>
+                <span class="delta"><span class="add">+148</span></span>
+              </div>
+              <div class="git-row" role="listitem">
+                <span class="stat u">?</span>
+                <span class="path">.env.local</span>
+                <span class="delta">untracked</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FEATURES ────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">01 · 特性</div>
+      <h2 class="section-title">日常开发里被忽视的<br>细节，重新做一遍。</h2>
+      <p class="section-sub">不发明新概念，专注把多 Tab 终端、Git 视图和工作区切换这几件事做到接近 IDE 的完成度。</p>
+    </div>
+
+    <div class="features reveal">
+      <article class="feature">
+        <svg class="feature-glyph" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="7" width="26" height="20" rx="2.5"/>
+          <path d="M3 12h26"/>
+          <path d="M8 9.5h.01M11 9.5h.01M14 9.5h.01"/>
+          <path d="M8 18l3 2-3 2"/>
+          <path d="M14 22h6"/>
+        </svg>
+        <h3>多 Tab 终端</h3>
+        <p>每个 Tab 独立 shell · 支持 Claude Code、Codex CLI、zsh、cargo 等长任务并行运行。</p>
+        <span class="feature-tag">pty · session · split pane</span>
+      </article>
+
+      <article class="feature">
+        <svg class="feature-glyph" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="9" cy="8" r="2.4"/>
+          <circle cx="9" cy="24" r="2.4"/>
+          <circle cx="23" cy="16" r="2.4"/>
+          <path d="M9 10.4v11.2"/>
+          <path d="M9 8h7a5 5 0 0 1 5 5v1"/>
+        </svg>
+        <h3>Git 工作台</h3>
+        <p>log / status / diff 三视图联动 · 文件级 stage、commit、行内 diff 直接在视图里完成。</p>
+        <span class="feature-tag">log · diff · staging</span>
+      </article>
+
+      <article class="feature">
+        <svg class="feature-glyph" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="5" width="11" height="10" rx="1.5"/>
+          <rect x="17" y="5" width="11" height="10" rx="1.5"/>
+          <rect x="4" y="17" width="11" height="10" rx="1.5"/>
+          <rect x="17" y="17" width="11" height="10" rx="1.5"/>
+        </svg>
+        <h3>跨项目管理</h3>
+        <p>多 workspace 一窗口直达 · 每个项目保留独立 tab 布局与终端会话，切换零等待。</p>
+        <span class="feature-tag">workspace · context</span>
+      </article>
+
+      <article class="feature">
+        <svg class="feature-glyph" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 16a11 11 0 1 1 3.2 7.8"/>
+          <polyline points="3 19 8 22 11 17"/>
+          <path d="M16 10v6l4 2"/>
+        </svg>
+        <h3>崩溃恢复</h3>
+        <p>会话状态周期持久化 · 意外关闭后重启自动恢复终端历史、布局与未保存的提交草稿。</p>
+        <span class="feature-tag">persistence · session</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ROADMAP ─────────────────────────────────────────────── -->
+<section class="section" id="roadmap">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">02 · 路线图</div>
+      <h2 class="section-title">从 v0.1 alpha<br>到 v1.0 的清单。</h2>
+      <p class="section-sub">公开、可追踪、每一项可被 issue 引用。功能按 Git 工作流的真实摩擦点排序，不堆砌。</p>
+    </div>
+
+    <div class="roadmap reveal">
+      <div class="road-node current">
+        <div class="road-dot"></div>
+        <div class="road-version">v0.1 <span class="pill">current</span></div>
+        <div class="road-time">2026 Q2 · alpha</div>
+        <ul class="road-list">
+          <li>多 Tab 终端</li>
+          <li>Git log / status / diff</li>
+          <li>跨项目 workspace</li>
+          <li>macOS · Ubuntu 构建</li>
+        </ul>
+      </div>
+      <div class="road-node">
+        <div class="road-dot"></div>
+        <div class="road-version">v0.2 <span class="pill">next</span></div>
+        <div class="road-time">2026 Q3</div>
+        <ul class="road-list">
+          <li>Push / Pull / Fetch</li>
+          <li>Rail graph 可视化</li>
+          <li>分支管理面板</li>
+          <li>Pane 任意嵌套</li>
+        </ul>
+      </div>
+      <div class="road-node">
+        <div class="road-dot"></div>
+        <div class="road-version">v0.3</div>
+        <div class="road-time">2026 Q4</div>
+        <ul class="road-list">
+          <li>Rebase / Merge</li>
+          <li>Cherry-pick</li>
+          <li>冲突解决视图</li>
+          <li>commit 重排</li>
+        </ul>
+      </div>
+      <div class="road-node">
+        <div class="road-dot"></div>
+        <div class="road-version">v1.0</div>
+        <div class="road-time">2027 · stable</div>
+        <ul class="road-list">
+          <li>高级 Git 工作流</li>
+          <li>插件扩展点</li>
+          <li>Windows 构建</li>
+          <li>代码签名分发</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── INSTALL ─────────────────────────────────────────────── -->
+<section class="section" id="install">
+  <div class="container">
+    <div class="reveal">
+      <div class="section-eyebrow">03 · 安装</div>
+      <h2 class="section-title">两条命令，<br>装到本机。</h2>
+      <p class="section-sub">当前为 unsigned alpha 构建。下载后需要解除 quarantine attribute，五分钟内可用。</p>
+    </div>
+
+    <div class="install-wrap reveal">
+      <div class="install-tabs" role="tablist" aria-label="操作系统">
+        <button class="install-tab" role="tab" id="tab-macos" aria-controls="panel-macos" aria-selected="true">
+          <svg class="os-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.62c-.02-2.34 1.92-3.46 2-3.52-1.1-1.6-2.79-1.82-3.4-1.84-1.44-.15-2.83.85-3.57.85-.74 0-1.88-.83-3.1-.81-1.6.02-3.07.93-3.89 2.36-1.66 2.87-.42 7.11 1.19 9.43.8 1.14 1.74 2.42 2.97 2.37 1.2-.05 1.65-.77 3.09-.77s1.85.77 3.1.74c1.28-.02 2.09-1.16 2.87-2.3.91-1.32 1.28-2.6 1.3-2.67-.03-.01-2.49-.95-2.51-3.81zM14.7 5.3c.65-.79 1.09-1.89.97-2.99-.94.04-2.08.63-2.75 1.42-.6.7-1.13 1.81-.99 2.89 1.05.08 2.12-.53 2.77-1.32z"/></svg>
+          macOS
+        </button>
+        <button class="install-tab" role="tab" id="tab-ubuntu" aria-controls="panel-ubuntu" aria-selected="false">
+          <svg class="os-glyph" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6.5" cy="9" r="1.7"/><circle cx="6.5" cy="15" r="1.7"/><circle cx="17" cy="12" r="1.7"/></svg>
+          Ubuntu
+        </button>
+        <div style="flex:1;border-right:0;"></div>
+        <a class="install-tab" href="https://github.com/tajiaoyezi/vibestation/releases/latest" target="_blank" rel="noopener" style="color:var(--text-3)">
+          所有 Release ↗
+        </a>
+      </div>
+
+      <div class="install-panel" id="panel-macos" role="tabpanel" data-active>
+        <div class="install-step">
+          <span class="step-no">1</span>
+          <div class="step-content">
+            <h4>下载 .dmg</h4>
+            <p>从 Release 页拉取最新的 macOS aarch64 (Apple Silicon) 构建，约 12 MB。</p>
+            <div class="codeblock">
+              <button class="copy-btn" data-copy="curl -L https://github.com/tajiaoyezi/vibestation/releases/latest/download/Vibestation_aarch64.dmg -o Vibestation.dmg">copy</button>
+              <div><span class="prompt">$</span> <span class="cmd">curl</span> <span class="flag">-L</span> <span class="dim">https://github.com/tajiaoyezi/vibestation/releases/</span>\</div>
+              <div>&nbsp;&nbsp;<span class="dim">  latest/download/Vibestation_aarch64.dmg</span> <span class="flag">-o</span> Vibestation.dmg</div>
+            </div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="step-no">2</span>
+          <div class="step-content">
+            <h4>挂载并拖到 Applications</h4>
+            <p>双击 dmg，把 <code>Vibestation.app</code> 拖到 Applications 目录。</p>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="step-no">3</span>
+          <div class="step-content">
+            <h4>解除 quarantine（unsigned 构建必要步骤）</h4>
+            <p>v0.1 alpha 暂未做苹果开发者签名，需要手动移除隔离属性，否则会被 Gatekeeper 拦截。</p>
+            <div class="codeblock">
+              <button class="copy-btn" data-copy="xattr -cr /Applications/Vibestation.app && open /Applications/Vibestation.app">copy</button>
+              <div><span class="prompt">$</span> <span class="cmd">xattr</span> <span class="flag">-cr</span> /Applications/Vibestation.app</div>
+              <div><span class="prompt">$</span> <span class="cmd">open</span> /Applications/Vibestation.app</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-panel" id="panel-ubuntu" role="tabpanel">
+        <div class="install-step">
+          <span class="step-no">1</span>
+          <div class="step-content">
+            <h4>下载 .deb 包</h4>
+            <p>x86_64 / aarch64 双架构提供。从 Release 页拿到对应版本。</p>
+            <div class="codeblock">
+              <button class="copy-btn" data-copy="curl -L https://github.com/tajiaoyezi/vibestation/releases/latest/download/vibestation_amd64.deb -o vibestation.deb">copy</button>
+              <div><span class="prompt">$</span> <span class="cmd">curl</span> <span class="flag">-L</span> <span class="dim">https://github.com/tajiaoyezi/vibestation/releases/</span>\</div>
+              <div>&nbsp;&nbsp;<span class="dim">  latest/download/vibestation_amd64.deb</span> <span class="flag">-o</span> vibestation.deb</div>
+            </div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="step-no">2</span>
+          <div class="step-content">
+            <h4>用 apt 安装</h4>
+            <p>apt 会自动拉取 webkit2gtk 等 Tauri 运行时依赖。</p>
+            <div class="codeblock">
+              <button class="copy-btn" data-copy="sudo apt install ./vibestation.deb">copy</button>
+              <div><span class="prompt">$</span> <span class="cmd">sudo apt install</span> ./vibestation.deb</div>
+            </div>
+          </div>
+        </div>
+        <div class="install-step">
+          <span class="step-no">3</span>
+          <div class="step-content">
+            <h4>启动</h4>
+            <p>从 application launcher 启动，或直接在终端调用。</p>
+            <div class="codeblock">
+              <button class="copy-btn" data-copy="vibestation">copy</button>
+              <div><span class="prompt">$</span> <span class="cmd">vibestation</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a class="wordmark" href="#" aria-label="Vibestation">
+          <svg viewBox="0 0 280 56" width="156" height="32" role="img" aria-label="Vibestation">
+            <g font-family="'JetBrains Mono', ui-monospace, monospace" font-weight="600" letter-spacing="-0.5">
+              <text x="8" y="38" font-size="30" fill="currentColor">vibe</text>
+              <text x="86" y="38" font-size="30" fill="currentColor" opacity="0.55">station</text>
+              <rect x="226" y="16" width="3" height="24" fill="currentColor">
+                <animate attributeName="opacity" values="1;1;0;0;1" dur="1.2s" repeatCount="indefinite"/>
+              </rect>
+            </g>
+          </svg>
+        </a>
+        <p class="footer-brand">为 CLI agent 用户打造的多 Tab 终端与 Git 工作台。<br>Tauri 2 · Rust · SolidJS · 开源 Apache 2.0。</p>
+      </div>
+      <div class="footer-col">
+        <h5>Product</h5>
+        <a href="#features">特性</a>
+        <a href="#install">安装</a>
+        <a href="#roadmap">路线图</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/releases" target="_blank" rel="noopener">Releases</a>
+      </div>
+      <div class="footer-col">
+        <h5>Docs</h5>
+        <a href="https://github.com/tajiaoyezi/vibestation/blob/main/docs/QUICKSTART.md" target="_blank" rel="noopener">QUICKSTART</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">Code of Conduct</a>
+      </div>
+      <div class="footer-col">
+        <h5>Community</h5>
+        <a href="https://github.com/tajiaoyezi/vibestation" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/discussions" target="_blank" rel="noopener">Discussions</a>
+        <a href="https://github.com/tajiaoyezi/vibestation/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Vibestation contributors · Licensed under Apache 2.0</span>
+      <span class="pulse"><span class="dot"></span> v0.1.0 · all systems operational</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    // ── theme ────────────────────────────────────────────────
+    var STORAGE_KEY = 'vibestation:theme';
+    var root = document.documentElement;
+    var btn = document.getElementById('theme-toggle');
+
+    function applyTheme(t) {
+      root.setAttribute('data-theme', t);
+      if (btn) btn.setAttribute('aria-pressed', t === 'light');
+      var meta = document.querySelector('meta[name="theme-color"]:not([media])');
+    }
+
+    var stored = null;
+    try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+    var initial = stored || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    applyTheme(initial);
+
+    if (btn) {
+      btn.addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
+      });
+    }
+
+    // ── install tabs ────────────────────────────────────────
+    var tabs = document.querySelectorAll('.install-tab[role="tab"]');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) {
+          t.setAttribute('aria-selected', 'false');
+          var p = document.getElementById(t.getAttribute('aria-controls'));
+          if (p) p.removeAttribute('data-active');
+        });
+        tab.setAttribute('aria-selected', 'true');
+        var panel = document.getElementById(tab.getAttribute('aria-controls'));
+        if (panel) panel.setAttribute('data-active', '');
+      });
+      tab.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        var list = Array.prototype.slice.call(tabs);
+        var i = list.indexOf(tab);
+        var next = list[(i + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
+        next.focus();
+        next.click();
+      });
+    });
+
+    // ── copy buttons ────────────────────────────────────────
+    document.querySelectorAll('.copy-btn').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var text = b.getAttribute('data-copy') || '';
+        var done = function () {
+          var orig = b.textContent;
+          b.textContent = 'copied';
+          b.classList.add('copied');
+          setTimeout(function () { b.textContent = orig; b.classList.remove('copied'); }, 1400);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(done);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = text; document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); } catch (e) {}
+          document.body.removeChild(ta);
+          done();
+        }
+      });
+    });
+
+    // ── reveal on intersection ──────────────────────────────
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced || !('IntersectionObserver' in window)) {
+      document.querySelectorAll('.reveal').forEach(function (n) { n.classList.add('is-in'); });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-in');
+            io.unobserve(e.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+      document.querySelectorAll('.reveal').forEach(function (n) { io.observe(n); });
+    }
+  })();
+</script>
+
+</body>
+</html>

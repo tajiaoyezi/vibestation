@@ -16,7 +16,7 @@ ADR-015 accepted 后启动 SDK 编码 · 2 critical/secondary bug discovered/fix
 - **PR #152**：ADR-015 Telemetry crash stack proposed → accepted by Arbiter（解锁 SDK 编码 · 主 agent · session 20 入口）
 - **PR #155**：Phase B SDK 主体（B5 任务 · 主 agent · 4 commits）· `crates/core/src/telemetry.rs` 268 行（ADR-015 §决策约束 · `default_integrations: false` + `send_default_pii: false` + `before_send` 删 contexts.trace · SHA-256 panic hash 防 PII）· `crates/core/tests/telemetry_pii_test.rs` 6 PII 测试 · IPC 3 commands（`telemetry_opt_in_set` / `telemetry_status_get` / `app_version_get`）+ permission · `install_panic_hook` + `try_init_sentry_from_env` · `TelemetryOptInModal` 阻塞 WelcomePage · §B.4 atomic 双门控（19 测试全过）
 - **PR #158**：Phase B follow-up · §C.4 收集端点 host UI（`SENTRY_ENDPOINT_HOST` OnceLock + Copy 按钮 + "Not configured" fallback）+ §G.4 H2 regression proof（临时改 `font_family` ts(rename) → tsc FAIL 6 处 · annotation rollback）+ §F runtime evidence CAPTURE-GUIDE.md（4 张 GUI 截图采集步骤）+ `dispatch-prompt-template.md §2.13`（PR #157 round 1 教训规则化）+ 顺手修 PR #156 留下的 2 clippy errors
-- **PR #159 🔴 隐藏 critical UX bug fix**：MVP-09 Phase C 错误流 UX 补强 · 发现 19 个 vs-commit-* / vs-toast-* / vs-dialog-* CSS class **完全无定义**（grep 主 styles.css 0 命中）· dialog 在 dev mode **裸 HTML 显示** · 严重 UI degradation · reviewer 当时只看 Rust 测试 + IPC contract · 漏掉 dev mode 启动验证 · 新建 `web/src/panels/CommitBar/styles.css` 363 行（Calm Studio token + scale-in/slide-up 动画）+ Hook stderr "Copy" 按钮 + exit code 显示
+- **PR #159 🔴 隐藏 critical UX bug fix**：MVP-09 Phase C 错误流 UX 补强 · 发现 19 个 vs-commit-_ / vs-toast-_ / vs-dialog-\* CSS class **完全无定义**（grep 主 styles.css 0 命中）· dialog 在 dev mode **裸 HTML 显示** · 严重 UI degradation · reviewer 当时只看 Rust 测试 + IPC contract · 漏掉 dev mode 启动验证 · 新建 `web/src/panels/CommitBar/styles.css` 363 行（Calm Studio token + scale-in/slide-up 动画）+ Hook stderr "Copy" 按钮 + exit code 显示
 - **PR #161 🔴 CRITICAL BUG FIX · v0.1 GA blocker**：Modal mount-time webview 虚假 click guard · 实测发现 `telemetry_opt_in` 启动 12.5 秒内被自动写入 · modal **用户完全看不见** · 5 轮 dev restart + DB watcher 半秒 poll 调试定位 webview 启动 race · WKWebView 把"启动 ready"事件误派发到 modal 内第一个 focusable button（Decline）· SolidJS event delegation 路由到 onClick · 触发虚假 `decide(false)` · 加 200ms `MOUNT_CLICK_GUARD_MS` · 真用户不可能 < 200ms 完成有意点击 · spec §B.1 "首次启动弹对话框 · 阻塞欢迎页" 完全失效 · 顺手交付 §F.01 settings-panel + §F.03 telemetry-opt-in modal 截图（247 KB / 324 KB）
 - **PR #162**：§F.02 partial · dark theme single state（349 KB · settings-realtime）· capture 期间发现 secondary dual-path bug · CLI 自动化 GUI 截图能力边界 inventory（`screencapture -l <CGWindowID>` + Swift `CGWindowListCopyWindowInfo` + `cliclick` + `osascript` 能做 vs 不能做）
 - **PR #163 🟡 SECONDARY BUG FIX**：theme dual-path · `ThemeSwitch.theme_set` IPC **不 emit `settings_changed`** · status bar click DB 写但 UI 不刷 · violate spec §F.02 "切 theme 后实时生效 · 无重启" · 修复 3 file：(a) `theme.tsx` 加 `listen("settings_changed")` 监听 settings store 推送 + 删 `theme_set` IPC 调用 + onMount 用 `settings_get` 替代 `theme_get`（避免双 IPC 漂移）· (b) `ThemeSwitch.tsx` `handleClick` 双门控调用 setTheme（同步 UI active）+ updateSettings（持久化 + emit · settings_changed event 回环让 ThemeProvider 自动同步）· (c) `AppearanceGroup.tsx` 删除 redundant `themeCtx.setTheme(theme)` 调用 · §F.02 split before/after evidence（02-settings-realtime-after-light.png 381 KB · light theme + Theme radio Light active · 完整 UI 切）
@@ -72,14 +72,16 @@ session 20 最大经验产出。
 
 ```ts
 let mountedAt = 0;
-onMount(() => { mountedAt = performance.now(); });
+onMount(() => {
+  mountedAt = performance.now();
+});
 const isEarlyClick = (): boolean => {
   if (mountedAt === 0) return true;
   return performance.now() - mountedAt < 200;
 };
 const decide = async (optIn: boolean): Promise<void> => {
   if (submitting()) return;
-  if (isEarlyClick()) return;  // 丢弃 mount 同帧 webview 虚假 click
+  if (isEarlyClick()) return; // 丢弃 mount 同帧 webview 虚假 click
   // ... existing logic
 };
 ```
@@ -92,10 +94,10 @@ const decide = async (optIn: boolean): Promise<void> => {
 
 **根因**：双 IPC 路径分离：
 
-| 来源 | IPC | emit settings_changed | UI 实时刷新 |
-|---|---|---|---|
-| Status bar `ThemeSwitch` | `theme_set` | ❌ | ❌ |
-| Prefs `AppearanceGroup` radio | `settings_update` | ✓ | ✓ |
+| 来源                          | IPC               | emit settings_changed | UI 实时刷新 |
+| ----------------------------- | ----------------- | --------------------- | ----------- |
+| Status bar `ThemeSwitch`      | `theme_set`       | ❌                    | ❌          |
+| Prefs `AppearanceGroup` radio | `settings_update` | ✓                     | ✓           |
 
 **修复**：
 

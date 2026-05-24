@@ -30,14 +30,14 @@ session 20 末"主 agent 主线代码侧 100% 收官"后 · session 21 启动 v0
 
 #### 2.2 · 6 dependabot bumps（auto direct push）
 
-| commit | 内容 |
-|---|---|
+| commit    | 内容                          |
+| --------- | ----------------------------- |
 | `7697b8b` | actions/upload-artifact 4 → 7 |
-| `a9336ff` | libc 0.2.185 → 0.2.186 |
-| `347140a` | plist 1.8.0 → 1.9.0 |
-| `492c283` | minor-updates group（4 个） |
-| `93a1317` | sha2 0.10.9 → 0.11.0 |
-| `739da3d` | vite 6.4.2 → 8.0.10（dev） |
+| `a9336ff` | libc 0.2.185 → 0.2.186        |
+| `347140a` | plist 1.8.0 → 1.9.0           |
+| `492c283` | minor-updates group（4 个）   |
+| `93a1317` | sha2 0.10.9 → 0.11.0          |
+| `739da3d` | vite 6.4.2 → 8.0.10（dev）    |
 
 dependabot 配 auto-merge · branch protection 暂缓 · CI 不跑 → 直推 main · 这是 dependabot 在该模式下的预期行为。
 
@@ -61,20 +61,20 @@ session 21 启动当日 · 主 agent 接手 PR #186（17 commits · `fix/v0.1.1-
 
 为解 PR #187 的 3 conflict（`Cargo.lock` + `web/src/App.tsx` + `web/src/styles.css`）· 主 agent 在临时 branch 上 `git merge --squash origin/fix/v0.1.1-modal-close-white-border`：
 
-| 冲突 | main 版本 | 主 worktree branch 版本 | 决议 |
-|---|---|---|---|
-| App.tsx L281-285 | `<GearIcon />` 组件（Icons.tsx · `2c1044a` 引入） | `⚙` Unicode | **取 main**（PR #186 已迁移 Unicode → SVG · 跨平台像素级对齐 · 是新方向） |
-| styles.css L617-621 | `font-size: 11px`（SVG 用） | `font-size: 12px`（Unicode 用） | **取 main**（11px 配 SVG 更紧凑） |
-| Cargo.lock | 含 dependabot bumps（plist 1.9 / sha2 0.11 / libc 0.2.186 / minor-updates） | 含 clipboard plugin 但少 bumps | **取 main + cargo build regenerate**（`tauri-plugin-clipboard-manager v2.3.2` 已自动加入 · 1m25s 编译过 · 0 warning） |
+| 冲突                | main 版本                                                                   | 主 worktree branch 版本         | 决议                                                                                                                  |
+| ------------------- | --------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| App.tsx L281-285    | `<GearIcon />` 组件（Icons.tsx · `2c1044a` 引入）                           | `⚙` Unicode                     | **取 main**（PR #186 已迁移 Unicode → SVG · 跨平台像素级对齐 · 是新方向）                                             |
+| styles.css L617-621 | `font-size: 11px`（SVG 用）                                                 | `font-size: 12px`（Unicode 用） | **取 main**（11px 配 SVG 更紧凑）                                                                                     |
+| Cargo.lock          | 含 dependabot bumps（plist 1.9 / sha2 0.11 / libc 0.2.186 / minor-updates） | 含 clipboard plugin 但少 bumps  | **取 main + cargo build regenerate**（`tauri-plugin-clipboard-manager v2.3.2` 已自动加入 · 1m25s 编译过 · 0 warning） |
 
 **Resolve 后** `git diff origin/main` = **0 行**（exit code 0 · "YES, identical to origin/main"）。
 
 #### 4.3 · 根因：26 commits 的 net effect 已通过两条路径进入 main
 
-| 路径 | 影响范围 |
-|---|---|
+| 路径                        | 影响范围                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
 | `2c1044a` admin direct push | clipboard plugin · Settings 入口 · cmd+C/V · shell dropdown · Icons.tsx GearIcon · 23 文件 |
-| PR #186 squash | Linux 透明 / Unicode → SVG / shell 自动检测 / 字体栈 / sha2 0.11 migration · 18 文件 |
+| PR #186 squash              | Linux 透明 / Unicode → SVG / shell 自动检测 / 字体栈 / sha2 0.11 migration · 18 文件       |
 
 主 worktree branch 的 26 commits 是用户**本地迭代历史**——同一批 fix 在本地反复 try-and-error 写出 26 个 micro commits · 最终通过两条不同路径（admin push + PR）condense 进入 main · 但本地 branch 仍保留完整 26-commit 历史。
 
@@ -94,12 +94,12 @@ session 21 启动当日 · 主 agent 接手 PR #186（17 commits · `fix/v0.1.1-
 
 session 19/20 全 PR trailer 100% 合规 · session 21 因 admin override 模式（CI 暂停）出现 7 direct pushes 无 PR body trailer。
 
-| Update 形式 | 数量 | trailer 合规 |
-|---|---|---|
-| Merged PR | 4 | 100%（#173/#174/#175/#186 全有 v2-D.1 trailer） |
-| Closed PR | 1 | 100%（#187 trailer 齐 · close 时由主 agent 写入 obsolete annotation） |
-| Admin direct push（v0.1.1 fix） | 1 | ⚠️ 无 trailer · commit body 写 "GitHub Actions billing 暂停 CI 无法跑"（implicit approval）|
-| Dependabot direct push | 6 | ⚠️ 无 trailer · auto-merge 标准行为 |
+| Update 形式                     | 数量 | trailer 合规                                                                                |
+| ------------------------------- | ---- | ------------------------------------------------------------------------------------------- |
+| Merged PR                       | 4    | 100%（#173/#174/#175/#186 全有 v2-D.1 trailer）                                             |
+| Closed PR                       | 1    | 100%（#187 trailer 齐 · close 时由主 agent 写入 obsolete annotation）                       |
+| Admin direct push（v0.1.1 fix） | 1    | ⚠️ 无 trailer · commit body 写 "GitHub Actions billing 暂停 CI 无法跑"（implicit approval） |
+| Dependabot direct push          | 6    | ⚠️ 无 trailer · auto-merge 标准行为                                                         |
 
 session 22 audit 项：是否补 7 direct push 的 retroactive PR trailer / 或显式声明 admin override 模式下 trailer 豁免（更新 v2-D.1 ADR）。
 

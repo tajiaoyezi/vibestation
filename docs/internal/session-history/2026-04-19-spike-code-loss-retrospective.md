@@ -10,17 +10,17 @@
 
 ## 1. 事件还原（时间线）
 
-| 时间 | 动作 | 产出 | 风险点 |
-|------|------|------|--------|
-| Session 6 | 制定多 agent 协作模式 · "原话 prompt 转发给 opencode" | 协作 pattern | 未定义交付物持久化条款 |
-| Session 7 早 | 下发 SPIKE-03 prompt 给 opencode | opencode 交付 `/tmp/spike-03-work/`（含 1.4 GB target） | 代码只在 `/tmp` |
-| Session 7 早 | Claude 主 agent review · 对照 spec §B.6 pass | 归档 `docs/spikes/SPIKE-03-report.md` · ADR-007 accepted | **✗ 源码未归档** |
-| Session 7 中 | 下发 SPIKE-04 prompt · opencode 交付 v1 | `/tmp/spike-04-work/`（含 472 MB target） | 代码只在 `/tmp` |
-| Session 7 中 | Review BLOCK v1（4 CRITICAL）· opencode 补做 v2 | v2 交付 `/tmp/spike-04-review-v2/` · accept | **✗ v2 源码未归档 · v1 未归档** |
-| Session 7 晚 | 归档 SPIKE-04-report · ADR-005 flip redb→rusqlite | PR #24 开出 | Report 引用 safety.rs 675 行 · **但代码不在 repo** |
-| Session 7 晚 | 写 SPIKE-04.5 spec · PR #25 开出 | — | — |
-| Session 8 启动 | 用户合 3 个 PR · 用户问 "代码呢？" | **风险暴露** | 若无此问 · 代码丢失不可逆 |
-| Session 8 紧急 | 主 agent 从 `/tmp` 抢救 + 归档 | PR #26（`docs/spikes/code/` + `docs/spikes/raw/`）· CI 全绿 · merged | 风险清除 |
+| 时间           | 动作                                                  | 产出                                                                 | 风险点                                             |
+| -------------- | ----------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------- |
+| Session 6      | 制定多 agent 协作模式 · "原话 prompt 转发给 opencode" | 协作 pattern                                                         | 未定义交付物持久化条款                             |
+| Session 7 早   | 下发 SPIKE-03 prompt 给 opencode                      | opencode 交付 `/tmp/spike-03-work/`（含 1.4 GB target）              | 代码只在 `/tmp`                                    |
+| Session 7 早   | Claude 主 agent review · 对照 spec §B.6 pass          | 归档 `docs/spikes/SPIKE-03-report.md` · ADR-007 accepted             | **✗ 源码未归档**                                   |
+| Session 7 中   | 下发 SPIKE-04 prompt · opencode 交付 v1               | `/tmp/spike-04-work/`（含 472 MB target）                            | 代码只在 `/tmp`                                    |
+| Session 7 中   | Review BLOCK v1（4 CRITICAL）· opencode 补做 v2       | v2 交付 `/tmp/spike-04-review-v2/` · accept                          | **✗ v2 源码未归档 · v1 未归档**                    |
+| Session 7 晚   | 归档 SPIKE-04-report · ADR-005 flip redb→rusqlite     | PR #24 开出                                                          | Report 引用 safety.rs 675 行 · **但代码不在 repo** |
+| Session 7 晚   | 写 SPIKE-04.5 spec · PR #25 开出                      | —                                                                    | —                                                  |
+| Session 8 启动 | 用户合 3 个 PR · 用户问 "代码呢？"                    | **风险暴露**                                                         | 若无此问 · 代码丢失不可逆                          |
+| Session 8 紧急 | 主 agent 从 `/tmp` 抢救 + 归档                        | PR #26（`docs/spikes/code/` + `docs/spikes/raw/`）· CI 全绿 · merged | 风险清除                                           |
 
 ---
 
@@ -32,24 +32,26 @@
 
 具体漏项（每个 Spike 应该产出 4 样 · 实际只产出 1 样）：
 
-| 应归档 | 位置 | 实际状态 |
-|---|---|---|
-| Report | `docs/spikes/SPIKE-XX-report.md` | ✅ 入库 |
-| 源码 | `docs/spikes/code/SPIKE-XX/` | ❌ 遗漏 |
-| Raw 数据 | `docs/spikes/raw/SPIKE-XX/` | ❌ 遗漏 |
-| 冷备 | `spike-tmp/archive/SPIKE-XX/` | ❌ 遗漏 |
+| 应归档   | 位置                             | 实际状态 |
+| -------- | -------------------------------- | -------- |
+| Report   | `docs/spikes/SPIKE-XX-report.md` | ✅ 入库  |
+| 源码     | `docs/spikes/code/SPIKE-XX/`     | ❌ 遗漏  |
+| Raw 数据 | `docs/spikes/raw/SPIKE-XX/`      | ❌ 遗漏  |
+| 冷备     | `spike-tmp/archive/SPIKE-XX/`    | ❌ 遗漏  |
 
 ### Layer 2 · 系统性原因（项目协议缺陷）
 
 **(2a) Spike spec 模板 `docs/tasks/_template.md` 的 Deliverables 段 single-agent 视角**
 
 原模板第 74-79 行只有 4 条：
+
 - benchmark 报告
 - 录屏 / 截图
 - ADR
 - 代码 PoC（指向 `spike-tmp/<id>/` gitignored · 本地）
 
 **缺陷**：
+
 - 指向 gitignored 的 `spike-tmp/<id>/` · 默认假设"主 agent 自己跑 · 代码自然在本地"
 - 没考虑"外部 agent（opencode）交付 → 代码在 `/tmp` → 需迁移到 repo"的多 agent 场景
 - 没要求"代码持久化到 repo" · 没定义"raw 数据归档位置"
@@ -57,11 +59,13 @@
 **(2b) PR review Test Plan 只审"决策对不对" · 不审"证据完不完整"**
 
 PR #23 / #24 的 Test Plan 勾的都是：
+
 - Spec 合规
 - ADR accepted
 - CLAUDE.md 决策表翻转正确
 
 没有：
+
 - ~~benchmark 代码已归档~~
 - ~~raw 数据可溯源~~
 - ~~clone 后能复现~~
@@ -91,11 +95,13 @@ Spike review 原子动作拆解（应有）：
 **(3a) "done" 的定义模糊**
 
 主 agent 潜意识里：
+
 - "Report merged" = Spike done
 - "ADR accepted" = 决策锁定
 - "CLAUDE.md 决策表 B→A" = 闭环
 
 **真正的 done 应该是**：
+
 - 任何未参与过的 agent / 人类 clone repo 后 · 不依赖本机任何隐藏状态 · 能独立重放得到同样结论
 - 缺"可独立复现"维度 = done 定义不完整 = 本事故的元级根因
 
@@ -112,11 +118,13 @@ Spike review 原子动作拆解（应有）：
 **(4a) 协作协议只定义"prompt 下发 + 交付物移交" · 没定义"交付物持久化所有权"**
 
 Session 6 约定的多 agent 协作协议只说：
+
 - 主 agent 给原话 prompt
 - 外部 agent 交付
 - 主 agent review
 
 **未说**：
+
 - 谁负责把代码从外部 agent 的工作目录（`/tmp`）搬到 repo？
 - 什么时候搬？
 - 搬到哪？
@@ -126,6 +134,7 @@ Session 6 约定的多 agent 协作协议只说：
 **(4b) "代码 vs 文档" 被割裂对待**
 
 主 agent 的潜意识分类：
+
 - `report.md` = 文档 · **产出** · 必须入库
 - `main.rs` / `safety.rs` = 代码 · **手段** · 用完即弃
 
@@ -152,16 +161,19 @@ Session 6 约定的多 agent 协作协议只说：
 假设 Session 8 主 agent 没被用户提醒 · 继续执行 SPIKE-04.5 流程：
 
 **短期（1-3 天）**：
+
 - SPIKE-04.5 下发 → opencode 交付 → 同样模式再漏一次
 - 第 4 个 Spike 代码丢失隐患（SPIKE-04.5 也是 opencode 跑）
 
 **中期（重启 Mac / 过 3 天）**：
+
 - `/tmp/spike-03-work/` · `/tmp/spike-04-*` 被清
 - `docs/spikes/code/` 目录不存在
 - `spike-tmp/archive/` 不存在
 - **决策依据永久丢失**
 
 **长期（MVP 启动时）**：
+
 - MVP-02 / MVP-06 用 rusqlite · 遇到 edge case 想回头看 SPIKE-04 safety 设计
 - 只剩 `docs/spikes/SPIKE-04-report.md`（文字结论）
 - 具体的 op-log 实现 / reconcile forward 逻辑 / corruption 检测代码 **全部无法溯源**
@@ -179,6 +191,7 @@ Session 6 约定的多 agent 协作协议只说：
 **新增 `~/.claude/rules/13-cross-agent-delivery.md`**（已落地 ✅）
 
 核心条款：
+
 - `/tmp` 不是持久存储
 - Review accept 和归档持久化**必须绑定**（原子动作）
 - "done" 定义必须含"可独立复现"维度
@@ -192,6 +205,7 @@ Session 6 约定的多 agent 协作协议只说：
 **新增 `vibestation/.claude/rules/spike-delivery-checklist.md`**（已落地 ✅）
 
 核心条款：
+
 - 4 样齐全强制（report + code + raw + 冷备）
 - Review accept 的原子性要求（7 步不可拆）
 - PR Test Plan 必填"证据完整性" 6 项
@@ -204,6 +218,7 @@ Session 6 约定的多 agent 协作协议只说：
 ### 5.3 流程层（操作细节）
 
 **已在 PR #26 建立事实标准**：
+
 - `docs/spikes/code/SPIKE-XX/` 源码归档 · 含 `README.md` · `Cargo.lock` 进 git
 - `docs/spikes/raw/SPIKE-XX/` raw 数据归档 · 含 `README.md`
 - `spike-tmp/archive/SPIKE-XX/` 冷备 · gitignored

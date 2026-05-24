@@ -1,9 +1,17 @@
 # 进度快照 · PROGRESS
 
+> ⚠️ **文档定位说明（外部读者请先看）**：本文件是**内部协作 ledger** · 主要给主 agent 和项目所有者消费 · 含大量 session 内部术语（PR# / 决策表 / dispatch 事件）。如果你是外部读者：
+>
+> - 想了解项目当前**功能状态** → 看 [`README.md`](../README.md) 的「特性」表
+> - 想了解**路线图细节** → 看 [`docs/implementation-plan.md`](./implementation-plan.md)
+> - 想了解**仓库结构** → 看 [`docs/PROJECT-OVERVIEW.md`](./PROJECT-OVERVIEW.md)
+>
+> 本文件保留在 `docs/` 而非 `docs/internal/` 的原因：被锁定决策表 [CLAUDE.md](../CLAUDE.md) 直接引用，且是 agent 协作的当前态 source of truth，迁移会破坏 24 个 cross-ref。
+
 > **定位**：当前状态面板（agent 和人类都先读本文件获取"我是谁 / 做到哪 / 下一步 / 卡点"）。
 > **更新约定**：session end / 阶段切换 / 决策变化时手动更新。不要每个 commit 都更新（噪音大）。
-> Session 历史归档到 `docs/session-history/`（Phase 3 已建立）——**不要**归档到 CHANGELOG（CHANGELOG 是 release-please 自动维护的发布日志）。
-> **PR 列表滚动窗口规则**（M-2 · 2026-04-21 session 13 audit）：本文件"已合入的 PR"段**只保留最近 2 个 session 的摘要** · 更早的以 `git log --all` + `docs/session-history/` 归档文件为准 · 每 session 末整理。
+> Session 历史归档到 `docs/internal/session-history/`（Phase 3 已建立）——**不要**归档到 CHANGELOG（CHANGELOG 是 release-please 自动维护的发布日志）。
+> **PR 列表滚动窗口规则**（M-2 · 2026-04-21 session 13 audit）：本文件"已合入的 PR"段**只保留最近 2 个 session 的摘要** · 更早的以 `git log --all` + `docs/internal/session-history/` 归档文件为准 · 每 session 末整理。
 
 ---
 
@@ -28,7 +36,7 @@
 **阶段**：**session 33 · 2026-05-17 · MVP-20 Phase D 全 merged (#394) · v1.0 vision rollback 实施侧收口（仅余 Phase E capture）**：Phase A 全链（#385-#388）+ Phase C（#391/#392/#390）+ **Phase D #394**（status union 保真〔`RollbackStatusKind` typed enum · spec §K〕+ 全局 crash recovery〔`detect_crash_recovery` + 启动 emit + `lib/rollback-recovery` 状态机 + `RollbackRecoveryBanner` + App.tsx wire · 镜像 MVP-16 模式 · session 维度平行〕+ abort 边界覆盖 · TDD 全程 · 主 agent 自实施+self-review · §2.14 runtime smoke）· **下一步 = Phase E**（runtime 证据 + Criterion 性能量化 · defer Arbiter playbook 窗口 · ~~spec 保持 `in-progress`：多 phase · 最终 capture phase 未完~~ **更新 2026-05-23 · ADR-023 PR #409 后 spec frontmatter 已 flip done · Phase E capture playbook 非 ship 阻塞**）
 **日期**：2026-05-17（session 33 · MVP-20 Phase A+C+D 全链 · merged #385-#394 · 均按 v2-D.2 + §2.14/2.15 流程 · 0 author 污染 · Phase D 主 agent 自实施 TDD）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
-**已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/session-history/`）**：
+**已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/internal/session-history/`）**：
 
 ### Session 33（2026-05-17 · MVP-18/19/20 多 phase 推进 + 治理 ADR + MVP-20 Phase A+C 全链 · merged #365-#392 · 当前 session）
 
@@ -63,15 +71,15 @@
 - session 末 5 项收尾全 done（A 归档 #305 · B 漂移 housekeeping #306 · C MVP-17 E.4 #307 · D drift 报告 spike-tmp · E dispatch TOC #304）
 - 详情见 [`session-30.md`](./session-history/session-30.md)
 
-> **更早 session（22–29 及之前）**：见 `docs/session-history/session-NN.md` 归档（M-2 滚动窗口 · session 33 整理）。
+> **更早 session（22–29 及之前）**：见 `docs/internal/session-history/session-NN.md` 归档（M-2 滚动窗口 · session 33 整理）。
 
-> **Session 21**（PR #173-#187 · v0.1.0 GA 发布配套 + GitHub Actions billing admin override 触发首次大规模 7 direct push + v0.1.1 双批 fix + PR #187 主 worktree dangling history close）已归档至 [`docs/session-history/session-21.md`](./session-history/session-21.md)。
+> **Session 21**（PR #173-#187 · v0.1.0 GA 发布配套 + GitHub Actions billing admin override 触发首次大规模 7 direct push + v0.1.1 双批 fix + PR #187 主 worktree dangling history close）已归档至 [`docs/internal/session-history/session-21.md`](./session-history/session-21.md)。
 
-> **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/session-history/session-20.md`](./session-history/session-20.md)。
+> **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/internal/session-history/session-20.md`](./session-history/session-20.md)。
 
-> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/session-history/session-19.md`](./session-history/session-19.md)。
+> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/internal/session-history/session-19.md`](./session-history/session-19.md)。
 
-> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 22 + 23 · session 18/19/20/21 已归档至 `docs/session-history/`）。
+> **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/internal/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 22 + 23 · session 18/19/20/21 已归档至 `docs/internal/session-history/`）。
 
 ## ✅ 已完成（累计 · Pre-code Phase 1-4）
 
@@ -98,7 +106,7 @@
 - [x] **CONTRIBUTING.md**（贡献指南 · 含用户拍板 gate）
 - [x] **CHANGELOG.md**（Keep a Changelog · Phase 1-3 条目）
 - [x] **CODE_OF_CONDUCT.md**（Contributor Covenant 2.1 中文）
-- [x] `docs/spikes/` + `docs/spike-artifacts/` + `docs/session-history/` 3 目录建立 · 各有 README + 安全约束
+- [x] `docs/spikes/` + `docs/spike-artifacts/` + `docs/internal/session-history/` 3 目录建立 · 各有 README + 安全约束
 - [x] Codex 5 findings（3 HIGH + 2 MEDIUM）全闭合
 
 ### Phase 4 · GitHub 基础设施（PR #11 · session 5）
@@ -284,7 +292,7 @@
 | 9 个 Spike report（含 SPIKE-08 harness 选型）                                  | `docs/spikes/SPIKE-*-report.md`    |
 | MVP-02 / MVP-03 runtime 证据                                                   | `docs/runtime-evidence/mvp-0[23]/` |
 | Agent 入口 · 决策表 · 自审四问 · 翻转 gate                                     | `CLAUDE.md`                        |
-| 人类启动手册                                                                   | `docs/SESSION-STARTUP.md`          |
+| 人类启动手册                                                                   | `docs/internal/SESSION-STARTUP.md` |
 | 贡献指南 · 含用户拍板 gate                                                     | `CONTRIBUTING.md`                  |
 | 分支保护 admin checklist                                                       | `docs/BRANCH-PROTECTION.md`        |
 | Frontmatter validator + self-test                                              | `scripts/validate-task-spec.mjs`   |
@@ -293,7 +301,7 @@
 
 ## Session 日志
 
-> **M-2 滚动规则**：本节只列归档索引 · 详细 session 摘要见 `docs/session-history/<session-N>.md` · 全部 PR 历史见 `git log --all --oneline`。
+> **M-2 滚动规则**：本节只列归档索引 · 详细 session 摘要见 `docs/internal/session-history/<session-N>.md` · 全部 PR 历史见 `git log --all --oneline`。
 > 当前活跃窗口（近 2 session · session 19 + 20）已在上方"已合入的 PR"段展开。
 
 ### 归档索引

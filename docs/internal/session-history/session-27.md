@@ -53,11 +53,11 @@ session 26 末 v0.3 sprint phase B+C 部分完成（MVP-12 B / MVP-14 B / MVP-15
 
 ### 2 · 协作模式 · session 26 4-track → session 27 3-track
 
-| Agent | Track | 文件域 | 结果 |
-|---|---|---|---|
-| 主 agent | MVP-14 Phase C | `web/src/panels/Terminal/*` + `web/src/lib/pane-keyboard.ts` | ✅ APPROVE merge |
-| Codex CLI | MVP-12 Phase C | `web/src/panels/GitLog/RailGraph/*` + `web/src/styles.css` (1 行) | ✅ cross-agent APPROVE merge |
-| 主 agent | MVP-16 Phase D part A | `crates/core/benches/rebase_bench.rs` + `docs/runtime-evidence/mvp-16/criterion/` | ✅ APPROVE merge |
+| Agent     | Track                 | 文件域                                                                            | 结果                         |
+| --------- | --------------------- | --------------------------------------------------------------------------------- | ---------------------------- |
+| 主 agent  | MVP-14 Phase C        | `web/src/panels/Terminal/*` + `web/src/lib/pane-keyboard.ts`                      | ✅ APPROVE merge             |
+| Codex CLI | MVP-12 Phase C        | `web/src/panels/GitLog/RailGraph/*` + `web/src/styles.css` (1 行)                 | ✅ cross-agent APPROVE merge |
+| 主 agent  | MVP-16 Phase D part A | `crates/core/benches/rebase_bench.rs` + `docs/runtime-evidence/mvp-16/criterion/` | ✅ APPROVE merge             |
 
 **关键观察**：3 PR 文件 0 重叠 · 0 merge conflict · 任意顺序 merge OK · 3-track 模式比 session 26 4-track 治理负担轻（少 1 个 OpenCode trust gap 监控）· cross-agent review 由主 agent 一人完成 · 14 硬约束逐条 verification 平均 ~5 min。
 
@@ -116,6 +116,7 @@ session 26 末 v0.3 sprint phase B+C 部分完成（MVP-12 B / MVP-14 B / MVP-15
 ## Notes for next session（已成历史）
 
 session 28 实际接续：
+
 - ✅ MVP-15 Phase D §F vitest bench done（PR #275 · Codex CLI · 21 文件 · 631514 LOC fixture）
 - ✅ MVP-15 Phase D §G edge cases vitest done（PR #277 · OpenCode N=2 后回归 PASS · 17/17）
 - ✅ 主 agent track 4 capture playbook（PR #271）+ 5 idle 查漏补缺（PR #272/#274/#276/#278/#279）

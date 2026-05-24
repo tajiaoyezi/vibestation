@@ -108,16 +108,16 @@ PR #147-#150 进一步推动到 **3 路并发**（Track A 主 agent · Track B /
 
 主 agent 在外部 agent PR 后立即接 round 2/3 修编译错 / 格式化 / hallucinate / UX bug / 空心字段 / 视觉语义错 / B4 真实捕获 · session 19 实证 8 PR：
 
-| Round 1 PR | Round 2/3 fix-up | 修什么 |
-|---|---|---|
-| PR #117（OpenCode） | 主 agent commit 6d04fb8 | hallucinate 4 数字降级 partial done + R-PHASE-E |
-| PR #118（Kimi 1） | round 2 commit | detachedHead 死循环 + Missing revert + console.log + email 校验 |
-| PR #124（Kimi 1） | 主 agent 修编译错 | ContextMenu trait import + popup_at owned + set_menu Result |
-| PR #126（主 agent） | — | 修 PR #124 review 5 处 UX bug |
-| PR #127（OpenCode round 1） | 主 agent commit 05199d1 | bg_blur CSS var 无人消费 + cursor xterm 不读 CSS + spec ✅ → 🟡 |
-| PR #129（Codex CLI） | 主 agent rebase | 解 styles.css conflict + 修 PR # 引用错 |
-| PR #130（主 agent） | — | theme race condition + #root whole-tree opacity |
-| PR #139（kimi-ubuntu24 round 3） | — | B4 真实 capture（scrot → import -window mutter-frame） |
+| Round 1 PR                       | Round 2/3 fix-up        | 修什么                                                          |
+| -------------------------------- | ----------------------- | --------------------------------------------------------------- |
+| PR #117（OpenCode）              | 主 agent commit 6d04fb8 | hallucinate 4 数字降级 partial done + R-PHASE-E                 |
+| PR #118（Kimi 1）                | round 2 commit          | detachedHead 死循环 + Missing revert + console.log + email 校验 |
+| PR #124（Kimi 1）                | 主 agent 修编译错       | ContextMenu trait import + popup_at owned + set_menu Result     |
+| PR #126（主 agent）              | —                       | 修 PR #124 review 5 处 UX bug                                   |
+| PR #127（OpenCode round 1）      | 主 agent commit 05199d1 | bg_blur CSS var 无人消费 + cursor xterm 不读 CSS + spec ✅ → 🟡 |
+| PR #129（Codex CLI）             | 主 agent rebase         | 解 styles.css conflict + 修 PR # 引用错                         |
+| PR #130（主 agent）              | —                       | theme race condition + #root whole-tree opacity                 |
+| PR #139（kimi-ubuntu24 round 3） | —                       | B4 真实 capture（scrot → import -window mutter-frame）          |
 
 ### 主 agent macOS GUI 自动化突破
 

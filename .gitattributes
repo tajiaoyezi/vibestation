@@ -1,0 +1,56 @@
+# Vibestation · Git Attributes
+#
+# 目的：
+# 1. 锁定文本/二进制识别（防 line-ending / diff 噪音）
+# 2. 大文件未来走 Git LFS（防仓库膨胀 · 不重写已有历史 · 只对未来文件生效）
+#
+# 注意：本文件只对 `git add` 之后新进入仓库的文件生效。已经在 history 里的大文件
+# （docs/spikes/* 247MB · web/tests/fixtures/* 24MB）不会自动迁移 LFS。
+# 历史重写需独立 ops 决策 · 见 follow-up（破坏所有 clone · 须 force push）。
+
+# ---- 文本文件 ----
+*.md          text eol=lf
+*.rs          text eol=lf
+*.ts          text eol=lf
+*.tsx         text eol=lf
+*.js          text eol=lf
+*.jsx         text eol=lf
+*.json        text eol=lf
+*.toml        text eol=lf
+*.yaml        text eol=lf
+*.yml         text eol=lf
+*.css         text eol=lf
+*.html        text eol=lf
+*.sh          text eol=lf
+*.svg         text eol=lf
+Cargo.lock    text eol=lf
+pnpm-lock.yaml text eol=lf
+
+# ---- 二进制文件（标记 · 不 LFS） ----
+*.png         binary
+*.jpg         binary
+*.jpeg        binary
+*.gif         binary
+*.ico         binary
+*.icns        binary
+*.webp        binary
+*.woff        binary
+*.woff2       binary
+*.ttf         binary
+*.otf         binary
+
+# ---- 走 Git LFS 的大文件类型（未来新增自动 LFS） ----
+# 录屏 / 视频
+*.mp4         filter=lfs diff=lfs merge=lfs -text
+*.mov         filter=lfs diff=lfs merge=lfs -text
+*.webm        filter=lfs diff=lfs merge=lfs -text
+*.cast        filter=lfs diff=lfs merge=lfs -text
+
+# Spike artifact / fixture（> 1MB 倾向走 LFS）
+docs/spikes/raw/**/*.mp4   filter=lfs diff=lfs merge=lfs -text
+docs/spikes/raw/**/*.mov   filter=lfs diff=lfs merge=lfs -text
+docs/spikes/raw/**/*.cast  filter=lfs diff=lfs merge=lfs -text
+
+# ts-rs / criterion 生成的大 JSONL fixture（未来）
+web/tests/fixtures/**/*.json   filter=lfs diff=lfs merge=lfs -text
+web/tests/fixtures/**/*.jsonl  filter=lfs diff=lfs merge=lfs -text

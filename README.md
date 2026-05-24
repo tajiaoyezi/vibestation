@@ -1,95 +1,90 @@
 [English](README.en.md) | 中文
 
-**alpha** · **Apache 2.0** · **macOS / Linux**
+<div align="center">
+  <img src="design/logos/wordmark-a.svg" alt="Vibestation" width="280" />
+</div>
 
-# Vibestation
+<p align="center">
+  <strong>为 CLI agent 用户打造的多 Tab 终端 + JetBrains 级 Git 工作台 · Tauri 2 原生</strong>
+</p>
 
-为 CLI agent 用户打造的多 Tab 终端 + JetBrains 级 Git 工作台 · Tauri 原生
+<p align="center">
+  <img alt="status" src="https://img.shields.io/badge/status-alpha-orange" />
+  <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey" />
+  <img alt="tauri" src="https://img.shields.io/badge/built%20with-Tauri%202-24C8DB" />
+</p>
 
-## 代表性截图
+---
 
-![Vibestation 默认深色布局，主侧栏展开](docs/assets/onboarding/hero/01-default-layout-dark.jpg)
+Vibestation 是一款基于 **Tauri 2 + Rust** 构建的桌面应用，专为使用 Claude CLI / Codex CLI 等 agent 工具的开发者打造。它把多会话终端、Git log / status / diff 视图、跨项目管理整合到一个原生窗口里，减少在 IDE 和终端之间来回切换的认知成本。
 
-![Vibestation 全面板展开深色视图](docs/assets/onboarding/hero/02-all-panels-open-dark.jpg)
+当前版本：**v0.1 alpha**（macOS / Ubuntu 双平台），开发活跃。
 
-## 为什么是 Vibestation
+## 特性
 
-- **多 Tab 终端** — 一个窗口内创建多个终端 Tab，每个 Tab 一个独立 CLI 会话，适配 Claude CLI / Codex CLI 等工具
-- **工作台级 Git** — 内置 Git log / status / diff 视图，无需离开终端切换 IDE 查看 commit
-- **跨项目管理** — 单窗口管理多项目，每个 Tab 对应不同项目目录
-- **Tauri 原生体验** — 基于 Tauri 2 + Rust 构建，macOS 冷启动 < 200ms，低内存占用
-- **Apache 2.0 · 无 CLA** — 开源许可友好，贡献无需签署 CLA
-
-## 现状与版本
-
-Vibestation 处于 **v0.1 alpha** 阶段，开发中，尚未发布正式二进制。终端多 Tab 和 Git 只读视图已可用，更多功能持续开发中。
+| 模块                         | 状态      | 说明                                             |
+| ---------------------------- | --------- | ------------------------------------------------ |
+| 多 Tab 终端                  | v0.1 当前 | 一窗多 CLI 会话 · 适配 Claude CLI / Codex CLI    |
+| Git 工作台                   | v0.1 当前 | log / status / diff 只读视图 · commit · 冲突提示 |
+| 跨项目管理                   | v0.1 当前 | 单窗口多 workspace · last-opened 记忆            |
+| 崩溃恢复                     | v0.1 当前 | 异常退出后 session 状态可恢复                    |
+| Push / Pull / Fetch          | v0.2 规划 | 远程 Git 操作                                    |
+| Rail graph + 分支管理        | v0.2 规划 | 自绘 commit graph + 分支 CRUD                    |
+| Pane 任意嵌套                | v0.2 规划 | 多层 split                                       |
+| Rebase / Merge / Cherry-pick | v0.3 规划 | 冲突解决 · Pop to External                       |
 
 ## 安装
 
 ### macOS
 
-从 [GitHub Releases](https://github.com/tajiaoyezi/vibestation/releases) 下载 `.dmg`，拖动到 Applications 后执行：
+从 [GitHub Releases](https://github.com/tajiaoyezi/vibestation/releases) 下载 `.dmg`，拖到 Applications 后执行：
 
 ```bash
 xattr -cr /Applications/Vibestation.app
 ```
 
-> v0.1 未经过 Apple notarize，需手动放行 Gatekeeper。v0.2 将升级 notarize 后自动免除。
+> v0.1 未经 Apple notarize，需手动放行 Gatekeeper。v0.2 升级 notarize 后自动免除。
 
 ### Ubuntu
 
-**deb 包（推荐）**：
-
 ```bash
+# deb 包（推荐）
 sudo dpkg -i Vibestation_0.1.0_amd64.deb
-```
 
-**AppImage（便携）**：
-
-```bash
+# 或 AppImage（便携，免安装）
 chmod +x Vibestation_0.1.0_amd64.AppImage
 ./Vibestation_0.1.0_amd64.AppImage
 ```
 
 详细安装步骤与常见问题见 [快速上手指南](docs/QUICKSTART.md)。
 
-## 截图墙
-
-### 终端
-
-![创建多个终端 Tab](docs/assets/onboarding/terminal/01-multi-tab-create.png)
-
-![切换终端 Tab](docs/assets/onboarding/terminal/02-tab-switch.png)
-
-### Git
-
-![Git 提交详情视图](docs/assets/onboarding/git/01-commit-detail-loaded.jpg)
-
-![Diff 叠加视图](docs/assets/onboarding/git/02-diff-overlay-opened.jpg)
-
-### 主题与平台
-
-![浅色主题视图](docs/assets/onboarding/theme/02-light-theme.jpg)
-
-![Ubuntu AppImage 启动界面](docs/assets/onboarding/platform/01-ubuntu-appimage-launch.png)
-
 ## 路线图
 
-| 里程碑   | 内容                                                                                                        |
-| -------- | ----------------------------------------------------------------------------------------------------------- |
-| **v0.1** | 多 Tab 终端 · Git log/status 只读 · Commit · 基础 Diff · 单层 Pane · 配置导入 · 崩溃恢复 · macOS-first 发布 |
-| **v0.2** | Push/Pull/Fetch · Rail graph · 分支管理 · Pane 任意嵌套                                                     |
-| **v0.3** | Rebase/Merge/Cherry-pick · 冲突解决 · Pop to External                                                       |
-| **v1.0** | 高级工作流能力 · 详见 [`implementation-plan.md`](docs/implementation-plan.md)                               |
+| 里程碑         | 主线                                                                          |
+| -------------- | ----------------------------------------------------------------------------- |
+| **v0.1** alpha | 多 Tab 终端 · Git 只读 · Commit · 基础 Diff · 单层 Pane · 崩溃恢复            |
+| **v0.2**       | Push/Pull/Fetch · Rail graph · 分支管理 · Pane 任意嵌套                       |
+| **v0.3**       | Rebase/Merge/Cherry-pick · 冲突解决 · Pop to External                         |
+| **v1.0**       | 高级工作流能力 · 详见 [`implementation-plan.md`](docs/implementation-plan.md) |
+
+## 文档导航
+
+| 主题                  | 链接                                                       |
+| --------------------- | ---------------------------------------------------------- |
+| 快速上手（5 分钟）    | [docs/QUICKSTART.md](docs/QUICKSTART.md)                   |
+| 项目概览 · 仓库结构   | [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)       |
+| 实施计划 · 路线图细节 | [docs/implementation-plan.md](docs/implementation-plan.md) |
+| 架构决策记录 (ADR)    | [docs/adr/](docs/adr/)                                     |
+| 任务索引              | [docs/tasks/](docs/tasks/)                                 |
+| 当前进度快照          | [docs/PROGRESS.md](docs/PROGRESS.md)                       |
+| 贡献指南              | [CONTRIBUTING.md](CONTRIBUTING.md)                         |
+| 行为准则              | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)                   |
 
 ## 贡献
 
-贡献流程已就绪，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+欢迎贡献。详见 [CONTRIBUTING.md](CONTRIBUTING.md)。**Apache 2.0 · 无 CLA**，提交无需签署额外协议。
 
 ## 许可证
 
-Apache License 2.0 — 不要求签署 CLA。详见 [LICENSE](LICENSE)。
-
-## 深入了解
-
-开发者向的仓库结构、规划成果、锁定决策与非目标，详见 [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)。
+Apache License 2.0 · 详见 [LICENSE](LICENSE)。

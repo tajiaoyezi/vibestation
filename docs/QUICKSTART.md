@@ -90,15 +90,11 @@ chmod +x Vibestation_0.1.0_amd64.AppImage
 
 启动 Vibestation 后，你将看到默认的深色布局：左侧侧栏展示工作区导航，底部是终端区域，右侧可展开 Git 视图。
 
-![Vibestation 默认深色布局，主侧栏展开](assets/onboarding/hero/01-default-layout-dark.jpg)
-
 > 首次打开时，Vibestation 会自动检测当前目录并加载对应的 Shell 配置。如果显示异常，请检查「系统要求」是否满足。
 
 ### 步骤 2 · 创建 Tab + 跑 CLI
 
 使用快捷键 `Cmd+T`（macOS）或 `Ctrl+T`（Ubuntu）创建新终端 Tab。每个 Tab 拥有独立的 Shell 会话，你可以在不同 Tab 中分别运行 Claude CLI、Codex CLI 或其他命令行工具。
-
-![创建多个终端 Tab](assets/onboarding/terminal/01-multi-tab-create.png)
 
 > 你也可以通过侧栏的「+」按钮或右键菜单创建 Tab。每个 Tab 可独立设置工作目录。
 
@@ -106,23 +102,17 @@ chmod +x Vibestation_0.1.0_amd64.AppImage
 
 点击侧栏的 Git 图标或使用快捷键打开 Git 视图，即可浏览当前仓库的提交历史。每条 commit 显示作者、时间、消息摘要。
 
-![Git 提交详情视图](assets/onboarding/git/01-commit-detail-loaded.jpg)
-
 > Git 视图会自动检测当前 Tab 工作目录下的 Git 仓库。如果未显示，请确认目录包含 `.git`。
 
 ### 步骤 4 · 查看 Diff
 
 在 Git 视图中点击某条 commit，右侧将展示该提交的文件变更详情，包含新增 / 删除 / 修改行的叠加视图。
 
-![Diff 叠加视图](assets/onboarding/git/02-diff-overlay-opened.jpg)
-
 > Diff 视图支持语法高亮，可直观查看代码变更。后续版本将支持暂存区 diff 和行内 diff。
 
 ### 步骤 5 · 切换主题
 
 Vibestation 支持深色和浅色主题。通过设置面板或快捷键 `Cmd+,`（macOS）/ `Ctrl+,`（Ubuntu）打开设置，在「外观」选项中切换。
-
-![切换深色主题](assets/onboarding/theme/01-theme-switch-dark.png)
 
 > 主题切换即时生效，无需重启应用。你也可以跟随系统主题自动切换。
 

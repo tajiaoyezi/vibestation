@@ -14,6 +14,7 @@
   </p>
 
   <p>
+    <a href="https://tajiaoyezi.github.io/vibestation/"><img alt="website" src="https://img.shields.io/badge/🌐_website-vibestation-7c3aed?style=flat-square" /></a>
     <a href="https://github.com/tajiaoyezi/vibestation/releases"><img alt="status" src="https://img.shields.io/badge/status-v0.1%20alpha-orange?style=flat-square" /></a>
     <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" /></a>
     <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey?style=flat-square" />
@@ -23,7 +24,9 @@
   </p>
 
   <p>
-    <a href="docs/QUICKSTART.en.md"><strong>Quickstart in 5 min →</strong></a>
+    <a href="https://tajiaoyezi.github.io/vibestation/"><strong>🌐 Visit Website</strong></a>
+    &nbsp;·&nbsp;
+    <a href="docs/QUICKSTART.en.md"><strong>⚡ Quickstart in 5 min</strong></a>
     &nbsp;·&nbsp;
     <a href="docs/PROJECT-OVERVIEW.md">Project overview</a>
     &nbsp;·&nbsp;
@@ -89,16 +92,17 @@ chmod +x Vibestation_0.1.0_amd64.AppImage
 
 ## 📚 Documentation
 
-| I want to…                          | Link                                                         |
-| :---------------------------------- | :----------------------------------------------------------- |
-| ⚡ Get running in 5 minutes         | [`docs/QUICKSTART.en.md`](docs/QUICKSTART.en.md)             |
-| 🏗️ Understand architecture / layout | [`docs/PROJECT-OVERVIEW.md`](docs/PROJECT-OVERVIEW.md)       |
-| 🗺️ Implementation plan / roadmap    | [`docs/implementation-plan.md`](docs/implementation-plan.md) |
-| 📐 Architecture Decision Records    | [`docs/adr/`](docs/adr/)                                     |
-| ✅ Task index                       | [`docs/tasks/`](docs/tasks/)                                 |
-| 📊 Current progress snapshot        | [`docs/PROGRESS.md`](docs/PROGRESS.md)                       |
-| 🤝 Contributing guide               | [`CONTRIBUTING.md`](CONTRIBUTING.md)                         |
-| 🏛️ Code of Conduct                  | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)                   |
+| I want to…                          | Link                                                                          |
+| :---------------------------------- | :---------------------------------------------------------------------------- |
+| 🌐 Visit the website                | [tajiaoyezi.github.io/vibestation](https://tajiaoyezi.github.io/vibestation/) |
+| ⚡ Get running in 5 minutes         | [`docs/QUICKSTART.en.md`](docs/QUICKSTART.en.md)                              |
+| 🏗️ Understand architecture / layout | [`docs/PROJECT-OVERVIEW.md`](docs/PROJECT-OVERVIEW.md)                        |
+| 🗺️ Implementation plan / roadmap    | [`docs/implementation-plan.md`](docs/implementation-plan.md)                  |
+| 📐 Architecture Decision Records    | [`docs/adr/`](docs/adr/)                                                      |
+| ✅ Task index                       | [`docs/tasks/`](docs/tasks/)                                                  |
+| 📊 Current progress snapshot        | [`docs/PROGRESS.md`](docs/PROGRESS.md)                                        |
+| 🤝 Contributing guide               | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                          |
+| 🏛️ Code of Conduct                  | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)                                    |
 
 <br />
 

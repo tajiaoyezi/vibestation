@@ -14,6 +14,7 @@
   </p>
 
   <p>
+    <a href="https://tajiaoyezi.github.io/vibestation/"><img alt="website" src="https://img.shields.io/badge/🌐_官网-vibestation-7c3aed?style=flat-square" /></a>
     <a href="https://github.com/tajiaoyezi/vibestation/releases"><img alt="status" src="https://img.shields.io/badge/status-v0.1%20alpha-orange?style=flat-square" /></a>
     <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square" /></a>
     <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey?style=flat-square" />
@@ -23,7 +24,9 @@
   </p>
 
   <p>
-    <a href="docs/QUICKSTART.md"><strong>5 分钟上手 →</strong></a>
+    <a href="https://tajiaoyezi.github.io/vibestation/"><strong>🌐 访问官网</strong></a>
+    &nbsp;·&nbsp;
+    <a href="docs/QUICKSTART.md"><strong>⚡ 5 分钟上手</strong></a>
     &nbsp;·&nbsp;
     <a href="docs/PROJECT-OVERVIEW.md">项目概览</a>
     &nbsp;·&nbsp;
@@ -89,16 +92,17 @@ chmod +x Vibestation_0.1.0_amd64.AppImage
 
 ## 📚 文档导航
 
-| 我想…                    | 看这里                                                       |
-| :----------------------- | :----------------------------------------------------------- |
-| ⚡ 5 分钟跑起来          | [`docs/QUICKSTART.md`](docs/QUICKSTART.md)                   |
-| 🏗️ 了解架构 / 仓库结构   | [`docs/PROJECT-OVERVIEW.md`](docs/PROJECT-OVERVIEW.md)       |
-| 🗺️ 实施计划 / 路线图细节 | [`docs/implementation-plan.md`](docs/implementation-plan.md) |
-| 📐 架构决策记录 (ADR)    | [`docs/adr/`](docs/adr/)                                     |
-| ✅ 任务索引              | [`docs/tasks/`](docs/tasks/)                                 |
-| 📊 当前进度快照          | [`docs/PROGRESS.md`](docs/PROGRESS.md)                       |
-| 🤝 贡献指南              | [`CONTRIBUTING.md`](CONTRIBUTING.md)                         |
-| 🏛️ 行为准则              | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)                   |
+| 我想…                    | 看这里                                                                        |
+| :----------------------- | :---------------------------------------------------------------------------- |
+| 🌐 浏览项目官网          | [tajiaoyezi.github.io/vibestation](https://tajiaoyezi.github.io/vibestation/) |
+| ⚡ 5 分钟跑起来          | [`docs/QUICKSTART.md`](docs/QUICKSTART.md)                                    |
+| 🏗️ 了解架构 / 仓库结构   | [`docs/PROJECT-OVERVIEW.md`](docs/PROJECT-OVERVIEW.md)                        |
+| 🗺️ 实施计划 / 路线图细节 | [`docs/implementation-plan.md`](docs/implementation-plan.md)                  |
+| 📐 架构决策记录 (ADR)    | [`docs/adr/`](docs/adr/)                                                      |
+| ✅ 任务索引              | [`docs/tasks/`](docs/tasks/)                                                  |
+| 📊 当前进度快照          | [`docs/PROGRESS.md`](docs/PROGRESS.md)                                        |
+| 🤝 贡献指南              | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                          |
+| 🏛️ 行为准则              | [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)                                    |
 
 <br />
 

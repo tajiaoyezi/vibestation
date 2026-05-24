@@ -16,6 +16,45 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use ts_rs::TS;
 
+// ─── 类型 0 · ThemeMode enum（Issue #206 Important 1 修复） ────────────
+
+/// vibestation 唯一支持的主题模式 · 类型层防御 + ts-rs 自动生成 union literal
+///
+/// 之前是 `String`（runtime validation 在 apply round 1 修）· 但类型层仍宽
+/// · parser 可能 detect "tokyo-night" 这种 ghostty palette name · 到 apply
+/// 才 reject。改 enum 让 parser 层就 reject · 编译期保证只有 light/dark/auto
+/// 能流到下游。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "lowercase")]
+pub enum ThemeMode {
+    Light,
+    Dark,
+    Auto,
+}
+
+impl ThemeMode {
+    /// 持久化用字符串 · 与 app_settings.theme DB column 值一致
+    pub fn as_db_str(&self) -> &'static str {
+        match self {
+            Self::Light => "light",
+            Self::Dark => "dark",
+            Self::Auto => "auto",
+        }
+    }
+
+    /// 用户输入字符串 → ThemeMode · trim + lowercase 后匹配 ·
+    /// 失败返回被拒绝的原值（让 caller 拼 error 文案）
+    pub fn parse_normalized(input: &str) -> Result<Self, String> {
+        match input.trim().to_lowercase().as_str() {
+            "light" => Ok(Self::Light),
+            "dark" => Ok(Self::Dark),
+            "auto" => Ok(Self::Auto),
+            _ => Err(input.trim().to_string()),
+        }
+    }
+}
+
 // ─── 类型 1 · ImportFieldType（tagged union） ──────────────────────────
 
 /// 导入字段类型 · spec §G.2 tagged union
@@ -33,7 +72,7 @@ pub enum ImportFieldType {
         value: f32,
     },
     Theme {
-        value: String,
+        value: ThemeMode,
     },
     Shell {
         value: String,
@@ -85,7 +124,7 @@ impl From<&RawScanResult> for ImportScanResult {
         Self {
             source: raw.source,
             path_exists: raw.path_exists,
-            path_display: raw.path.as_ref().map(|p| p.to_string_lossy().to_string()),
+            path_display: raw.path.as_ref().map(|p| prettify_home_path(p)),
             detected_fields: raw
                 .detected_fields
                 .iter()
@@ -95,6 +134,21 @@ impl From<&RawScanResult> for ImportScanResult {
             errors: raw.errors.clone(),
         }
     }
+}
+
+/// Issue #206 Advisory #3 修复：后端用 $HOME env var 准确替换家目录为 `~`
+/// · 前端不再需要 hard-coded `/Users/[^/]+` / `/home/[^/]+` 正则
+/// · 不命中（如 `/opt/homebrew/` / `/var/folders/`）时原样返回
+fn prettify_home_path(p: &Path) -> String {
+    let s = p.to_string_lossy();
+    if let Ok(home) = std::env::var("HOME") {
+        if !home.is_empty() {
+            if let Some(stripped) = s.strip_prefix(&home) {
+                return format!("~{stripped}");
+            }
+        }
+    }
+    s.to_string()
 }
 
 // ─── 类型 3 · ImportPreview ────────────────────────────────────────────
@@ -117,16 +171,35 @@ pub struct ImportPreview {
 /// 应用导入的请求（spec §G.1 · UI Step 3 提交）
 ///
 /// 用户从预览列表勾选要写入 app_settings 的字段
+///
+/// Issue #206 Advisory #2 修复：删除 source 字段 · apply 函数从未引用 · 字段冗余
+/// · 字段实际数据全在 fields 里 · UI 端 source 用于 step 状态 ≠ apply IPC 负载
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportApplyRequest {
-    /// 用户选定的来源（标识用 · 实际数据在 fields）
-    pub source: ImportSource,
     /// 勾选生效的字段集合
     pub fields: Vec<ImportFieldType>,
     /// 用户对每个冲突的决策（user_choice 已填）
     pub conflict_resolutions: Vec<KeyBindingConflict>,
+}
+
+// ─── 类型 4.5 · AppliedField enum（Issue #206 Advisory #7 修复） ──────
+
+/// 实际写入 app_settings 的字段类型 · 替代原 `Vec<String>` 中硬编码字段名
+///
+/// 改前：`applied = vec!["font_family", "default_shell"]` · 前端 switch string · 易拼错
+/// 改后：`applied = vec![AppliedField::FontFamily, AppliedField::DefaultShell]`
+/// · ts-rs 自动生成 union literal · 前端 exhaustive match · 编译期保证
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub enum AppliedField {
+    FontFamily,
+    FontSize,
+    Theme,
+    DefaultShell,
+    ImportedKeybindings,
 }
 
 // ─── 类型 5 · ImportApplyResult ────────────────────────────────────────
@@ -136,8 +209,8 @@ pub struct ImportApplyRequest {
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportApplyResult {
-    /// 实际写入 app_settings 的字段名列表（如 `font_family` · `font_size` · `theme` · `default_shell` · `imported_keybindings`）
-    pub applied: Vec<String>,
+    /// 实际写入 app_settings 的字段（Issue #206 Advisory #7 · 由 `Vec<String>` 改为 enum vec）
+    pub applied: Vec<AppliedField>,
     /// 跳过的冲突（user_choice == KeepVibe 的）
     pub skipped_conflicts: Vec<KeyBindingConflict>,
     /// 字段级错误（不阻止整体 · graceful）
@@ -256,7 +329,8 @@ pub fn detect_conflicts_ipc(fields: &[ImportFieldType]) -> Vec<KeyBindingConflic
 pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
     use crate::config_import::keybinding::{canonicalize_keybinding, detect_conflicts};
 
-    let mut applied: Vec<String> = Vec::new();
+    // Issue #206 Advisory #7 修复：applied 由 Vec<String> 改 Vec<AppliedField> enum
+    let mut applied: Vec<AppliedField> = Vec::new();
     let mut errors: Vec<String> = Vec::new();
     let mut skipped_conflicts: Vec<KeyBindingConflict> = Vec::new();
 
@@ -287,36 +361,37 @@ pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
     // ─── §2 · 收集字段意图（with theme validation）──────────────────────────
     let mut update_req = SettingsUpdateRequest::default();
     let mut keybindings_to_persist: Vec<(String, String)> = Vec::new();
-    let mut field_intent: Vec<&'static str> = Vec::new(); // 仅 commit 后转 applied
+    // Issue #206 Advisory #7 修复：field_intent 由 &'static str 改 AppliedField enum
+    let mut field_intent: Vec<AppliedField> = Vec::new();
 
     for field in &req.fields {
         match field {
             ImportFieldType::FontFamily { value } => {
                 update_req.font_family = Some(value.clone());
-                field_intent.push("font_family");
+                field_intent.push(AppliedField::FontFamily);
             }
             ImportFieldType::FontSize { value } => {
                 let rounded = value.round().clamp(8.0, 72.0) as u32;
                 update_req.font_size = Some(rounded);
-                field_intent.push("font_size");
+                field_intent.push(AppliedField::FontSize);
             }
             ImportFieldType::Theme { value } => {
-                // Codex review finding 1 修复：vibestation theme 仅支持 light/dark/auto
-                // 写入 Ghostty palette name（如 "tokyo-night"）会让前端 data-theme fallback CSS
-                // 用户感知"导入但没生效"。直接 reject 不支持值 · 显式 errors。
-                let normalized = value.trim().to_lowercase();
-                if matches!(normalized.as_str(), "light" | "dark" | "auto") {
-                    update_req.theme = Some(normalized);
-                    field_intent.push("theme");
-                } else {
-                    errors.push(format!(
-                        "theme '{value}' not supported (only light/dark/auto · v0.2+ evaluate palette import)"
-                    ));
-                }
+                // Issue #206 Important 1 修复：value 现为 ThemeMode enum（type-level
+                // 保证仅 light/dark/auto）· 不需要 runtime normalize + match。
+                // 旧 runtime validation 已 supersede · parser 层 reject 任意 palette name。
+                update_req.theme = Some(value.as_db_str().to_string());
+                field_intent.push(AppliedField::Theme);
             }
             ImportFieldType::Shell { value } => {
-                update_req.default_shell = Some(value.clone());
-                field_intent.push("default_shell");
+                // Issue #205 Finding 1 修复：导入前先验证 shell 存在 · 防 default_shell_set
+                // 的 check_shell_exists 旁路 · 否则用户导入 Ghostty 配的 /bin/zsh 但本机没装
+                // zsh · UI 显示 default_shell applied 但实际 PTY spawn 失败。
+                if let Err(e) = crate::pty::check_shell_exists(value) {
+                    errors.push(format!("shell '{value}' not found: {e}"));
+                } else {
+                    update_req.default_shell = Some(value.clone());
+                    field_intent.push(AppliedField::DefaultShell);
+                }
             }
             ImportFieldType::KeyBinding { key, action } => {
                 let canonical = canonicalize_keybinding(key);
@@ -413,9 +488,9 @@ pub fn apply(pool: &DbPool, req: &ImportApplyRequest) -> ImportApplyResult {
     match tx_result {
         Ok(()) => match tx.commit() {
             Ok(()) => {
-                applied.extend(field_intent.iter().map(|s| s.to_string()));
+                applied.extend(field_intent.iter().copied());
                 if !keybindings_to_persist.is_empty() {
-                    applied.push("imported_keybindings".to_string());
+                    applied.push(AppliedField::ImportedKeybindings);
                 }
             }
             Err(e) => {
@@ -533,23 +608,22 @@ mod tests {
         // 的 bug 契约 · 现在 theme 验证要 light/dark/auto · 测 supported 值的正常路径）
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![
                 ImportFieldType::FontFamily {
                     value: "JetBrains Mono".to_string(),
                 },
                 ImportFieldType::FontSize { value: 16.0 },
                 ImportFieldType::Theme {
-                    value: "dark".to_string(),
+                    value: ThemeMode::Dark,
                 },
             ],
             conflict_resolutions: vec![],
         };
         let result = apply(&pool, &req);
         assert!(result.errors.is_empty());
-        assert!(result.applied.contains(&"font_family".to_string()));
-        assert!(result.applied.contains(&"font_size".to_string()));
-        assert!(result.applied.contains(&"theme".to_string()));
+        assert!(result.applied.contains(&AppliedField::FontFamily));
+        assert!(result.applied.contains(&AppliedField::FontSize));
+        assert!(result.applied.contains(&AppliedField::Theme));
 
         let s = AppSettingsStore::get_all(&pool);
         assert_eq!(s.font_family, "JetBrains Mono");
@@ -561,7 +635,6 @@ mod tests {
     fn apply_clamps_font_size_lower_bound() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::FontSize { value: 4.5 }],
             conflict_resolutions: vec![],
         };
@@ -576,7 +649,6 @@ mod tests {
     fn apply_clamps_font_size_upper_bound() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::FontSize { value: 144.0 }], // 远超 72 上限
             conflict_resolutions: vec![],
         };
@@ -585,39 +657,41 @@ mod tests {
         assert_eq!(s.font_size, 72); // clamp 上限 72
     }
 
-    /// /review-pr round 5 regression: theme reject + 其他字段成功的 graceful 测试
-    /// 原 transactional 测试只测 happy path · 没测部分字段 reject 时其他字段是否仍写入
+    /// /review-pr round 5 regression: 部分字段 reject + 其他字段成功的 graceful 测试
+    ///
+    /// Issue #206 Important 1 重构后：theme 已是 ThemeMode enum · 不可能传 unsupported 值
+    /// 到 apply（parser 层 reject）。改测 shell 不存在的 reject 路径（Issue #205 Finding 1
+    /// 新增）· 验证 graceful 部分 reject 行为仍正确：reject 字段不进 applied + 其他字段照写入
     #[test]
-    fn apply_graceful_reject_theme_writes_other_fields() {
+    fn apply_graceful_reject_shell_writes_other_fields() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![
                 ImportFieldType::FontFamily {
                     value: "JetBrains Mono".to_string(),
                 },
-                ImportFieldType::Theme {
-                    value: "tokyo-night".to_string(), // unsupported · reject
+                ImportFieldType::Shell {
+                    value: "/nonexistent/path/fake-shell-xyz".to_string(),
                 },
                 ImportFieldType::FontSize { value: 16.0 },
             ],
             conflict_resolutions: vec![],
         };
         let result = apply(&pool, &req);
-        // theme reject · 不进 applied · errors 含说明
-        assert!(!result.applied.contains(&"theme".to_string()));
+        // shell reject · 不进 applied · errors 含说明
+        assert!(!result.applied.contains(&AppliedField::DefaultShell));
         assert!(result
             .errors
             .iter()
-            .any(|e| e.contains("tokyo-night") && e.contains("not supported")));
+            .any(|e| e.contains("shell") && e.contains("not found")));
         // 但其他字段（font_family + font_size）必须仍写入（graceful · 部分 reject 不阻塞 transaction）
-        assert!(result.applied.contains(&"font_family".to_string()));
-        assert!(result.applied.contains(&"font_size".to_string()));
+        assert!(result.applied.contains(&AppliedField::FontFamily));
+        assert!(result.applied.contains(&AppliedField::FontSize));
         let s = AppSettingsStore::get_all(&pool);
         assert_eq!(s.font_family, "JetBrains Mono");
         assert_eq!(s.font_size, 16);
-        // theme 保留 default（不被 tokyo-night 覆盖）
-        assert_ne!(s.theme, "tokyo-night");
+        // shell 保留 default（不被无效路径覆盖）
+        assert_ne!(s.default_shell, "/nonexistent/path/fake-shell-xyz");
     }
 
     #[test]
@@ -635,7 +709,6 @@ mod tests {
             action: "spawn_tab".to_string(),
         }]);
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(),
                 action: "spawn_tab".to_string(),
@@ -645,7 +718,7 @@ mod tests {
         let result = apply(&pool, &req);
         assert!(result.errors.is_empty());
         // 跳过此 keybinding · 不应写 imported_keybindings
-        assert!(!result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(!result.applied.contains(&AppliedField::ImportedKeybindings));
         assert_eq!(result.skipped_conflicts.len(), 1);
     }
 
@@ -660,7 +733,6 @@ mod tests {
         detected[0].user_choice = KeyBindingResolution::Override;
 
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(),
                 action: "spawn_tab".to_string(),
@@ -668,7 +740,7 @@ mod tests {
             conflict_resolutions: detected,
         };
         let result = apply(&pool, &req);
-        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
 
         // 验证 DB 内容是 JSON
@@ -681,7 +753,6 @@ mod tests {
     fn apply_non_conflicting_keybinding_persists() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+Shift+P".to_string(),
                 action: "command_palette".to_string(),
@@ -690,7 +761,7 @@ mod tests {
         };
         let result = apply(&pool, &req);
         assert!(result.errors.is_empty());
-        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
         assert!(raw.contains("Cmd+Shift+P"));
     }
@@ -699,7 +770,6 @@ mod tests {
     fn apply_ansi_color_skipped_silently() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::ITerm2,
             fields: vec![ImportFieldType::AnsiColor {
                 index: 0,
                 hex: "#000000".to_string(),
@@ -713,54 +783,14 @@ mod tests {
     }
 
     // ─── Codex review (2026-05-01) round 2 regression tests ───────────────
-
-    /// Finding 1: 不支持的 theme 值（如 Ghostty palette name "tokyo-night"）必须 reject
-    /// · 不写入 app_settings · errors 含说明
-    #[test]
-    fn apply_rejects_unsupported_theme_value() {
-        let (_dir, pool) = setup_pool();
-        let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
-            fields: vec![ImportFieldType::Theme {
-                value: "tokyo-night".to_string(),
-            }],
-            conflict_resolutions: vec![],
-        };
-        let result = apply(&pool, &req);
-        assert!(
-            !result.applied.contains(&"theme".to_string()),
-            "tokyo-night 不应进 applied"
-        );
-        assert!(
-            result
-                .errors
-                .iter()
-                .any(|e| e.contains("tokyo-night") && e.contains("not supported")),
-            "errors 应含 'tokyo-night not supported' · 实际 errors={:?}",
-            result.errors
-        );
-        // DB 不应有 theme 字段被改（保留 default）
-        let s = AppSettingsStore::get_all(&pool);
-        assert_ne!(s.theme, "tokyo-night");
-    }
-
-    /// Finding 1: 支持的 theme 值（light/dark/auto · 含大小写空格）必须 normalize 后写入
-    #[test]
-    fn apply_accepts_supported_theme_value_normalized() {
-        let (_dir, pool) = setup_pool();
-        let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
-            fields: vec![ImportFieldType::Theme {
-                value: "  Dark  ".to_string(), // 带空格 + 大写
-            }],
-            conflict_resolutions: vec![],
-        };
-        let result = apply(&pool, &req);
-        assert!(result.applied.contains(&"theme".to_string()));
-        assert!(result.errors.is_empty());
-        let s = AppSettingsStore::get_all(&pool);
-        assert_eq!(s.theme, "dark");
-    }
+    //
+    // Issue #206 Important 1 重构后：apply 层的 theme reject + normalize 逻辑已经
+    // upstream 到 ghostty parser + ThemeMode::parse_normalized。原 2 个测试
+    // (apply_rejects_unsupported_theme_value / apply_accepts_supported_theme_value_normalized)
+    // 在新设计下不可达（ImportFieldType::Theme value 类型已是 ThemeMode enum ·
+    // unsupported String 不能 construct）· 已删。覆盖迁到：
+    // - ThemeMode::parse_normalized 直接单测（见 theme_mode_tests）
+    // - ghostty parser theme reject 测试（见 ghostty.rs tests mod）
 
     /// Finding 2: client 不传 conflict_resolutions（绕过 detect_conflicts）·
     /// server 必须独立检测 · 默认保护 vibe 内置 ⌘T · 不写入 imported_keybindings
@@ -768,7 +798,6 @@ mod tests {
     fn apply_protects_vibe_builtins_when_client_omits_conflict_resolutions() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(), // vibe 内置 tabs.create
                 action: "spawn_tab".to_string(),
@@ -778,7 +807,7 @@ mod tests {
         let result = apply(&pool, &req);
         // ⌘T 必须被保护 · 不进 imported_keybindings
         assert!(
-            !result.applied.contains(&"imported_keybindings".to_string()),
+            !result.applied.contains(&AppliedField::ImportedKeybindings),
             "vibe 内置 ⌘T 不应被覆盖 · applied={:?}",
             result.applied
         );
@@ -798,7 +827,6 @@ mod tests {
     fn apply_allows_explicit_override_of_vibe_builtin() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(),
                 action: "spawn_tab".to_string(),
@@ -812,7 +840,7 @@ mod tests {
             }],
         };
         let result = apply(&pool, &req);
-        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
         assert!(raw.contains("Cmd+T"));
@@ -825,14 +853,13 @@ mod tests {
     fn apply_writes_multiple_fields_atomically() {
         let (_dir, pool) = setup_pool();
         let req = ImportApplyRequest {
-            source: ImportSource::Ghostty,
             fields: vec![
                 ImportFieldType::FontFamily {
                     value: "JetBrains Mono".to_string(),
                 },
                 ImportFieldType::FontSize { value: 14.5 },
                 ImportFieldType::Theme {
-                    value: "dark".to_string(),
+                    value: ThemeMode::Dark,
                 },
                 ImportFieldType::Shell {
                     value: "/bin/zsh".to_string(),
@@ -851,16 +878,89 @@ mod tests {
             result.errors
         );
         // 全部 5 个字段都进 applied（含 keybindings）
-        assert!(result.applied.contains(&"font_family".to_string()));
-        assert!(result.applied.contains(&"font_size".to_string()));
-        assert!(result.applied.contains(&"theme".to_string()));
-        assert!(result.applied.contains(&"default_shell".to_string()));
-        assert!(result.applied.contains(&"imported_keybindings".to_string()));
+        assert!(result.applied.contains(&AppliedField::FontFamily));
+        assert!(result.applied.contains(&AppliedField::FontSize));
+        assert!(result.applied.contains(&AppliedField::Theme));
+        assert!(result.applied.contains(&AppliedField::DefaultShell));
+        assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         // DB 内字段都正确持久化
         let s = AppSettingsStore::get_all(&pool);
         assert_eq!(s.font_family, "JetBrains Mono");
         assert_eq!(s.font_size, 15); // 14.5 round → 15
         assert_eq!(s.theme, "dark");
         assert_eq!(s.default_shell, "/bin/zsh");
+    }
+
+    /// Issue #206 Important 1 修复：ThemeMode::parse_normalized 直接单测
+    /// · 覆盖 light/dark/auto + 大小写 + 空格 + reject
+    #[test]
+    fn theme_mode_parse_normalized_accepts_lowercase() {
+        assert_eq!(ThemeMode::parse_normalized("light"), Ok(ThemeMode::Light));
+        assert_eq!(ThemeMode::parse_normalized("dark"), Ok(ThemeMode::Dark));
+        assert_eq!(ThemeMode::parse_normalized("auto"), Ok(ThemeMode::Auto));
+    }
+
+    #[test]
+    fn theme_mode_parse_normalized_accepts_mixed_case_with_whitespace() {
+        assert_eq!(ThemeMode::parse_normalized("  Dark  "), Ok(ThemeMode::Dark));
+        assert_eq!(ThemeMode::parse_normalized("LIGHT"), Ok(ThemeMode::Light));
+        assert_eq!(ThemeMode::parse_normalized("\tAUTO\n"), Ok(ThemeMode::Auto));
+    }
+
+    #[test]
+    fn theme_mode_parse_normalized_rejects_palette_names() {
+        let rejected = ThemeMode::parse_normalized("tokyo-night");
+        assert!(rejected.is_err());
+        assert_eq!(rejected.unwrap_err(), "tokyo-night");
+
+        let rejected2 = ThemeMode::parse_normalized("  Nord  ");
+        assert!(rejected2.is_err());
+        assert_eq!(rejected2.unwrap_err(), "Nord");
+    }
+
+    #[test]
+    fn theme_mode_as_db_str_round_trip() {
+        for mode in [ThemeMode::Light, ThemeMode::Dark, ThemeMode::Auto] {
+            let back = ThemeMode::parse_normalized(mode.as_db_str()).unwrap();
+            assert_eq!(back, mode);
+        }
+    }
+
+    /// Issue #205 Finding 1 修复：apply 接收不存在的 shell 应该 reject + 推 errors
+    /// · 而不是写入 default_shell · 否则用户后续 PTY spawn 会失败但 UI 显示导入成功
+    #[test]
+    fn apply_shell_rejects_nonexistent_shell() {
+        let (_dir, pool) = setup_pool();
+        let req = ImportApplyRequest {
+            fields: vec![ImportFieldType::Shell {
+                value: "/nonexistent/path/to/fake-shell-xyz".to_string(),
+            }],
+            conflict_resolutions: vec![],
+        };
+        let result = apply(&pool, &req);
+
+        // shell 验证失败 · default_shell 不进 applied
+        assert!(
+            !result.applied.contains(&AppliedField::DefaultShell),
+            "未存在的 shell 不应进 applied · 实际={:?}",
+            result.applied
+        );
+
+        // errors 应含具体的 shell not found 说明
+        assert!(
+            result
+                .errors
+                .iter()
+                .any(|e| e.contains("shell") && e.contains("not found")),
+            "errors 应含 shell not found 说明 · 实际={:?}",
+            result.errors
+        );
+
+        // DB 内 default_shell 不应被无效值覆盖
+        let s = AppSettingsStore::get_all(&pool);
+        assert_ne!(
+            s.default_shell, "/nonexistent/path/to/fake-shell-xyz",
+            "无效 shell 不应被持久化"
+        );
     }
 }

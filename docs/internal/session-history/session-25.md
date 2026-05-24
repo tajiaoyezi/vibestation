@@ -52,6 +52,7 @@ session 24 末写好 OpenCode + Codex dispatch（17KB + 22KB · 21:00）但未�
 **根因**：dispatch §2.10 + §2.5.3 是 trust-based 约束 · OpenCode 没强制 self-verify 钩子。可能没跑 / 跑了没看输出 / 当作环境问题忽略。
 
 **沉淀**：
+
 - 全局 memory `feedback_opencode-dispatch-self-verify-gate.md`（session 25 沉淀 · 下次 dispatch 必须贴 raw output snippet · 不只 checkbox）
 - 项目 dispatch §2.10 待升级：`pnpm lint` 输出必须含 "All matched files use Prettier code style!" raw 字符串 · `pnpm typecheck` 输出必须含 "tsc --noEmit" + 0 errors raw 字符串 · 缺即 BLOCK
 
@@ -103,14 +104,17 @@ session 24 末写好 OpenCode + Codex dispatch（17KB + 22KB · 21:00）但未�
 ## Notes for next session
 
 ### 立即可做
+
 - **MVP-12 phase A · droid dispatch 重发**（dispatch ready · `spike-tmp/dispatch/MVP-12-phase-A-droid-prompt.md` · 25KB）· 数据层 + 4 ts-rs binding + 12 vitest + 3 fixture · 估 ~4-6h droid · ~2-4h 主 agent
 - **MVP-14 phase A 派工**（pane LayoutNode tree · 主 agent 是 PR #208 评审者熟悉 lifecycle · 适合主 agent 自做 OR 派给空闲 agent）· 估 7d / 4 phase
 
 ### 推迟（等 phase A 全完成）
+
 - **4 dependabot tauri ecosystem**（#237/#238/#239/#240 · patch + minor · 联动 cargo + npm · 等 phase A 全完后批量 merge）
 - **3 dependabot major bumps**（#241 toml · #242 criterion · #243 gix · 风险高 · 单独评估）
 
 ### 长期 housekeeping
+
 - **PROGRESS.md M-2 归档**：session 22 + 23 仍在 PROGRESS · session 24 + 25 是当前窗口 · 下次 session 末归档 22+23 → docs/session-history/
 
 ---

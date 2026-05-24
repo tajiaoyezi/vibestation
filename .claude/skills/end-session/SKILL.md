@@ -58,17 +58,17 @@ Arbiter 触发 "结束"
 
 ### Vibestation 的 project context（全局 skill 自动从下方读取 · 不硬编码）
 
-| 全局 skill 会读的 | Vibestation 当前值 | 发现方式 |
-|---|---|---|
-| 项目根路径 | `/Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation` | `pwd` 或 git root |
-| 项目 slug | `vibestation` | `package.json#name` 或 `.git/config` remote path |
-| 主分支 | `main` | `git symbolic-ref refs/remotes/origin/HEAD` |
-| Dev 进程模式 | `tauri dev` · `vite` · `@vibestation/web dev` | 自动匹配通用模式 |
-| Dev 占用 port | `1420`（Vite default for Tauri） | `package.json` 的 `tauri.conf.json` 或 dev script 推断 |
-| 项目状态文档 | `docs/PROGRESS.md` | 惯例优先 `PROGRESS.md` / `ROADMAP.md` / `STATUS.md` |
-| Issue tracker | GitHub `tajiaoyezi/vibestation` | `git remote -v` · `gh pr list` |
-| 临时文件目录惯例 | `/private/tmp/*{slug,spike,mvp}*-work` · `spike-tmp/img/` | 按 rule 13 + CLAUDE.md 约定 |
-| Session 日志归档 | `docs/session-history/` | 仅里程碑时生成（CLAUDE.md 约定） |
+| 全局 skill 会读的 | Vibestation 当前值                                        | 发现方式                                               |
+| ----------------- | --------------------------------------------------------- | ------------------------------------------------------ |
+| 项目根路径        | `/Users/leaf/CodeWorkSpace/PersonalWorkspace/vibestation` | `pwd` 或 git root                                      |
+| 项目 slug         | `vibestation`                                             | `package.json#name` 或 `.git/config` remote path       |
+| 主分支            | `main`                                                    | `git symbolic-ref refs/remotes/origin/HEAD`            |
+| Dev 进程模式      | `tauri dev` · `vite` · `@vibestation/web dev`             | 自动匹配通用模式                                       |
+| Dev 占用 port     | `1420`（Vite default for Tauri）                          | `package.json` 的 `tauri.conf.json` 或 dev script 推断 |
+| 项目状态文档      | `docs/PROGRESS.md`                                        | 惯例优先 `PROGRESS.md` / `ROADMAP.md` / `STATUS.md`    |
+| Issue tracker     | GitHub `tajiaoyezi/vibestation`                           | `git remote -v` · `gh pr list`                         |
+| 临时文件目录惯例  | `/private/tmp/*{slug,spike,mvp}*-work` · `spike-tmp/img/` | 按 rule 13 + CLAUDE.md 约定                            |
+| Session 日志归档  | `docs/internal/session-history/`                          | 仅里程碑时生成（CLAUDE.md 约定）                       |
 
 ---
 
@@ -108,12 +108,14 @@ fi
 全局 skill 已提醒用户文档过期 · 本 step 加 Vibestation 特定：
 
 从 `docs/PROGRESS.md` 读 `Active branch` 字段 · 对比 `git log --oneline -1`：
+
 - 如 PR 号 / HEAD 不一致 · **明确建议**开 sync PR（Vibestation 是 sync-heavy 项目 · 5 min 搞定）
 - 提醒：**Active branch 字段不应硬编码 HEAD**（历史经验 · sync PR 永远落后一步）· 应写 "HEAD 见 `git log`"
 
 ### C4 · Session 里程碑日志（仅满足条件时）
 
 如果本 session 满足任一：
+
 - Merged PR ≥ 3 个
 - 完成 ≥ 1 个 MVP / Spike 的 status 翻转
 - 解决 ≥ 1 个 HIGH 级别 bug
@@ -122,19 +124,23 @@ fi
 → 建议 append 到 `docs/PROGRESS.md` 底部 `## Session 日志` 段（Vibestation 约定 · **不**单建 session-history 文件）
 
 格式模板：
+
 ```markdown
 ### Session N（YYYY-MM-DD · <一句话里程碑>）
 
 **主要产出**：<X PR / Y 决策 / Z bug fix>
 
 **PR 列表（按 merge 顺序）**：
+
 - PR #X · <一句话>
 - ...
 
 **关键决策 / 教训**：
+
 - <如有>
 
 **Session N+1 起手 checklist**：
+
 - <3 选推荐（从 PROGRESS.md Next action 继承 · 不硬编码）>
 ```
 
@@ -143,6 +149,7 @@ fi
 Path: `spike-tmp/local-notes/LAST-SESSION-STATE-YYYY-MM-DD.md`（gitignored · 本机保留）
 
 必含字段：
+
 - `HEAD`：当前 commit hash + 一句话
 - `未完成 / 明天继续的事`：未 close 的 FU · open PR · 本 session 未解决的 blocker
 - `今天卡在哪`（如有）：具体 blocker + 下一步 unblock 路径
@@ -195,12 +202,12 @@ Session N+1 三选推荐（从 PROGRESS.md Next concrete action 动态读取）�
 
 支持的 flag（留接口 · 当前未全实现）：
 
-| Flag | 行为 |
-|---|---|
-| `/end-session --quick` | 跳过 Step C3 (PROGRESS sync 检查) 和 C4 (里程碑日志) · 只做 cleanup + 报告 |
-| `/end-session --full-report` | Step C6 报告含 session 内每个 PR 详细 diff stats |
-| `/end-session --dry-run` | 不执行任何清理 · 只输出 "会做什么" checklist |
-| `/end-session --skip-cleanup` | Step B 的清理子步骤全跳过 · 只做状态报告 + C5 生成 |
+| Flag                          | 行为                                                                       |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `/end-session --quick`        | 跳过 Step C3 (PROGRESS sync 检查) 和 C4 (里程碑日志) · 只做 cleanup + 报告 |
+| `/end-session --full-report`  | Step C6 报告含 session 内每个 PR 详细 diff stats                           |
+| `/end-session --dry-run`      | 不执行任何清理 · 只输出 "会做什么" checklist                               |
+| `/end-session --skip-cleanup` | Step B 的清理子步骤全跳过 · 只做状态报告 + C5 生成                         |
 
 ---
 

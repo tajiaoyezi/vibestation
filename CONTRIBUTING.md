@@ -20,18 +20,19 @@
 
 ### Step 2 · 选择贡献方式
 
-| 方式 | 入口 | 模板 |
-|------|------|------|
-| **报告 bug** | GitHub Issues · `🐛 Bug Report` | `.github/ISSUE_TEMPLATE/bug_report.yml` |
-| **建议功能** | GitHub Issues · `✨ Feature Request` | 含对外叙事合规勾选（禁词见 `CLAUDE.md §禁区`）|
-| **提议 task spec** | GitHub Issues · `📋 Task Spec Proposal` | 后续可正式 PR |
-| **讨论 / 问问题** | GitHub Discussions | 不走 issue |
-| **安全漏洞** | GitHub Security Advisory（私密） | **不要开 issue** |
-| **改代码 / 文档** | Fork + feature branch + PR | 见下方 [PR 流程](#-pr-流程) |
+| 方式               | 入口                                    | 模板                                           |
+| ------------------ | --------------------------------------- | ---------------------------------------------- |
+| **报告 bug**       | GitHub Issues · `🐛 Bug Report`         | `.github/ISSUE_TEMPLATE/bug_report.yml`        |
+| **建议功能**       | GitHub Issues · `✨ Feature Request`    | 含对外叙事合规勾选（禁词见 `CLAUDE.md §禁区`） |
+| **提议 task spec** | GitHub Issues · `📋 Task Spec Proposal` | 后续可正式 PR                                  |
+| **讨论 / 问问题**  | GitHub Discussions                      | 不走 issue                                     |
+| **安全漏洞**       | GitHub Security Advisory（私密）        | **不要开 issue**                               |
+| **改代码 / 文档**  | Fork + feature branch + PR              | 见下方 [PR 流程](#-pr-流程)                    |
 
 ### Step 3 · 环境准备（代码贡献者）
 
 **当前状态**（Phase 1-4 · pre-code）：**仓库无代码**。
+
 - `pnpm tauri dev` / `cargo build` 等会失败（Spike W0 后才有代码）
 - Phase 1-4 贡献主要是**文档 / spec / 流程**
 - Spike W0 启动后更新本节
@@ -106,6 +107,7 @@ cp docs/adr/_template.md docs/adr/ADR-011-<slug>.md
 ```
 
 **A 档决策的修改流程**（推翻已 accepted ADR）：
+
 1. 新建 `docs/adr/ADR-XXX-*.md`（替代原 ADR）· 或修改原 ADR 加 `status: deprecated · superseded by ADR-XXX`
 2. 同样走 **Spike（若需要） + 独立评审 + 用户拍板** 三件套
 3. 用户拍板是硬 gate · 即使只是"微调"也不能绕过
@@ -133,6 +135,7 @@ Co-authored-by: <Agent Name> <email>
 **scope 示例**：`MVP-01` / `SPIKE-03` / `tasks` / `adr` / `phase-4` / `terminal` / `git-log`
 
 **trailer**：
+
 - Claude Code: `Co-authored-by: Claude Code <noreply@anthropic.com>`
 - Codex CLI: `Co-authored-by: Codex CLI <noreply@openai.com>`
 - 其他 agent: `Co-authored-by: <Agent Name> <email>`
@@ -195,7 +198,7 @@ Co-authored-by: <Agent Name> <email>
 - 架构决策：`docs/adr/`
 - Task 框架：`docs/tasks/README.md`
 - Spike 报告：`docs/spikes/` · Phase 3 建立
-- Session 历史：`docs/session-history/` · Phase 3 建立
+- Session 历史：`docs/internal/session-history/` · Phase 3 建立
 
 ---
 

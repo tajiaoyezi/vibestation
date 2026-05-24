@@ -26,13 +26,13 @@ session 23 末 v0.2 sprint W14 ~75% 完成（仅 Phase D 待 GUI capture deferre
 
 #### v0.3 sprint MVP 状态汇总
 
-| Task | Spec 行数 | Spec author | Estimate | Status |
-|---|---|---|---|---|
-| MVP-12 commit rail graph | 866 | Droid | 8d | ready · phase A unowned |
-| MVP-14 pane 高级布局 | 561 | Codex CLI | 7d | ready · phase A unowned |
-| MVP-15 diff syntax highlight | 717 | OpenCode | 4d | ready · phase A unowned |
-| MVP-16 rebase/merge/cherrypick | 655 | Claude Code | 7d | ready · phase A unowned |
-| **总计** | **~2800 行** | 4 agent | **26d** | 全 ready · 等 phase A 派工 |
+| Task                           | Spec 行数    | Spec author | Estimate | Status                     |
+| ------------------------------ | ------------ | ----------- | -------- | -------------------------- |
+| MVP-12 commit rail graph       | 866          | Droid       | 8d       | ready · phase A unowned    |
+| MVP-14 pane 高级布局           | 561          | Codex CLI   | 7d       | ready · phase A unowned    |
+| MVP-15 diff syntax highlight   | 717          | OpenCode    | 4d       | ready · phase A unowned    |
+| MVP-16 rebase/merge/cherrypick | 655          | Claude Code | 7d       | ready · phase A unowned    |
+| **总计**                       | **~2800 行** | 4 agent     | **26d**  | 全 ready · 等 phase A 派工 |
 
 ### 2 · 协作模式：4 agent 并发 spec 详化（首次）
 
@@ -99,12 +99,12 @@ session 25 启动时主 agent 发现这两个 dispatch 未启动（无 remote �
 
 ## 协作模式：首次 4 agent 并发 spec 详化
 
-| Agent | 角色 | 输出 |
-|---|---|---|
-| 主 agent（Claude Code）| Worker A · 协调 + MVP-16 | 主 agent vibe sprint sprint Worker A · MVP-16 spec ~700 行 |
-| Codex CLI | Worker B · MVP-14 | 561 行 spec |
-| OpenCode | Worker C · MVP-15 | 717 行 spec |
-| Droid（Factory.ai）| Worker D · MVP-12 | **866 行 spec · 最长** |
+| Agent                   | 角色                     | 输出                                                       |
+| ----------------------- | ------------------------ | ---------------------------------------------------------- |
+| 主 agent（Claude Code） | Worker A · 协调 + MVP-16 | 主 agent vibe sprint sprint Worker A · MVP-16 spec ~700 行 |
+| Codex CLI               | Worker B · MVP-14        | 561 行 spec                                                |
+| OpenCode                | Worker C · MVP-15        | 717 行 spec                                                |
+| Droid（Factory.ai）     | Worker D · MVP-12        | **866 行 spec · 最长**                                     |
 
 **实测**：4 agent 并发用时 ~3 day（session 24 跨 5-04 ~ 5-06）· 单 agent 串行估算 ≥ 7 day · **加速比 ~2.3x**（受限于 self-review + Arbiter approval 串行节奏 · 不是 spec 写作本身）。
 

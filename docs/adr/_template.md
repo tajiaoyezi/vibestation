@@ -67,11 +67,12 @@
 - `CLAUDE.md` 决策表：#N
 - Spike：[SPIKE-NN](../tasks/SPIKE-NN-<slug>.md)
 - PR：#<NN>
-- 前置讨论：`docs/session-history/<date>-<topic>.md`（若有）
+- 前置讨论：`docs/internal/session-history/<date>-<topic>.md`（若有）
 
 ---
 
 <!-- 如本 ADR 取代或被取代，在此标注关联关系 -->
 
 **修订历史**：
+
 - YYYY-MM-DD · 初版 · 作者

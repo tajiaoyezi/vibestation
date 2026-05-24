@@ -1,37 +1,0 @@
-(node:58647) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:58659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-> vibestation@0.1.0 tauri:dev /private/tmp/MVP-17-phase-B-work
-> tauri dev --config crates/app/tauri.conf.json
-
-     Running BeforeDevCommand (`pnpm --filter @vibestation/web dev`)
-(node:58944) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-> @vibestation/web@0.1.0 dev /private/tmp/MVP-17-phase-B-work/web
-> vite
-
-(node:58966) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
-(Use `node --trace-warnings ...` to show where the warning was created)
-
-  VITE v8.0.10  ready in 225 ms
-
-  ➜  Local:   http://localhost:1420/
-     Running DevCommand (`cargo  run --no-default-features --color always --`)
-        Info Watching /private/tmp/MVP-17-phase-B-work/crates/app for changes...
-        Info Watching /private/tmp/MVP-17-phase-B-work/crates/core for changes...
-[1m[92m   Compiling[0m vibestation-core v0.1.0 (/private/tmp/MVP-17-phase-B-work/crates/core)
-[1m[96m    Building[0m [=======================> ] 705/711: vibestation-core, vibestati…[1m[96m    Building[0m [=======================> ] 706/711: vibestation-core            [K[1m[92m   Compiling[0m vibestation-app v0.1.0 (/private/tmp/MVP-17-phase-B-work/crates/app)
-[1m[96m    Building[0m [=======================> ] 707/711: vibestation-app(build.rs)   [1m[96m    Building[0m [=======================> ] 708/711: vibestation-app(build)      [1m[96m    Building[0m [=======================> ] 709/711: vibestation-app             [1m[96m    Building[0m [=======================> ] 710/711: vibestation-app(bin)        [K[1m[92m    Finished[0m `dev` profile [unoptimized + debuginfo] target(s) in 18.41s
-[1m[92m     Running[0m `/private/tmp/MVP-17-phase-B-work/target/debug/vibestation-app`
-9:27:05 PM [vite] (client) [Unhandled rejection] Unknown Error: tab not found: fb4dd231-8f37-4666-8d59-5aa40dc9b6f6
-
-9:27:05 PM [vite] (client) [Unhandled rejection] Unknown Error: tab not found: fb4dd231-8f37-4666-8d59-5aa40dc9b6f6
-
-9:27:05 PM [vite] (client) [Unhandled rejection] Unknown Error: tab not found: fb4dd231-8f37-4666-8d59-5aa40dc9b6f6
-
-/private/tmp/MVP-17-phase-B-work/web:
-[41m[30m ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL [39m[49m [31m@vibestation/web@0.1.0 dev: `vite`[39m
-[31mExit status 143[39m

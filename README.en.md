@@ -1,28 +1,38 @@
 [中文](README.md) | English
 
-**alpha** · **Apache 2.0** · **macOS / Linux**
+<div align="center">
+  <img src="design/logos/wordmark-a.svg" alt="Vibestation" width="280" />
+</div>
 
-# Vibestation
+<p align="center">
+  <strong>Multi-tab terminal + JetBrains-grade Git workbench for CLI agent users · Tauri 2 native</strong>
+</p>
 
-Multi-tab terminal + JetBrains-grade Git workbench for CLI agent users · Built with Tauri
+<p align="center">
+  <img alt="status" src="https://img.shields.io/badge/status-alpha-orange" />
+  <img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-lightgrey" />
+  <img alt="tauri" src="https://img.shields.io/badge/built%20with-Tauri%202-24C8DB" />
+</p>
 
-## Representative Screenshots
+---
 
-![Vibestation default dark layout with sidebar open](docs/assets/onboarding/hero/01-default-layout-dark.jpg)
+Vibestation is a desktop application built on **Tauri 2 + Rust**, designed for developers who use Claude CLI / Codex CLI and similar agent tools. It unifies multi-session terminals, Git log / status / diff views, and cross-project management into a single native window — reducing the cognitive overhead of switching between an IDE and a terminal.
 
-![Vibestation all panels open dark view](docs/assets/onboarding/hero/02-all-panels-open-dark.jpg)
+Current release: **v0.1 alpha** (macOS / Ubuntu), under active development.
 
-## Why Vibestation
+## Features
 
-- **Multi-tab Terminal** — Create multiple terminal tabs in one window, each with an independent CLI session, compatible with Claude CLI / Codex CLI and similar tools
-- **Workbench-grade Git** — Built-in Git log / status / diff views — no need to switch to an IDE to check commits
-- **Cross-project Management** — Manage multiple projects in a single window, with each tab mapped to a different project directory
-- **Tauri Native Experience** — Built on Tauri 2 + Rust, macOS cold start < 200ms, low memory footprint
-- **Apache 2.0 · No CLA** — Contributor-friendly open source license, no CLA required
-
-## Current Status & Version
-
-Vibestation is in **v0.1 alpha** stage, under development, and not yet released as a stable binary. Multi-tab terminal and Git read-only views are functional; more features are actively being developed.
+| Module                         | Status       | Description                                                    |
+| ------------------------------ | ------------ | -------------------------------------------------------------- |
+| Multi-tab Terminal             | v0.1 now     | Multiple CLI sessions in one window · Claude / Codex CLI ready |
+| Git Workbench                  | v0.1 now     | Read-only log / status / diff · commit · conflict hints        |
+| Cross-project Management       | v0.1 now     | Multiple workspaces in one window · last-opened memory         |
+| Crash Recovery                 | v0.1 now     | Session state recoverable after unexpected exit                |
+| Push / Pull / Fetch            | v0.2 planned | Remote Git operations                                          |
+| Rail graph + Branch Management | v0.2 planned | Custom commit graph + branch CRUD                              |
+| Arbitrary Pane Nesting         | v0.2 planned | Multi-layer split                                              |
+| Rebase / Merge / Cherry-pick   | v0.3 planned | Conflict resolution · Pop to External                          |
 
 ## Installation
 
@@ -34,62 +44,47 @@ Download the `.dmg` from [GitHub Releases](https://github.com/tajiaoyezi/vibesta
 xattr -cr /Applications/Vibestation.app
 ```
 
-> v0.1 is not Apple-notarized, so you need to manually bypass Gatekeeper. v0.2 will add notarization and this step will no longer be needed.
+> v0.1 is not Apple-notarized, so Gatekeeper must be bypassed manually. v0.2 will add notarization and this step will no longer be needed.
 
 ### Ubuntu
 
-**deb package (recommended)**:
-
 ```bash
+# deb package (recommended)
 sudo dpkg -i Vibestation_0.1.0_amd64.deb
-```
 
-**AppImage (portable)**:
-
-```bash
+# Or AppImage (portable, no install)
 chmod +x Vibestation_0.1.0_amd64.AppImage
 ./Vibestation_0.1.0_amd64.AppImage
 ```
 
 For detailed installation steps and troubleshooting, see the [Quickstart Guide](docs/QUICKSTART.en.md).
 
-## Screenshot Gallery
-
-### Terminal
-
-![Creating multiple terminal tabs](docs/assets/onboarding/terminal/01-multi-tab-create.png)
-
-![Switching terminal tabs](docs/assets/onboarding/terminal/02-tab-switch.png)
-
-### Git
-
-![Git commit detail view](docs/assets/onboarding/git/01-commit-detail-loaded.jpg)
-
-![Diff overlay view](docs/assets/onboarding/git/02-diff-overlay-opened.jpg)
-
-### Theme & Platform
-
-![Light theme view](docs/assets/onboarding/theme/02-light-theme.jpg)
-
-![Ubuntu AppImage launch screen](docs/assets/onboarding/platform/01-ubuntu-appimage-launch.png)
-
 ## Roadmap
 
-| Milestone | Scope                                                                                                                                          |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1**  | Multi-tab terminal · Git log/status read-only · Commit · Basic Diff · Single-layer Pane · Config import · Crash recovery · macOS-first release |
-| **v0.2**  | Push/Pull/Fetch · Rail graph · Branch management · Arbitrary Pane nesting                                                                      |
-| **v0.3**  | Rebase/Merge/Cherry-pick · Conflict resolution · Pop to External                                                                               |
-| **v1.0**  | Advanced workflow capabilities · See [`implementation-plan.md`](docs/implementation-plan.md)                                                   |
+| Milestone      | Scope                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| **v0.1** alpha | Multi-tab terminal · Git read-only · Commit · Basic Diff · Single-layer Pane · Crash recovery |
+| **v0.2**       | Push/Pull/Fetch · Rail graph · Branch management · Arbitrary Pane nesting                     |
+| **v0.3**       | Rebase/Merge/Cherry-pick · Conflict resolution · Pop to External                              |
+| **v1.0**       | Advanced workflow capabilities · See [`implementation-plan.md`](docs/implementation-plan.md)  |
+
+## Documentation
+
+| Topic                          | Link                                                       |
+| ------------------------------ | ---------------------------------------------------------- |
+| Quickstart (5 minutes)         | [docs/QUICKSTART.en.md](docs/QUICKSTART.en.md)             |
+| Project overview · Repo layout | [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md)       |
+| Implementation plan · Roadmap  | [docs/implementation-plan.md](docs/implementation-plan.md) |
+| Architecture Decision Records  | [docs/adr/](docs/adr/)                                     |
+| Task index                     | [docs/tasks/](docs/tasks/)                                 |
+| Progress snapshot              | [docs/PROGRESS.md](docs/PROGRESS.md)                       |
+| Contributing guide             | [CONTRIBUTING.md](CONTRIBUTING.md)                         |
+| Code of Conduct                | [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)                   |
 
 ## Contributing
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). **Apache 2.0 · No CLA** required.
 
 ## License
 
-Apache License 2.0 — No CLA required. See [LICENSE](LICENSE) for details.
-
-## Learn More
-
-For developer-oriented repository structure, planning outcomes, locked decisions, and non-goals, see [docs/PROJECT-OVERVIEW.md](docs/PROJECT-OVERVIEW.md).
+Apache License 2.0 · see [LICENSE](LICENSE).

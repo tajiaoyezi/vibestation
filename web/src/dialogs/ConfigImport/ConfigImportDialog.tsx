@@ -10,6 +10,7 @@ import {
 } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import type {
+  AppliedField,
   ImportApplyRequest,
   ImportApplyResult,
   ImportFieldType,
@@ -19,6 +20,7 @@ import type {
   KeyBindingConflict,
   KeyBindingResolution,
 } from "../../bindings";
+import { isFieldDisabled, getDisabledReason } from "./fieldRules";
 
 import "./styles.css";
 
@@ -111,10 +113,15 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
       setPreview(p);
       setConflicts(p.conflicts);
 
-      // 默认勾选所有字段（用户可逐项取消 · spec §A.3）
+      // 默认勾选所有可用字段（用户可逐项取消 · spec §A.3）
+      // Issue #205 Finding 2 (a) 修复：disabled 字段（v0.1 AnsiColor）不默认勾选
       const target = p.sources.find((s) => s.source === source);
       const allIdx = new Set<number>();
-      target?.detectedFields.forEach((_, idx) => allIdx.add(idx));
+      target?.detectedFields.forEach((field, idx) => {
+        if (!isFieldDisabled(field)) {
+          allIdx.add(idx);
+        }
+      });
       setCheckedFields(allIdx);
 
       setStep("preview");
@@ -159,13 +166,10 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
     field: ImportFieldType,
   ): KeyBindingConflict | null {
     if (field.kind !== "keyBinding") return null;
-    return (
-      conflicts().find((c) => {
-        // canonical 比对：UI 这里只用展示 · 后端 apply 会重新 canonicalize
-        // 简单 startsWith / 包含匹配字段 key（已是 canonical 或 raw · 用 includes）
-        return c.sourceKey === field.key || c.sourceAction === field.action;
-      }) ?? null
-    );
+    // Issue #206 Advisory #1 修复：仅按 sourceKey 匹配 conflict · 不能 OR sourceAction
+    // · 否则不同 key 但同 action 的字段会被误标冲突（例 Cmd+T spawn_tab + Cmd+Shift+T
+    // spawn_tab · 前者真冲突 · 后者会被误连坐）
+    return conflicts().find((c) => c.sourceKey === field.key) ?? null;
   }
 
   function setConflictChoice(
@@ -205,8 +209,9 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
     if (!src || applying()) return;
     setApplying(true);
     try {
+      // Issue #206 Advisory #2 修复：ImportApplyRequest.source 字段已删（apply 不引用）
+      // · src 仍用于 step 状态判断 · 不传后端
       const req: ImportApplyRequest = {
-        source: src,
         fields: selectedFields(),
         conflictResolutions: conflicts(),
       };
@@ -567,18 +572,24 @@ interface FieldRowProps {
 }
 
 const FieldRow: Component<FieldRowProps> = (props) => {
+  // Issue #205 Finding 2 (a) · v0.1 disabled 字段（AnsiColor）的可视提示 + tooltip
+  const disabled = () => isFieldDisabled(props.field);
+  const disabledReason = () => getDisabledReason(props.field);
+
   return (
     <li
       classList={{
         "vs-config-import-field": true,
         "vs-config-import-field-conflict": props.conflict !== null,
+        "vs-config-import-field-disabled": disabled(),
       }}
     >
-      <label class="vs-config-import-field-label">
+      <label class="vs-config-import-field-label" title={disabledReason()}>
         <input
           type="checkbox"
           checked={props.checked}
           onChange={props.onToggle}
+          disabled={disabled()}
         />
         <span class="vs-config-import-field-meta">
           <span class="vs-config-import-field-kind">
@@ -587,6 +598,14 @@ const FieldRow: Component<FieldRowProps> = (props) => {
           <span class="vs-config-import-field-value">
             {fieldValueDisplay(props.field)}
           </span>
+          <Show when={disabled()}>
+            <span
+              class="vs-config-import-field-badge"
+              aria-label={disabledReason()}
+            >
+              v0.2
+            </span>
+          </Show>
         </span>
       </label>
 
@@ -870,23 +889,26 @@ function summarizeFields(fields: ImportFieldType[]): string {
     .join(" · ");
 }
 
-function prettyApplied(field: string): string {
+function prettyApplied(field: AppliedField): string {
+  // Issue #206 Advisory #7 修复：AppliedField 是 ts-rs 生成的 union literal type
+  // · 编译期 exhaustive · 拼错 case label 直接 TS error
   switch (field) {
-    case "font_family":
+    case "fontFamily":
       return "Font family";
-    case "font_size":
+    case "fontSize":
       return "Font size";
     case "theme":
       return "Theme";
-    case "default_shell":
+    case "defaultShell":
       return "Default shell";
-    case "imported_keybindings":
+    case "importedKeybindings":
       return "Imported keybindings (stored for v0.2+)";
-    default:
-      return field;
   }
 }
 
 function prettyPath(p: string): string {
+  // Issue #206 Advisory #3 修复：后端 ImportScanResult.path_display 已经用 $HOME
+  // 准确替换家目录为 `~/...`（见 ipc.rs prettify_home_path）· 前端不再需要 hard-coded
+  // 路径模式 regex。保留此函数作 fallback safety + 防 backend 旧实现返回原始 path。
   return p.replace(/^(\/Users\/[^/]+|\/home\/[^/]+|\/root)(?=\/|$)/, "~");
 }

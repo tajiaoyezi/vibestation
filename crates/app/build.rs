@@ -12,7 +12,7 @@ use std::{fs, path::PathBuf};
 
 use ts_rs::{Config, TS};
 use vibestation_core::{
-    AiSession, AppSettings, AppVersionInfo, AuthChallenge, AuthMethod, AuthRequest,
+    AiSession, AppSettings, AppVersionInfo, AppliedField, AuthChallenge, AuthMethod, AuthRequest,
     BranchCheckoutRequest, BranchCreateRequest, BranchDeleteRequest, BranchError, BranchInfo,
     BranchKind, BranchListRequest, BranchListResponse, BranchSwitchResult, CherryPickRequest,
     CherryPickStatus, CommitAuthor, CommitDetail, CommitError, CommitParent, CommitRequest,
@@ -54,7 +54,7 @@ use vibestation_core::{
     SplitDir, SplitRatioUpdateRequest, StageFailedItem, StageRequest, StageResult, SwitcherMatch,
     SwitcherQueryRequest, SwitcherSearchResult, TabCloseRequest, TabCreateRequest, TabListResponse,
     TabRenameRequest, TabReorderRequest, TabState, TelemetryOptInRequest, TelemetryStatus,
-    UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
+    ThemeMode, UnstageRequest, WorkspaceLayoutState, WorkspaceMetadata,
 };
 
 fn main() {
@@ -255,10 +255,12 @@ fn main() {
     // MVP-06 Phase B · Config Import IPC contract（spec §G.1 · 7 struct + 1 enum）
     ImportSource::export_all(&config).expect("export ImportSource");
     ImportFieldType::export_all(&config).expect("export ImportFieldType");
+    ThemeMode::export_all(&config).expect("export ThemeMode");
     ImportScanResult::export_all(&config).expect("export ImportScanResult");
     ImportPreview::export_all(&config).expect("export ImportPreview");
     ImportApplyRequest::export_all(&config).expect("export ImportApplyRequest");
     ImportApplyResult::export_all(&config).expect("export ImportApplyResult");
+    AppliedField::export_all(&config).expect("export AppliedField");
     KeyBindingConflict::export_all(&config).expect("export KeyBindingConflict");
     KeyBindingResolution::export_all(&config).expect("export KeyBindingResolution");
 
@@ -477,9 +479,11 @@ fn main() {
             // MVP-06 Phase B · Config Import contract
             "export type { ImportSource } from \"./ImportSource\";",
             "export type { ImportFieldType } from \"./ImportFieldType\";",
+            "export type { ThemeMode } from \"./ThemeMode\";",
             "export type { ImportScanResult } from \"./ImportScanResult\";",
             "export type { ImportPreview } from \"./ImportPreview\";",
             "export type { ImportApplyRequest } from \"./ImportApplyRequest\";",
+            "export type { AppliedField } from \"./AppliedField\";",
             "export type { ImportApplyResult } from \"./ImportApplyResult\";",
             "export type { KeyBindingConflict } from \"./KeyBindingConflict\";",
             "export type { KeyBindingResolution } from \"./KeyBindingResolution\";",

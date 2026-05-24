@@ -523,3 +523,25 @@
   font-size: 12px;
   line-height: 1.5;
 }
+
+/* Issue #205 Finding 2 (a) · v0.1 disabled 字段（AnsiColor）视觉指示 */
+.vs-config-import-field-disabled {
+  opacity: 0.6;
+}
+
+.vs-config-import-field-disabled .vs-config-import-field-label {
+  cursor: not-allowed;
+}
+
+.vs-config-import-field-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: oklch(55% 0.05 250 / 0.2);
+  color: oklch(70% 0.05 250);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}

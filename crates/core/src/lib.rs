@@ -48,8 +48,9 @@ pub use branch_ops::{
 pub use config_import::ipc::{
     apply as config_import_apply, build_preview as config_import_build_preview,
     detect_conflicts_ipc as config_import_detect_conflicts,
-    scan_all_sources_ipc as config_import_scan, ImportApplyRequest, ImportApplyResult,
-    ImportFieldType, ImportPreview, ImportScanResult, KeyBindingConflict, KeyBindingResolution,
+    scan_all_sources_ipc as config_import_scan, AppliedField, ImportApplyRequest,
+    ImportApplyResult, ImportFieldType, ImportPreview, ImportScanResult, KeyBindingConflict,
+    KeyBindingResolution, ThemeMode,
 };
 pub use config_import::ImportSource;
 pub use diff::{

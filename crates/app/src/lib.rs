@@ -594,6 +594,10 @@ fn config_import_detect_conflicts(
 /// 应用导入 · 写 app_settings · emit settings_changed
 ///
 /// graceful：单字段写失败不阻止其他（errors 字段记录）
+///
+/// Issue #205 Finding 1 修复：导入 default_shell 后必须触发 PTY pool refresh
+/// · 镜像 [`settings_update`] line 499-506 的 default_shell change 处理
+/// · 否则 prewarm PTY 仍用旧 shell · 用户切 shell 后第一个新 tab 仍旧 shell
 #[tauri::command]
 fn config_import_apply(
     state: State<'_, AppState>,
@@ -608,6 +612,21 @@ fn config_import_apply(
     // （主题 / 字体 / shell 切换走和 settings_update 一致的 event 通道）
     let updated = AppSettingsStore::get_all(pool);
     drop(guard);
+
+    // Issue #205 Finding 1 第二修复：default_shell 写入成功 → 立即 kill 旧 idle
+    // PTY + 预热新 shell（镜像 settings_update spec A3）· 否则下次 tab 创建仍用
+    // 旧 shell · 用户期望"导入后立即生效"破坏
+    if result
+        .applied
+        .iter()
+        .any(|f| matches!(f, vibestation_core::AppliedField::DefaultShell))
+    {
+        let shell_path = PathBuf::from(&updated.default_shell);
+        state
+            .pty_pool
+            .handle_default_shell_change(shell_path.clone());
+        state.pane_pty_pool.handle_default_shell_change(shell_path);
+    }
 
     let _ = app.emit("settings_changed", &updated);
     Ok(result)

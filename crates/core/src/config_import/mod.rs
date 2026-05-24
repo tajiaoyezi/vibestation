@@ -34,10 +34,18 @@ pub enum ImportSource {
 pub enum ImportedField {
     FontFamily(String),
     FontSize(f32),
-    Theme(String),
+    /// Issue #206 Important 1 修复：String → ThemeMode enum · parser 层 reject
+    /// 非 light/dark/auto 的输入 · 类型层保证只有合法值流到下游
+    Theme(ipc::ThemeMode),
     Shell(String),
-    KeyBinding { key: String, action: String },
-    AnsiColor { index: u8, hex: String },
+    KeyBinding {
+        key: String,
+        action: String,
+    },
+    AnsiColor {
+        index: u8,
+        hex: String,
+    },
 }
 
 /// 单个源扫描 + 解析的 raw 结果（Phase A 内部 · 含 PathBuf · 不进 IPC）

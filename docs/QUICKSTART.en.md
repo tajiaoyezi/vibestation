@@ -90,15 +90,11 @@ After launching Vibestation, verify the following:
 
 When Vibestation launches, you will see the default dark layout: the left sidebar shows workspace navigation, the bottom area contains the terminal, and the right panel can expand to show Git views.
 
-![Vibestation default dark layout with sidebar open](assets/onboarding/hero/01-default-layout-dark.jpg)
-
 > On first launch, Vibestation automatically detects the current directory and loads the corresponding Shell configuration. If the display looks incorrect, check that your system meets the requirements.
 
 ### Step 2 · Create a Tab and Run CLI
 
 Use the shortcut `Cmd+T` (macOS) or `Ctrl+T` (Ubuntu) to create a new terminal tab. Each tab has an independent Shell session — you can run Claude CLI, Codex CLI, or other command-line tools in separate tabs.
-
-![Creating multiple terminal tabs](assets/onboarding/terminal/01-multi-tab-create.png)
 
 > You can also create tabs via the "+" button in the sidebar or the right-click context menu. Each tab can have its own working directory.
 
@@ -106,23 +102,17 @@ Use the shortcut `Cmd+T` (macOS) or `Ctrl+T` (Ubuntu) to create a new terminal t
 
 Click the Git icon in the sidebar or use a shortcut to open the Git view and browse the commit history of the current repository. Each commit shows the author, timestamp, and message summary.
 
-![Git commit detail view](assets/onboarding/git/01-commit-detail-loaded.jpg)
-
 > The Git view automatically detects the Git repository in the current tab's working directory. If nothing appears, verify the directory contains a `.git` folder.
 
 ### Step 4 · View Diff
 
 In the Git view, click a commit to see its file changes on the right side, with an overlay view showing added, deleted, and modified lines.
 
-![Diff overlay view](assets/onboarding/git/02-diff-overlay-opened.jpg)
-
 > The Diff view supports syntax highlighting for a clear look at code changes. Future versions will support staging area diff and inline diff.
 
 ### Step 5 · Switch Theme
 
 Vibestation supports dark and light themes. Open settings via the settings panel or shortcut `Cmd+,` (macOS) / `Ctrl+,` (Ubuntu), then switch under the Appearance option.
-
-![Switching to dark theme](assets/onboarding/theme/01-theme-switch-dark.png)
 
 > Theme switching takes effect immediately — no restart needed. You can also follow the system theme for automatic switching.
 

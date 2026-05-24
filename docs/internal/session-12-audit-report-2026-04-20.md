@@ -21,29 +21,29 @@
 
 ## 2 · 22 个 PR 快速扫描
 
-| PR | 主题 | 实施人 | Test Plan | Runtime 证据 | Arbiter trailer | 状态 |
-|----|------|--------|-----------|-------------|----------------|------|
-| #53 | bump actions/checkout | Dependabot | — | — | — | ✅ |
-| #56 | SPIKE-08 spec（H2 制度化）| Claude | ✅ | — | — | ✅ |
-| #57 | MVP-03 spec → ready | Claude | ✅ | — | ✅ | ✅ |
-| #58 | rusqlite 字样对齐 | Claude | ✅ | — | — | ✅ |
-| #59 | Vite 8 + TS 6 评估 | Claude | ✅ | — | — | ✅ |
-| #60 | SPIKE-08 POC | Claude | ✅ | 有 | — | ✅ |
-| #61 | MVP-03 Tool Windows | Claude | ✅ | 有 | ✅ | ✅ |
-| #62 | session 11 status sync | Claude | ✅ | — | ✅ | ✅ |
-| #63 | ts-rs MVP-02 contract | Claude | ✅ | 有 | ✅ | ✅ |
-| #64 | MVP-04 spec → ready | Kimi | ✅ | — | ✅ | ✅ |
-| #65 | end-session skill | Claude | ✅ | — | ✅ | ✅ |
-| #66 | MVP-07 spec → ready | Kimi | ✅ | — | ✅ | ✅ |
-| #67 | PROGRESS session 11/12 sync | Claude | ✅ | — | ⚠ | ✅ |
-| #68 | SPIKE-04.5 §A.3 方案(b) | OpenCode | ✅ | 有 | ⚠ | ✅ |
-| #69 | session 12 post-mortem | Claude | ✅ | — | ⚠ | ✅ |
-| #70 | MVP-08 spec → ready | Kimi | ✅ | — | ✅ | ✅ |
-| #71 | SPIKE-06 36 样本 | Codex | ✅ | — | ✅ | ✅ |
-| #72 | MVP-04 storage prep | OpenCode | ✅ | 有 | ⚠ self-only | ✅ |
-| #73 | MVP-09 spec → ready | Kimi | ✅ | — | ✅ | ✅ |
-| #74 | MVP-05 spec → ready | Kimi | ✅ | — | ✅ | ✅ |
-| #75 | session 12 batch sync | Claude | ✅ | — | ⚠ | ✅ |
+| PR  | 主题                        | 实施人     | Test Plan | Runtime 证据 | Arbiter trailer | 状态 |
+| --- | --------------------------- | ---------- | --------- | ------------ | --------------- | ---- |
+| #53 | bump actions/checkout       | Dependabot | —         | —            | —               | ✅   |
+| #56 | SPIKE-08 spec（H2 制度化）  | Claude     | ✅        | —            | —               | ✅   |
+| #57 | MVP-03 spec → ready         | Claude     | ✅        | —            | ✅              | ✅   |
+| #58 | rusqlite 字样对齐           | Claude     | ✅        | —            | —               | ✅   |
+| #59 | Vite 8 + TS 6 评估          | Claude     | ✅        | —            | —               | ✅   |
+| #60 | SPIKE-08 POC                | Claude     | ✅        | 有           | —               | ✅   |
+| #61 | MVP-03 Tool Windows         | Claude     | ✅        | 有           | ✅              | ✅   |
+| #62 | session 11 status sync      | Claude     | ✅        | —            | ✅              | ✅   |
+| #63 | ts-rs MVP-02 contract       | Claude     | ✅        | 有           | ✅              | ✅   |
+| #64 | MVP-04 spec → ready         | Kimi       | ✅        | —            | ✅              | ✅   |
+| #65 | end-session skill           | Claude     | ✅        | —            | ✅              | ✅   |
+| #66 | MVP-07 spec → ready         | Kimi       | ✅        | —            | ✅              | ✅   |
+| #67 | PROGRESS session 11/12 sync | Claude     | ✅        | —            | ⚠               | ✅   |
+| #68 | SPIKE-04.5 §A.3 方案(b)     | OpenCode   | ✅        | 有           | ⚠               | ✅   |
+| #69 | session 12 post-mortem      | Claude     | ✅        | —            | ⚠               | ✅   |
+| #70 | MVP-08 spec → ready         | Kimi       | ✅        | —            | ✅              | ✅   |
+| #71 | SPIKE-06 36 样本            | Codex      | ✅        | —            | ✅              | ✅   |
+| #72 | MVP-04 storage prep         | OpenCode   | ✅        | 有           | ⚠ self-only     | ✅   |
+| #73 | MVP-09 spec → ready         | Kimi       | ✅        | —            | ✅              | ✅   |
+| #74 | MVP-05 spec → ready         | Kimi       | ✅        | —            | ✅              | ✅   |
+| #75 | session 12 batch sync       | Claude     | ✅        | —            | ⚠               | ✅   |
 
 图例：✅ 齐 · ⚠ 缺 · — 不适用
 
@@ -125,14 +125,14 @@ blocked_note: §A 36 样本 done（PR #71）· §B Apple Dev Program 前置，�
 ```markdown
 ## 实施进度（2026-04-20 更新）
 
-| Phase | 范围 | 状态 | PR |
-|-------|------|------|----|
-| Phase A · storage prep | migration v5 + TabsDao + 5 IPC + ACL + ts-rs | ✅ done | #72 |
-| Phase B · PTY runtime | portable-pty 启动 + stdin/stdout 桥接 | ⏳ todo | — |
-| Phase C · xterm 前端 | xterm.js 渲染 + solid 集成 | ⏳ todo | — |
-| Phase D · shell 兼容 | zsh/bash/fish + Claude CLI/Codex CLI 实机 | ⏳ todo | — |
-| Phase E · 持久化 | scrollback_append + scrollback_fetch IPC 串起 | ⏳ todo | — |
-| Phase F · runtime 证据 | 3+ 截图 · 覆盖 create/close/rename/scrollback | ⏳ todo | — |
+| Phase                  | 范围                                          | 状态    | PR  |
+| ---------------------- | --------------------------------------------- | ------- | --- |
+| Phase A · storage prep | migration v5 + TabsDao + 5 IPC + ACL + ts-rs  | ✅ done | #72 |
+| Phase B · PTY runtime  | portable-pty 启动 + stdin/stdout 桥接         | ⏳ todo | —   |
+| Phase C · xterm 前端   | xterm.js 渲染 + solid 集成                    | ⏳ todo | —   |
+| Phase D · shell 兼容   | zsh/bash/fish + Claude CLI/Codex CLI 实机     | ⏳ todo | —   |
+| Phase E · 持久化       | scrollback_append + scrollback_fetch IPC 串起 | ⏳ todo | —   |
+| Phase F · runtime 证据 | 3+ 截图 · 覆盖 create/close/rename/scrollback | ⏳ todo | —   |
 ```
 
 保持 `status: ready` 不变 · 但正文让下次 agent 一眼清楚 Phase B 起点。
@@ -287,17 +287,17 @@ Session 13 开场前 5 min 做：
 
 ## 9 · 追溯记录
 
-| 字段 | 值 |
-|------|---|
-| 起点 commit | `5a9812e` · PR #52（2026-04-20 之前 session 10 末）|
-| 终点 commit | `039fa2b` · PR #75（2026-04-20 22:22 session 12 收尾）|
-| 时长 | 约 12 小时（14:32 → 22:22）|
-| 总 PR 数 | 22 个（#53/#56-#75，#54/#55 无记录可能合并到 session 11 初） |
-| 累计改动 | +7,854 / -275 行（代码 · docs · tests）|
-| 通过 CI | 22/22（100%）|
-| 事故数 | 1（commit 误落 main · safe recovery · 0 impact）|
-| 新规则数 | 2（全局 rule 16/17）+ 1 扩展（common/git-workflow）+ 1 补丁（dispatch §2.9）|
-| 项目 memory 初始化 | 3 条 feedback（multi-agent-worktree-race · kimi-remote-api · kimi-speed）|
+| 字段               | 值                                                                           |
+| ------------------ | ---------------------------------------------------------------------------- |
+| 起点 commit        | `5a9812e` · PR #52（2026-04-20 之前 session 10 末）                          |
+| 终点 commit        | `039fa2b` · PR #75（2026-04-20 22:22 session 12 收尾）                       |
+| 时长               | 约 12 小时（14:32 → 22:22）                                                  |
+| 总 PR 数           | 22 个（#53/#56-#75，#54/#55 无记录可能合并到 session 11 初）                 |
+| 累计改动           | +7,854 / -275 行（代码 · docs · tests）                                      |
+| 通过 CI            | 22/22（100%）                                                                |
+| 事故数             | 1（commit 误落 main · safe recovery · 0 impact）                             |
+| 新规则数           | 2（全局 rule 16/17）+ 1 扩展（common/git-workflow）+ 1 补丁（dispatch §2.9） |
+| 项目 memory 初始化 | 3 条 feedback（multi-agent-worktree-race · kimi-remote-api · kimi-speed）    |
 
 ---
 

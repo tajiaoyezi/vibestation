@@ -19,7 +19,7 @@
 
 - **12/12 PR**（#64–#75）· `gh pr view --json comments` 全部 0 条
 - 其中 7 个（#64/#65/#67/#68/#69/#72/#75）连 (a) 的 PR body trailer 都缺
-- 详见 [`docs/session-12-audit-report-2026-04-20.md` §3.1](../session-12-audit-report-2026-04-20.md)
+- 详见 [`docs/internal/session-12-audit-report-2026-04-20.md` §3.1](../session-12-audit-report-2026-04-20.md)
 
 **根因**：(b) "24h 内补 PR comment" 纯靠人肉自觉 · 无 hook 自动化 · 无 CI 硬阻塞 · 人肉不能规模化（22 PR / 12h 的 session 12 节奏）。
 
@@ -95,13 +95,14 @@
 
 - `CLAUDE.md` §"改锁定表 A 栏前必须" §(2) · §(5) · §(6)
 - 前置 ADR：v2-D 升级 PR #50（ADR-006 + 决策表 #19 同 PR · 未单独开 ADR）
-- 审查报告：[`docs/session-12-audit-report-2026-04-20.md`](../session-12-audit-report-2026-04-20.md) §3.1 H1
+- 审查报告：[`docs/internal/session-12-audit-report-2026-04-20.md`](../session-12-audit-report-2026-04-20.md) §3.1 H1
 - 未来升级入口：CLAUDE.md §"改锁定表 A 栏前必须" §(3) "未来升级触发 v2-strict"
 - PR：本 PR（chore/session-13-audit-followup）
 
 ---
 
 **修订历史**：
+
 - 2026-04-21 · 初版 · accepted · Claude Code + tajiaoyezi
 
 **自审四问**：

@@ -5,21 +5,23 @@
 -->
 
 ---
-id: TYPE-NN                       # SPIKE-01 / MVP-03 / BUG-001 / FEAT-01
-type: spike                       # spike | mvp | bug | feat
+
+id: TYPE-NN # SPIKE-01 / MVP-03 / BUG-001 / FEAT-01
+type: spike # spike | mvp | bug | feat
 title: <中文标题，≤ 30 字>
-status: draft                     # draft | ready | in-progress | blocked | done
-owner:                            # 认领者标识（留空 = 未认领）
-phase: W0-D1                      # W0-D1 / W1 / W5 / v0.2 / ...
-depends_on: []                    # ["SPIKE-01", "MVP-03"]
-blocks: []                        # 该 task 完成后解锁哪些 task
-blocked_by: []                    # 仅 status: blocked 时必填：["SPIKE-02", "apple-dev-program-approval"]
-blocked_from:                     # 仅 status: blocked 时必填：ready | in-progress（进入 blocked 前的状态，解除时自动恢复）
-blocked_note:                     # 可选：人类可读的阻塞原因（1-2 句）
-estimate: 1d                      # 0.5d / 1d / 3d / 1w
-plan_ref: implementation-plan.md §N.N  # 引用的战略计划章节
-risk_ref:                         # R1 / R12 / R27（implementation-plan §9 风险 ID，可选）
-reviewer:                         # 独立评审者（PR merge 前填写，必须 ≠ owner）
+status: draft # draft | ready | in-progress | blocked | done
+owner: # 认领者标识（留空 = 未认领）
+phase: W0-D1 # W0-D1 / W1 / W5 / v0.2 / ...
+depends_on: [] # ["SPIKE-01", "MVP-03"]
+blocks: [] # 该 task 完成后解锁哪些 task
+blocked_by: [] # 仅 status: blocked 时必填：["SPIKE-02", "apple-dev-program-approval"]
+blocked_from: # 仅 status: blocked 时必填：ready | in-progress（进入 blocked 前的状态，解除时自动恢复）
+blocked_note: # 可选：人类可读的阻塞原因（1-2 句）
+estimate: 1d # 0.5d / 1d / 3d / 1w
+plan_ref: implementation-plan.md §N.N # 引用的战略计划章节
+risk_ref: # R1 / R12 / R27（implementation-plan §9 风险 ID，可选）
+reviewer: # 独立评审者（PR merge 前填写，必须 ≠ owner）
+
 ---
 
 # <TYPE-NN>: <中文标题>
@@ -37,6 +39,7 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 ## 📖 背景（Context）
 
 2-4 句：
+
 - 为什么现在做？
 - 上游 / 下游依赖是什么？
 - 历史上有过什么尝试？（如果有）
@@ -88,6 +91,7 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 - [ ] **(6) ADR**（仅有决策锁定的 Spike）：`docs/adr/ADR-XXX-<slug>.md` 新建或从 proposed → accepted
 
 **独立评审必查项**（Arbiter / reviewer 对照 PR Test Plan 逐项 verify · 不通过即 block merge）：
+
 - [ ] 4 样物料（1-4）全部在各自目录
 - [ ] clone repo 后 `cd docs/spikes/code/<id> && cargo build` 能复现
 - [ ] Report 所有数字可在 raw 文件溯源
@@ -112,10 +116,12 @@ reviewer:                         # 独立评审者（PR merge 前填写，必�
 ## 🎨 功能范围（Scope）
 
 **Do**：
+
 - 列 1
 - 列 2
 
 **Don't**（显式排除，避免 scope creep）：
+
 - 列 1
 - 列 2
 
@@ -137,12 +143,12 @@ evaluator 按此逐项对照 diff：
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-|------|------|---------|
-| 单元 | `core/` Rust 逻辑 | `cargo test` |
-| 集成 | IPC + rusqlite 交互 | `cargo test --features integration` |
-| E2E | 用户流程 | Tauri webdriver + Playwright |
-| 视觉回归 | Calm Studio 主视觉 | Playwright screenshot diff |
+| 层次     | 范围                | 覆盖路径                            |
+| -------- | ------------------- | ----------------------------------- |
+| 单元     | `core/` Rust 逻辑   | `cargo test`                        |
+| 集成     | IPC + rusqlite 交互 | `cargo test --features integration` |
+| E2E      | 用户流程            | Tauri webdriver + Playwright        |
+| 视觉回归 | Calm Studio 主视觉  | Playwright screenshot diff          |
 
 ## 💾 数据模型变更（如有）
 
@@ -190,7 +196,7 @@ evaluator 按此逐项对照 diff：
 - ADR：`docs/adr/ADR-XXX-<slug>.md`（如有）
 - 对应 `CLAUDE.md` 决策表：#N
 - 相关 PR：#NN
-- 前置讨论：`docs/session-history/<date>-<topic>.md`（Phase 3 后）
+- 前置讨论：`docs/internal/session-history/<date>-<topic>.md`（Phase 3 后）
 
 ---
 

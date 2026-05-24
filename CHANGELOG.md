@@ -18,7 +18,7 @@
 
 - `CLAUDE.md` · agent 入口（5 步 checklist · 锁定决策表 A+B+C · 禁区 · 代码风格 · 自审四问）
 - `docs/PROGRESS.md` · 阶段 / 进度 / 卡点
-- `docs/SESSION-STARTUP.md` · 人类启动手册
+- `docs/internal/SESSION-STARTUP.md` · 人类启动手册
 - `docs/implementation-plan.md` · 战略计划（v2 收紧为 B 折中方案）
 - `design/directions/1-calm-studio.html` · 视觉原型（Calm Studio 锁定）
 - `LICENSE`（Apache 2.0）· `NOTICE` · `README.md`（中英双语首屏）
@@ -40,7 +40,7 @@
 - `CHANGELOG.md` · 本文件
 - `docs/spikes/README.md` · Spike per-task 报告目录占位
 - `docs/spike-artifacts/README.md` · Spike 录屏 / 截图目录占位
-- `docs/session-history/README.md` · Session 历史目录占位
+- `docs/internal/session-history/README.md` · Session 历史目录占位
 
 <!-- Phase 4（GitHub 基础设施）条目已移除 · Codex PR #12 F5 复核：
      该 Phase 4 在 PR #11（独立分支 `docs/phase-4-github-infra`）交付 ·
@@ -233,7 +233,7 @@
 
 - `SECURITY.md`（PR #171）— 112 行 · GitHub Security Advisory + 邮件 · CVSS 3.1 严重度分级 + 响应时间表
 - `privacy-policy.md`（PR #171）— 145 行 · GDPR Article 13 · 9 章 · Sentry payload 3 字段透明
-- `docs/session-history/session-17.md` / `session-18.md` / `session-19.md` / `session-20.md` 归档（PR #134/#153/#170）
+- `docs/internal/session-history/session-17.md` / `session-18.md` / `session-19.md` / `session-20.md` 归档（PR #134/#153/#170）
 
 ### Removed
 

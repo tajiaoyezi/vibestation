@@ -6,7 +6,7 @@
 >
 > **关联全局规则**：`~/.claude/rules/13-cross-agent-delivery.md` · `~/.claude/rules/15-runtime-verification-gate.md`
 >
-> 📎 **审计附录**：每条硬约束的完整「事件」叙述 / 完整「反模式」对照表 / 详细「为什么」 / 参考实现历史 / 16 条来源时间线 → [`docs/dispatch-incidents.md`](../../docs/dispatch-incidents.md)（**不进 auto-load · 进 git** · 写 dispatch 时按需查 · 拆分依据见该文件头）。本正文保留**规则 + 具体做法 + code + 速查表 + 模板**，照此即可写合规 prompt，无需翻附录。
+> 📎 **审计附录**：每条硬约束的完整「事件」叙述 / 完整「反模式」对照表 / 详细「为什么」 / 参考实现历史 / 16 条来源时间线 → [`docs/internal/dispatch-incidents.md`](../../docs/internal/dispatch-incidents.md)（**不进 auto-load · 进 git** · 写 dispatch 时按需查 · 拆分依据见该文件头）。本正文保留**规则 + 具体做法 + code + 速查表 + 模板**，照此即可写合规 prompt，无需翻附录。
 
 ---
 
@@ -44,7 +44,7 @@ Dispatch prompt 里的协作要求 **必须区分**：
 
 硬约束和建议**物理分段**（用分隔线或独立 section · 见 §3.1 模板的「🔴 硬约束」段格式）· 不混在一起写。外部 agent 会倾向走最短路径 · "建议"级条款容易被绕过 · 对**不能绕过**的要求 · 必须升级为"硬约束"措辞。
 
-> 📎 反模式（SPIKE-04.5 / MVP-02 两次踩坑详例）→ [dispatch-incidents.md §1](../../docs/dispatch-incidents.md#ev-1)
+> 📎 反模式（SPIKE-04.5 / MVP-02 两次踩坑详例）→ [dispatch-incidents.md §1](../../docs/internal/dispatch-incidents.md#ev-1)
 
 ---
 
@@ -63,7 +63,7 @@ Dispatch prompt 里的协作要求 **必须区分**：
 
 **允许**：外部 agent 可以**建议**（"建议方案 a · 理由 ..."）· 但最终 accept 只能是 Arbiter（项目所有者）在 PR comment 明确 approve 后生效。
 
-> 📎 事件（SPIKE-04.5 §A.3 OpenCode 自标 Arbiter 选定）→ [dispatch-incidents.md §2.1](../../docs/dispatch-incidents.md#ev-2-1)
+> 📎 事件（SPIKE-04.5 §A.3 OpenCode 自标 Arbiter 选定）→ [dispatch-incidents.md §2.1](../../docs/internal/dispatch-incidents.md#ev-2-1)
 
 ### 2.2 · Acceptance 全覆盖（不得简化）
 
@@ -104,7 +104,7 @@ cd /private/tmp/<task-id>-work
 - 在主目录 `git checkout -b feat/X` 开 agent 任务分支（会干扰主 agent 的 working tree · rule 13 踩坑）
 - 共享同一目录做并发 checkout
 
-> 📎 事件（MVP-02 OpenCode 主 working tree 脏阻塞主 agent）→ [dispatch-incidents.md §2.4](../../docs/dispatch-incidents.md#ev-2-4)
+> 📎 事件（MVP-02 OpenCode 主 working tree 脏阻塞主 agent）→ [dispatch-incidents.md §2.4](../../docs/internal/dispatch-incidents.md#ev-2-4)
 
 ### 2.5 · Commit 身份标识（3 条硬约束 · 缺一即 BLOCK merge）
 
@@ -129,7 +129,7 @@ git config user.name && git config user.email
 
 **为什么 `--worktree`（一句话）**：`git worktree add` 的 worktree **共享主 repo `.git/config`**，无 `--worktree` flag 的 `git config user.email` 会污染同 repo 所有 worktree + 主 agent commit（session 28 实证复发 3 次）· 启用 `extensions.worktreeConfig=true` + `--worktree` 才真正 per-worktree 隔离。
 
-> 📎 详细为什么（4 点）/ 反模式表 / PR #71 事件 → [dispatch-incidents.md §2.5](../../docs/dispatch-incidents.md#ev-2-5)
+> 📎 详细为什么（4 点）/ 反模式表 / PR #71 事件 → [dispatch-incidents.md §2.5](../../docs/internal/dispatch-incidents.md#ev-2-5)
 
 #### 2.5.2 · 每个 commit 必含 `Co-authored-by` trailer
 
@@ -211,7 +211,7 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 - 只 kill 父进程 · 子进程 orphan（用 `pkill -f <name>` 按模式 kill · 或 process group）
 - 假设 session 结束会自动清理 · 实际 detached 进程会留到 4+ 小时
 
-> 📎 事件（MVP-02 OpenCode Vite orphan 4 小时占 port 1420）→ [dispatch-incidents.md §2.8](../../docs/dispatch-incidents.md#ev-2-8)
+> 📎 事件（MVP-02 OpenCode Vite orphan 4 小时占 port 1420）→ [dispatch-incidents.md §2.8](../../docs/internal/dispatch-incidents.md#ev-2-8)
 
 ### 2.9 · Agent 能力矩阵 · 本地 agent vs 远程 API agent 适配
 
@@ -256,7 +256,7 @@ lsof -iTCP:1420 -sTCP:LISTEN && echo "⚠ port 1420 still in use" || echo "✓ c
 
 **Cursor 双形态区分**（硬约束）：`cursor-agent` CLI（命令行）归"本地 CLI"行 · 默认端到端；**Cursor IDE 内嵌 chat**（编辑器内置 AI）归"IDE 插件"行 · 必须显式完工硬约束。派发 Cursor **必须先询问 user 用哪种形态** · 或默认按"IDE 插件"行处理（安全 fallback）· 不能两形态共用同一 prompt。
 
-> 📎 反模式表 / MVP-07 Kimi 首次踩坑 / Cursor IDE PR #313 踩坑 / 关联 → [dispatch-incidents.md §2.9](../../docs/dispatch-incidents.md#ev-2-9)
+> 📎 反模式表 / MVP-07 Kimi 首次踩坑 / Cursor IDE PR #313 踩坑 / 关联 → [dispatch-incidents.md §2.9](../../docs/internal/dispatch-incidents.md#ev-2-9)
 
 ### 2.10 · GUI / 前端 task 必须跑 `pnpm lint` · 文档 task 必须显式跑 markdown prettier check
 
@@ -273,7 +273,7 @@ Dispatch prompt 若涉及 markdown 文档详化 / archive / spec 改动（任何
 
 **为什么**：CI 的 `Frontend · pnpm lint + typecheck` 跑 `pnpm lint`（prettier --check）+ `pnpm typecheck`（tsc --noEmit）· 只做 typecheck 本地 pass 但 CI fail。**`pnpm lint` ≠ markdown prettier check**：`pnpm lint` scope = `web/src/**/*.{ts,tsx,css}` + `web/index.html` · **不含 `docs/**/\*.md`** · markdown 文档 task 必须显式 `npx prettier --check <md>` 才真验到 · 否则主 agent review 跑 prettier 必 fail 触发 fix-up（session 31 OpenCode N=4 understanding gap 实证）。
 
-> 📎 PR #83 / PR #311 事件 / 反模式表 → [dispatch-incidents.md §2.10](../../docs/dispatch-incidents.md#ev-2-10)
+> 📎 PR #83 / PR #311 事件 / 反模式表 → [dispatch-incidents.md §2.10](../../docs/internal/dispatch-incidents.md#ev-2-10)
 
 ### 2.11 · Timing-sensitive 跨平台测试 · timeout 必须 ≥ 本地最大运行时长 × 2 · 或 Linux-only ignore
 
@@ -296,7 +296,7 @@ Dispatch prompt 若涉及 markdown 文档详化 / archive / spec 改动（任何
 
 **为什么（一句话）**：本地 macOS（kqueue）vs Linux CI（epoll）对 PTY close event / signal / `waitpid` / `tcgetpgrp` 语义可能有差异 · 纯 timeout 扩张不解决语义问题。
 
-> 📎 详细为什么 / PR #82/#86 事件 / 反模式表 → [dispatch-incidents.md §2.11](../../docs/dispatch-incidents.md#ev-2-11)
+> 📎 详细为什么 / PR #82/#86 事件 / 反模式表 → [dispatch-incidents.md §2.11](../../docs/internal/dispatch-incidents.md#ev-2-11)
 
 ### 2.12 · 主 agent 在别人 worktree 操作 git config 后必须 unset（防跨 agent author 污染）
 
@@ -333,7 +333,7 @@ git config --worktree user.email "..."
 
 `--worktree` 写入位置不再共享 · 跨 agent 污染从根上消除。
 
-> 📎 详细为什么 / session 14 + 28 共 6 次污染事件 / 反模式表 → [dispatch-incidents.md §2.12](../../docs/dispatch-incidents.md#ev-2-12)
+> 📎 详细为什么 / session 14 + 28 共 6 次污染事件 / 反模式表 → [dispatch-incidents.md §2.12](../../docs/internal/dispatch-incidents.md#ev-2-12)
 
 ### 2.13 · 索引同步类 prompt 禁止 inline 已被其他 PR 修改的源文件
 
@@ -352,7 +352,7 @@ git checkout origin/main -- docs/adr/ADR-NNN-foo.md   # 字节级恢复本体 ·
 # 然后只补需要新增的索引条目（在其他文件 · 用 sed / git apply / grep 锚点定位）
 ```
 
-> 📎 完整正确/错误示范块 / 为什么 / PR #157 round 1 倒退事件 / 反模式表 / 关联 → [dispatch-incidents.md §2.13](../../docs/dispatch-incidents.md#ev-2-13)
+> 📎 完整正确/错误示范块 / 为什么 / PR #157 round 1 倒退事件 / 反模式表 / 关联 → [dispatch-incidents.md §2.13](../../docs/internal/dispatch-incidents.md#ev-2-13)
 
 ### 2.14 · Reviewer 必须启 dev 模式跑 critical UX path（GUI / IPC 类 PR · 不只看 Rust 测试 + ts-rs contract）
 
@@ -382,7 +382,7 @@ GUI / IPC 类 PR（含 webview 组件 / dialog / modal / Tauri command）· revi
 - ❌ 仅 `cargo build` / `pnpm build` 产物生成 → approve
 - ❌ 假设 "frontend 改动小 · CSS 应该没事 · 不用看 UI" → approve（**PR #159 反面案例**）
 
-> 📎 PR #159/#161/#163 三 bug 事件表 / 根因 / 反模式表 / 关联 → [dispatch-incidents.md §2.14](../../docs/dispatch-incidents.md#ev-2-14)
+> 📎 PR #159/#161/#163 三 bug 事件表 / 根因 / 反模式表 / 关联 → [dispatch-incidents.md §2.14](../../docs/internal/dispatch-incidents.md#ev-2-14)
 
 ### 2.15 · 并发派工 · push 前必须 fetch + rebase main + 重跑 gate（防 stale base race）
 
@@ -411,7 +411,7 @@ rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 
 - ✅ 单 agent dispatch 但其他 agent 同时活跃在相邻文件域
 - ⚠️ 单 agent dispatch + 无其他活跃 PR · 可豁免（base 不会变）· 但仍建议 fetch verify
 
-> 📎 为什么（main_A/main_B 时序）/ PR #297 stale base 事件 / 反模式表 / 关联 → [dispatch-incidents.md §2.15](../../docs/dispatch-incidents.md#ev-2-15)
+> 📎 为什么（main_A/main_B 时序）/ PR #297 stale base 事件 / 反模式表 / 关联 → [dispatch-incidents.md §2.15](../../docs/internal/dispatch-incidents.md#ev-2-15)
 
 ---
 
@@ -432,7 +432,7 @@ rebase 后 gate fail · **必须先修 · 再 push** · 不允许带 stale base 
 - ✅ 任何 store/seam 切 canonical binding 的前端 task（shape resolution 必含）
 - ⚠️ 纯单域 task 无 codegen / 无 contract 切换 · 不触发本条
 
-> 📎 4 例同根事件（#345 §K.5 / #351 ADR# / #354 codegen / #353 shape）/ 反模式表 / 根因归属判则 / 关联 → [dispatch-incidents.md §2.16](../../docs/dispatch-incidents.md#ev-2-16)
+> 📎 4 例同根事件（#345 §K.5 / #351 ADR# / #354 codegen / #353 shape）/ 反模式表 / 根因归属判则 / 关联 → [dispatch-incidents.md §2.16](../../docs/internal/dispatch-incidents.md#ev-2-16)
 
 ---
 
@@ -589,7 +589,7 @@ GO 🚀
 | Spike（decision-grade · 4 样齐全）  | 最严格 artifact 归档（report+code+raw+冷备）+ raw 溯源 + R1 独立 section  |
 | Chore / 文档 · 本地 CLI agent       | 简洁 + 16 硬约束全列 + 禁止清单 + §2.10 markdown prettier check           |
 
-> 📎 范本的**特征描述**（每个历史范本"为什么是范本"的结构特征 · 不依赖文件可点击）/ 历史对照（反面教材 SPIKE-04.5 / SPIKE-05.5）→ [dispatch-incidents.md §4](../../docs/dispatch-incidents.md#ev-4)（该附录已同步去断链 · 仅描述特征不给 git 路径）
+> 📎 范本的**特征描述**（每个历史范本"为什么是范本"的结构特征 · 不依赖文件可点击）/ 历史对照（反面教材 SPIKE-04.5 / SPIKE-05.5）→ [dispatch-incidents.md §4](../../docs/internal/dispatch-incidents.md#ev-4)（该附录已同步去断链 · 仅描述特征不给 git 路径）
 
 ---
 
@@ -602,13 +602,13 @@ GO 🚀
 
 未来若 Codex / 其他 agent 触发新的协作 failure mode · 本规则追加新条款（规则正文落本文件 · 对应事件 / 反模式落附录 · 二者同步）。
 
-> 📎 16 条硬约束的完整来源时间线（每条事件源 + session）→ [dispatch-incidents.md §5](../../docs/dispatch-incidents.md#ev-5)
+> 📎 16 条硬约束的完整来源时间线（每条事件源 + session）→ [dispatch-incidents.md §5](../../docs/internal/dispatch-incidents.md#ev-5)
 
 ---
 
 ## 6 · 自审四问（本规则对自己）
 
-- **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/\*"）· 所以未来 agent 修本规则需明确授权 ✅ · 附录 `docs/dispatch-incidents.md` 不在 `.claude/rules/` · 不受 2.7 约束（属普通 docs · 但演进时须与本正文同步，见 §5）✅
+- **递归完备性**：本规则自己在规则里（2.7 "不碰 .claude/rules/\*"）· 所以未来 agent 修本规则需明确授权 ✅ · 附录 `docs/internal/dispatch-incidents.md` 不在 `.claude/rules/` · 不受 2.7 约束（属普通 docs · 但演进时须与本正文同步，见 §5）✅
 - **反向场景**：规则不遵守 → 第三次违规 → 触发 CI 硬阻塞升级路径（见 §5）✅
 - **边界适用性**：适用所有 dispatch（Spike / MVP / chore）· chore 可豁免 2.3（明示在 prompt）· 2.8 适用所有启动后台进程的 task · 纯文档 task 不触发 ✅
 - **YAGNI**：16 条都来自真实事件 / 真实风险 · 无投机条款 ✅
@@ -621,4 +621,4 @@ GO 🚀
 - [全局] `~/.claude/rules/15-runtime-verification-gate.md` · Runtime 验证 Gate（2.3 runtime 证据的上位依据）
 - [项目] `.claude/rules/spike-delivery-checklist.md` · Spike 4 样齐全归档（2.3 Spike 层级引用）
 - [项目] `.claude/rules/tauri-v2-patterns.md` · Tauri v2 ACL + CSP + capability（MVP 类 task 的具体实施规则）
-- [附录] [`docs/dispatch-incidents.md`](../../docs/dispatch-incidents.md) · 本规则的事件档案 / 完整反模式表 / 参考实现历史 / 来源时间线（含全部「关联事件记录」）
+- [附录] [`docs/internal/dispatch-incidents.md`](../../docs/internal/dispatch-incidents.md) · 本规则的事件档案 / 完整反模式表 / 参考实现历史 / 来源时间线（含全部「关联事件记录」）

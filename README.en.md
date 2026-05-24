@@ -21,19 +21,6 @@ Vibestation is a desktop application built on **Tauri 2 + Rust**, designed for d
 
 Current release: **v0.1 alpha** (macOS / Ubuntu), under active development.
 
-## Features
-
-| Module                         | Status       | Description                                                    |
-| ------------------------------ | ------------ | -------------------------------------------------------------- |
-| Multi-tab Terminal             | v0.1 now     | Multiple CLI sessions in one window · Claude / Codex CLI ready |
-| Git Workbench                  | v0.1 now     | Read-only log / status / diff · commit · conflict hints        |
-| Cross-project Management       | v0.1 now     | Multiple workspaces in one window · last-opened memory         |
-| Crash Recovery                 | v0.1 now     | Session state recoverable after unexpected exit                |
-| Push / Pull / Fetch            | v0.2 planned | Remote Git operations                                          |
-| Rail graph + Branch Management | v0.2 planned | Custom commit graph + branch CRUD                              |
-| Arbitrary Pane Nesting         | v0.2 planned | Multi-layer split                                              |
-| Rebase / Merge / Cherry-pick   | v0.3 planned | Conflict resolution · Pop to External                          |
-
 ## Installation
 
 ### macOS

@@ -27,6 +27,7 @@ GitHub 分支保护**不能写进 repo**（GitHub 产品设计），所以本文
   - ⛔ Require approval of the most recent reviewable push（**不勾** · 太严格会阻塞 bot PR · dependabot）
 
 **消除风险**：
+
 - `CLAUDE.md §禁区 1`：禁止 push 到 main
 - `docs/tasks/README.md §原则 7`：state transition advisory → 变 enforced
 - Codex PR #6 F1 / PR #10 F1：post-approval private flip
@@ -46,12 +47,14 @@ GitHub 分支保护**不能写进 repo**（GitHub 产品设计），所以本文
       - [ ] `Frontend · pnpm lint/typecheck`
 
 > ⚠️ **Required check 选型关键** · Codex PR #11 F1 教训：
+>
 > - 所有 required check 的 workflow **必须无 `paths` 过滤 · 总是触发**
 > - 带 `paths` 过滤 + 被设为 required → 无关 PR 永久 Pending 卡死合并
 > - 正确 pattern：workflow 无 `paths` · job 内用 `git diff` 判断是否需实质校验 · 无关则 echo skip + `exit 0`
 > - 当前所有 required workflow 已按此 pattern 改造（见 `.github/workflows/task-spec-validator.yml` / `secret-scan.yml`）
 
 **消除风险**：
+
 - SPIKE-06 A.5.3 F4：merge 前硬阻塞 gitleaks 扫描
 - **Codex PR #11 F3**：防 gitleaks inline bypass（`# gitleaks:allow` 内联绕过被 CI 拒绝）
 - **Codex PR #11 F1**：防 required check pending 死锁
@@ -73,7 +76,7 @@ GitHub 分支保护**不能写进 repo**（GitHub 产品设计），所以本文
 - ✅ **Do not allow bypassing the above settings**
   - **但允许 administrators bypass**（glich 场景下 maintainer 紧急操作）· GitHub 默认
 
-**风险权衡**：完全不允许 bypass 可能让紧急 hotfix 不可用；允许 admin bypass 是业界惯例，需配合"admin bypass 后立刻补 post-mortem"（写入 `docs/session-history/`）
+**风险权衡**：完全不允许 bypass 可能让紧急 hotfix 不可用；允许 admin bypass 是业界惯例，需配合"admin bypass 后立刻补 post-mortem"（写入 `docs/internal/session-history/`）
 
 ### 6. Restrict who can push to matching branches
 
@@ -149,6 +152,7 @@ gh api --method PUT \
 ## 🔄 变更流程
 
 修改 branch protection 属于 **治理决策**，必须：
+
 1. 开 issue 讨论变更理由
 2. 更新本文件 + 对应 workflow 文件
 3. 独立评审通过

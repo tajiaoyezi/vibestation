@@ -13,12 +13,12 @@
 
 session 25 末 v0.3 sprint phase A 50%（MVP-15 + MVP-16 done）· session 26 推进剩余 phase + 启动 next phase：
 
-| Agent | Task | 文件域 | 结果 |
-|---|---|---|---|
-| 主 agent | MVP-16 Phase C | `crates/app/src/lib.rs` + `web/src/lib/crash-recovery.ts` + `web/src/App.tsx` + permissions/capabilities/spec | ✅ APPROVE merge |
-| Droid | MVP-15 Phase C | `web/src/utils/shiki/*` + `web/src/panels/Diff/*` + tests + spec | ✅ APPROVE merge |
-| Codex CLI | MVP-12 Phase B | `web/src/styles/rail-graph.css` + `web/src/panels/GitLog/RailGraph/*` + GitLogPanel + tests + spec | ✅ APPROVE merge |
-| OpenCode | MVP-14 Phase B | `web/src/panels/Terminal/*` (Smart/Pane/Terminal) + tests + spec | 🚨 BLOCK §2.10 → fix-up → ✅ APPROVE merge |
+| Agent     | Task           | 文件域                                                                                                        | 结果                                       |
+| --------- | -------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 主 agent  | MVP-16 Phase C | `crates/app/src/lib.rs` + `web/src/lib/crash-recovery.ts` + `web/src/App.tsx` + permissions/capabilities/spec | ✅ APPROVE merge                           |
+| Droid     | MVP-15 Phase C | `web/src/utils/shiki/*` + `web/src/panels/Diff/*` + tests + spec                                              | ✅ APPROVE merge                           |
+| Codex CLI | MVP-12 Phase B | `web/src/styles/rail-graph.css` + `web/src/panels/GitLog/RailGraph/*` + GitLogPanel + tests + spec            | ✅ APPROVE merge                           |
+| OpenCode  | MVP-14 Phase B | `web/src/panels/Terminal/*` (Smart/Pane/Terminal) + tests + spec                                              | 🚨 BLOCK §2.10 → fix-up → ✅ APPROVE merge |
 
 **关键观察**：4 PR 文件 0 重叠 · 0 merge conflict · 任意顺序 merge OK · 仅 PR #260 改 pnpm-lock.yaml（esbuild 新 dep · Vite 8 worker build 需要）· 其他 PR 不动 deps · 验证"文件域 + dep 域双隔离"是 4-track concurrent 必要条件。
 
@@ -68,6 +68,7 @@ session 25 末 v0.3 sprint phase A 50%（MVP-15 + MVP-16 done）· session 26 �
 **处置**：reviewer BLOCK + fix-up dispatch（用户决策"应让 implementer 自修" · 与 PR #157 先例对齐）· OpenCode 修复 push commit `fcbf608` · reviewer 复跑全 gate 全过 · 解 BLOCK · 直接 merge。
 
 **沉淀**：
+
 - memory `feedback_opencode-dispatch-self-verify-gate.md` 升级 §2.10 evidence-based 强约束（exit code + errors count + git author 三段必贴）
 - 加 **N=3 violation 永久转出条款**（下次同类 trust gap 即任务永久换 agent · 不再 trust-based retry）
 - session 28 (PR #277) OpenCode 简单 vitest edge cases task 后 N=2 后回归 PASS · 永久转出未触发
@@ -135,6 +136,7 @@ PR #261 (MVP-12 Phase B Canvas rail graph) 涉及 30 色 oklch token 双主题 +
 ## Notes for next session（已成历史）
 
 session 27 实际接续：
+
 - ✅ MVP-12 Phase C done（PR #265 · Codex CLI）
 - ✅ MVP-14 Phase C done（PR #264 · 主 agent）
 - ✅ MVP-16 Phase D part A done（PR #266 · 主 agent · Criterion bench macOS arm64）

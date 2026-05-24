@@ -112,7 +112,7 @@ v1.0 vision 结论：
 - v0.2 计划：`docs/v0.2-sprint-schedule.md`
 - v0.3 计划：`docs/v0.3-sprint-schedule.md`（若本地未同步，请以最新 main 为准）
 - 实时全局：`docs/PROGRESS.md`
-- 历史归档：`docs/session-history/`
+- 历史归档：`docs/internal/session-history/`
 - capture 执行：`docs/playbooks/v0.3-sprint-capture-playbook.md`
 
 ---
@@ -148,7 +148,7 @@ draft ────────► ready ─────────────�
 **其他规则**：
 
 - 状态字段**必须**与 `PROGRESS.md`、PR description 一致
-- `done` 状态的 task 文件**不删除**，作为历史留档（Phase 3 可选归档到 `docs/session-history/`）
+- `done` 状态的 task 文件**不删除**，作为历史留档（Phase 3 可选归档到 `docs/internal/session-history/`）
 
 ---
 
@@ -324,7 +324,7 @@ git push
 2. **状态字段靠 PR description 和 commit 同步**，不在文件里搞复杂的锁
 3. **task spec 冲突**：同一 task 两人同时动 → PR 冲突时 rebase + 保留两方意图 + scalar 冲突找 Arbiter（用户）
 4. **task spec 是"一个 PR 一个逻辑单元"的依据**——评审者按 Acceptance 逐项对照
-5. **Deliverables 用 per-task 文件，不用共享文件**：每个 task 写自己的 `docs/spikes/<id>-report.md` / `docs/adr/ADR-NNN-<slug>.md`，**不要**多个 task 都往 `docs/SPIKE-REPORT.md` 写——物理隔离比"声明式并发治理"更可靠（详见 `docs/session-history/` Phase 3 后的 PR #4 close 反思）
+5. **Deliverables 用 per-task 文件，不用共享文件**：每个 task 写自己的 `docs/spikes/<id>-report.md` / `docs/adr/ADR-NNN-<slug>.md`，**不要**多个 task 都往 `docs/SPIKE-REPORT.md` 写——物理隔离比"声明式并发治理"更可靠（详见 `docs/internal/session-history/` Phase 3 后的 PR #4 close 反思）
 6. **`spike-tmp/` 是作者本地 scratchpad**（`.gitignore` 已排除），**不得作为其他 task 的依赖源**：跨 task 交接只能基于 committed / versioned 产物
 7. **⚠️ State transition gate 当前是 advisory · accepted tech debt**（Codex PR #10 F1 复核 · 显式声明）：
    - 本 README 第 7 步 `draft → ready` 翻转 gate + `CLAUDE.md` 5.4 步 `ready → done` 翻转 gate，**Phase 2 仅靠 reviewer 肉眼守门 + PR 评论声明**——不做 repo-enforced validator，不做 GitHub 分支保护规则。**符合 YAGNI 原则**（第 1 条），但 Codex 指出这让 gate 在实际 merge 时可被绕过
@@ -335,7 +335,7 @@ git push
      - `gitleaks` secret scan（SPIKE-06 A.5.3 依赖）
    - **Phase 4 落地前的约定**：
      - reviewer 是**唯一守门员**，reviewer 未发现的 gate 违规**算未修**
-     - 任一 merge 后发现 gate 违规 → 立刻开 revert PR + 复盘写入 `docs/session-history/`
+     - 任一 merge 后发现 gate 违规 → 立刻开 revert PR + 复盘写入 `docs/internal/session-history/`
      - Phase 4 validator 上线后：本条第 7 项自动失效，规则从 "advisory" 升级为 "enforced"
 
 8. **🔀 翻转 gate "(b) 路径变种"** · 分支保护暂缓阶段的合规说明（Codex round-3 PR #18 review 复核）：

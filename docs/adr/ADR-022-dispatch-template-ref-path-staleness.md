@@ -4,7 +4,7 @@
 **日期**：2026-05-16（proposed）· 2026-05-17（accepted · Arbiter tajiaoyezi 拍板方案 (d) · 见下「事实修正」）
 **决策者**：Grok（dispatch 起草 · self-review v2-D.2 单人项目）· Claude Code 主 agent 独立 review（**证伪原 Context · 见「事实修正」段**）· Arbiter tajiaoyezi 拍板
 **对应 `CLAUDE.md` 决策表**：—（治理规则 · 本 ADR 记录 dispatch 模板路径引用漂移）
-**前置事件**：PR #329（dispatch-prompt-template.md 压缩重构 · 883→597 行 · 审计附录拆分到 docs/dispatch-incidents.md）· spike-tmp/dispatch/ 目录 cleanup（top-level 清空 · 示例 prompt 移入 \_archived/ 子目录保留）
+**前置事件**：PR #329（dispatch-prompt-template.md 压缩重构 · 883→597 行 · 审计附录拆分到 docs/internal/dispatch-incidents.md）· spike-tmp/dispatch/ 目录 cleanup（top-level 清空 · 示例 prompt 移入 \_archived/ 子目录保留）
 
 ---
 
@@ -21,7 +21,7 @@
 - `SPIKE-06-pr2-codex-prompt.md`
 - `MVP-02-opencode-prompt.md`
 
-并在 "推荐参考全列表" 链接到 `docs/dispatch-incidents.md §4`。
+并在 "推荐参考全列表" 链接到 `docs/internal/dispatch-incidents.md §4`。
 
 **实测现实**：`spike-tmp/dispatch/` 顶层目录已被 cleanup 清空 · 这些示例 prompt 实际存放在 `spike-tmp/dispatch/_archived/` 子目录下（top-level 空 · 仅 \_archived/ 保留历史）。§4 及第 419 行的路径声明已**断链** —— 未来 agent 按文档所述路径无法找到范本文件。
 
@@ -37,7 +37,7 @@
 | 根因 = 路径前缀错（top-level → `_archived/`）            | 真实根因**双层**：(i) `.gitignore:116` = `spike-tmp/` → **整个 `spike-tmp/` gitignored** · `git ls-files` 确认 git 中**零 dispatch 范本文件**；(ii) §4 写的 4 个文件名（`MVP-04-storage-prep-opencode-prompt.md` / `MVP-07-kimi-prompt.md` / `SPIKE-06-pr2-codex-prompt.md` / `MVP-02-opencode-prompt.md`）本身已 stale，本地 `_archived/` 也不存在这些精确名 |
 | (a) 改 `_archived/` 前缀即修复                           | 改后路径仍：文件不存在 + gitignored，clone repo 的 agent 永远看不到 · 是"看起来修了实际没修"的**假对齐**（比 proposed 标记更危险）                                                                                                                                                                                                                            |
 
-**结论**：clone repo 的 agent 看不到**任何** dispatch 范本文件（无论 top-level / `_archived/`），因为整个 `spike-tmp/` 不进 git。修复方向不是改路径前缀，而是**文档停止承诺一个 git 中不存在的可点击路径**。`docs/dispatch-incidents.md §4`（行 365-389）有同样的断链引用，须同步修。
+**结论**：clone repo 的 agent 看不到**任何** dispatch 范本文件（无论 top-level / `_archived/`），因为整个 `spike-tmp/` 不进 git。修复方向不是改路径前缀，而是**文档停止承诺一个 git 中不存在的可点击路径**。`docs/internal/dispatch-incidents.md §4`（行 365-389）有同样的断链引用，须同步修。
 
 ## 决策（Decision · accepted · Arbiter 2026-05-17 拍板方案 (d)）
 
@@ -46,11 +46,11 @@
 - ~~**(a)** 更新 §4 路径为 `_archived/` 前缀~~ —— **作废**（文件不存在 + gitignored · 假对齐）
 - ~~**(b)** 范本移回 top-level~~ —— **作废**（gitignored · clone 仍看不到）
 - ~~**(c)** §4 泛指 `_archived/` 目录~~ —— **作废**（目录 gitignored · clone 仍看不到）
-- **(d)【Arbiter 2026-05-17 选定】文档不再承诺 git 路径**：`.claude/rules/dispatch-prompt-template.md` §3.0 第 441 行 + §4 + `docs/dispatch-incidents.md` §4 删除指向具体范本文件名的可点击路径引用 · 改为明确「dispatch 范本是本地 `spike-tmp/dispatch/`（**gitignored · 不进 git · clone 后不可见**）工作产物 · 写 dispatch 时参照本规则 §3 标准模板 + `docs/dispatch-incidents.md §4` 的范本特征描述（按 agent 类型/任务类型选结构），不依赖具体范本文件可点击」
+- **(d)【Arbiter 2026-05-17 选定】文档不再承诺 git 路径**：`.claude/rules/dispatch-prompt-template.md` §3.0 第 441 行 + §4 + `docs/internal/dispatch-incidents.md` §4 删除指向具体范本文件名的可点击路径引用 · 改为明确「dispatch 范本是本地 `spike-tmp/dispatch/`（**gitignored · 不进 git · clone 后不可见**）工作产物 · 写 dispatch 时参照本规则 §3 标准模板 + `docs/internal/dispatch-incidents.md §4` 的范本特征描述（按 agent 类型/任务类型选结构），不依赖具体范本文件可点击」
 
 ## 约束（Constraints）
 
-- 本 ADR **仅记录+提议** · 不改 `.claude/rules/dispatch-prompt-template.md` / `docs/dispatch-incidents.md` / 任何决策文件（Arbiter accept 后另 PR 改）
+- 本 ADR **仅记录+提议** · 不改 `.claude/rules/dispatch-prompt-template.md` / `docs/internal/dispatch-incidents.md` / 任何决策文件（Arbiter accept 后另 PR 改）
 - status **proposed** · 需 Arbiter 拍板 → accepted 后方生效（v2-D.2 单人项目 self-review + Arbiter approval 流程）
 - 路径现状严格以 `git show origin/main:.claude/rules/dispatch-prompt-template.md | grep -n '参考实现\|spike-tmp/dispatch'` 实测为准 · 未臆断 §4 位置
 - 不得声称 "Arbiter 已同意 X"

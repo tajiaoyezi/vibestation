@@ -60,17 +60,34 @@ pub struct AppSettings {
     pub external_term_dont_ask_again: bool,
 }
 
+/// 平台默认 shell（task-1.3 · ADR-003）。
+///
+/// macOS → `/bin/zsh` · Windows → `cmd.exe`（占位 · 永远保底 · Phase 2 task-2.1
+///   `resolve_default_shell` 探测链运行期细化为 pwsh→powershell→cmd）· Linux/其他 → `/bin/bash`。
+///
+/// 收敛 `impl Default` 与 `get_all` fallback 两处字面值，避免漂移（AC2）。
+fn default_shell_for_platform() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "/bin/zsh"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "cmd.exe" // 占位 · 与 ADR-003 探测链对齐 · Phase 2 运行期 resolve 细化
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        "/bin/bash"
+    }
+}
+
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "dark".to_string(),
             font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace".to_string(),
             font_size: 14,
-            default_shell: if cfg!(target_os = "macos") {
-                "/bin/zsh".to_string()
-            } else {
-                "/bin/bash".to_string()
-            },
+            default_shell: default_shell_for_platform().to_string(),
             paste_protection: true,
             telemetry_opt_in: None,
             git_user_name: None,
@@ -180,15 +197,7 @@ impl AppSettingsStore {
         let theme = get_parsed(pool, "theme", "dark");
         let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
-        let default_shell = get_parsed(
-            pool,
-            "default_shell",
-            if cfg!(target_os = "macos") {
-                "/bin/zsh"
-            } else {
-                "/bin/bash"
-            },
-        );
+        let default_shell = get_parsed(pool, "default_shell", default_shell_for_platform());
         let paste_protection: bool = get_parsed(pool, "paste_protection", "true");
         let telemetry_opt_in = get_optional_bool(pool, "telemetry_opt_in");
         let git_user_name = get_optional_string(pool, "git_user_name");

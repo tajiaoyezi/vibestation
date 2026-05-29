@@ -294,6 +294,58 @@ mod tests {
         ));
     }
 
+    // TEST-3.4.1 (AC1) — Windows spawn must return Ok, not UnsupportedPlatform.
+    #[cfg(windows)]
+    #[test]
+    fn test_3_4_1_windows_spawn_returns_ok() {
+        let repo = TempDir::new().unwrap();
+        let result = GitStatusWatcher::spawn(repo.path().to_path_buf(), || {});
+
+        assert!(
+            result.is_ok(),
+            "Windows spawn must return Ok, got {:?}",
+            result.err()
+        );
+    }
+
+    // TEST-3.4.2 (AC2) — file change inside a watched Windows dir triggers the callback.
+    #[cfg(windows)]
+    #[test]
+    fn test_3_4_2_windows_file_change_triggers_callback() {
+        let repo = TempDir::new().unwrap();
+        let (tx, rx) = mpsc::channel();
+
+        let _watcher = GitStatusWatcher::spawn(repo.path().to_path_buf(), move || {
+            let _ = tx.send(());
+        })
+        .expect("Windows spawn should succeed");
+
+        std::fs::write(repo.path().join("change.txt"), "hello").unwrap();
+
+        // Generous timeout: ReadDirectoryChangesW + 200ms debounce; >> debounce x several.
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("file change should trigger callback within timeout");
+    }
+
+    // TEST-3.4.5 (AC5) — Windows path with spaces canonicalizes and watches successfully.
+    #[cfg(windows)]
+    #[test]
+    fn test_3_4_5_windows_unc_canonicalize_watch() {
+        let parent = TempDir::new().unwrap();
+        let repo = parent.path().join("My Repo");
+        std::fs::create_dir(&repo).unwrap();
+        let (tx, rx) = mpsc::channel();
+
+        let _watcher = GitStatusWatcher::spawn(repo.clone(), move || {
+            let _ = tx.send(());
+        })
+        .expect("spawn on path with spaces should succeed");
+
+        std::fs::write(repo.join("change.txt"), "hello").unwrap();
+        rx.recv_timeout(Duration::from_secs(5))
+            .expect("change under spaced path should trigger callback");
+    }
+
     #[test]
     fn watcher_handles_workspace_change() {
         let old_workspace = TempDir::new().unwrap();

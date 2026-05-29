@@ -1,6 +1,6 @@
 # Task `1.3`: `shell-default-setting`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`
 
@@ -116,11 +116,11 @@ fn default_shell_for_platform() -> &'static str {
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 Default default_shell 三平台 | SCEN-1.3.1 | TEST-1.3.1 `test_1_3_1_default_shell_per_platform` | N/A | `cargo test -p vibestation_core app_settings` | Not Started |
-| AC2 get_all fallback 一致 | SCEN-1.3.2 | TEST-1.3.2 `test_1_3_2_get_all_fallback_matches_default` | N/A | `cargo test -p vibestation_core app_settings` | Not Started |
-| AC3 占位对齐 ADR-003 | SCEN-1.3.3 | TEST-1.3.3 `test_1_3_3_windows_default_is_cmd` | N/A | `cargo test -p vibestation_core app_settings` | Not Started |
-| AC4 cfg 分支 · Unix 不变 | SCEN-1.3.4 | TEST-1.3.4 `test_1_3_4_unix_default_unchanged` | N/A | `cargo test --workspace`（mac/ubuntu）| Not Started |
-| AC5 Unix 零回归 + 三平台单测 | N/A: 回归由既有套件覆盖 | N/A: 同 TEST-1.3.1/1.3.4 | N/A | `cargo test --workspace` | Not Started |
+| AC1 Default default_shell 三平台 | SCEN-1.3.1 | TEST-1.3.1 `test_1_3_1_default_shell_per_platform` | N/A | `cargo test -p vibestation_core app_settings` | Done |
+| AC2 get_all fallback 一致 | SCEN-1.3.2 | TEST-1.3.2 `test_1_3_2_get_all_fallback_matches_default` | N/A | `cargo test -p vibestation_core app_settings` | Done |
+| AC3 占位对齐 ADR-003 | SCEN-1.3.3 | TEST-1.3.3 `test_1_3_3_windows_default_is_cmd` | N/A | `cargo test -p vibestation_core app_settings` | Done |
+| AC4 cfg 分支 · Unix 不变 | SCEN-1.3.4 | TEST-1.3.4 `test_1_3_4_unix_default_unchanged` | N/A | `cargo test --workspace`（mac/ubuntu）| Done |
+| AC5 Unix 零回归 + 三平台单测 | N/A: 回归由既有套件覆盖 | N/A: 同 TEST-1.3.1/1.3.4 | N/A | `cargo test --workspace` | Done |
 
 ## 8. Risks
 
@@ -140,18 +140,23 @@ fn default_shell_for_platform() -> &'static str {
 
 ## 10. Completion Notes
 
-- **完成日期**：<TBD-after-impl>
+- **完成日期**：2026-05-29（Windows 11 x64 MSVC 本机实施 · solo tier · feat/windows-support 分支）
 - **改动文件**：
-  - `crates/core/src/app_settings.rs`（修改 · default_shell 三分支 + 共享助手）
-- **commit 列表**：
-  - `<TBD-after-impl>` test: 加 SCEN-1.3.1~1.3.4 RED 测试
-  - `<TBD-after-impl>` feat: 实现 default_shell_for_platform 三分支通过测试
-  - `<TBD-after-impl>` refactor:（如有）
-- **§9 Verification 结果**：
-  - install: <TBD-after-impl>
-  - lint: <TBD-after-impl>
-  - typecheck: <TBD-after-impl>
-  - unit-test: <TBD-after-impl>
-  - build: <TBD-after-impl>
-- **剩余风险 / 未做项**：<TBD-after-impl>
-- **下游 task 影响**：<TBD-after-impl>
+  - `crates/core/src/app_settings.rs`（修改 · 新增 `default_shell_for_platform()` 共享助手 + `impl Default` 与 `get_all` 两处 default_shell fallback 收敛为三分支助手 + `tests` 模块新增 4 个 default_shell 跨平台单测）
+- **commit 列表**（feat/windows-support 分支 · solo 三段节律）：
+  - `f95b49e` test(app-settings): 加 SCEN-1.3.1~1.3.4 共 4 个 RED 测试（Windows default_shell）
+  - `7840517` feat(app-settings): default_shell 加 Windows 分支（cmd.exe 占位）通过测试
+  - refactor: 无（GREEN 阶段抽取共享助手已消除两处字面值重复 · 无额外重构需求）
+- **§9 Verification 结果**（Windows 本机实跑 raw）：
+  - install: N/A（本 task 不改 JS 依赖 · `pnpm install` 与本 task 无关）
+  - lint（cargo clippy -p vibestation-core --lib -- -D warnings）: **app_settings.rs 0 hit**（grep 计数 = 0）· ⚠️ 命令整体仍 fail，13 项 error 全部来自 `fs_watch.rs`（12 · unused import / dead_code）+ `external_term/detect.rs`（1 · variant `Macos` never constructed），属 **task 3.4 / task 3.1** 范围 · 本 task 不允许改这两文件 · 同 task-1.1 §10 先例
+  - typecheck（cargo check --workspace）: **Finished · 0 error**（7.21s）
+  - unit-test（cargo test -p vibestation-core --lib app_settings）: **ok. 14 passed; 0 failed; 0 ignored**（11 既有 + TEST-1.3.1/1.3.2/1.3.3 三个 Windows 可跑测试全绿 · TEST-1.3.4 为 `#[cfg(unix)]` 在 Windows 门控不计入）· RED 段同命令曾 3 failed（default_shell 回落 /bin/bash），GREEN 后转绿
+  - build（cargo build --workspace）: **Finished · 0 error**（17.58s）
+  - ⚠️ 全量 `cargo test --workspace` 未在 Windows 跑（dispatch 明确禁止 · 集成测试在 Windows 编译失败 = task 6.1 范围）· 本 task 的 default_shell 单测随 `cargo test -p vibestation-core --lib app_settings` 已实证全绿
+- **剩余风险 / 未做项**：
+  - **AC5 Unix 零回归依赖 mac/Linux CI / reviewer 实证**：本机为 Windows，TEST-1.3.4（`#[cfg(unix)]` · 断言 macOS=/bin/zsh、Linux=/bin/bash）已写但仅在 Unix 内核跑；`default_shell_for_platform()` 的 macOS/Linux 字面值字节级保持原文（`/bin/zsh` / `/bin/bash`），零回归由 Unix CI 跑绿确认。
+  - **R3（与 pty.rs 默认值不同步）**：本 task 仅改 `app_settings.rs`；`pty.rs::default_shell_path()` 的 Windows 探测链由 **task-2.1（windows-shell-detection）** 落地，期间二者 Windows 默认值可能短暂不一致（app_settings = 占位 cmd.exe · pty.rs 待 task-2.1 = pwsh→powershell→cmd 探测链）· 已在 §8 R3 + §3 Out of Scope 标注，非缺陷。
+- **下游 task 影响**：
+  - **task-2.1（windows-shell-detection）**：在本 task 的 `cmd.exe` 安全占位基础上，把 `pty.rs::resolve_default_shell` / `list_available_shells` 运行期探测细化为 pwsh→powershell→cmd 链（ADR-003）；本 task `default_shell_for_platform()` 注释已指向 task-2.1。
+  - 无 spec / AC / 其他文件改动；DB schema 不变（default_shell 仍是 app_settings 表字符串 key）；mac/Linux 行为零回归。

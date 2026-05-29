@@ -22,6 +22,10 @@ pub(crate) enum DetectionPlatform {
     #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Macos,
     Linux,
+    // `Windows` is only constructed in the `#[cfg(target_os = "windows")]` branch of
+    // `current_detection_platform()`; on macOS/Linux builds it is reachable only via
+    // Windows-gated tests, so suppress dead_code off-Windows (variant kept for cross-platform match arms).
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     Windows,
 }
 

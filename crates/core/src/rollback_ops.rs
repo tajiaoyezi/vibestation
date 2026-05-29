@@ -1424,6 +1424,14 @@ mod tests {
         fn new() -> Self {
             let dir = TempDir::new().unwrap();
             let repo = Repository::init(dir.path()).unwrap();
+            // task-6.1（ADR-005）：Windows 上 git 全局默认常为 core.autocrlf=true · git2 checkout
+            // 会把 LF 内容转成 CRLF · 令 read_to_string 断言（期望 LF）失败。固定 fixture repo
+            // 的 autocrlf=false 让 checkout 字节级保真（LF 保留）· 跨平台一致 · Unix 行为零变化
+            // （Unix 默认即 autocrlf=false）。属 fixture 决定性设置 · 非改被测生产逻辑。
+            {
+                let mut cfg = repo.config().unwrap();
+                cfg.set_bool("core.autocrlf", false).unwrap();
+            }
             let mut fixture = Self {
                 _dir: dir,
                 path: repo.workdir().unwrap().to_path_buf(),

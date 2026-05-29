@@ -21,6 +21,7 @@ import type {
   KeyBindingResolution,
 } from "../../bindings";
 import { isFieldDisabled, getDisabledReason } from "./fieldRules";
+import { formatShortcut } from "../../lib/format-shortcut";
 
 import "./styles.css";
 
@@ -366,8 +367,12 @@ const SelectStep: Component<SelectStepProps> = (props) => {
     <div class="vs-config-import-select">
       <p class="vs-config-import-lede">
         Vibestation can import font, theme, shell, and keybindings from your
-        existing terminal. Conflicts with built-in shortcuts (⌘T / ⌘W / ⌘D / ⌘⇧D
-        / ⌘,) are flagged and never imported by default.
+        existing terminal. Conflicts with built-in shortcuts (
+        {formatShortcut(
+          "⌘T / ⌘W / ⌘D / ⌘⇧D / ⌘,",
+          "Ctrl+T / Ctrl+W / Ctrl+D / Ctrl+Shift+D / Ctrl+,",
+        )}
+        ) are flagged and never imported by default.
       </p>
 
       <Show when={props.scanError()}>

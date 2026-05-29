@@ -7,6 +7,7 @@ use ts_rs::TS;
 pub enum Platform {
     Macos,
     Linux,
+    Windows,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,7 +53,11 @@ pub fn current_platform() -> Platform {
     {
         Platform::Macos
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        Platform::Windows
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Platform::Linux
     }
@@ -94,20 +99,21 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+            Platform::Windows => unsupported(terminal_id, platform),
         },
         "iterm2" => match platform {
             Platform::Macos => Ok(LaunchCommand {
                 program: "open".to_string(),
                 args: vec!["-a".to_string(), "iTerm.app".to_string(), cwd],
             }),
-            Platform::Linux => unsupported(terminal_id, platform),
+            Platform::Linux | Platform::Windows => unsupported(terminal_id, platform),
         },
         "terminal-app" => match platform {
             Platform::Macos => Ok(LaunchCommand {
                 program: "open".to_string(),
                 args: vec!["-a".to_string(), "Terminal".to_string(), cwd],
             }),
-            Platform::Linux => unsupported(terminal_id, platform),
+            Platform::Linux | Platform::Windows => unsupported(terminal_id, platform),
         },
         "alacritty" => match platform {
             Platform::Macos => Ok(LaunchCommand {
@@ -131,9 +137,10 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+            Platform::Windows => unsupported(terminal_id, platform),
         },
         "gnome-terminal" => match platform {
-            Platform::Macos => unsupported(terminal_id, platform),
+            Platform::Macos | Platform::Windows => unsupported(terminal_id, platform),
             Platform::Linux => Ok(LaunchCommand {
                 program: "gnome-terminal".to_string(),
                 args: vec![
@@ -144,7 +151,7 @@ pub fn build_launch_command(
             }),
         },
         "konsole" => match platform {
-            Platform::Macos => unsupported(terminal_id, platform),
+            Platform::Macos | Platform::Windows => unsupported(terminal_id, platform),
             Platform::Linux => Ok(LaunchCommand {
                 program: "konsole".to_string(),
                 args: vec![
@@ -154,6 +161,30 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+        },
+        "windows-terminal" => match platform {
+            // wt.exe -d <cwd> <shell> · -d 设工作目录，trailing shell 作为首个 profile 命令。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "wt.exe".to_string(),
+                args: vec!["-d".to_string(), cwd, shell.to_string()],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
+        },
+        "pwsh" => match platform {
+            // pwsh.exe -NoExit -WorkingDirectory <cwd> · 进入交互式会话且不退出。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "pwsh.exe".to_string(),
+                args: vec!["-NoExit".to_string(), "-WorkingDirectory".to_string(), cwd],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
+        },
+        "conhost" => match platform {
+            // cmd.exe /D /K cd /d <cwd> · /D 跳过 AutoRun，/K 执行后保留窗口，cd /d 切到 cwd。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "cmd.exe".to_string(),
+                args: vec!["/D".to_string(), "/K".to_string(), format!("cd /d {cwd}")],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
         },
         other => Err(LaunchError::UnknownTerminal(other.to_string())),
     }
@@ -420,6 +451,94 @@ mod tests {
                     .iter()
                     .any(|arg| arg.contains("/Users/leaf/项目/终端")),
                 "{terminal_id:?} on {platform:?} should preserve unicode cwd"
+            );
+        }
+    }
+
+    // TEST-3.1.2 (AC2) — Windows launch recipes.
+    #[test]
+    fn test_3_1_2_windows_launch_recipes() {
+        let cwd = Path::new(r"C:\Users\leaf\project");
+
+        // windows-terminal → wt.exe with cwd present.
+        let wt = build_launch_command("windows-terminal", cwd, "pwsh.exe", Platform::Windows)
+            .expect("windows-terminal should be supported on Windows");
+        assert!(
+            wt.program.contains("wt.exe"),
+            "program should be wt.exe, got {}",
+            wt.program
+        );
+        assert!(
+            wt.args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "wt args should contain cwd, got {:?}",
+            wt.args
+        );
+
+        // pwsh → pwsh.exe program.
+        let pwsh = build_launch_command("pwsh", cwd, "pwsh.exe", Platform::Windows)
+            .expect("pwsh should be supported on Windows");
+        assert_eq!(pwsh.program, "pwsh.exe");
+        assert!(
+            pwsh.args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "pwsh args should contain cwd, got {:?}",
+            pwsh.args
+        );
+
+        // conhost/cmd → cmd.exe based recipe.
+        let conhost = build_launch_command("conhost", cwd, "cmd.exe", Platform::Windows)
+            .expect("conhost should be supported on Windows");
+        assert!(
+            conhost.program.contains("cmd.exe") || conhost.program.contains("conhost"),
+            "conhost recipe should be cmd.exe/conhost based, got {}",
+            conhost.program
+        );
+        assert!(
+            conhost
+                .args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "conhost args should contain cwd, got {:?}",
+            conhost.args
+        );
+    }
+
+    // TEST-3.1.2 (AC2) — macOS-only terminals are unsupported on Windows.
+    #[test]
+    fn windows_macos_only_terminals_are_unsupported() {
+        let cwd = Path::new(r"C:\Users\leaf\project");
+
+        for terminal_id in ["iterm2", "terminal-app", "gnome-terminal", "konsole"] {
+            let result = build_launch_command(terminal_id, cwd, "pwsh.exe", Platform::Windows);
+            assert!(
+                matches!(
+                    result,
+                    Err(LaunchError::UnsupportedCombination { platform, .. })
+                        if platform == Platform::Windows
+                ),
+                "{terminal_id} should be UnsupportedCombination on Windows, got {result:?}"
+            );
+        }
+    }
+
+    // TEST-3.1.2 (AC2) — Windows cwd with spaces stays a single argument.
+    #[test]
+    fn windows_paths_with_spaces_remain_single_arguments() {
+        let cwd = PathBuf::from(r"C:\Users\leaf\My Project");
+
+        for terminal_id in ["windows-terminal", "pwsh", "conhost"] {
+            let command =
+                build_launch_command(terminal_id, &cwd, "pwsh.exe", Platform::Windows).unwrap();
+            assert!(
+                command
+                    .args
+                    .iter()
+                    .any(|arg| arg.contains(r"C:\Users\leaf\My Project")),
+                "{terminal_id} on Windows should preserve cwd with spaces as one arg, got {:?}",
+                command.args
             );
         }
     }

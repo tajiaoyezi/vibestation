@@ -7,15 +7,13 @@ use crate::app_settings::AppSettingsStore;
 use crate::db::DbPool;
 use crate::tabs::TabsDao;
 use crossbeam_channel::{self, Receiver, Sender, TryRecvError, TrySendError};
-use mio::unix::SourceFd;
-use mio::{Events, Interest, Poll, Token};
 use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+// OsStr 仅 Unix resolve_shell_in_path 用（task-2.1：Windows 走 where.exe · 不经 PATH split）。
+#[cfg(unix)]
 use std::ffi::OsStr;
 use std::io::{self, Write};
-use std::os::fd::RawFd;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -23,10 +21,28 @@ use std::thread;
 use std::time::{Duration, Instant};
 use ts_rs::TS;
 
+// Unix-only imports（ADR-001 cfg 分离）·
+// mio Poll/SourceFd 仅 Unix · RawFd / PermissionsExt 仅 Unix · libc 仅在 #[cfg(unix)] 函数体引用。
+#[cfg(unix)]
+use mio::unix::SourceFd;
+#[cfg(unix)]
+use mio::{Events, Interest, Poll, Token};
+#[cfg(unix)]
+use std::os::fd::RawFd;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
+// Windows-only imports（ADR-001 cfg 分离 · ConPTY 阻塞读路径）·
+// 走 portable-pty 的 try_clone_reader + child.try_wait/kill · 不引用 mio/SourceFd/libc。
+#[cfg(windows)]
+use std::io::Read;
+
 pub const PTY_EVENT_QUEUE_CAPACITY: usize = 128;
 
 const PTY_CONTROL_QUEUE_CAPACITY: usize = 256;
 const READ_BUFFER_SIZE: usize = 8192;
+/// mio Poll 轮询超时 · 仅 Unix reader_loop 用（Windows 走 per-session 阻塞读 · 无 poll）。
+#[cfg(unix)]
 const READ_POLL_TIMEOUT: Duration = Duration::from_millis(50);
 const IDLE_SLEEP: Duration = Duration::from_millis(25);
 const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
@@ -99,16 +115,22 @@ enum ReaderCommand {
     },
     Unregister {
         token: usize,
+        /// Unix reader_loop 用 fd 反查 token==0 的 session 并从 mio Poll deregister。
+        /// Windows reader 走 per-session 线程 · 按 tab_id 收敛 · 无 fd 概念（None）。
+        #[cfg(unix)]
         fd: RawFd,
     },
     Shutdown,
 }
 
+#[cfg(unix)]
 enum ReadOutcome {
     Continue,
     Closed,
 }
 
+/// 信号目标。仅 Unix 路径有进程组概念；Windows ConPTY 退化为单进程（见 `signal_target`）。
+#[cfg(unix)]
 enum SignalTarget {
     ProcessGroup(libc::pid_t),
     Process(libc::pid_t),
@@ -235,9 +257,17 @@ struct CdEchoFilter {
 
 pub struct PtySession {
     tab_id: Mutex<String>,
+    /// PTY master 的裸 fd · 仅 Unix（mio Poll 注册 + libc::read + tcgetpgrp 用）。
+    /// Windows ConPTY 不暴露可 poll 的 fd · reader 走 try_clone_reader 阻塞读 · 无此字段。
+    #[cfg(unix)]
     fd: RawFd,
     process_id: Option<u32>,
-    master: Mutex<Box<dyn MasterPty + Send>>,
+    /// PTY master。`Option` 是为了 Windows ConPTY 在 terminate 时能 `take()` 掉 master ·
+    /// drop 它会 `ClosePseudoConsole` · 关闭 conhost 输出管道 · 让阻塞在 `reader.read()` 的
+    /// per-session 读线程拿到 EOF 退出（否则仅 `child.kill()` 杀掉 shell · conhost 仍持管道 ·
+    /// reader 永久 block · stop() 的 join() 死锁 · task-2.2 RED 复现）。Unix 不依赖此（mio 走裸 fd ·
+    /// terminate 经 libc::kill + fd close 自然 EOF），但统一为 `Option` 以共享结构。
+    master: Mutex<Option<Box<dyn MasterPty + Send>>>,
     writer: Mutex<Box<dyn Write + Send>>,
     child: Mutex<Box<dyn Child + Send + Sync>>,
     initial_cwd: PathBuf,
@@ -285,6 +315,10 @@ impl PtySession {
 
     fn resize(&self, cols: u16, rows: u16) -> Result<(), PtyError> {
         let master = lock(&self.master);
+        let Some(master) = master.as_ref() else {
+            // master 已被 terminate 关闭（Windows EOF 路径）· resize 无目标 · 视为 no-op。
+            return Ok(());
+        };
         master
             .resize(PtySize {
                 rows: rows.max(1),
@@ -295,6 +329,15 @@ impl PtySession {
             .map_err(|error| PtyError::OpenFailed(error.to_string()))
     }
 
+    /// Windows ConPTY 收尾：drop master（`ClosePseudoConsole`）· 关闭 conhost 输出管道 ·
+    /// 让阻塞 `reader.read()` 的 per-session 读线程拿到 EOF 退出（避免 stop() join 死锁）。
+    /// Unix 不调用此（mio + 裸 fd 路径 terminate 后自然 EOF）。
+    #[cfg(windows)]
+    fn close_master(&self) {
+        let _ = lock(&self.master).take();
+    }
+
+    #[cfg(unix)]
     fn signal(&self, signal: &str) -> Result<(), PtyError> {
         let signal_number = parse_signal(signal)?;
         let target = self.signal_target();
@@ -316,6 +359,18 @@ impl PtySession {
         Ok(())
     }
 
+    /// Windows ConPTY 无 POSIX 信号 / 进程组概念（ADR-001 + spec §5.3）·
+    /// SIGINT/SIGTERM/SIGTSTP/SIGKILL 全部退化为 `Child::kill()`（TerminateProcess 语义）·
+    /// 信号名仍走 `parse_signal_windows` 校验（拒绝未知信号 · 保持与 Unix 一致的契约）。
+    #[cfg(windows)]
+    fn signal(&self, signal: &str) -> Result<(), PtyError> {
+        // 校验信号名合法（未知信号 → InvalidSignal · 与 Unix parse_signal 同契约）
+        let _ = parse_signal_windows(signal)?;
+        // ConPTY 单进程目标 · 直接 kill child（无进程组 · 无 graceful SIGTERM 区分）
+        let mut child = lock(&self.child);
+        child.kill().map_err(PtyError::Io)
+    }
+
     fn terminate(&self, events: &DropOldestSender<PtyEvent>) -> Result<Option<i32>, PtyError> {
         self.closed.store(true, Ordering::Relaxed);
 
@@ -324,6 +379,12 @@ impl PtySession {
             let mut child = lock(&self.child);
             let _ = child.kill();
         }
+
+        // Windows ConPTY 收尾（task-2.2）：仅 kill child 不够 · conhost 仍持输出管道 ·
+        // 阻塞 reader 永不 EOF → reader 线程 join 死锁。drop master（ClosePseudoConsole）
+        // 关闭管道 → reader 拿 EOF 退出 → worker.stop() 的 join() 能返回。Unix 无此问题（裸 fd）。
+        #[cfg(windows)]
+        self.close_master();
 
         let status = self.wait_for_exit(EXIT_WAIT_TIMEOUT)?;
         self.emit_exit_once(events, status)
@@ -452,13 +513,16 @@ impl PtySession {
         Ok(exit_code)
     }
 
+    #[cfg(unix)]
     fn signal_target(&self) -> Option<SignalTarget> {
         let foreground = unsafe { libc::tcgetpgrp(self.fd) };
         if foreground > 0 {
             return Some(SignalTarget::ProcessGroup(foreground));
         }
 
-        let leader = lock(&self.master).process_group_leader();
+        let leader = lock(&self.master)
+            .as_ref()
+            .and_then(|master| master.process_group_leader());
         if let Some(group) = leader.filter(|group| *group > 0) {
             return Some(SignalTarget::ProcessGroup(group));
         }
@@ -605,11 +669,17 @@ impl PtyManager {
             })
             .map_err(|error| PtyError::OpenFailed(error.to_string()))?;
 
+        // Unix：取裸 fd 设非阻塞（mio Poll + libc::read 用）。
+        // Windows：ConPTY overlapped I/O 由 portable-pty 内部处理 · 无 fd · set_fd_nonblocking 为 no-op。
+        #[cfg(unix)]
         let fd = pair
             .master
             .as_raw_fd()
             .ok_or_else(|| PtyError::OpenFailed("portable-pty master has no raw fd".to_string()))?;
+        #[cfg(unix)]
         set_fd_nonblocking(fd, true)?;
+        #[cfg(windows)]
+        set_fd_nonblocking_noop();
 
         let writer = pair
             .master
@@ -638,9 +708,10 @@ impl PtyManager {
         let process_id = child.process_id();
         let session = Arc::new(PtySession {
             tab_id: Mutex::new(tab_id.clone()),
+            #[cfg(unix)]
             fd,
             process_id,
-            master: Mutex::new(pair.master),
+            master: Mutex::new(Some(pair.master)),
             writer: Mutex::new(writer),
             child: Mutex::new(child),
             initial_cwd,
@@ -687,10 +758,7 @@ impl PtyManager {
                 .ok_or_else(|| PtyError::NotFound(tab_id.to_string()))?
         };
 
-        let _ = self.send_control(ReaderCommand::Unregister {
-            token: 0,
-            fd: session.fd,
-        });
+        let _ = self.send_control(unregister_command(&session));
         session.terminate(&self.event_tx)
     }
 
@@ -735,10 +803,7 @@ impl PtyManager {
     ) -> Result<Option<i32>, PtyError> {
         let tab_id = session.tab_id_clone();
         lock(&self.sessions).remove(&tab_id);
-        let _ = self.send_control(ReaderCommand::Unregister {
-            token: 0,
-            fd: session.fd,
-        });
+        let _ = self.send_control(unregister_command(session));
         session.terminate(&self.event_tx)
     }
 
@@ -789,6 +854,22 @@ impl Drop for PtyManager {
     }
 }
 
+/// 构造 `ReaderCommand::Unregister`：Unix 带 fd（reader_loop 从 mio Poll deregister 用）·
+/// Windows 仅 token（per-session 线程按 tab_id 收敛 · 无 fd）。
+#[cfg(unix)]
+fn unregister_command(session: &Arc<PtySession>) -> ReaderCommand {
+    ReaderCommand::Unregister {
+        token: 0,
+        fd: session.fd,
+    }
+}
+
+#[cfg(windows)]
+fn unregister_command(_session: &Arc<PtySession>) -> ReaderCommand {
+    ReaderCommand::Unregister { token: 0 }
+}
+
+#[cfg(unix)]
 fn reader_loop(
     control_rx: Receiver<ReaderCommand>,
     sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
@@ -872,6 +953,238 @@ fn reader_loop(
     }
 }
 
+/// Windows ConPTY reader（ADR-001 + spec §5.3 · prompt 细化为最小可用实现）·
+///
+/// ConPTY 不暴露可 poll 的 fd（mio epoll/kqueue 不可用）· 故对每个注册 session 起一条
+/// **per-session 阻塞读线程**：`master.try_clone_reader()` 阻塞读字节 → emit 到同一
+/// `DropOldestSender<PtyEvent>` 出口；读到 EOF（0 字节）或 read 错误 → `wait_for_exit`
+/// + `emit_exit_once`（不使用 mio / SourceFd / libc）。
+///
+/// 控制通道（Register / Unregister / Shutdown）由本主循环消费：Register 起读线程 ·
+/// Unregister 标记对应 session 的 stop flag（线程自然退出）· Shutdown 停所有线程后返回。
+///
+/// 本 task（1.1）范围 = 编译通过 + spawn 后能退出不 hang；吞吐 / 调度 / 尾部输出
+/// 时序细化 defer Phase 2 task-2.2 conpty-spawn-io。
+#[cfg(windows)]
+fn reader_loop(
+    control_rx: Receiver<ReaderCommand>,
+    sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
+    events: DropOldestSender<PtyEvent>,
+    reader_alive: Arc<AtomicBool>,
+) {
+    // token → (session reader 线程 handle, 该线程的 stop flag)
+    let mut workers: HashMap<usize, WindowsReaderWorker> = HashMap::new();
+
+    while reader_alive.load(Ordering::Relaxed) {
+        // 排空控制命令
+        loop {
+            match control_rx.try_recv() {
+                Ok(ReaderCommand::Register { token, session }) => {
+                    let worker = spawn_windows_session_reader(
+                        Arc::clone(&session),
+                        events.clone(),
+                        Arc::clone(&sessions_by_id),
+                    );
+                    workers.insert(token, worker);
+                }
+                Ok(ReaderCommand::Unregister { token }) => {
+                    if token != 0 {
+                        if let Some(worker) = workers.remove(&token) {
+                            worker.stop();
+                        }
+                    } else {
+                        // token==0（kill / terminate_session 路径）· session 已从 map 移除 ·
+                        // 停掉所有已退出的 worker（stop flag 置位 · 线程自然收敛）。
+                        let finished: Vec<usize> = workers
+                            .iter()
+                            .filter(|(_, worker)| worker.is_finished())
+                            .map(|(token, _)| *token)
+                            .collect();
+                        for token in finished {
+                            if let Some(worker) = workers.remove(&token) {
+                                worker.stop();
+                            }
+                        }
+                    }
+                }
+                Ok(ReaderCommand::Shutdown) => {
+                    reader_alive.store(false, Ordering::Relaxed);
+                    for (_, worker) in workers.drain() {
+                        worker.stop();
+                    }
+                    return;
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    reader_alive.store(false, Ordering::Relaxed);
+                    for (_, worker) in workers.drain() {
+                        worker.stop();
+                    }
+                    return;
+                }
+            }
+        }
+
+        // 退出检测（task-2.2 · AC3）：ConPTY 下 child 自然退出（如 `exit`）时 · conhost 仍可能
+        // 持有输出管道 · 阻塞 `reader.read()` 拿不到 EOF · reader 永不知道 child 已死。故在此主循环
+        // 周期轮询 `child.try_wait()`；一旦检测到退出 · close_master（ClosePseudoConsole）关管道 ·
+        // reader 随即拿 EOF → emit_exit_once + 线程退出（下轮 is_finished 清理）。
+        // 有界延迟 ≤ IDLE_SLEEP + read 唤醒（不 hang · 不漏 exit）。
+        for worker in workers.values() {
+            if worker.is_finished() {
+                continue;
+            }
+            if matches!(worker.session.try_wait(), Ok(Some(_))) {
+                worker.session.close_master();
+            }
+        }
+
+        // 清理已自然退出的 worker（child 退出 / EOF）· join 回收线程。
+        let finished: Vec<usize> = workers
+            .iter()
+            .filter(|(_, worker)| worker.is_finished())
+            .map(|(token, _)| *token)
+            .collect();
+        for token in finished {
+            if let Some(worker) = workers.remove(&token) {
+                worker.stop();
+            }
+        }
+
+        // 周期 flush scrollback（与 Unix 路径同语义）
+        for worker in workers.values() {
+            worker.session.flush_scrollback_if_due();
+        }
+
+        thread::sleep(IDLE_SLEEP);
+    }
+
+    for (_, worker) in workers.drain() {
+        worker.stop();
+    }
+}
+
+/// Windows per-session 读线程句柄 + stop flag（ConPTY 阻塞读路径）。
+#[cfg(windows)]
+struct WindowsReaderWorker {
+    session: Arc<PtySession>,
+    stop: Arc<AtomicBool>,
+    handle: Option<thread::JoinHandle<()>>,
+}
+
+#[cfg(windows)]
+impl WindowsReaderWorker {
+    fn is_finished(&self) -> bool {
+        self.handle
+            .as_ref()
+            .map(|h| h.is_finished())
+            .unwrap_or(true)
+    }
+
+    fn stop(self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(handle) = self.handle {
+            let _ = handle.join();
+        }
+    }
+}
+
+/// 为单个 Windows session 起阻塞读线程：try_clone_reader 阻塞读 → emit；
+/// EOF / read 错误 → wait_for_exit + emit_exit_once + 从 sessions_by_id 移除。
+#[cfg(windows)]
+fn spawn_windows_session_reader(
+    session: Arc<PtySession>,
+    events: DropOldestSender<PtyEvent>,
+    sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
+) -> WindowsReaderWorker {
+    let stop = Arc::new(AtomicBool::new(false));
+    let thread_stop = Arc::clone(&stop);
+    let thread_session = Arc::clone(&session);
+
+    // 在 spawn 前从 master clone reader（master 此刻必在 · 刚构造）· clone 出的 reader
+    // 持自己的管道句柄 · 后续 terminate drop master（ClosePseudoConsole）会 EOF 此 reader。
+    let reader = lock(&thread_session.master)
+        .as_ref()
+        .map(|master| master.try_clone_reader());
+    let handle = thread::Builder::new()
+        .name("vibestation-pty-conpty-reader".to_string())
+        .spawn(move || {
+            let mut reader = match reader {
+                Some(Ok(reader)) => reader,
+                Some(Err(error)) => {
+                    eprintln!(
+                        "[mvp-04] conpty clone_reader failed for {}: {error}",
+                        thread_session.tab_id_clone()
+                    );
+                    let _ = thread_session.emit_exit_once(&events, None);
+                    lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                    return;
+                }
+                None => {
+                    // master 已被关闭（极少见 · register 与 terminate 竞争）· 直接收尾。
+                    let _ = thread_session.emit_exit_once(&events, None);
+                    lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                    return;
+                }
+            };
+
+            let mut buffer = [0u8; READ_BUFFER_SIZE];
+            loop {
+                if thread_stop.load(Ordering::Relaxed)
+                    || thread_session.closed.load(Ordering::Relaxed)
+                {
+                    return;
+                }
+
+                match reader.read(&mut buffer) {
+                    Ok(0) => {
+                        // EOF · child 退出 → 检测退出码 + emit exit once
+                        let status = thread_session
+                            .wait_for_exit(EXIT_WAIT_TIMEOUT)
+                            .unwrap_or(None);
+                        let _ = thread_session.emit_exit_once(&events, status);
+                        lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                        return;
+                    }
+                    Ok(read) => {
+                        let chunk = thread_session.drain_utf8_safe(&buffer[..read]);
+                        if chunk.is_empty() {
+                            continue;
+                        }
+                        thread_session.record_scrollback_chunk(&chunk);
+                        if let Err(error) = thread_session.emit_stdout(&events, &chunk) {
+                            eprintln!(
+                                "[mvp-04] stdout emit failed for {}: {error}",
+                                thread_session.tab_id_clone()
+                            );
+                        }
+                    }
+                    Err(ref error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(error) => {
+                        eprintln!(
+                            "[mvp-04] conpty read failed for {}: {error}",
+                            thread_session.tab_id_clone()
+                        );
+                        let status = thread_session
+                            .wait_for_exit(EXIT_WAIT_TIMEOUT)
+                            .unwrap_or(None);
+                        let _ = thread_session.emit_exit_once(&events, status);
+                        lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                        return;
+                    }
+                }
+            }
+        })
+        .expect("spawn vibestation-pty-conpty-reader");
+
+    WindowsReaderWorker {
+        session,
+        stop,
+        handle: Some(handle),
+    }
+}
+
+#[cfg(unix)]
 fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent>) -> ReadOutcome {
     let mut buffer = [0u8; READ_BUFFER_SIZE];
 
@@ -998,12 +1311,32 @@ fn find_ansi_clear(data: &[u8]) -> Option<usize> {
     })
 }
 
+#[cfg(unix)]
 fn parse_signal(signal: &str) -> Result<i32, PtyError> {
     match signal {
         "SIGINT" => Ok(libc::SIGINT),
         "SIGTERM" => Ok(libc::SIGTERM),
         "SIGTSTP" => Ok(libc::SIGTSTP),
         "SIGKILL" => Ok(libc::SIGKILL),
+        _ => Err(PtyError::InvalidSignal(signal.to_string())),
+    }
+}
+
+/// Windows 信号名解析（ADR-001 + spec §5.3）· ConPTY 无 POSIX 信号 ·
+/// 但保留与 Unix `parse_signal` 同样的"未知信号 → InvalidSignal"契约 ·
+/// 合法信号统一映射到 `Child::kill()`（TerminateProcess）语义（见 `PtySession::signal` Windows 分支）。
+/// 返回标记类型 `WindowsSignal` 仅用于校验通过/拒绝 · 不携带 POSIX 信号号。
+#[cfg(windows)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WindowsSignal {
+    /// 所有受支持信号在 Windows 都退化为 kill child（无 graceful/forced 区分）。
+    Kill,
+}
+
+#[cfg(windows)]
+fn parse_signal_windows(signal: &str) -> Result<WindowsSignal, PtyError> {
+    match signal {
+        "SIGINT" | "SIGTERM" | "SIGTSTP" | "SIGKILL" => Ok(WindowsSignal::Kill),
         _ => Err(PtyError::InvalidSignal(signal.to_string())),
     }
 }
@@ -1016,12 +1349,49 @@ fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
     }
 }
 
-fn default_shell_path() -> &'static str {
-    if cfg!(target_os = "macos") {
-        "/bin/zsh"
-    } else {
-        "/bin/bash"
+/// 默认 shell 探测（task-2.1 · ADR-003）·
+/// Windows 走探测链 `pwsh.exe → powershell.exe → cmd.exe`（取首个 PATH 可用 · `cmd.exe` 永远保底）·
+/// macOS = `/bin/zsh` · 其他 Unix = `/bin/bash`。
+///
+/// 返回 `String` 而非 `&'static str`：Windows 探测结果是 owned 全路径（非静态字面量）·
+/// 统一签名后 Unix 分支把字面量 `.to_string()`（调用方本就多处 `.to_string()` / 比较）。
+fn default_shell_path() -> String {
+    #[cfg(windows)]
+    {
+        // 依次探测 pwsh.exe → powershell.exe → cmd.exe · 取首个 where.exe 能定位的全路径；
+        // 全找不到时保底 cmd.exe（%ComSpec% · 否则 System32\cmd.exe · 系统永远存在）。
+        for candidate in ["pwsh.exe", "powershell.exe", "cmd.exe"] {
+            if let Some(path) = resolve_shell(candidate) {
+                return path.to_string_lossy().into_owned();
+            }
+        }
+        windows_cmd_fallback()
     }
+    #[cfg(target_os = "macos")]
+    {
+        "/bin/zsh".to_string()
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        "/bin/bash".to_string()
+    }
+}
+
+/// Windows 保底 `cmd.exe` 全路径：优先 `%ComSpec%`，否则 `C:\Windows\System32\cmd.exe`，
+/// 二者皆缺时退回裸名 `cmd.exe`（系统必装 · PATH 必含 System32）。永不返回 Unix 路径。
+#[cfg(windows)]
+fn windows_cmd_fallback() -> String {
+    if let Some(comspec) = std::env::var_os("ComSpec") {
+        let path = PathBuf::from(&comspec);
+        if is_executable_file(&path) {
+            return path.to_string_lossy().into_owned();
+        }
+    }
+    let system32 = PathBuf::from(r"C:\Windows\System32\cmd.exe");
+    if is_executable_file(&system32) {
+        return system32.to_string_lossy().into_owned();
+    }
+    "cmd.exe".to_string()
 }
 
 /// 扫 /etc/shells 找到第一个实际可用的交互 shell · 终极 fallback。
@@ -1032,7 +1402,7 @@ fn find_available_shell() -> String {
     if let Some(shell) = available.first() {
         return shell.path.clone();
     }
-    default_shell_path().to_string()
+    default_shell_path()
 }
 
 pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
@@ -1050,7 +1420,7 @@ pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
         }
     } else {
         // 无已存设置 · 先用 OS 默认 · 不存在则扫系统
-        let def = default_shell_path().to_string();
+        let def = default_shell_path();
         if resolve_shell(&def).is_some() {
             def
         } else {
@@ -1067,10 +1437,10 @@ pub(crate) fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>
         .map(str::to_string);
 
     if requested.is_empty() {
-        return env_shell.unwrap_or_else(|| default_shell_path().to_string());
+        return env_shell.unwrap_or_else(default_shell_path);
     }
 
-    if requested == default_shell_path() {
+    if requested == default_shell_path().as_str() {
         return env_shell.unwrap_or_else(|| requested.to_string());
     }
 
@@ -1097,15 +1467,31 @@ pub struct ShellInfo {
 /// 等系统/脚本 shell · 它们出现在 `/etc/shells` 但几乎没人作为交互 terminal 用。
 /// nu / pwsh 通常不写 `/etc/shells` · MVP 不为它们加路径探测。用户已选的非白名单 shell
 /// 仍保留在 list 里（例外保护 · 见 list_available_shells 末尾）。
+/// task-2.1：仅 Unix `/etc/shells` 路径使用（Windows 走 where.exe 探测链 · 不读 /etc/shells）。
+#[cfg(unix)]
 const PRIMARY_SHELL_BASENAMES: &[&str] = &["zsh", "bash", "fish"];
 
-/// 扫 `/etc/shells` · 过滤 commented / 不可执行 / 非主流交互 shell · 返回主流 shell 列表。
-/// 读不到 `/etc/shells`（macOS / Linux 都应有 · Windows 没）返回 fallback `[zsh|bash]`。
+/// 枚举系统可用的交互 shell（task-2.1 · ADR-003）·
+/// Windows 走 PATH / `where.exe` 探测 `pwsh.exe`/`powershell.exe`/`cmd.exe`（及 git-bash 若存在）·
+/// 不读 `/etc/shells`；Unix 保留扫 `/etc/shells` + 主流 basename 过滤逻辑。
 ///
 /// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的主流 shell ·
 /// 而非自由输入 / hardcoded 列表（fix24/25 · 防 "PTY 启动失败: shell not executable"
 /// + 减干扰非主流选项）。
 pub fn list_available_shells() -> Vec<ShellInfo> {
+    #[cfg(windows)]
+    {
+        windows_list_shells()
+    }
+    #[cfg(unix)]
+    {
+        unix_list_shells_from_etc_shells()
+    }
+}
+
+/// Unix `/etc/shells` 扫描（task-2.1 前的原始逻辑原样迁入 · 行为零变化）。
+#[cfg(unix)]
+fn unix_list_shells_from_etc_shells() -> Vec<ShellInfo> {
     let mut shells: Vec<ShellInfo> = std::fs::read_to_string("/etc/shells")
         .ok()
         .map(|content| {
@@ -1134,14 +1520,14 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
     if shells.is_empty() {
         // /etc/shells 读不到 / 全 invalid · fallback 到 default_shell_path（一定存在的）
         let fallback = default_shell_path();
-        if is_executable_file(Path::new(fallback)) {
-            let label = Path::new(fallback)
+        if is_executable_file(Path::new(&fallback)) {
+            let label = Path::new(&fallback)
                 .file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or(fallback)
+                .unwrap_or(&fallback)
                 .to_string();
             shells.push(ShellInfo {
-                path: fallback.to_string(),
+                path: fallback,
                 label,
             });
         }
@@ -1152,15 +1538,71 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
     shells
 }
 
+/// Windows shell 枚举（task-2.1 · ADR-003）· 对探测链候选逐个 `resolve_shell` ·
+/// 命中者 push `ShellInfo{ path: 全路径, label: basename 去 .exe }`；按 path 去重；
+/// 列表为空时保底 push `cmd.exe`（`windows_cmd_fallback`）· 永不读 `/etc/shells`。
+#[cfg(windows)]
+fn windows_list_shells() -> Vec<ShellInfo> {
+    // pwsh（PowerShell 7+）→ powershell（内置 5.1）→ cmd（保底）→ bash（git-bash 若装）
+    const WINDOWS_SHELL_CANDIDATES: &[&str] =
+        &["pwsh.exe", "powershell.exe", "cmd.exe", "bash.exe"];
+
+    let mut shells: Vec<ShellInfo> = Vec::new();
+    for candidate in WINDOWS_SHELL_CANDIDATES {
+        if let Some(path) = resolve_shell(candidate) {
+            shells.push(ShellInfo {
+                path: path.to_string_lossy().into_owned(),
+                label: windows_shell_label(&path),
+            });
+        }
+    }
+
+    if shells.is_empty() {
+        // 探测链全空（理论上不该 · cmd.exe 必装）· 保底 cmd.exe 全路径
+        let fallback = windows_cmd_fallback();
+        let label = windows_shell_label(Path::new(&fallback));
+        shells.push(ShellInfo {
+            path: fallback,
+            label,
+        });
+    }
+
+    // 按 path 去重（保留首项 · 探测链已是优先序）
+    shells.dedup_by(|a, b| a.path == b.path);
+    shells
+}
+
+/// Windows shell 显示用 label：取 basename 去 `.exe`/`.bat`/`.cmd`/`.com` 扩展名。
+#[cfg(windows)]
+fn windows_shell_label(path: &Path) -> String {
+    path.file_stem()
+        .and_then(|s| s.to_str())
+        .map(str::to_string)
+        .or_else(|| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| path.to_string_lossy().into_owned())
+}
+
 pub(crate) fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {
         return is_executable_file(path).then(|| path.to_path_buf());
     }
 
-    resolve_shell_in_path(shell, std::env::var_os("PATH").as_deref())
+    #[cfg(windows)]
+    {
+        resolve_shell_via_where(shell)
+    }
+    #[cfg(unix)]
+    {
+        resolve_shell_in_path(shell, std::env::var_os("PATH").as_deref())
+    }
 }
 
+#[cfg(unix)]
 fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBuf> {
     path_var.and_then(|path_var| {
         std::env::split_paths(path_var)
@@ -1169,9 +1611,55 @@ fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBu
     })
 }
 
+/// Windows 裸名 shell 解析（task-2.1 · ADR-003）· 调 `where.exe <shell>`，
+/// 取多行输出里首个 `is_executable_file` 为 true 的项（`where.exe` 可能返回多行 ·
+/// 如 pwsh 同时命中 Program Files + WindowsApps app-execution-alias）。
+/// `where.exe` 找不到时退出码非 0 / 输出空 → 返回 None。
+#[cfg(windows)]
+fn resolve_shell_via_where(shell: &str) -> Option<PathBuf> {
+    let output = std::process::Command::new("where.exe")
+        .arg(shell)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .find(|candidate| is_executable_file(candidate))
+}
+
+#[cfg(unix)]
 fn is_executable_file(path: &Path) -> bool {
     std::fs::metadata(path)
         .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
+        .unwrap_or(false)
+}
+
+/// Windows 无 POSIX 执行位（ADR-001 + ADR-003 + spec §5.3）· 退化为
+/// "是存在的文件 **且** 有可执行扩展名（.exe/.bat/.cmd/.com · 不区分大小写）"。
+/// 无可执行扩展名的普通文件（如 .txt）判 false（task-2.1 收紧 · 替换 task-1.1 的纯 is_file 占位）。
+#[cfg(windows)]
+fn is_executable_file(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.is_file())
+        .unwrap_or(false)
+        && has_windows_executable_ext(path)
+}
+
+/// 判断路径是否带 Windows 可执行扩展名（.exe/.bat/.cmd/.com · 不区分大小写）。
+#[cfg(windows)]
+fn has_windows_executable_ext(path: &Path) -> bool {
+    const EXECUTABLE_EXTS: &[&str] = &["exe", "bat", "cmd", "com"];
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            let lower = ext.to_ascii_lowercase();
+            EXECUTABLE_EXTS.contains(&lower.as_str())
+        })
         .unwrap_or(false)
 }
 
@@ -1194,7 +1682,15 @@ fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
             .find_map(|line| line.strip_prefix('n'))
             .map(PathBuf::from)
     }
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    #[cfg(target_os = "windows")]
+    {
+        // PRD §Out of Scope · ConPTY 无 /proc/lsof 等价物 · 显式返回 None ·
+        // 由 spawn-time 缓存的 initial_cwd 兜底（见 PtySession::working_directory）·
+        // 精确实现（Windows API 查询）defer · ADR-001 OQ3。
+        let _ = process_id;
+        None
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
         let _ = process_id;
         None
@@ -1205,6 +1701,7 @@ fn normalize_cwd(path: PathBuf) -> PathBuf {
     path.canonicalize().unwrap_or(path)
 }
 
+#[cfg(unix)]
 fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
     if flags < 0 {
@@ -1223,6 +1720,11 @@ fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
     Ok(())
 }
 
+/// Windows no-op（ADR-001 + spec §5.3）· ConPTY 的 overlapped I/O 由 portable-pty 内部处理 ·
+/// 无需 fcntl(O_NONBLOCK)。保留显式函数以标注"此处刻意不设非阻塞"。
+#[cfg(windows)]
+fn set_fd_nonblocking_noop() {}
+
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex
         .lock()
@@ -1232,7 +1734,10 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use crossbeam_channel::RecvTimeoutError;
+    // Unix-only：mode 位测试 + PTY 进程拉起测试需要 PermissionsExt（AC5 · cfg-gate）。
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use ts_rs::{Config, TS};
 
@@ -1273,6 +1778,7 @@ mod tests {
         (manager, events)
     }
 
+    #[cfg(unix)]
     fn spawn_shell(manager: &PtyManager, tab_id: &str) -> Result<(), PtyError> {
         manager.spawn(PtySpawnRequest {
             tab_id: tab_id.to_string(),
@@ -1283,6 +1789,7 @@ mod tests {
         })
     }
 
+    #[cfg(unix)]
     fn recv_until_exit(
         events: &Receiver<PtyEvent>,
         tab_id: &str,
@@ -1356,6 +1863,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn parse_signal_maps_supported_values() {
         assert_eq!(parse_signal("SIGINT").unwrap(), libc::SIGINT);
@@ -1364,6 +1872,7 @@ mod tests {
         assert_eq!(parse_signal("SIGKILL").unwrap(), libc::SIGKILL);
     }
 
+    #[cfg(unix)]
     #[test]
     fn parse_signal_rejects_unknown_values() {
         let error = parse_signal("SIGHUP").unwrap_err();
@@ -1431,7 +1940,7 @@ mod tests {
     #[test]
     fn effective_shell_prefers_env_shell_for_default_request() {
         assert_eq!(
-            effective_shell_for_spawn(default_shell_path(), Some("/opt/homebrew/bin/fish")),
+            effective_shell_for_spawn(&default_shell_path(), Some("/opt/homebrew/bin/fish")),
             "/opt/homebrew/bin/fish"
         );
     }
@@ -1453,6 +1962,7 @@ mod tests {
         assert_eq!(effective_shell_for_spawn("", None), default_shell_path());
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_shell_in_path_skips_non_executable_candidates() {
         let temp = tempfile::TempDir::new().unwrap();
@@ -1532,6 +2042,7 @@ mod tests {
         assert!(matches!(error, PtyError::NotFound(value) if value == "missing"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn working_directory_returns_spawn_cwd() {
         let (manager, _events) = manager_with_events();
@@ -1552,6 +2063,7 @@ mod tests {
         manager.kill("tab-cwd").unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn environment_returns_spawn_env_with_terminal_overrides() {
         let (manager, _events) = manager_with_events();
@@ -1575,6 +2087,7 @@ mod tests {
         manager.kill("tab-env").unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     #[cfg_attr(
         target_os = "linux",
@@ -1592,6 +2105,7 @@ mod tests {
         assert_eq!(exit_code, Some(0));
     }
 
+    #[cfg(unix)]
     #[test]
     fn resize_keeps_session_alive() {
         let (manager, events) = manager_with_events();
@@ -1606,6 +2120,7 @@ mod tests {
         assert_eq!(exit_code, Some(0));
     }
 
+    #[cfg(unix)]
     #[test]
     #[cfg_attr(
         target_os = "linux",
@@ -1622,6 +2137,7 @@ mod tests {
         assert_eq!(exit_code, None);
     }
 
+    #[cfg(unix)]
     #[test]
     fn kill_force_terminates_session() {
         let (manager, events) = manager_with_events();
@@ -1635,6 +2151,7 @@ mod tests {
         assert_eq!(exit_code, emitted_exit_code);
     }
 
+    #[cfg(unix)]
     #[test]
     fn shared_reader_routes_stdout_to_multiple_tabs() {
         let (manager, events) = manager_with_events();
@@ -1675,6 +2192,7 @@ mod tests {
             .is_some_and(|output| output.contains("tab-c")));
     }
 
+    #[cfg(unix)]
     #[test]
     fn duplicate_spawn_rejected_while_session_alive() {
         let (manager, _events) = manager_with_events();
@@ -1683,6 +2201,9 @@ mod tests {
         assert!(matches!(error, PtyError::AlreadyRunning(value) if value == "tab-dup"));
     }
 
+    // resolve_default_shell_* 测试断言 Unix shell 路径（/bin/zsh · /bin/bash）+ 依赖
+    // is_executable_file 的 Unix mode 位语义 · 整组 cfg-gate（Windows shell 探测 = task-2.1）。
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_returns_platform_default_when_no_db() {
         let shell = resolve_default_shell(None);
@@ -1693,6 +2214,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_reads_from_app_settings() {
         use crate::db;
@@ -1710,6 +2232,7 @@ mod tests {
         assert_eq!(shell, real_shell);
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_falls_back_when_stored_shell_missing() {
         use crate::db;
@@ -1727,6 +2250,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_falls_back_when_key_missing() {
         use crate::db;
@@ -1741,6 +2265,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_ignores_empty_value() {
         use crate::db;
@@ -1756,6 +2281,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn check_shell_exists_accepts_valid_shell() {
         assert!(check_shell_exists("/bin/sh").is_ok());
@@ -1765,5 +2291,307 @@ mod tests {
     fn check_shell_exists_rejects_invalid_path() {
         let result = check_shell_exists("/bin/does-not-exist-vibestation-test");
         assert!(matches!(result, Err(PtyError::ShellNotFound(_))));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // task-1.1 · Windows 平台分离 SCEN/TEST（§7 追踪表）
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// TEST-1.1.1（SCEN-1.1.1 · AC1）：crates/core 在三平台编译通过。
+    /// 本测试存在即证明 cfg 分离后符号在编译目标平台齐全（Windows 不再因 mio::unix /
+    /// libc::fcntl / PermissionsExt fatal）· 编译能跑到本测试就说明 AC1 在该平台成立。
+    #[test]
+    fn test_1_1_1_windows_pty_compiles() {
+        // PtyManager 在三平台都能构造（Unix 起 mio reader · Windows 起 ConPTY per-session reader 调度）。
+        let manager = PtyManager::new();
+        // 未知 tab 在三平台都返回 NotFound（不触平台相关 PTY 路径）。
+        assert!(matches!(
+            manager.stdin("nonexistent", "noop"),
+            Err(PtyError::NotFound(_))
+        ));
+    }
+
+    /// TEST-1.1.2（SCEN-1.1.2 · AC2）：Unix 信号解析 + reader 路径行为零回归。
+    /// 锁住 Unix parse_signal 映射 + is_executable_file mode 位语义未被 cfg 分离改坏。
+    #[cfg(unix)]
+    #[test]
+    fn test_1_1_2_unix_reader_signal_unchanged() {
+        // 信号映射不变
+        assert_eq!(parse_signal("SIGINT").unwrap(), libc::SIGINT);
+        assert_eq!(parse_signal("SIGKILL").unwrap(), libc::SIGKILL);
+        assert!(matches!(
+            parse_signal("SIGHUP"),
+            Err(PtyError::InvalidSignal(_))
+        ));
+        // is_executable_file mode 位语义不变：真实可执行 shell 判 true
+        assert!(is_executable_file(Path::new("/bin/sh")));
+        // 非可执行的普通文件判 false
+        let dir = tempfile::tempdir().unwrap();
+        let plain = dir.path().join("plain.txt");
+        std::fs::write(&plain, "data").unwrap();
+        std::fs::set_permissions(&plain, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(!is_executable_file(&plain));
+    }
+
+    /// TEST-1.1.3（SCEN-1.1.3 · AC3）：Windows 信号路由退化为单进程 kill 语义 ·
+    /// parse_signal_windows 受支持信号全映射 Kill · 未知信号拒绝（与 Unix 同契约）·
+    /// 路径不引用 mio/SourceFd/libc（编译能到此即证明）。
+    #[cfg(windows)]
+    #[test]
+    fn test_1_1_3_windows_reader_no_mio() {
+        assert_eq!(parse_signal_windows("SIGINT").unwrap(), WindowsSignal::Kill);
+        assert_eq!(
+            parse_signal_windows("SIGTERM").unwrap(),
+            WindowsSignal::Kill
+        );
+        assert_eq!(
+            parse_signal_windows("SIGTSTP").unwrap(),
+            WindowsSignal::Kill
+        );
+        assert_eq!(
+            parse_signal_windows("SIGKILL").unwrap(),
+            WindowsSignal::Kill
+        );
+        assert!(matches!(
+            parse_signal_windows("SIGHUP"),
+            Err(PtyError::InvalidSignal(value)) if value == "SIGHUP"
+        ));
+    }
+
+    /// TEST-1.1.4（SCEN-1.1.4 · AC4）：Windows detect_process_cwd 安全返回 None ·
+    /// 不 panic · 不调 /proc / lsof · 由 spawn-time 缓存 initial_cwd 兜底。
+    #[cfg(windows)]
+    #[test]
+    fn test_1_1_4_detect_cwd_windows_none() {
+        // 任意 pid（含自身）在 Windows 都返回 None（Out of Scope · 缓存兜底）。
+        assert_eq!(detect_process_cwd(std::process::id()), None);
+        assert_eq!(detect_process_cwd(1), None);
+    }
+
+    /// TEST-1.1.5（SCEN-1.1.5 · AC5）：测试模块在三平台均可编译 ·
+    /// 平台无关的纯逻辑函数（parse_chunk_to_lines / find_ansi_clear / exit_code_from_status）
+    /// 不依赖任一平台 import · 编译能跑到此即证明 Unix-only import 已正确 cfg-gate。
+    #[test]
+    fn test_1_1_5_tests_compile_all_platforms() {
+        // 平台无关：行解析
+        let mut partial = String::new();
+        assert_eq!(parse_chunk_to_lines("a\nb\n", &mut partial), vec!["a", "b"]);
+        // 平台无关：ANSI clear 检测
+        assert_eq!(find_ansi_clear(b"x\x1b[2Jy"), Some(1));
+        // 平台无关：退出码映射（signal 变体 → None）
+        assert_eq!(
+            exit_code_from_status(&ExitStatus::with_signal("SIGKILL")),
+            None
+        );
+        assert_eq!(
+            exit_code_from_status(&ExitStatus::with_exit_code(0)),
+            Some(0)
+        );
+    }
+
+    /// Windows is_executable_file 退化为文件存在性判定（不走 mode 位 · AC · spec §5.3）。
+    #[cfg(windows)]
+    #[test]
+    fn windows_is_executable_file_uses_file_existence() {
+        let dir = tempfile::tempdir().unwrap();
+        // 存在的普通文件 → true（Windows 无执行位 · 退化为 is_file）
+        let file = dir.path().join("tool.exe");
+        std::fs::write(&file, b"MZ").unwrap();
+        assert!(is_executable_file(&file));
+        // 不存在 → false
+        assert!(!is_executable_file(&dir.path().join("missing.exe")));
+        // 目录 → false（is_file 为 false）
+        assert!(!is_executable_file(dir.path()));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // task-2.1 · Windows shell 探测 SCEN/TEST（§7 追踪表 · AC1~AC6）
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// TEST-2.1.1（SCEN-2.1.1 · AC1）：Windows `default_shell_path()` 返回探测链首个可用 shell ·
+    /// 全路径绝不是 Unix `/bin/*`；探测链候选之一（pwsh/powershell/cmd）必命中。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_1_default_shell_probe_chain_picks_pwsh() {
+        let shell = default_shell_path();
+        // 绝不返回 Unix 路径
+        assert!(
+            !shell.starts_with("/bin/") && !shell.starts_with("/usr/"),
+            "Windows default_shell_path 不得返回 Unix 路径 · got {shell}"
+        );
+        // 必命中探测链候选（basename 去 .exe 应是 pwsh/powershell/cmd 之一）
+        let basename = Path::new(&shell)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(str::to_ascii_lowercase)
+            .unwrap_or_default();
+        assert!(
+            ["pwsh.exe", "powershell.exe", "cmd.exe"].contains(&basename.as_str()),
+            "default_shell_path basename 应在探测链内 · got {basename}"
+        );
+        // 返回的全路径必须真可执行（除非退回裸名 cmd.exe 保底）
+        if Path::new(&shell).components().count() > 1 {
+            assert!(
+                is_executable_file(Path::new(&shell)),
+                "探测链返回的全路径必须可执行 · got {shell}"
+            );
+        }
+        // 本机装了 pwsh 7+，探测链应优先选 pwsh.exe
+        if resolve_shell("pwsh.exe").is_some() {
+            assert_eq!(
+                basename, "pwsh.exe",
+                "装了 pwsh 时探测链应优先返回 pwsh.exe · got {basename}"
+            );
+        }
+    }
+
+    /// TEST-2.1.2（SCEN-2.1.2 · AC2）：探测链全缺时保底 cmd.exe · 不 panic · 不返回 /bin/bash。
+    /// 直接测保底函数 `windows_cmd_fallback`（系统 cmd.exe 必装 · 永远成立）。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_2_default_shell_falls_back_to_cmd() {
+        // 保底永远是 cmd.exe（全路径或裸名）· 绝不是 Unix 路径
+        let fallback = windows_cmd_fallback();
+        assert!(
+            !fallback.starts_with("/bin/"),
+            "保底不得返回 Unix 路径 · got {fallback}"
+        );
+        let basename = Path::new(&fallback)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(str::to_ascii_lowercase)
+            .unwrap_or_default();
+        assert_eq!(basename, "cmd.exe", "保底 shell basename 必须是 cmd.exe");
+        // resolve_default_shell(None) 在 Windows 也绝不 panic 且不返回 Unix 路径
+        let resolved = resolve_default_shell(None);
+        assert!(
+            !resolved.starts_with("/bin/"),
+            "resolve_default_shell(None) 不得返回 Unix 路径 · got {resolved}"
+        );
+    }
+
+    /// TEST-2.1.3（SCEN-2.1.3 · AC3）：Windows `list_available_shells()` 非空 ·
+    /// 不含任何 Unix `/bin/*` / `/etc/shells` 来源项 · 含已装的 pwsh/powershell/cmd。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_3_list_available_shells_windows_no_unix_paths() {
+        let shells = list_available_shells();
+        assert!(!shells.is_empty(), "Windows 可用 shell 列表不得为空");
+        for shell in &shells {
+            assert!(
+                !shell.path.starts_with("/bin/") && !shell.path.starts_with("/usr/"),
+                "Windows shell 列表不得含 Unix 路径 · got {}",
+                shell.path
+            );
+        }
+        // 本机三件套至少 cmd 必在
+        let labels: Vec<String> = shells
+            .iter()
+            .map(|s| s.label.to_ascii_lowercase())
+            .collect();
+        assert!(
+            labels.iter().any(|l| l == "cmd"),
+            "列表应含 cmd · got {labels:?}"
+        );
+    }
+
+    /// TEST-2.1.4（SCEN-2.1.4 · AC4）：`resolve_shell` 经 where.exe 命中裸名返回全路径 ·
+    /// `is_executable_file` 对 .exe/.bat/.cmd true · 对无可执行扩展名普通文件 false。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_4_resolve_shell_via_where_and_exe_ext() {
+        // cmd.exe 必在 PATH · where.exe 必命中 · 返回带 .exe 的全路径
+        let resolved = resolve_shell("cmd.exe").expect("cmd.exe 必能解析");
+        assert!(
+            resolved.components().count() > 1,
+            "where.exe 解析应返回全路径 · got {resolved:?}"
+        );
+        assert!(
+            is_executable_file(&resolved),
+            "解析出的 cmd.exe 全路径必须可执行"
+        );
+
+        // 扩展名可执行判定
+        let dir = tempfile::tempdir().unwrap();
+        for ext in ["exe", "bat", "cmd", "com", "EXE", "Cmd"] {
+            let f = dir.path().join(format!("tool.{ext}"));
+            std::fs::write(&f, b"x").unwrap();
+            assert!(is_executable_file(&f), ".{ext} 应判可执行 · {f:?}");
+        }
+        // 无可执行扩展名的普通文件 → false
+        let txt = dir.path().join("notes.txt");
+        std::fs::write(&txt, b"hello").unwrap();
+        assert!(!is_executable_file(&txt), ".txt 不应判可执行");
+        // 无扩展名文件 → false
+        let noext = dir.path().join("plainfile");
+        std::fs::write(&noext, b"x").unwrap();
+        assert!(!is_executable_file(&noext), "无扩展名文件不应判可执行");
+        // 不存在 → false（不 panic）
+        assert!(!is_executable_file(&dir.path().join("missing.exe")));
+
+        // 含空格路径 round-trip（R-2.1-b）：带空格目录下的 .exe 仍能被 is_executable_file 识别
+        let spaced = dir.path().join("Program Files Sim");
+        std::fs::create_dir_all(&spaced).unwrap();
+        let spaced_exe = spaced.join("shell tool.exe");
+        std::fs::write(&spaced_exe, b"x").unwrap();
+        assert!(
+            is_executable_file(&spaced_exe),
+            "含空格路径的 .exe 应判可执行 · {spaced_exe:?}"
+        );
+    }
+
+    /// TEST-2.1.5（SCEN-2.1.5 · AC5）：Windows `detect_process_cwd` 安全返回 None ·
+    /// `working_directory()` 回落到 spawn-time 缓存的 initial_cwd（非空有效路径）。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_5_detect_process_cwd_windows_falls_back_to_initial_cwd() {
+        // detect_process_cwd 永远 None（不 panic · OQ3 缓存兜底）
+        assert_eq!(detect_process_cwd(std::process::id()), None);
+        assert_eq!(detect_process_cwd(1), None);
+
+        // working_directory() 经 spawn-time 缓存 initial_cwd 兜底 · 返回非空有效路径
+        let (manager, _events) = manager_with_events();
+        let dir = tempfile::tempdir().unwrap();
+        manager
+            .spawn(PtySpawnRequest {
+                tab_id: "tab-cwd-win".to_string(),
+                shell: "cmd.exe".to_string(),
+                cwd: dir.path().to_string_lossy().to_string(),
+                cols: 80,
+                rows: 24,
+            })
+            .unwrap();
+        let cwd = manager.working_directory("tab-cwd-win").unwrap();
+        assert!(
+            cwd.is_absolute() && cwd.exists(),
+            "working_directory 应回落到有效缓存 cwd · got {cwd:?}"
+        );
+        let _ = manager.kill("tab-cwd-win");
+    }
+
+    /// TEST-2.1.6（SCEN-2.1.6 · AC6）：mac/Linux shell 探测零回归 ·
+    /// default_shell_path 返回平台 Unix 路径 · list_available_shells 经 /etc/shells ·
+    /// resolve_shell 经 PATH + mode 位。复用既有 Unix 断言锁定。
+    #[cfg(unix)]
+    #[test]
+    fn test_2_1_6_unix_shell_detection_unchanged() {
+        // default_shell_path 仍返回平台 Unix 路径（签名形变为 String · 值不变）
+        if cfg!(target_os = "macos") {
+            assert_eq!(default_shell_path(), "/bin/zsh");
+        } else {
+            assert_eq!(default_shell_path(), "/bin/bash");
+        }
+        // list_available_shells 经 /etc/shells · 非空 · 全是 Unix 路径
+        let shells = list_available_shells();
+        assert!(!shells.is_empty(), "Unix shell 列表不得为空");
+        for shell in &shells {
+            assert!(
+                shell.path.starts_with('/'),
+                "Unix shell 路径应为绝对路径 · got {}",
+                shell.path
+            );
+        }
+        // resolve_shell 经 PATH + mode 位仍能解析 /bin/sh
+        assert!(resolve_shell("/bin/sh").is_some());
     }
 }

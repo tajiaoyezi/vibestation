@@ -136,19 +136,32 @@ impl From<&RawScanResult> for ImportScanResult {
     }
 }
 
-/// Issue #206 Advisory #3 修复：后端用 $HOME env var 准确替换家目录为 `~`
+/// Issue #206 Advisory #3 修复：后端用家目录环境变量准确替换家目录为 `~`
 /// · 前端不再需要 hard-coded `/Users/[^/]+` / `/home/[^/]+` 正则
 /// · 不命中（如 `/opt/homebrew/` / `/var/folders/`）时原样返回
+///
+/// task-3.2（AC4）：平台感知家目录环境变量 ——
+/// - Windows：`USERPROFILE`（`HOME` 在 Windows 常缺失）
+/// - 非 Windows：`HOME`
+///
+/// 读环境变量后委托 [`prettify_home_path_with`]（可注入 home · 测试不依赖真实 env）。
 fn prettify_home_path(p: &Path) -> String {
+    #[cfg(windows)]
+    let home = std::env::var("USERPROFILE").ok();
+    #[cfg(not(windows))]
+    let home = std::env::var("HOME").ok();
+    prettify_home_path_with(p, home)
+}
+
+/// 可注入实现：`home` 显式传入 · 命中前缀折叠为 `~` · 否则原样返回。
+fn prettify_home_path_with(p: &Path, home: Option<String>) -> String {
     let s = p.to_string_lossy();
-    if let Ok(home) = std::env::var("HOME") {
-        if !home.is_empty() {
-            if let Some(stripped) = s.strip_prefix(&home) {
-                return format!("~{stripped}");
-            }
+    if let Some(home) = home.filter(|h| !h.is_empty()) {
+        if let Some(stripped) = s.strip_prefix(&home) {
+            return format!("~{stripped}");
         }
     }
-    s.to_string()
+    s.into_owned()
 }
 
 // ─── 类型 3 · ImportPreview ────────────────────────────────────────────
@@ -544,6 +557,14 @@ mod tests {
         (dir, pool)
     }
 
+    /// task-3.3 连带：keybinding 主修饰键 canonical 名按平台（macOS `Cmd` · 其余 `Ctrl`）。
+    /// 这些 ipc 用例经 `apply`/`detect_conflicts_ipc` 走运行期平台 canonical · 故期望值
+    /// 平台化（mac 期望 `Cmd+T` · Windows/Linux 期望 `Ctrl+T`）· 替代原硬编码 `Cmd`。
+    #[cfg(target_os = "macos")]
+    const PRIMARY_MOD: &str = "Cmd";
+    #[cfg(not(target_os = "macos"))]
+    const PRIMARY_MOD: &str = "Ctrl";
+
     #[test]
     fn imported_field_to_ipc_roundtrip() {
         let f = ImportedField::FontFamily("JetBrains Mono".to_string());
@@ -596,7 +617,7 @@ mod tests {
         ];
         let conflicts = detect_conflicts_ipc(&fields);
         assert_eq!(conflicts.len(), 1);
-        assert_eq!(conflicts[0].vibe_key, "Cmd+T");
+        assert_eq!(conflicts[0].vibe_key, format!("{PRIMARY_MOD}+T"));
         assert_eq!(conflicts[0].source_action, "new_tab");
         // user_choice 默认 KeepVibe
         assert_eq!(conflicts[0].user_choice, KeyBindingResolution::KeepVibe);
@@ -743,9 +764,9 @@ mod tests {
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
 
-        // 验证 DB 内容是 JSON
+        // 验证 DB 内容是 JSON（canonical 主修饰键按平台）
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+T"));
+        assert!(raw.contains(&format!("{PRIMARY_MOD}+T")));
         assert!(raw.contains("spawn_tab"));
     }
 
@@ -763,7 +784,8 @@ mod tests {
         assert!(result.errors.is_empty());
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+Shift+P"));
+        // canonical 主修饰键按平台（mac Cmd · 其余 Ctrl）
+        assert!(raw.contains(&format!("{PRIMARY_MOD}+Shift+P")));
     }
 
     #[test]
@@ -811,9 +833,12 @@ mod tests {
             "vibe 内置 ⌘T 不应被覆盖 · applied={:?}",
             result.applied
         );
-        // 必须出现在 skipped_conflicts（默认 KeepVibe）
+        // 必须出现在 skipped_conflicts（默认 KeepVibe）· canonical 主修饰键按平台
         assert_eq!(result.skipped_conflicts.len(), 1);
-        assert_eq!(result.skipped_conflicts[0].source_key, "Cmd+T");
+        assert_eq!(
+            result.skipped_conflicts[0].source_key,
+            format!("{PRIMARY_MOD}+T")
+        );
         assert_eq!(
             result.skipped_conflicts[0].user_choice,
             KeyBindingResolution::KeepVibe
@@ -826,14 +851,16 @@ mod tests {
     #[test]
     fn apply_allows_explicit_override_of_vibe_builtin() {
         let (_dir, pool) = setup_pool();
+        // conflict_resolutions 的 key 必须匹配 server 端 canonical（主修饰键按平台）
+        let primary_t = format!("{PRIMARY_MOD}+T");
         let req = ImportApplyRequest {
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(),
                 action: "spawn_tab".to_string(),
             }],
             conflict_resolutions: vec![KeyBindingConflict {
-                vibe_key: "Cmd+T".to_string(),
-                source_key: "Cmd+T".to_string(),
+                vibe_key: primary_t.clone(),
+                source_key: primary_t.clone(),
                 vibe_action: "tabs.create".to_string(),
                 source_action: "spawn_tab".to_string(),
                 user_choice: KeyBindingResolution::Override,
@@ -843,12 +870,19 @@ mod tests {
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+T"));
+        assert!(raw.contains(&primary_t));
         assert!(raw.contains("spawn_tab"));
     }
 
     /// Finding 3: apply 是 transactional · 多字段同时写 · 全 commit 一致
     /// · applied 反映完整成功状态 · errors empty
+    ///
+    /// task-3.2 note：本测试验多字段原子写入 · Shell 仅为 5 字段之一（偶然 fixture）·
+    /// 用 POSIX 保证存在的 `/bin/sh`（apply 内 shell 可执行性校验 = shell-existence
+    /// 子系统 · task-2.1 territory · 非 config-path 范围）· 原 `/bin/zsh` 在无 zsh 的
+    /// Unix CI runner（如 ubuntu-latest）必失败〔macOS 开发机默认有 zsh 故历史 PASS〕·
+    /// Windows 亦无 `/bin/sh` 故 cfg-gate 到非 Windows（Unix shell 语义专属）。
+    #[cfg(not(windows))]
     #[test]
     fn apply_writes_multiple_fields_atomically() {
         let (_dir, pool) = setup_pool();
@@ -862,7 +896,7 @@ mod tests {
                     value: ThemeMode::Dark,
                 },
                 ImportFieldType::Shell {
-                    value: "/bin/zsh".to_string(),
+                    value: "/bin/sh".to_string(),
                 },
                 ImportFieldType::KeyBinding {
                     key: "Cmd+Shift+P".to_string(),
@@ -888,7 +922,7 @@ mod tests {
         assert_eq!(s.font_family, "JetBrains Mono");
         assert_eq!(s.font_size, 15); // 14.5 round → 15
         assert_eq!(s.theme, "dark");
-        assert_eq!(s.default_shell, "/bin/zsh");
+        assert_eq!(s.default_shell, "/bin/sh");
     }
 
     /// Issue #206 Important 1 修复：ThemeMode::parse_normalized 直接单测
@@ -961,6 +995,57 @@ mod tests {
         assert_ne!(
             s.default_shell, "/nonexistent/path/to/fake-shell-xyz",
             "无效 shell 不应被持久化"
+        );
+    }
+
+    // ─── task-3.2 · prettify_home_path 平台感知（可注入 home · 不依赖真实 env）──
+
+    /// TEST-3.2.4（AC4）：Windows 上以 `USERPROFILE` 折叠家目录为 `~` 前缀。
+    /// 用可注入的 `prettify_home_path_with(p, home)` 显式传 home（spec §8 R2 ·
+    /// 不依赖真实环境变量 · CI 无 USERPROFILE 也稳定）。
+    #[test]
+    fn test_3_2_4_prettify_userprofile_tilde() {
+        // Windows 风格家目录 + 反斜杠子路径
+        let home = "C:\\Users\\alice";
+        let p = Path::new("C:\\Users\\alice\\AppData\\Roaming\\alacritty\\config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert!(pretty.starts_with('~'), "应折叠为 ~ 前缀 · 实际={pretty}");
+        assert!(pretty.contains("alacritty"), "应保留子路径 · 实际={pretty}");
+        assert!(
+            !pretty.contains("C:\\Users\\alice\\AppData"),
+            "不应再含完整家目录前缀 · 实际={pretty}"
+        );
+    }
+
+    /// TEST-3.2.4b（AC4 · 不命中原样返回）：path 不在 home 下时原样返回（不误折叠）。
+    #[test]
+    fn test_3_2_4b_prettify_non_home_unchanged() {
+        let home = "C:\\Users\\alice";
+        let p = Path::new("D:\\OtherDrive\\config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert_eq!(pretty, "D:\\OtherDrive\\config");
+    }
+
+    /// TEST-3.2.4c（AC4/AC6 · Unix 语义保持）：Unix 风格 home 折叠仍正确。
+    #[test]
+    fn test_3_2_4c_prettify_unix_home_unchanged() {
+        let home = "/Users/alice";
+        let p = Path::new("/Users/alice/.config/ghostty/config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert_eq!(pretty, "~/.config/ghostty/config");
+    }
+
+    /// TEST-3.2.4d（AC4 · home 缺失/空时原样返回）。
+    #[test]
+    fn test_3_2_4d_prettify_no_home_returns_raw() {
+        let p = Path::new("C:\\Users\\alice\\AppData\\Roaming\\x");
+        assert_eq!(
+            prettify_home_path_with(p, None),
+            "C:\\Users\\alice\\AppData\\Roaming\\x"
+        );
+        assert_eq!(
+            prettify_home_path_with(p, Some(String::new())),
+            "C:\\Users\\alice\\AppData\\Roaming\\x"
         );
     }
 }

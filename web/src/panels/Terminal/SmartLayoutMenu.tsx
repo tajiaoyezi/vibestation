@@ -1,5 +1,6 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import type { LayoutNode, LayoutPresetKind, PaneState } from "../../bindings";
+import { formatShortcut } from "../../lib/format-shortcut";
 
 export type SmartLayoutPreset = LayoutPresetKind;
 
@@ -263,7 +264,7 @@ export const SmartLayoutMenu: Component<SmartLayoutMenuProps> = (props) => {
               >
                 <div class="vs-smart-layout-preview-warning">
                   当前只有 {props.panes.length} 个 Pane · AI+Runner 需要至少 2
-                  个 Pane（先 ⌘\ 分屏后再使用）
+                  个 Pane（先 {formatShortcut("⌘\\", "Ctrl+\\")} 分屏后再使用）
                 </div>
               </Show>
             </div>

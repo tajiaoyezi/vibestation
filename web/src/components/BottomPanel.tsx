@@ -2,6 +2,7 @@ import { type Component } from "solid-js";
 import type { WorkspaceMetadata } from "../bindings";
 import { GitStatusPanel } from "../panels/GitStatus";
 import type { DiffTarget } from "./MainContent";
+import { formatShortcut } from "../lib/format-shortcut";
 
 interface BottomPanelProps {
   layout: () => { bottomOpen: boolean; bottomHeight: number };
@@ -36,7 +37,7 @@ export const BottomPanel: Component<BottomPanelProps> = (props) => {
         <span class="vs-bp-tab">Output</span>
         <span class="vs-bp-tab">Diff</span>
         <div class="vs-bp-right">
-          <span class="vs-kbd-tip">⌘J</span>
+          <span class="vs-kbd-tip">{formatShortcut("⌘J", "Ctrl+J")}</span>
         </div>
       </div>
       <div class="vs-bp-body">

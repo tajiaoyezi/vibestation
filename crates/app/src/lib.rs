@@ -333,9 +333,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
         target_size: settings.pty_pool_size as u8,
     };
     let default_shell_path = PathBuf::from(&settings.default_shell);
-    let home_path = std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/"));
+    let home_path = home_dir();
     state
         .pty_pool
         .apply_config_change(pool_config, default_shell_path.clone());
@@ -632,11 +630,36 @@ fn config_import_apply(
     Ok(result)
 }
 
+/// 跨平台用户家目录解析（task-1.2 · ADR-002）。
+///
+/// Windows: `%USERPROFILE%`（经 `dirs::home_dir()`，内部覆盖 `HOMEDRIVE`+`HOMEPATH` 边界）。
+/// Unix: `$HOME`。
+/// 二者均失败时返回平台合理 fallback（Windows = `C:\` 风格可用根 · 不再无差别 `/`）。
+fn home_dir() -> PathBuf {
+    if let Some(home) = dirs::home_dir() {
+        return home;
+    }
+    // dirs 已覆盖绝大多数；以下仅为极端兜底（环境变量全缺失）。
+    #[cfg(windows)]
+    {
+        // Unix root "/" 在 Windows 无意义 · 回落到 USERPROFILE / 盘符根。
+        std::env::var("USERPROFILE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("C:\\"))
+    }
+    #[cfg(unix)]
+    {
+        std::env::var("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/"))
+    }
+}
+
 /// 计算用户 home 目录 · 失败回退根目录（让扫描看到 path_exists=false 而不是 panic）
+///
+/// 收敛到跨平台 [`home_dir`]（task-1.2 · ADR-002）· Windows 不再回落 "/"。
 fn home_dir_or_root() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/"))
+    home_dir()
 }
 
 fn apply_rebase_state_migration(pool: &DbPool) -> Result<(), String> {
@@ -2400,6 +2423,9 @@ fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     }
 }
 
+// 非 macOS（含 Windows + Linux）：沿用框架默认 title bar 装饰，本 task 不引入 macOS 专属 overlay。
+// Task 5.3 确认点：Windows 走此空 stub = 使用 Windows 原生标题栏，无 macOS overlay / traffic light artifact。
+// 编译期 cfg 已保证 Windows 走此分支；调用零副作用、不 panic（TEST-5.3.2 守护 cfg 分支编译健全）。
 #[cfg(not(target_os = "macos"))]
 fn configure_title_bar<R: tauri::Runtime>(_app: &tauri::App<R>) {}
 
@@ -2655,5 +2681,106 @@ mod pane_failure_tests {
         assert!(!is_failure_exit_code(Some(0)));
         assert!(is_failure_exit_code(Some(1)));
         assert!(is_failure_exit_code(Some(101)));
+    }
+}
+
+// ─── task-1.2 · 跨平台 home_dir() 助手单测（SCEN-1.2.1~1.2.4 / AC1~AC5） ───
+#[cfg(test)]
+mod home_dir_tests {
+    use super::*;
+
+    // SCEN-1.2.1 / AC1 — home_dir() 跨平台解析到真实家目录（非空 · 非根）
+    #[test]
+    fn test_1_2_1_home_dir_resolves_per_platform() {
+        let home = home_dir();
+        assert!(
+            home.as_os_str().len() > 1,
+            "home_dir() 应返回真实家目录，而非空或单字符根，实际={home:?}"
+        );
+
+        #[cfg(windows)]
+        {
+            let s = home.to_string_lossy();
+            // Windows 家目录应是盘符根（如 C:\Users\<user>）· 绝不是 Unix 风格 "/"
+            assert!(
+                s.contains(":\\") || s.contains(":/"),
+                "Windows home_dir() 应含盘符（如 C:\\Users\\...），实际={s}"
+            );
+        }
+
+        #[cfg(unix)]
+        {
+            // Unix 上应与 $HOME 等价（若已设置）
+            if let Ok(env_home) = std::env::var("HOME") {
+                assert_eq!(
+                    home,
+                    PathBuf::from(env_home),
+                    "Unix home_dir() 应等于 $HOME"
+                );
+            }
+        }
+    }
+
+    // SCEN-1.2.2 / AC2 — HOME 未设时 Windows 经 USERPROFILE/dirs 兜底 · 绝不返回 "/"
+    #[cfg(windows)]
+    #[test]
+    fn test_1_2_2_home_dir_no_env_windows_not_root() {
+        let home = home_dir();
+        assert_ne!(
+            home,
+            PathBuf::from("/"),
+            "Windows home_dir() 绝不应返回 Unix 根 \"/\"，实际={home:?}"
+        );
+        // 进一步保证不是任何 Unix 风格绝对根
+        assert!(
+            !home.to_string_lossy().starts_with('/'),
+            "Windows home_dir() 不应以 Unix 风格 / 开头，实际={home:?}"
+        );
+    }
+
+    // SCEN-1.2.3 / AC3 — 两处调用点不再残留裸 env::var("HOME") + "/" 硬编码
+    #[test]
+    fn test_1_2_3_no_hardcoded_home_var() {
+        // 仅扫描生产代码（首个 #[cfg(test)] 之前）· 排除本测试模块自身的字符串字面量与
+        // #[cfg(unix)] 测试里的合法 env::var("HOME") 调用，避免自指误判。
+        let full = include_str!("lib.rs");
+        let prod = full
+            .split_once("#[cfg(test)]")
+            .map(|(before, _)| before)
+            .unwrap_or(full);
+
+        // 1) PTY pool refill 调用点改用 home_dir()（不再裸读 HOME）。
+        assert!(
+            prod.contains("let home_path = home_dir();"),
+            "PTY pool refill 调用点应改为 `let home_path = home_dir();`"
+        );
+
+        // 2) config import scan 仍经 home_dir_or_root()，且其实现收敛到 home_dir()。
+        assert!(
+            prod.contains("fn home_dir_or_root() -> PathBuf {\n    home_dir()\n}"),
+            "home_dir_or_root() 应收敛到 home_dir()（不再裸读 HOME + \"/\" 兜底）"
+        );
+
+        // 3) 生产代码里 std::env::var("HOME") + "/" 兜底的旧反模式最多出现一次
+        //    （仅 home_dir() 内 #[cfg(unix)] 合法分支）· 两处调用点的硬编码已清除。
+        let unix_fallback = prod
+            .matches("std::env::var(\"HOME\")\n            .map(PathBuf::from)\n            .unwrap_or_else(|_| PathBuf::from(\"/\"))")
+            .count();
+        assert!(
+            unix_fallback <= 1,
+            "生产代码裸 HOME + \"/\" 兜底应仅剩 home_dir() 的 cfg(unix) 单处，实际={unix_fallback}"
+        );
+    }
+
+    // SCEN-1.2.4 / AC5 — Unix 家目录解析零回归（home_dir() == $HOME）
+    #[cfg(unix)]
+    #[test]
+    fn test_1_2_4_unix_home_unchanged() {
+        let env_home = std::env::var("HOME").expect("Unix 测试环境应设置 HOME");
+        assert_eq!(
+            home_dir(),
+            PathBuf::from(env_home),
+            "Unix 上 home_dir() 必须等价于 $HOME（零回归）"
+        );
     }
 }

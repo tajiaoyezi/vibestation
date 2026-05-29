@@ -6,6 +6,7 @@ import type {
   SetGitIdentityRequest,
 } from "../../bindings";
 import { commit as apiCommit, setGitIdentity } from "../GitStatus/gitStatusApi";
+import { formatShortcut } from "../../lib/format-shortcut";
 import { IdentityDialog } from "./IdentityDialog";
 import "./styles.css";
 
@@ -189,7 +190,7 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           />
           <textarea
             class="vs-commit-message"
-            placeholder="Commit message… (⌘↵ 提交)"
+            placeholder={`Commit message… (${formatShortcut("⌘↵", "Ctrl+Enter")} 提交)`}
             value={message()}
             onInput={(e) => setMessage(e.currentTarget.value)}
             onKeyDown={handleKeyDown}

@@ -52,6 +52,10 @@ fn contains_subsequence(lines: &[String], expected: &[&str]) -> bool {
     target_os = "linux",
     ignore = "Linux PTY exit timing 在 CI runner 上不稳定 · scrollback integration 依赖同一条 PTY close event 链路 · MVP-04 Phase D Ubuntu runtime 验证时统一补修"
 )]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "硬编码 /bin/sh + printf/exit Unix shell 语义 · Windows 无 /bin/sh · scrollback 持久化的 Windows ConPTY 等价覆盖见 pty_windows_conpty_integration.rs（task-2.2）· ADR-005"
+)]
 fn stdout_is_persisted_and_forced_flush_keeps_partial_tail() {
     let dir = TempDir::new().unwrap();
     let db_path = dir.path().join("vibestation.db");

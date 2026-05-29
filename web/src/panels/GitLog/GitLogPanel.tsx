@@ -63,6 +63,7 @@ import { PullConflictDialog } from "../../dialogs/PullConflictDialog/PullConflic
 import { RemoteSelector } from "../../dialogs/RemoteSelector/RemoteSelector";
 import { RebaseEditor } from "../RebaseEditor";
 import { GitLogContextMenu, type GitLogContextMenuState } from "./contextMenu";
+import { formatShortcut } from "../../lib/format-shortcut";
 import {
   useRemoteSyncStatus,
   type RemoteSyncHighlightRequest,
@@ -1421,7 +1422,7 @@ export const GitLogPanel: Component<GitLogPanelProps> = (props) => {
         <div class="vs-panel-head vs-git-sync-panel-head">
           <span class="vs-panel-title">Git Log</span>
           <div class="vs-panel-actions vs-git-sync-actions">
-            <span class="vs-kbd-tip">⌘2</span>
+            <span class="vs-kbd-tip">{formatShortcut("⌘2", "Ctrl+2")}</span>
             <button
               type="button"
               class="vs-git-sync-icon-btn"

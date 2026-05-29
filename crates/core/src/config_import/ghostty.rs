@@ -1,17 +1,21 @@
 //! Ghostty TOML 配置 parser
 //!
-//! 路径优先级（spec §Acceptance A）：
-//!   1. ~/.config/ghostty/config
-//!   2. ~/Library/Application Support/com.mitchellh.ghostty/config（macOS fallback）
+//! 路径优先级（spec §Acceptance A · task-3.2 加 Windows 分支）：
+//!   - 非 Windows（macOS/Linux）：
+//!     1. ~/.config/ghostty/config
+//!     2. ~/Library/Application Support/com.mitchellh.ghostty/config（macOS fallback）
+//!   - Windows：
+//!     1. %APPDATA%/ghostty/config（原生 Windows 配置位置）
+//!     2. ~/.config/ghostty/config（WSL fallback）
 //!
-//! 两路径都存在时优先前者。
+//! 多路径都存在时优先靠前者。
 //!
 //! schema 可能演进 · 未知字段用 `#[serde(default)]` 跳过 + tracing::warn 记录（spec §已知风险）
 
 use super::ipc::ThemeMode;
 use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use serde::Deserialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
@@ -22,17 +26,46 @@ struct GhosttyConfig {
     shell: Option<String>,
 }
 
-/// 扫描 Ghostty 配置 · 返回结构化结果
+/// 构造候选配置路径（按优先级）· 平台分支 + 可注入 `appdata`（测试用）。
+///
+/// - 非 Windows：`~/.config/ghostty/config` → `~/Library/Application Support/...`
+/// - Windows：`%APPDATA%/ghostty/config`（原生）→ `~/.config/ghostty/config`（WSL fallback）
+///
+/// `appdata` 仅在 Windows 分支使用（None 时跳过 `%APPDATA%` 候选）。
+#[cfg_attr(not(windows), allow(unused_variables))]
+fn candidates_for(home: &Path, appdata: Option<PathBuf>) -> Vec<PathBuf> {
+    #[cfg(windows)]
+    {
+        let mut v = Vec::with_capacity(2);
+        if let Some(appdata) = appdata {
+            v.push(appdata.join("ghostty/config"));
+        }
+        v.push(home.join(".config/ghostty/config")); // WSL fallback
+        v
+    }
+    #[cfg(not(windows))]
+    {
+        vec![
+            home.join(".config/ghostty/config"),
+            home.join("Library/Application Support/com.mitchellh.ghostty/config"),
+        ]
+    }
+}
+
+/// 扫描 Ghostty 配置 · 返回结构化结果（读环境变量后委托 [`scan_with_appdata`]）
 pub fn scan(home: &Path) -> RawScanResult {
-    let primary = home.join(".config/ghostty/config");
-    let fallback = home.join("Library/Application Support/com.mitchellh.ghostty/config");
-    let path = if primary.exists() {
-        Some(primary)
-    } else if fallback.exists() {
-        Some(fallback)
-    } else {
-        None
-    };
+    #[cfg(windows)]
+    let appdata = std::env::var("APPDATA").ok().map(PathBuf::from);
+    #[cfg(not(windows))]
+    let appdata = None;
+    scan_with_appdata(home, appdata)
+}
+
+/// scan 的可注入实现：`appdata` 显式传入（Windows）· 测试不依赖真实 `%APPDATA%`。
+fn scan_with_appdata(home: &Path, appdata: Option<PathBuf>) -> RawScanResult {
+    let path = candidates_for(home, appdata)
+        .into_iter()
+        .find(|p| p.exists());
     match &path {
         Some(p) => parse_file(p).map_or_else(
             |e| RawScanResult {
@@ -178,6 +211,10 @@ mod tests {
         );
     }
 
+    /// macOS `Library/Application Support/...` fallback 仅在非 Windows 候选列表中 ·
+    /// task-3.2 后 Windows 候选为 `%APPDATA%` + `~/.config`（WSL）· 故此 macOS-fallback
+    /// 用例 cfg-gate 到非 Windows（AC6 零回归：mac/Linux 行为不变）。
+    #[cfg(not(windows))]
     #[test]
     fn scan_fallback_path_when_primary_absent() {
         let tmp = tempfile::tempdir().unwrap();
@@ -399,5 +436,74 @@ keybind = cmd+t=new_tab
         assert!(
             matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "cmd+t" && action == "new_tab")
         );
+    }
+
+    // ─── task-3.2 · Windows 路径分支 ──────────────────────────────────────
+
+    /// TEST-3.2.1（AC1）：Windows 上 `%APPDATA%/ghostty/config` 存在时命中 ·
+    /// `path_exists=true` + 字段被 detect。用可注入的 `scan_with_appdata`
+    /// 显式传 appdata（不读真实环境变量 · 遵 spec §8 R2 · 测试不依赖 CI 环境）。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_1_windows_appdata_scan_detects() {
+        let appdata = tempfile::tempdir().unwrap();
+        let home = tempfile::tempdir().unwrap();
+        // 仅 %APPDATA% 下有 config · home/.config 无
+        write_fixture(
+            appdata.path(),
+            "ghostty/config",
+            r#"
+            font_family = "JetBrains Mono"
+            theme = "dark"
+        "#,
+        );
+        let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
+        assert!(r.path_exists, "应命中 %APPDATA%/ghostty/config");
+        assert_eq!(r.detected_fields.len(), 2);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::FontFamily(f) if f == "JetBrains Mono")
+        );
+    }
+
+    /// TEST-3.2.2（AC2）：Windows 上 `%APPDATA%` 无 config 而 `~/.config/ghostty/config`
+    /// （WSL 风格）存在时 · fallback 仍命中。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_2_windows_dotconfig_fallback() {
+        let appdata = tempfile::tempdir().unwrap(); // 空 · 无 ghostty/config
+        let home = tempfile::tempdir().unwrap();
+        write_fixture(home.path(), ".config/ghostty/config", r#"font_size = 16"#);
+        let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
+        assert!(
+            r.path_exists,
+            "WSL fallback ~/.config/ghostty/config 应命中"
+        );
+        assert_eq!(r.detected_fields.len(), 1);
+    }
+
+    /// TEST-3.2.2b（AC2 · R1 编码/空格鲁棒）：含空格的 %APPDATA% 路径 join 正确。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_2b_windows_appdata_with_space_in_path() {
+        let appdata = tempfile::tempdir().unwrap();
+        let home = tempfile::tempdir().unwrap();
+        // 在 appdata 下造含空格的子目录模拟空格用户名 Roaming 路径
+        let spaced = appdata.path().join("App Data Roaming");
+        std::fs::create_dir_all(&spaced).unwrap();
+        write_fixture(&spaced, "ghostty/config", r#"font_size = 13"#);
+        let r = scan_with_appdata(home.path(), Some(spaced.clone()));
+        assert!(r.path_exists, "含空格的 %APPDATA% 路径应正确 join + 命中");
+        assert_eq!(r.detected_fields.len(), 1);
+    }
+
+    /// AC1 路径构造单测（Windows · candidates 顺序：先 %APPDATA% 再 WSL）。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_1_windows_candidates_order() {
+        let home = Path::new("C:\\Users\\alice");
+        let appdata = PathBuf::from("C:\\Users\\alice\\AppData\\Roaming");
+        let c = candidates_for(home, Some(appdata.clone()));
+        assert_eq!(c[0], appdata.join("ghostty/config"));
+        assert_eq!(c[1], home.join(".config/ghostty/config"));
     }
 }

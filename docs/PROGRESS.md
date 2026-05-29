@@ -33,10 +33,21 @@
 
 ## 📍 当前位置
 
-**阶段**：**session 33 · 2026-05-17 · MVP-20 Phase D 全 merged (#394) · v1.0 vision rollback 实施侧收口（仅余 Phase E capture）**：Phase A 全链（#385-#388）+ Phase C（#391/#392/#390）+ **Phase D #394**（status union 保真〔`RollbackStatusKind` typed enum · spec §K〕+ 全局 crash recovery〔`detect_crash_recovery` + 启动 emit + `lib/rollback-recovery` 状态机 + `RollbackRecoveryBanner` + App.tsx wire · 镜像 MVP-16 模式 · session 维度平行〕+ abort 边界覆盖 · TDD 全程 · 主 agent 自实施+self-review · §2.14 runtime smoke）· **下一步 = Phase E**（runtime 证据 + Criterion 性能量化 · defer Arbiter playbook 窗口 · ~~spec 保持 `in-progress`：多 phase · 最终 capture phase 未完~~ **更新 2026-05-23 · ADR-023 PR #409 后 spec frontmatter 已 flip done · Phase E capture playbook 非 ship 阻塞**）
-**日期**：2026-05-17（session 33 · MVP-20 Phase A+C+D 全链 · merged #385-#394 · 均按 v2-D.2 + §2.14/2.15 流程 · 0 author 污染 · Phase D 主 agent 自实施 TDD）
+**阶段**：**session 34 · 2026-05-29 · Windows 适配（v0.4 milestone）S2V 规格驱动无人值守落地 → PR #431（CI 矩阵 ubuntu+windows 实跑 · 见上方 Session 34 条目）**。上一里程碑 **session 33 · 2026-05-17 · MVP-20 Phase D 全 merged (#394) · v1.0 vision rollback 实施侧收口（仅余 Phase E capture）**：Phase A 全链（#385-#388）+ Phase C（#391/#392/#390）+ **Phase D #394**（status union 保真〔`RollbackStatusKind` typed enum · spec §K〕+ 全局 crash recovery〔`detect_crash_recovery` + 启动 emit + `lib/rollback-recovery` 状态机 + `RollbackRecoveryBanner` + App.tsx wire · 镜像 MVP-16 模式 · session 维度平行〕+ abort 边界覆盖 · TDD 全程 · 主 agent 自实施+self-review · §2.14 runtime smoke）· **下一步 = Phase E**（runtime 证据 + Criterion 性能量化 · defer Arbiter playbook 窗口 · ~~spec 保持 `in-progress`：多 phase · 最终 capture phase 未完~~ **更新 2026-05-23 · ADR-023 PR #409 后 spec frontmatter 已 flip done · Phase E capture playbook 非 ship 阻塞**）
+**日期**：2026-05-29（session 34 · Windows 适配 v0.4 milestone · PR #431）· 上一 2026-05-17（session 33 · MVP-20 Phase A+C+D 全链 · merged #385-#394 · 均按 v2-D.2 + §2.14/2.15 流程 · 0 author 污染 · Phase D 主 agent 自实施 TDD）
 **GitHub**：<https://github.com/tajiaoyezi/vibestation>（PRIVATE）
 **已合入的 PR（滚动窗口 · 只保留当前 session · 更早见 `git log --all` + `docs/internal/session-history/`）**：
+
+### Session 34（2026-05-29 · Windows 适配 v0.4 milestone · S2V 规格驱动 · 无人值守 · feat/windows-support → PR #431）
+
+- **为项目适配 Windows 11（x64 MSVC）· 全程 S2V（Spec-to-Verification）规格驱动 · 无人值守 `/goal`**：`/s2v-prd`（PRD）→ `/s2v-init`（6 phase + 16 task spec + 6 ADR + 7 BDD feature + adapter · tier=solo 单分支）→ `/s2v-implement`（16 task 全 Done · 逐 task RED→GREEN→REFACTOR→§9 verify→§10 回填）
+- **修复前**：`crates/core/src/pty.rs` 直接用 `mio::unix` / `libc` / `PermissionsExt` · Windows `cargo build --workspace` 20 error 编译失败（决策表 #8 / ADR-006 原把 Windows 推 v0.4 · 本 PR 推进该路线）
+- **6 phase / 16 task**：① foundation-build（pty.rs cfg 分离 Unix 内核 + Windows ConPTY reader · 跨平台 `home_dir()` dirs crate · 默认 shell 分支）② shell-runtime（探测链 `pwsh→powershell→cmd` · `where` vs `which` · **修 2 个真实 ConPTY 运行期 bug**：reader join 死锁 → `master: Mutex<Option>` + `close_master()` · 自然退出漏检 → `try_wait()` 轮询）③ terminal-integration（external_term `Platform::Windows` + wt.exe/conhost · config_import `%APPDATA%` + iTerm2 Windows 短路 · keybinding win/super/meta→Ctrl · fs_watch ReadDirectoryChangesW）④ frontend-platform（`platform-windows` class + `format-shortcut` helper · 11 处 ⌘ 平台感知显示 · 键盘事件 0 diff）⑤ build-package-ci（tauri bundle +nsis/msi · `ci.yml` +windows-latest matrix · prepare 跨平台 node 脚本）⑥ integration-matrix（Unix-only 测试门控 + 揪出 git_sync credential helper Windows 永久 hang 根因 + rollback_ops autocrlf）
+- **CI 矩阵实跑闭合 deferred 项**（run 26638582117）：**ubuntu-latest leg 全绿**（fmt+clippy+test+build smoke · 闭合「Linux 回归」）+ **windows-latest leg 实跑**（闭合「windows-latest CI 实跑」）· merge 前修 2 个本机 Windows gate 覆盖不到的 Linux-only 失败：`DetectionPlatform::Windows` 非 Windows dead_code（`968c6d2` · 镜像同枚举 `Macos` 先例）+ ipc apply 原子写入测试 zsh-less runner 改 `/bin/sh`（`5cc7313` · pre-existing Linux 潜在失败 · workflow_dispatch CI 从未在 Linux 触发故隐藏）
+- **真实产出 Windows 安装包**：`.exe`（NSIS 7.57MB）+ `.msi`（WiX 10.18MB）· ConPTY 真 spawn cmd.exe + echo 回显 + exit/kill 检测实证
+- **零回归保证**：全走 `#[cfg(target_os)]` 分支 · Unix 逻辑零改动 · DB schema 不变 · 合并前 5 维对抗式审查 workflow（macOS 编译安全 / Unix 回归 / 前端语义 / 构建配置）0 confirmed
+- 治理：单分支 60+ commit · v2-D.2 trailer（Implemented/Reviewed by Claude Code · Arbiter tajiaoyezi 2026-05-29 approve）· merge 后删 feat/windows-support
+- ⏳ 仍 deferred（环境性 · 非实现缺口）：mac 全量回归（项目无 mac CI leg · 本机 Windows 跑不了）· GUI critical UX path 目视（§2.14 Arbiter 窗口 · 进程级 ConPTY 已自动化兜底）
 
 ### Session 33（2026-05-17 · MVP-18/19/20 多 phase 推进 + 治理 ADR + MVP-20 Phase A+C 全链 · merged #365-#392 · 当前 session）
 

@@ -47,6 +47,7 @@ import {
   PaneContextMenuOverlay,
 } from "./PaneContextMenu";
 import { detachPane } from "../../lib/pane-detach";
+import { formatShortcut } from "../../lib/format-shortcut";
 import { setPopToExternalRequest } from "../../lib/external-term";
 import { usePaneLinks } from "../../stores/paneLinks-context";
 import { PaneLinkChip } from "./PaneLinkChip";
@@ -692,13 +693,13 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
           {
             id: "pop-external",
             label: "Pop to External…",
-            shortcut: "⌘⇧O",
+            shortcut: formatShortcut("⌘⇧O", "Ctrl+Shift+O"),
             onClick: () => setPopToExternalRequest({ paneId }),
           },
           {
             id: "detach",
             label: "Detach Pane",
-            shortcut: "⌘⇧D",
+            shortcut: formatShortcut("⌘⇧D", "Ctrl+Shift+D"),
             onClick: () => {
               void detachPane({ paneId }).catch((err) => {
                 console.warn("[mvp-17] detachPane failed:", err);
@@ -714,7 +715,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
           {
             id: "close",
             label: "Close",
-            shortcut: "⌘⌃W",
+            shortcut: formatShortcut("⌘⌃W", "Ctrl+Alt+W"),
             onClick: () => props.onClose?.(paneId),
           },
         ]);
@@ -758,7 +759,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         <button
           type="button"
           class="vs-pane-action-btn"
-          title="右分屏 (⌘\\)"
+          title={`右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`}
           aria-label="右分屏"
           onClick={(e) => {
             e.stopPropagation();
@@ -788,7 +789,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         <button
           type="button"
           class="vs-pane-action-btn"
-          title="下分屏 (⌘⇧\\)"
+          title={`下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`}
           aria-label="下分屏"
           onClick={(e) => {
             e.stopPropagation();
@@ -818,7 +819,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         <button
           type="button"
           class="vs-pane-action-btn vs-pane-action-btn-danger"
-          title="关闭 Pane (⌘⌃W)"
+          title={`关闭 Pane (${formatShortcut("⌘⌃W", "Ctrl+Alt+W")})`}
           aria-label="关闭 Pane"
           onClick={(e) => {
             e.stopPropagation();

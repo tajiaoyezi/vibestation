@@ -1,5 +1,6 @@
 import { type Component, Show } from "solid-js";
 import type { WorkspaceMetadata } from "../App";
+import { formatShortcut } from "../lib/format-shortcut";
 import { SidebarLeftIcon } from "./Icons";
 
 interface TopBarProps {
@@ -21,7 +22,7 @@ export const TopBar: Component<TopBarProps> = (props) => {
         class={`vs-top-bar-toggle${props.primaryOpen() ? "" : " vs-top-bar-toggle-off"}`}
         aria-label="Toggle primary sidebar"
         aria-pressed={props.primaryOpen()}
-        title="Toggle Primary Sidebar (⌘B)"
+        title={`Toggle Primary Sidebar (${formatShortcut("⌘B", "Ctrl+B")})`}
         onClick={props.onTogglePrimary}
       >
         <SidebarLeftIcon />

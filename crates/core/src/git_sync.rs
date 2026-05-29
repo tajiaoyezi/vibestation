@@ -1414,7 +1414,16 @@ mod tests {
         );
     }
 
+    // task-6.1（ADR-005）：HttpsHelper 走 git2 Cred::credential_helper · 在 Windows 上会
+    // 调用全局 `credential.helper`（开发机常配 Git Credential Manager `manager`）· GCM 弹交互
+    // 凭据提示并**永久阻塞**（headless 无人应答 → 测试 hang 而非 err）· 本测断言 is_err() 隐含
+    // "无交互 helper" 的 Unix/CI 环境假设。Windows ignore（HttpsHelper 凭据链的 Windows 行为
+    // 由真实 push/pull 集成验证 · 非本单测范围）· mac/Linux 照常跑（无交互 GCM）。
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "git2 Cred::credential_helper 触发 Git Credential Manager 交互提示 · headless 永久阻塞 · 断言 is_err() 隐含无交互 helper 的 Unix/CI 假设 · ADR-005"
+    )]
     fn credential_https_helper_path_is_attempted() {
         let repo = Repository::init(TempDir::new().unwrap().path()).unwrap();
         let config = repo.config().unwrap();

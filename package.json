@@ -9,7 +9,7 @@
     "url": "https://github.com/tajiaoyezi/vibestation.git"
   },
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "prepare": "node scripts/setup-git-hooks.mjs",
     "dev": "pnpm --filter @vibestation/web dev",
     "build": "pnpm --filter @vibestation/web build",
     "tauri:dev": "tauri dev --config crates/app/tauri.conf.json",

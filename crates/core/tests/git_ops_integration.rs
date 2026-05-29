@@ -16,8 +16,11 @@
 //! - Multiple commits in sequence
 
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
-use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::path::Path;
+use std::path::PathBuf;
 use tempfile::TempDir;
 use vibestation_core::git_ops::GitOpsError;
 use vibestation_core::GitOpsService;
@@ -42,6 +45,9 @@ fn write_and_commit_initial(repo_path: &PathBuf, file: &str, content: &str) {
     GitOpsService::commit(repo_path, "initial commit", false).unwrap();
 }
 
+// task-6.1：pre-commit hook 用 chmod 0o755 + #!/bin/sh · Windows 无 mode bits 且无法执行 shell 脚本 hook
+// （ADR-005）· 整个 helper 走 #[cfg(unix)]，Windows 上不编译此 Unix-only 路径。
+#[cfg(unix)]
 fn create_pre_commit_hook(repo_path: &Path, exit_code: i32, stderr_msg: &str) {
     let hooks_dir = repo_path.join(".git").join("hooks");
     fs::create_dir_all(&hooks_dir).unwrap();
@@ -259,6 +265,7 @@ fn test_modified_after_stage_double_status() {
 // 已定义但当前 do_commit 路径不触发 · 以下测试文档化当前行为 · Phase C 实施 hook 执行后
 // 这些测试应按 spec §C.4 更新为 assert!(result.is_err()) + match HookFailed。
 
+#[cfg(unix)]
 #[test]
 fn test_commit_succeeds_when_hook_script_present() {
     // 文档化当前行为：hook 脚本存在但不被执行
@@ -279,6 +286,7 @@ fn test_commit_succeeds_when_hook_script_present() {
     );
 }
 
+#[cfg(unix)]
 #[test]
 fn test_hook_script_present_commit_creates_sha() {
     let (_dir, path) = init_repo_with_identity();

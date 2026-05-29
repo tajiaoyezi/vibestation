@@ -1,20 +1,12 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
 import { App } from "./App";
+import { applyPlatformClass } from "./lib/platform";
 import "./styles.css";
 import "./styles/typography.css";
 
-const platform = navigator.platform.toLowerCase();
-const isLinux = platform.includes("linux");
-const isMac = platform.includes("mac");
-
-if (isMac) {
-  document.documentElement.classList.add("platform-macos");
-}
-
-if (isLinux) {
-  document.documentElement.classList.add("platform-linux");
-}
+// 平台 class + data-platform 属性（Task 4.1 · single source = @/lib/platform）
+applyPlatformClass();
 
 if (import.meta.env.PROD) {
   document.addEventListener("contextmenu", (e) => e.preventDefault());

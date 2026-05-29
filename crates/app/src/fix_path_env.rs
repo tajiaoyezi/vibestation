@@ -3,14 +3,17 @@
 //! Tauri 文档提到 `fix-path-env-rs`，但当前 registry 里无法解析到对应 crate。
 //! 这里保留同名 `fix_path_env::fix()` API，行为只做 PATH 修复，不扩散到 async runtime。
 
-use std::env;
 use std::io;
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use std::env;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
 
 pub fn fix() -> io::Result<()> {
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -62,6 +65,11 @@ fn default_shell() -> &'static str {
     "/bin/bash"
 }
 
+// task-6.1：这些测试断言 resolved_shell / default_shell / shell_command_args —— 均为
+// #[cfg(any(target_os = "macos", target_os = "linux"))] 的 Unix-only PATH-fix 函数
+// （Windows 上 fix() 直接 Ok(()) · 无 shell 探测）· 整个测试模块走相同 cfg gate（ADR-005）·
+// Windows 不编译此模块（否则 7× E0425：找不到这些 Unix-only 函数）· mac/Linux 照常编译+跑。
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[cfg(test)]
 mod tests {
     use super::*;

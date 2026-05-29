@@ -96,3 +96,56 @@
 ---
 
 **本文件保持极简，详细规则永远以 [`CLAUDE.md`](./CLAUDE.md) 为权威。两份文件冲突时以 `CLAUDE.md` 为准。**
+
+---
+
+## 🪟 S2V Windows 适配工作流（feat/windows-support 分支 · `/s2v-init` 生成）
+
+> 本段由 `/s2v-init` 为 **Windows 适配工作流** 追加，与上方项目通用入口**并存**。仅 Windows 适配 task（`docs/specs/tasks/task-*.md`）走本段的 S2V 流程；项目既有 MVP 体系（`docs/tasks/`）不受影响。规范快照在 `docs/s2v/`，adapter 在 `docs/s2v-adapter.md`。
+
+**Collaboration Tier = solo**
+
+<!-- solo：单分支(feat/windows-support)无人值守 · 主 agent 兼 Arbiter + 调度 subagent 实施 · 直接在分支三段 commit，不开 per-task worktree/PR。整个分支最终作为一个 PR 合入 main。 -->
+
+### 必守清单（任何 tier 不可降级）
+
+1. **SDD**：phase spec / task spec 必写（`docs/specs/`）
+2. **BDD**：用户可见行为有 `.feature`（`test/features/`）
+3. **TDD Iron Law**：先写失败测试（RED），再写实现（GREEN）——没有 RED 的 commit 禁止 GREEN
+4. **§2.5 三段 commit 节律**：每个 task 至少 RED(`test`) + GREEN(`feat`)，REFACTOR(`refactor`) 可选，§10 回填(`docs`)
+5. **ADR**：架构/依赖/协议/安全/数据决策必写（`docs/decisions/`）
+6. **Verification**：每个 task done 必跑 task §9 实际列出的验证项（unit-test 强制）
+7. **§7 追踪表**：每 task 维护 AC ↔ SCEN ↔ TEST 映射
+8. **卡住协议**：AC 失败 ≥3 次写 `BLOCKED-task-<X.Y>.md`
+
+### task 启动 SOP（每个 task 开始前）
+
+1. **基线绿**：动手前确认无遗留红测试（`cargo test --workspace`；首个编译-修复 task 因 Windows 编译失败而基线红，是该 task 要解决的红 → 跳过基线绿并在 §10 备注）
+2. **读规格**：AGENTS.md → `docs/s2v-adapter.md` → 本 task spec → §5.1 Required Reading 上游 + `.feature` + 相关 ADR
+3. **PREFLIGHT Ready Gate**：task spec Status 必须 Ready（无 `<TBD-by-user>` 残留、§6 AC 非空、§7 非空）才进 RED。无人值守模式下由主 agent 以 Arbiter 身份完成 Draft→Ready 审核（基于 Windows 缺口调研证据填实 §3/§5.2/§5.3）
+4. **RED → GREEN → REFACTOR**：三段 commit，每段 commit 后校验 `[branch]`（应为 `feat/windows-support`）
+5. **§9 Verification 全套**：unit-test 强制；前端 task 跑 `pnpm lint`/`pnpm typecheck`/`pnpm vitest run`
+6. **回填 §10 Completion Notes**（6 项 schema）+ Status → Done + 同步 adapter Task 索引
+
+### §2.5 Commit 节律
+
+| 阶段 | type | 示例 |
+|---|---|---|
+| RED | `test` | `test(pty): 加 SCEN-1.1.1~1.1.3 共 3 个 RED 测试（Windows cfg 编译）` |
+| GREEN | `feat` | `feat(pty): cfg 分离 Unix reader + Windows ConPTY 路径，编译通过` |
+| REFACTOR | `refactor` | `refactor(pty): 提取 platform_reader helper` |
+| §10 回填 | `docs` | `docs(spec): 回填 task-1.1 §10 + Status → Done` |
+
+Scope = 模块名（pty / app-settings / external_term / config_import / fs_watch / web / tauri-bundle / ci / spec / adapter / adr）。
+
+### git 协作（solo · 本工作流）
+
+- 直接在 `feat/windows-support` 分支 `git commit` ✅；**禁止直推 main**（Vibestation 禁区 + `.githooks/pre-push`）
+- `git reset --hard` / `git push --force*` 禁止默认（用 `git revert` / `git branch -f`）
+- 整个分支最终作为**一个 PR** 合入 main（v2-D.2：PR body 含 `Implemented by` / `Reviewed by` / `Arbiter approval` 三行）
+
+### 卡住协议
+
+AC 连续失败 ≥3 次且已试 systematic-debugging + 查上游 spec/ADR → 写 `BLOCKED-task-<X.Y>.md`（卡住 AC / 已尝试 / 当前假设 / 决策需求 A/B/C / 测试代码状态）→ commit → 等 Arbiter 决策。
+
+> 完整 solo SOP 见 `docs/s2v/templates-used/agents-solo.md`；S2V 22 章规范见 `docs/s2v/standard.md`。

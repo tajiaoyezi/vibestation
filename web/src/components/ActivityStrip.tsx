@@ -1,5 +1,6 @@
 import { type Component, For } from "solid-js";
 import { useLayout } from "../stores/layout-context";
+import { formatShortcut } from "../lib/format-shortcut";
 
 export const ActivityStrip: Component = () => {
   const { layout, dispatch } = useLayout();
@@ -13,8 +14,18 @@ export const ActivityStrip: Component = () => {
     label: string;
     shortcut: string;
   }[] = [
-    { id: "secondary", icon: "⊟", label: "Git Log", shortcut: "⌘2" },
-    { id: "bottom", icon: "◴", label: "Git Status", shortcut: "⌘J" },
+    {
+      id: "secondary",
+      icon: "⊟",
+      label: "Git Log",
+      shortcut: formatShortcut("⌘2", "Ctrl+2"),
+    },
+    {
+      id: "bottom",
+      icon: "◴",
+      label: "Git Status",
+      shortcut: formatShortcut("⌘J", "Ctrl+J"),
+    },
   ];
 
   const isOpen = (id: PanelId): boolean => {

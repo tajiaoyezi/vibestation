@@ -19,7 +19,21 @@ pub struct EnvPreview {
     pub filtered_count: u32,
 }
 
+#[cfg(not(windows))]
 pub const WHITELIST: &[&str] = &["PATH", "HOME", "LANG", "TERM", "SHELL", "USER"];
+
+#[cfg(windows)]
+pub const WHITELIST: &[&str] = &[
+    "PATH",
+    "LANG",
+    "TERM",
+    "USER",
+    "COMSPEC",
+    "PATHEXT",
+    "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
+];
 
 pub const BLACKLIST_PATTERNS: &[&str] = &[
     "KEY",
@@ -113,6 +127,9 @@ mod tests {
             .collect()
     }
 
+    // Unix-fixture test (HOME / SHELL in WHITELIST) · Windows WHITELIST differs,
+    // Windows coverage in `test_3_1_4_windows_env_whitelist_comspec`.
+    #[cfg(not(windows))]
     #[test]
     fn whitelist_entries_pass_through() {
         let preview = filter_env(&env(&[
@@ -196,6 +213,8 @@ mod tests {
         assert!(preview.visible_entries.is_empty());
     }
 
+    // Unix-fixture test (HOME / SHELL in WHITELIST) · Windows WHITELIST differs.
+    #[cfg(not(windows))]
     #[test]
     fn visible_entries_are_limited_to_ten_and_sorted() {
         let preview = filter_env(&env(&[
@@ -226,5 +245,49 @@ mod tests {
             preview.visible_entries[0].value_truncated,
             format!("{}...", "a".repeat(40))
         );
+    }
+
+    // TEST-3.1.4 (AC4) — Windows WHITELIST surfaces COMSPEC / PATHEXT.
+    #[cfg(windows)]
+    #[test]
+    fn test_3_1_4_windows_env_whitelist_comspec() {
+        let preview = filter_env(&env(&[
+            ("COMSPEC", r"C:\Windows\System32\cmd.exe"),
+            ("PATHEXT", ".COM;.EXE;.BAT;.CMD"),
+            ("USERPROFILE", r"C:\Users\leaf"),
+        ]));
+
+        let visible: Vec<&str> = preview
+            .visible_entries
+            .iter()
+            .map(|entry| entry.key.as_str())
+            .collect();
+        assert!(
+            visible.contains(&"COMSPEC"),
+            "COMSPEC must be whitelisted on Windows, got {visible:?}"
+        );
+        assert!(
+            visible.contains(&"PATHEXT"),
+            "PATHEXT must be whitelisted on Windows, got {visible:?}"
+        );
+        assert_eq!(preview.filtered_count, 0);
+    }
+
+    // TEST-3.1.4 (AC4) — Unix WHITELIST keeps SHELL (zero regression).
+    #[cfg(not(windows))]
+    #[test]
+    fn unix_env_whitelist_keeps_shell() {
+        assert!(
+            WHITELIST.contains(&"SHELL"),
+            "SHELL must stay whitelisted on Unix"
+        );
+
+        let preview = filter_env(&env(&[("SHELL", "/bin/zsh")]));
+        assert_eq!(
+            preview.visible_entries.len(),
+            1,
+            "SHELL must remain visible on Unix"
+        );
+        assert_eq!(preview.visible_entries[0].key, "SHELL");
     }
 }

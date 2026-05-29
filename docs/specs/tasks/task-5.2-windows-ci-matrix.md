@@ -1,6 +1,6 @@
 # Task `5.2`: `windows-ci-matrix`
 
-**Status**: Ready
+**Status**: In Progress
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`。
 > 本项目无人值守 solo 模式：主 agent 兼 Arbiter，业务字段已据 Windows 缺口调研（`spike-tmp/win-survey.json`）+ 实际 `.github/workflows/ci.yml` 填实，非编造，故初始即 Ready。

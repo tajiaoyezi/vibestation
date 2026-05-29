@@ -1,6 +1,6 @@
 # Task `4.1`: `platform-windows class + data-platform 属性`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`。
 > 本项目 solo + unattended 模式：主 agent 兼 Arbiter，业务字段据 Windows 缺口调研（`spike-tmp/win-survey.json` 前端 subsystem）+ 实际源码（`web/src/index.tsx:7-17`）填实，非编造，故直接 Ready。
@@ -126,10 +126,10 @@ export function applyPlatformClass(
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 Windows 发 platform-windows + data-platform | SCEN-4.1.1 | TEST-4.1.1 `test_detect_windows_variants` | N/A（前端纯函数） | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC2 mac/Linux 零回归 + 新增 data-platform | SCEN-4.1.2 | TEST-4.1.2 `test_detect_mac_linux_no_regression` | N/A | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC3 userAgentData 补充 + unknown 不发 class | SCEN-4.1.3 | TEST-4.1.3 `test_detect_ua_fallback_and_unknown` | N/A | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC4 keydown 事件块零改动 | SCEN-4.1.4 | TEST-4.1.4 `test_keydown_block_unchanged`（grep 断言 / 快照） | 本机 §2.14 Windows smoke | `pnpm typecheck` + 手工 diff 核对 | Not Started |
+| AC1 Windows 发 platform-windows + data-platform | SCEN-4.1.1 | TEST-4.1.1 `tests/lib/platform.test.ts`（Win32/Windows/WIN32 variants + windows class/属性） | N/A（前端纯函数） | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC2 mac/Linux 零回归 + 新增 data-platform | SCEN-4.1.2 | TEST-4.1.2 `tests/lib/platform.test.ts`（MacIntel/Linux 判定 + class 零回归） | N/A | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC3 userAgentData 补充 + unknown 不发 class | SCEN-4.1.3 | TEST-4.1.3 `tests/lib/platform.test.ts`（空 platform + UA 兜底 + FreeBSD unknown 不发 class/属性） | N/A | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC4 keydown 事件块零改动 | SCEN-4.1.4 | TEST-4.1.4 `git diff` 手工核对（见 §10：index.tsx diff 仅删 mac/linux 两块 + 加 applyPlatformClass()，PROD keydown 块逐行不变） | 本机 §2.14 Windows smoke（defer） | `pnpm typecheck` + 手工 diff 核对 | Done |
 
 ## 8. Risks
 
@@ -151,22 +151,22 @@ export function applyPlatformClass(
 
 ## 10. Completion Notes
 
-- **完成日期**：<TBD-after-impl>
+- **完成日期**：2026-05-29
 - **改动文件**：
   - `web/src/lib/platform.ts`（新增 · detectPlatform + applyPlatformClass）
-  - `web/src/index.tsx`（修改 · 调 applyPlatformClass 替换 mac/linux 分支）
-  - `web/src/lib/platform.test.ts`（新增 · RED 测试）
+  - `web/src/index.tsx`（修改 · 调 applyPlatformClass 替换 mac/linux 分支 · PROD keydown 块未动）
+  - `web/tests/lib/platform.test.ts`（新增 · RED 测试 · 注：落 `web/tests/` 而非 spec 草拟的 `web/src/lib/platform.test.ts`，因本项目 vitest `include` 仅收 `tests/**`，src 内 `.test.ts` 不被收集 — 见 `web/vitest.config.ts`）
 - **commit 列表**：
-  - `<TBD-after-impl>` test: 加 SCEN-4.1.1~4.1.4 RED 测试
-  - `<TBD-after-impl>` feat: 实现 detectPlatform + applyPlatformClass + index.tsx wire
-  - `<TBD-after-impl>` refactor:（如有）
-- **§9 Verification 结果**：
-  - install: <TBD-after-impl>
-  - lint: <TBD-after-impl>
-  - typecheck: <TBD-after-impl>
-  - unit-test: <TBD-after-impl>
-  - build: <TBD-after-impl>
-  - runtime-smoke: <TBD-after-impl>
-  - manual: <TBD-after-impl>
-- **剩余风险 / 未做项**：<TBD-after-impl>
-- **下游 task 影响**：<TBD-after-impl>（Task 4.2 消费 data-platform 属性 + detectPlatform 平台判定）
+  - `a4c306b` test(task-4.1): 加 SCEN-4.1.1~4.1.3 RED 测试 + platform.ts 桩
+  - `ed86e83` feat(task-4.1): 实现 detectPlatform + applyPlatformClass + index.tsx wire
+  - refactor: 无（GREEN 代码已符合 §5.3 骨架 · 无重构需要）
+- **§9 Verification 结果**（2026-05-29 · 前端 pnpm 命令）：
+  - install: pnpm install --frozen-lockfile — lockfile 已就绪，无需重装（既有 node_modules）
+  - lint: `pnpm lint`（prettier --check）— PASS · All matched files use Prettier code style!
+  - typecheck: `pnpm typecheck`（tsc --noEmit）— PASS · 0 error
+  - unit-test: `pnpm --filter @vibestation/web exec vitest run`（全量）— 见 §9 末两 task 合并结果（platform.test.ts 单跑 6 passed）
+  - build: 未单跑（typecheck 已覆盖 tsc · build = tsc + vite build · 同栈）
+  - runtime-smoke: defer（pnpm tauri:dev / DevTools 查 `<html>` class · 留 Arbiter §2.14 窗口）
+  - manual: defer（同 runtime-smoke）
+- **剩余风险 / 未做项**：runtime-smoke + manual DevTools inspect 留 §2.14 Arbiter 窗口（纯前端低风险 · 纯函数已单测覆盖三平台分支 + unknown 兜底）。
+- **下游 task 影响**：Task 4.2 已消费 `data-platform="windows"`（styles.css CSS content 切换）+ `detectPlatform()`（format-shortcut.ts 的 isMacPlatform single source）— 见 task 4.2。

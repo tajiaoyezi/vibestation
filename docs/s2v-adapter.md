@@ -165,7 +165,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 |---|---|---|---|---|---|
 | 1.1 | pty | docs/specs/tasks/task-1.1-pty-platform-split.md | Done | Phase 1 首 · 解锁编译 | `-` |
 | 1.2 | app-home | docs/specs/tasks/task-1.2-home-dir-helper.md | Done | 可与 1.1 并行（不同文件域）| `-` |
-| 1.3 | app-settings | docs/specs/tasks/task-1.3-shell-default-setting.md | Draft | 依赖 1.1 编译 | `-` |
+| 1.3 | app-settings | docs/specs/tasks/task-1.3-shell-default-setting.md | Done | 依赖 1.1 编译 | `-` |
 | 2.1 | pty-shell | docs/specs/tasks/task-2.1-windows-shell-detection.md | Draft | 依赖 1.1 | `-` |
 | 2.2 | pty-conpty | docs/specs/tasks/task-2.2-conpty-spawn-io.md | Draft | 依赖 2.1 | `-` |
 | 3.1 | external_term | docs/specs/tasks/task-3.1-external-term-windows.md | Draft | 依赖 1.1 | `-` |

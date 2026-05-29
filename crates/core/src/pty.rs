@@ -7,15 +7,11 @@ use crate::app_settings::AppSettingsStore;
 use crate::db::DbPool;
 use crate::tabs::TabsDao;
 use crossbeam_channel::{self, Receiver, Sender, TryRecvError, TrySendError};
-use mio::unix::SourceFd;
-use mio::{Events, Interest, Poll, Token};
 use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::io::{self, Write};
-use std::os::fd::RawFd;
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -23,10 +19,28 @@ use std::thread;
 use std::time::{Duration, Instant};
 use ts_rs::TS;
 
+// Unix-only imports（ADR-001 cfg 分离）·
+// mio Poll/SourceFd 仅 Unix · RawFd / PermissionsExt 仅 Unix · libc 仅在 #[cfg(unix)] 函数体引用。
+#[cfg(unix)]
+use mio::unix::SourceFd;
+#[cfg(unix)]
+use mio::{Events, Interest, Poll, Token};
+#[cfg(unix)]
+use std::os::fd::RawFd;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
+// Windows-only imports（ADR-001 cfg 分离 · ConPTY 阻塞读路径）·
+// 走 portable-pty 的 try_clone_reader + child.try_wait/kill · 不引用 mio/SourceFd/libc。
+#[cfg(windows)]
+use std::io::Read;
+
 pub const PTY_EVENT_QUEUE_CAPACITY: usize = 128;
 
 const PTY_CONTROL_QUEUE_CAPACITY: usize = 256;
 const READ_BUFFER_SIZE: usize = 8192;
+/// mio Poll 轮询超时 · 仅 Unix reader_loop 用（Windows 走 per-session 阻塞读 · 无 poll）。
+#[cfg(unix)]
 const READ_POLL_TIMEOUT: Duration = Duration::from_millis(50);
 const IDLE_SLEEP: Duration = Duration::from_millis(25);
 const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
@@ -99,16 +113,22 @@ enum ReaderCommand {
     },
     Unregister {
         token: usize,
+        /// Unix reader_loop 用 fd 反查 token==0 的 session 并从 mio Poll deregister。
+        /// Windows reader 走 per-session 线程 · 按 tab_id 收敛 · 无 fd 概念（None）。
+        #[cfg(unix)]
         fd: RawFd,
     },
     Shutdown,
 }
 
+#[cfg(unix)]
 enum ReadOutcome {
     Continue,
     Closed,
 }
 
+/// 信号目标。仅 Unix 路径有进程组概念；Windows ConPTY 退化为单进程（见 `signal_target`）。
+#[cfg(unix)]
 enum SignalTarget {
     ProcessGroup(libc::pid_t),
     Process(libc::pid_t),
@@ -235,6 +255,9 @@ struct CdEchoFilter {
 
 pub struct PtySession {
     tab_id: Mutex<String>,
+    /// PTY master 的裸 fd · 仅 Unix（mio Poll 注册 + libc::read + tcgetpgrp 用）。
+    /// Windows ConPTY 不暴露可 poll 的 fd · reader 走 try_clone_reader 阻塞读 · 无此字段。
+    #[cfg(unix)]
     fd: RawFd,
     process_id: Option<u32>,
     master: Mutex<Box<dyn MasterPty + Send>>,
@@ -295,6 +318,7 @@ impl PtySession {
             .map_err(|error| PtyError::OpenFailed(error.to_string()))
     }
 
+    #[cfg(unix)]
     fn signal(&self, signal: &str) -> Result<(), PtyError> {
         let signal_number = parse_signal(signal)?;
         let target = self.signal_target();
@@ -314,6 +338,18 @@ impl PtySession {
         }
 
         Ok(())
+    }
+
+    /// Windows ConPTY 无 POSIX 信号 / 进程组概念（ADR-001 + spec §5.3）·
+    /// SIGINT/SIGTERM/SIGTSTP/SIGKILL 全部退化为 `Child::kill()`（TerminateProcess 语义）·
+    /// 信号名仍走 `parse_signal_windows` 校验（拒绝未知信号 · 保持与 Unix 一致的契约）。
+    #[cfg(windows)]
+    fn signal(&self, signal: &str) -> Result<(), PtyError> {
+        // 校验信号名合法（未知信号 → InvalidSignal · 与 Unix parse_signal 同契约）
+        let _ = parse_signal_windows(signal)?;
+        // ConPTY 单进程目标 · 直接 kill child（无进程组 · 无 graceful SIGTERM 区分）
+        let mut child = lock(&self.child);
+        child.kill().map_err(PtyError::Io)
     }
 
     fn terminate(&self, events: &DropOldestSender<PtyEvent>) -> Result<Option<i32>, PtyError> {
@@ -452,6 +488,7 @@ impl PtySession {
         Ok(exit_code)
     }
 
+    #[cfg(unix)]
     fn signal_target(&self) -> Option<SignalTarget> {
         let foreground = unsafe { libc::tcgetpgrp(self.fd) };
         if foreground > 0 {
@@ -605,11 +642,17 @@ impl PtyManager {
             })
             .map_err(|error| PtyError::OpenFailed(error.to_string()))?;
 
+        // Unix：取裸 fd 设非阻塞（mio Poll + libc::read 用）。
+        // Windows：ConPTY overlapped I/O 由 portable-pty 内部处理 · 无 fd · set_fd_nonblocking 为 no-op。
+        #[cfg(unix)]
         let fd = pair
             .master
             .as_raw_fd()
             .ok_or_else(|| PtyError::OpenFailed("portable-pty master has no raw fd".to_string()))?;
+        #[cfg(unix)]
         set_fd_nonblocking(fd, true)?;
+        #[cfg(windows)]
+        set_fd_nonblocking_noop();
 
         let writer = pair
             .master
@@ -638,6 +681,7 @@ impl PtyManager {
         let process_id = child.process_id();
         let session = Arc::new(PtySession {
             tab_id: Mutex::new(tab_id.clone()),
+            #[cfg(unix)]
             fd,
             process_id,
             master: Mutex::new(pair.master),
@@ -687,10 +731,7 @@ impl PtyManager {
                 .ok_or_else(|| PtyError::NotFound(tab_id.to_string()))?
         };
 
-        let _ = self.send_control(ReaderCommand::Unregister {
-            token: 0,
-            fd: session.fd,
-        });
+        let _ = self.send_control(unregister_command(&session));
         session.terminate(&self.event_tx)
     }
 
@@ -735,10 +776,7 @@ impl PtyManager {
     ) -> Result<Option<i32>, PtyError> {
         let tab_id = session.tab_id_clone();
         lock(&self.sessions).remove(&tab_id);
-        let _ = self.send_control(ReaderCommand::Unregister {
-            token: 0,
-            fd: session.fd,
-        });
+        let _ = self.send_control(unregister_command(session));
         session.terminate(&self.event_tx)
     }
 
@@ -789,6 +827,22 @@ impl Drop for PtyManager {
     }
 }
 
+/// 构造 `ReaderCommand::Unregister`：Unix 带 fd（reader_loop 从 mio Poll deregister 用）·
+/// Windows 仅 token（per-session 线程按 tab_id 收敛 · 无 fd）。
+#[cfg(unix)]
+fn unregister_command(session: &Arc<PtySession>) -> ReaderCommand {
+    ReaderCommand::Unregister {
+        token: 0,
+        fd: session.fd,
+    }
+}
+
+#[cfg(windows)]
+fn unregister_command(_session: &Arc<PtySession>) -> ReaderCommand {
+    ReaderCommand::Unregister { token: 0 }
+}
+
+#[cfg(unix)]
 fn reader_loop(
     control_rx: Receiver<ReaderCommand>,
     sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
@@ -872,6 +926,214 @@ fn reader_loop(
     }
 }
 
+/// Windows ConPTY reader（ADR-001 + spec §5.3 · prompt 细化为最小可用实现）·
+///
+/// ConPTY 不暴露可 poll 的 fd（mio epoll/kqueue 不可用）· 故对每个注册 session 起一条
+/// **per-session 阻塞读线程**：`master.try_clone_reader()` 阻塞读字节 → emit 到同一
+/// `DropOldestSender<PtyEvent>` 出口；读到 EOF（0 字节）或 read 错误 → `wait_for_exit`
+/// + `emit_exit_once`（不使用 mio / SourceFd / libc）。
+///
+/// 控制通道（Register / Unregister / Shutdown）由本主循环消费：Register 起读线程 ·
+/// Unregister 标记对应 session 的 stop flag（线程自然退出）· Shutdown 停所有线程后返回。
+///
+/// 本 task（1.1）范围 = 编译通过 + spawn 后能退出不 hang；吞吐 / 调度 / 尾部输出
+/// 时序细化 defer Phase 2 task-2.2 conpty-spawn-io。
+#[cfg(windows)]
+fn reader_loop(
+    control_rx: Receiver<ReaderCommand>,
+    sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
+    events: DropOldestSender<PtyEvent>,
+    reader_alive: Arc<AtomicBool>,
+) {
+    // token → (session reader 线程 handle, 该线程的 stop flag)
+    let mut workers: HashMap<usize, WindowsReaderWorker> = HashMap::new();
+
+    while reader_alive.load(Ordering::Relaxed) {
+        // 排空控制命令
+        loop {
+            match control_rx.try_recv() {
+                Ok(ReaderCommand::Register { token, session }) => {
+                    let worker = spawn_windows_session_reader(
+                        Arc::clone(&session),
+                        events.clone(),
+                        Arc::clone(&sessions_by_id),
+                    );
+                    workers.insert(token, worker);
+                }
+                Ok(ReaderCommand::Unregister { token }) => {
+                    if token != 0 {
+                        if let Some(worker) = workers.remove(&token) {
+                            worker.stop();
+                        }
+                    } else {
+                        // token==0（kill / terminate_session 路径）· session 已从 map 移除 ·
+                        // 停掉所有已退出的 worker（stop flag 置位 · 线程自然收敛）。
+                        let finished: Vec<usize> = workers
+                            .iter()
+                            .filter(|(_, worker)| worker.is_finished())
+                            .map(|(token, _)| *token)
+                            .collect();
+                        for token in finished {
+                            if let Some(worker) = workers.remove(&token) {
+                                worker.stop();
+                            }
+                        }
+                    }
+                }
+                Ok(ReaderCommand::Shutdown) => {
+                    reader_alive.store(false, Ordering::Relaxed);
+                    for (_, worker) in workers.drain() {
+                        worker.stop();
+                    }
+                    return;
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    reader_alive.store(false, Ordering::Relaxed);
+                    for (_, worker) in workers.drain() {
+                        worker.stop();
+                    }
+                    return;
+                }
+            }
+        }
+
+        // 清理已自然退出的 worker（child 退出 / EOF）· join 回收线程。
+        let finished: Vec<usize> = workers
+            .iter()
+            .filter(|(_, worker)| worker.is_finished())
+            .map(|(token, _)| *token)
+            .collect();
+        for token in finished {
+            if let Some(worker) = workers.remove(&token) {
+                worker.stop();
+            }
+        }
+
+        // 周期 flush scrollback（与 Unix 路径同语义）
+        for worker in workers.values() {
+            worker.session.flush_scrollback_if_due();
+        }
+
+        thread::sleep(IDLE_SLEEP);
+    }
+
+    for (_, worker) in workers.drain() {
+        worker.stop();
+    }
+}
+
+/// Windows per-session 读线程句柄 + stop flag（ConPTY 阻塞读路径）。
+#[cfg(windows)]
+struct WindowsReaderWorker {
+    session: Arc<PtySession>,
+    stop: Arc<AtomicBool>,
+    handle: Option<thread::JoinHandle<()>>,
+}
+
+#[cfg(windows)]
+impl WindowsReaderWorker {
+    fn is_finished(&self) -> bool {
+        self.handle
+            .as_ref()
+            .map(|h| h.is_finished())
+            .unwrap_or(true)
+    }
+
+    fn stop(self) {
+        self.stop.store(true, Ordering::Relaxed);
+        if let Some(handle) = self.handle {
+            let _ = handle.join();
+        }
+    }
+}
+
+/// 为单个 Windows session 起阻塞读线程：try_clone_reader 阻塞读 → emit；
+/// EOF / read 错误 → wait_for_exit + emit_exit_once + 从 sessions_by_id 移除。
+#[cfg(windows)]
+fn spawn_windows_session_reader(
+    session: Arc<PtySession>,
+    events: DropOldestSender<PtyEvent>,
+    sessions_by_id: Arc<Mutex<HashMap<String, Arc<PtySession>>>>,
+) -> WindowsReaderWorker {
+    let stop = Arc::new(AtomicBool::new(false));
+    let thread_stop = Arc::clone(&stop);
+    let thread_session = Arc::clone(&session);
+
+    let reader = lock(&thread_session.master).try_clone_reader();
+    let handle = thread::Builder::new()
+        .name("vibestation-pty-conpty-reader".to_string())
+        .spawn(move || {
+            let mut reader = match reader {
+                Ok(reader) => reader,
+                Err(error) => {
+                    eprintln!(
+                        "[mvp-04] conpty clone_reader failed for {}: {error}",
+                        thread_session.tab_id_clone()
+                    );
+                    let _ = thread_session.emit_exit_once(&events, None);
+                    lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                    return;
+                }
+            };
+
+            let mut buffer = [0u8; READ_BUFFER_SIZE];
+            loop {
+                if thread_stop.load(Ordering::Relaxed)
+                    || thread_session.closed.load(Ordering::Relaxed)
+                {
+                    return;
+                }
+
+                match reader.read(&mut buffer) {
+                    Ok(0) => {
+                        // EOF · child 退出 → 检测退出码 + emit exit once
+                        let status = thread_session
+                            .wait_for_exit(EXIT_WAIT_TIMEOUT)
+                            .unwrap_or(None);
+                        let _ = thread_session.emit_exit_once(&events, status);
+                        lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                        return;
+                    }
+                    Ok(read) => {
+                        let chunk = thread_session.drain_utf8_safe(&buffer[..read]);
+                        if chunk.is_empty() {
+                            continue;
+                        }
+                        thread_session.record_scrollback_chunk(&chunk);
+                        if let Err(error) = thread_session.emit_stdout(&events, &chunk) {
+                            eprintln!(
+                                "[mvp-04] stdout emit failed for {}: {error}",
+                                thread_session.tab_id_clone()
+                            );
+                        }
+                    }
+                    Err(ref error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                    Err(error) => {
+                        eprintln!(
+                            "[mvp-04] conpty read failed for {}: {error}",
+                            thread_session.tab_id_clone()
+                        );
+                        let status = thread_session
+                            .wait_for_exit(EXIT_WAIT_TIMEOUT)
+                            .unwrap_or(None);
+                        let _ = thread_session.emit_exit_once(&events, status);
+                        lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                        return;
+                    }
+                }
+            }
+        })
+        .expect("spawn vibestation-pty-conpty-reader");
+
+    WindowsReaderWorker {
+        session,
+        stop,
+        handle: Some(handle),
+    }
+}
+
+#[cfg(unix)]
 fn read_session_fd(session: &Arc<PtySession>, events: &DropOldestSender<PtyEvent>) -> ReadOutcome {
     let mut buffer = [0u8; READ_BUFFER_SIZE];
 
@@ -998,6 +1260,7 @@ fn find_ansi_clear(data: &[u8]) -> Option<usize> {
     })
 }
 
+#[cfg(unix)]
 fn parse_signal(signal: &str) -> Result<i32, PtyError> {
     match signal {
         "SIGINT" => Ok(libc::SIGINT),
@@ -1006,6 +1269,23 @@ fn parse_signal(signal: &str) -> Result<i32, PtyError> {
         "SIGKILL" => Ok(libc::SIGKILL),
         _ => Err(PtyError::InvalidSignal(signal.to_string())),
     }
+}
+
+/// Windows 信号名解析（ADR-001 + spec §5.3）· ConPTY 无 POSIX 信号 ·
+/// 但保留与 Unix `parse_signal` 同样的"未知信号 → InvalidSignal"契约 ·
+/// 合法信号统一映射到 `Child::kill()`（TerminateProcess）语义（见 `PtySession::signal` Windows 分支）。
+/// 返回标记类型 `WindowsSignal` 仅用于校验通过/拒绝 · 不携带 POSIX 信号号。
+#[cfg(windows)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WindowsSignal {
+    /// 所有受支持信号在 Windows 都退化为 kill child（无 graceful/forced 区分）。
+    Kill,
+}
+
+#[cfg(windows)]
+fn parse_signal_windows(_signal: &str) -> Result<WindowsSignal, PtyError> {
+    // RED stub（task-1.1 · 待 GREEN 填实信号名校验 · 当前不拒绝未知信号 → test_1_1_3 FAIL）
+    Ok(WindowsSignal::Kill)
 }
 
 fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
@@ -1169,10 +1449,19 @@ fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBu
     })
 }
 
+#[cfg(unix)]
 fn is_executable_file(path: &Path) -> bool {
     std::fs::metadata(path)
         .map(|metadata| metadata.is_file() && metadata.permissions().mode() & 0o111 != 0)
         .unwrap_or(false)
+}
+
+/// Windows 无 POSIX 执行位（ADR-001 + spec §5.3）· 退化为"是否为存在的文件"。
+/// .exe/.bat/.cmd 等的真正可执行判定（扩展名 + 注册表）defer Phase 2 task-2.1。
+#[cfg(windows)]
+fn is_executable_file(_path: &Path) -> bool {
+    // RED stub（task-1.1 · 待 GREEN 填实 is_file 判定 · 当前恒 false → windows_is_executable_file FAIL）
+    false
 }
 
 fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
@@ -1194,7 +1483,12 @@ fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
             .find_map(|line| line.strip_prefix('n'))
             .map(PathBuf::from)
     }
-    #[cfg(not(any(target_os = "linux", target_os = "macos")))]
+    #[cfg(target_os = "windows")]
+    {
+        // RED stub（task-1.1 · 待 GREEN 改回 None · 当前返回 Some 占位 → test_1_1_4 FAIL）
+        Some(PathBuf::from(format!("\\\\stub\\{process_id}")))
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {
         let _ = process_id;
         None
@@ -1205,6 +1499,7 @@ fn normalize_cwd(path: PathBuf) -> PathBuf {
     path.canonicalize().unwrap_or(path)
 }
 
+#[cfg(unix)]
 fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
     let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
     if flags < 0 {
@@ -1223,6 +1518,11 @@ fn set_fd_nonblocking(fd: RawFd, enabled: bool) -> Result<(), PtyError> {
     Ok(())
 }
 
+/// Windows no-op（ADR-001 + spec §5.3）· ConPTY 的 overlapped I/O 由 portable-pty 内部处理 ·
+/// 无需 fcntl(O_NONBLOCK)。保留显式函数以标注"此处刻意不设非阻塞"。
+#[cfg(windows)]
+fn set_fd_nonblocking_noop() {}
+
 fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex
         .lock()
@@ -1232,7 +1532,10 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(unix)]
     use crossbeam_channel::RecvTimeoutError;
+    // Unix-only：mode 位测试 + PTY 进程拉起测试需要 PermissionsExt（AC5 · cfg-gate）。
+    #[cfg(unix)]
     use std::os::unix::fs::PermissionsExt;
     use ts_rs::{Config, TS};
 
@@ -1273,6 +1576,7 @@ mod tests {
         (manager, events)
     }
 
+    #[cfg(unix)]
     fn spawn_shell(manager: &PtyManager, tab_id: &str) -> Result<(), PtyError> {
         manager.spawn(PtySpawnRequest {
             tab_id: tab_id.to_string(),
@@ -1283,6 +1587,7 @@ mod tests {
         })
     }
 
+    #[cfg(unix)]
     fn recv_until_exit(
         events: &Receiver<PtyEvent>,
         tab_id: &str,
@@ -1356,6 +1661,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn parse_signal_maps_supported_values() {
         assert_eq!(parse_signal("SIGINT").unwrap(), libc::SIGINT);
@@ -1364,6 +1670,7 @@ mod tests {
         assert_eq!(parse_signal("SIGKILL").unwrap(), libc::SIGKILL);
     }
 
+    #[cfg(unix)]
     #[test]
     fn parse_signal_rejects_unknown_values() {
         let error = parse_signal("SIGHUP").unwrap_err();
@@ -1453,6 +1760,7 @@ mod tests {
         assert_eq!(effective_shell_for_spawn("", None), default_shell_path());
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_shell_in_path_skips_non_executable_candidates() {
         let temp = tempfile::TempDir::new().unwrap();
@@ -1532,6 +1840,7 @@ mod tests {
         assert!(matches!(error, PtyError::NotFound(value) if value == "missing"));
     }
 
+    #[cfg(unix)]
     #[test]
     fn working_directory_returns_spawn_cwd() {
         let (manager, _events) = manager_with_events();
@@ -1552,6 +1861,7 @@ mod tests {
         manager.kill("tab-cwd").unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn environment_returns_spawn_env_with_terminal_overrides() {
         let (manager, _events) = manager_with_events();
@@ -1575,6 +1885,7 @@ mod tests {
         manager.kill("tab-env").unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     #[cfg_attr(
         target_os = "linux",
@@ -1592,6 +1903,7 @@ mod tests {
         assert_eq!(exit_code, Some(0));
     }
 
+    #[cfg(unix)]
     #[test]
     fn resize_keeps_session_alive() {
         let (manager, events) = manager_with_events();
@@ -1606,6 +1918,7 @@ mod tests {
         assert_eq!(exit_code, Some(0));
     }
 
+    #[cfg(unix)]
     #[test]
     #[cfg_attr(
         target_os = "linux",
@@ -1622,6 +1935,7 @@ mod tests {
         assert_eq!(exit_code, None);
     }
 
+    #[cfg(unix)]
     #[test]
     fn kill_force_terminates_session() {
         let (manager, events) = manager_with_events();
@@ -1635,6 +1949,7 @@ mod tests {
         assert_eq!(exit_code, emitted_exit_code);
     }
 
+    #[cfg(unix)]
     #[test]
     fn shared_reader_routes_stdout_to_multiple_tabs() {
         let (manager, events) = manager_with_events();
@@ -1675,6 +1990,7 @@ mod tests {
             .is_some_and(|output| output.contains("tab-c")));
     }
 
+    #[cfg(unix)]
     #[test]
     fn duplicate_spawn_rejected_while_session_alive() {
         let (manager, _events) = manager_with_events();
@@ -1683,6 +1999,9 @@ mod tests {
         assert!(matches!(error, PtyError::AlreadyRunning(value) if value == "tab-dup"));
     }
 
+    // resolve_default_shell_* 测试断言 Unix shell 路径（/bin/zsh · /bin/bash）+ 依赖
+    // is_executable_file 的 Unix mode 位语义 · 整组 cfg-gate（Windows shell 探测 = task-2.1）。
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_returns_platform_default_when_no_db() {
         let shell = resolve_default_shell(None);
@@ -1693,6 +2012,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_reads_from_app_settings() {
         use crate::db;
@@ -1710,6 +2030,7 @@ mod tests {
         assert_eq!(shell, real_shell);
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_falls_back_when_stored_shell_missing() {
         use crate::db;
@@ -1727,6 +2048,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_falls_back_when_key_missing() {
         use crate::db;
@@ -1741,6 +2063,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn resolve_default_shell_ignores_empty_value() {
         use crate::db;
@@ -1756,6 +2079,7 @@ mod tests {
         }
     }
 
+    #[cfg(unix)]
     #[test]
     fn check_shell_exists_accepts_valid_shell() {
         assert!(check_shell_exists("/bin/sh").is_ok());
@@ -1765,5 +2089,110 @@ mod tests {
     fn check_shell_exists_rejects_invalid_path() {
         let result = check_shell_exists("/bin/does-not-exist-vibestation-test");
         assert!(matches!(result, Err(PtyError::ShellNotFound(_))));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // task-1.1 · Windows 平台分离 SCEN/TEST（§7 追踪表）
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// TEST-1.1.1（SCEN-1.1.1 · AC1）：crates/core 在三平台编译通过。
+    /// 本测试存在即证明 cfg 分离后符号在编译目标平台齐全（Windows 不再因 mio::unix /
+    /// libc::fcntl / PermissionsExt fatal）· 编译能跑到本测试就说明 AC1 在该平台成立。
+    #[test]
+    fn test_1_1_1_windows_pty_compiles() {
+        // PtyManager 在三平台都能构造（Unix 起 mio reader · Windows 起 ConPTY per-session reader 调度）。
+        let manager = PtyManager::new();
+        // 未知 tab 在三平台都返回 NotFound（不触平台相关 PTY 路径）。
+        assert!(matches!(
+            manager.stdin("nonexistent", "noop"),
+            Err(PtyError::NotFound(_))
+        ));
+    }
+
+    /// TEST-1.1.2（SCEN-1.1.2 · AC2）：Unix 信号解析 + reader 路径行为零回归。
+    /// 锁住 Unix parse_signal 映射 + is_executable_file mode 位语义未被 cfg 分离改坏。
+    #[cfg(unix)]
+    #[test]
+    fn test_1_1_2_unix_reader_signal_unchanged() {
+        // 信号映射不变
+        assert_eq!(parse_signal("SIGINT").unwrap(), libc::SIGINT);
+        assert_eq!(parse_signal("SIGKILL").unwrap(), libc::SIGKILL);
+        assert!(matches!(
+            parse_signal("SIGHUP"),
+            Err(PtyError::InvalidSignal(_))
+        ));
+        // is_executable_file mode 位语义不变：真实可执行 shell 判 true
+        assert!(is_executable_file(Path::new("/bin/sh")));
+        // 非可执行的普通文件判 false
+        let dir = tempfile::tempdir().unwrap();
+        let plain = dir.path().join("plain.txt");
+        std::fs::write(&plain, "data").unwrap();
+        std::fs::set_permissions(&plain, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(!is_executable_file(&plain));
+    }
+
+    /// TEST-1.1.3（SCEN-1.1.3 · AC3）：Windows 信号路由退化为单进程 kill 语义 ·
+    /// parse_signal_windows 受支持信号全映射 Kill · 未知信号拒绝（与 Unix 同契约）·
+    /// 路径不引用 mio/SourceFd/libc（编译能到此即证明）。
+    #[cfg(windows)]
+    #[test]
+    fn test_1_1_3_windows_reader_no_mio() {
+        assert_eq!(parse_signal_windows("SIGINT").unwrap(), WindowsSignal::Kill);
+        assert_eq!(parse_signal_windows("SIGTERM").unwrap(), WindowsSignal::Kill);
+        assert_eq!(parse_signal_windows("SIGTSTP").unwrap(), WindowsSignal::Kill);
+        assert_eq!(parse_signal_windows("SIGKILL").unwrap(), WindowsSignal::Kill);
+        assert!(matches!(
+            parse_signal_windows("SIGHUP"),
+            Err(PtyError::InvalidSignal(value)) if value == "SIGHUP"
+        ));
+    }
+
+    /// TEST-1.1.4（SCEN-1.1.4 · AC4）：Windows detect_process_cwd 安全返回 None ·
+    /// 不 panic · 不调 /proc / lsof · 由 spawn-time 缓存 initial_cwd 兜底。
+    #[cfg(windows)]
+    #[test]
+    fn test_1_1_4_detect_cwd_windows_none() {
+        // 任意 pid（含自身）在 Windows 都返回 None（Out of Scope · 缓存兜底）。
+        assert_eq!(detect_process_cwd(std::process::id()), None);
+        assert_eq!(detect_process_cwd(1), None);
+    }
+
+    /// TEST-1.1.5（SCEN-1.1.5 · AC5）：测试模块在三平台均可编译 ·
+    /// 平台无关的纯逻辑函数（parse_chunk_to_lines / find_ansi_clear / exit_code_from_status）
+    /// 不依赖任一平台 import · 编译能跑到此即证明 Unix-only import 已正确 cfg-gate。
+    #[test]
+    fn test_1_1_5_tests_compile_all_platforms() {
+        // 平台无关：行解析
+        let mut partial = String::new();
+        assert_eq!(
+            parse_chunk_to_lines("a\nb\n", &mut partial),
+            vec!["a", "b"]
+        );
+        // 平台无关：ANSI clear 检测
+        assert_eq!(find_ansi_clear(b"x\x1b[2Jy"), Some(1));
+        // 平台无关：退出码映射（signal 变体 → None）
+        assert_eq!(
+            exit_code_from_status(&ExitStatus::with_signal("SIGKILL")),
+            None
+        );
+        assert_eq!(
+            exit_code_from_status(&ExitStatus::with_exit_code(0)),
+            Some(0)
+        );
+    }
+
+    /// Windows is_executable_file 退化为文件存在性判定（不走 mode 位 · AC · spec §5.3）。
+    #[cfg(windows)]
+    #[test]
+    fn windows_is_executable_file_uses_file_existence() {
+        let dir = tempfile::tempdir().unwrap();
+        // 存在的普通文件 → true（Windows 无执行位 · 退化为 is_file）
+        let file = dir.path().join("tool.exe");
+        std::fs::write(&file, b"MZ").unwrap();
+        assert!(is_executable_file(&file));
+        // 不存在 → false
+        assert!(!is_executable_file(&dir.path().join("missing.exe")));
+        // 目录 → false（is_file 为 false）
+        assert!(!is_executable_file(dir.path()));
     }
 }

@@ -1,6 +1,6 @@
 # Task `1.1`: `pty-platform-split`
 
-**Status**: Ready
+**Status**: In Progress
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`
 

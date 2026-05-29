@@ -92,6 +92,7 @@
     "allow-rebase-detect-in-progress",
     "core:window:allow-start-dragging",
     "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-set-theme",
     "allow-menu-show-tab",
     "allow-menu-show-terminal",
     "allow-menu-register-shortcuts",

@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import { createStore } from "solid-js/store";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { AppSettings, SettingsUpdateRequest } from "../bindings";
 
 export type ThemeSetting = "light" | "dark" | "auto";
@@ -89,6 +90,24 @@ function applyCssVars(s: AppSettings): void {
         : "light"
       : s.theme;
   document.documentElement.dataset.theme = resolvedTheme;
+  syncWindowTheme(resolvedTheme);
+}
+
+/// 同步 Tauri 原生窗口主题，让 Windows 原生标题栏跟随 app 暗/亮主题。
+///
+/// Windows 用原生窗口装饰（标题栏 + 最小化/最大化/关闭），其配色默认不跟随 webview 内
+/// 的 `data-theme` → 暗色 app 下标题栏仍是白色那一行。`setTheme` 让 Tauri 应用
+/// immersive dark mode 修正之。macOS 走 `titleBarStyle: Overlay` 无原生标题栏，此调用
+/// 幂等无害。非 Tauri 上下文（vitest jsdom）静默忽略。
+function syncWindowTheme(theme: string): void {
+  const resolved = theme === "dark" ? "dark" : "light";
+  try {
+    void getCurrentWindow()
+      .setTheme(resolved)
+      .catch(() => {});
+  } catch {
+    // 非 Tauri 上下文 · 忽略
+  }
 }
 
 export function useSettings() {

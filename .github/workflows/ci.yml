@@ -47,16 +47,25 @@ jobs:
           fi
           echo "✓ No obvious broken anchor links"
 
-  # ────────────── Rust 构建与测试（MVP-01 Phase A 启用）──────────────
+  # ────────────── Rust 构建与测试（MVP-01 Phase A 启用 · Task 5.2 跨平台矩阵）──────────────
   rust-build:
-    name: Rust · clippy + fmt + test + Tauri build smoke
-    runs-on: ubuntu-latest
+    name: Rust · clippy + fmt + test + Tauri build smoke (${{ matrix.os }})
+    # Task 5.2 · windows-ci-matrix：把单 job 展开为 ubuntu + windows 两 leg。
+    # windows-latest runner 预装 MSVC toolchain + WebView2 Runtime + Node，无需 apt。
+    # 触发仍为 workflow_dispatch（ADR-021 · 见文件顶部 on:），矩阵化让手动 dispatch 覆盖 Windows leg。
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       - name: Install system deps (Tauri on Ubuntu)
+        # Ubuntu 专属：Tauri 的 webkit2gtk 等系统依赖；Windows leg 跳过（runner 预装 WebView2）
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -109,7 +118,16 @@ jobs:
       - name: Tauri build smoke (--debug --no-bundle)
         # 会连带跑 beforeBuildCommand: pnpm --filter @vibestation/web build
         # 验证 frontendDist 路径 + pnpm workspace filter + tauri.conf.json 对齐
+        # 两 leg 都跑（--no-bundle 跳过打包 · 仅验编译链路 · 不依赖 WiX/NSIS/dmg tooling）
         run: pnpm tauri:build:smoke
+
+      # ─── Windows NSIS bundle smoke（Task 5.2 AC4 · 可选 · 不阻断 build+test gate）───
+      # PRD R2 / ADR-021：windows-latest runner 可能缺 WiX/网络下载失败 → continue-on-error 隔离。
+      # NSIS toolchain 由 Tauri 自动下载（本机 Windows 实测可产出 .exe）；失败时 job 仍绿。
+      - name: Tauri NSIS bundle smoke (Windows · optional)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: pnpm tauri:build --config crates/app/tauri.conf.json --bundles nsis
 
   # ────────────── Frontend 构建与测试（MVP-01 Phase A 启用）──────────────
   frontend-build:

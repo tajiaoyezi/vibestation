@@ -86,10 +86,13 @@ jobs:
       - name: Cache cargo registry
         uses: actions/cache@v5
         with:
+          # 不缓存 target/：Windows debug+release+NSIS bundle 产物多 GB · post-job cache
+          # save 压缩+上传拖过 job timeout → windows leg 被 cancelled（run 26643478610
+          # 实测：fmt/clippy/test/build smoke/NSIS 全 success · 仅 "Post Cache" 超时）。
+          # registry+git 缓存才是依赖下载的主要加速来源 · target 跨 run 价值有限。
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: cargo fmt --check

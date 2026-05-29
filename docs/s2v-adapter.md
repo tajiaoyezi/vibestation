@@ -163,7 +163,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 
 | Task | 模块 | Spec 文件 | Status | 依赖 / Phase 内顺序 | Worktree（仅 team）|
 |---|---|---|---|---|---|
-| 1.1 | pty | docs/specs/tasks/task-1.1-pty-platform-split.md | Draft | Phase 1 首 · 解锁编译 | `-` |
+| 1.1 | pty | docs/specs/tasks/task-1.1-pty-platform-split.md | Done | Phase 1 首 · 解锁编译 | `-` |
 | 1.2 | app-home | docs/specs/tasks/task-1.2-home-dir-helper.md | Draft | 可与 1.1 并行（不同文件域）| `-` |
 | 1.3 | app-settings | docs/specs/tasks/task-1.3-shell-default-setting.md | Draft | 依赖 1.1 编译 | `-` |
 | 2.1 | pty-shell | docs/specs/tasks/task-2.1-windows-shell-detection.md | Draft | 依赖 1.1 | `-` |

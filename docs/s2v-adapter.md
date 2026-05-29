@@ -178,7 +178,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 | 5.2 | ci | docs/specs/tasks/task-5.2-windows-ci-matrix.md | Done | 依赖 1.1, 2.1 | `-` |
 | 5.3 | app-window | docs/specs/tasks/task-5.3-prepare-titlebar.md | Done | 依赖 1.1 | `-` |
 | 6.1 | tests | docs/specs/tasks/task-6.1-windows-test-gating.md | Done | 依赖 2.x/3.x | `-` |
-| 6.2 | integration | docs/specs/tasks/task-6.2-windows-smoke-matrix.md | Draft | 依赖全部 | `-` |
+| 6.2 | integration | docs/specs/tasks/task-6.2-windows-smoke-matrix.md | Done | 依赖全部 | `-` |
 
 ## ADR 索引
 

@@ -201,7 +201,7 @@ placeholder={`Commit message… (${formatShortcut("⌘↵", "Ctrl+↵")} 提交)
   - runtime-smoke: defer（pnpm tauri:dev · hover TopBar=Ctrl+B / 右键=Ctrl+Shift+O / placeholder=Ctrl+Enter / maximize chip=Ctrl+Enter · 留 Arbiter §2.14 窗口）
   - manual: defer（同 runtime-smoke · mac 对照仍显 ⌘）
 - **剩余风险 / 未做项**：
-  1. **R-4.2-d 全量 grep 发现 survey 未列的 3 处 user-facing 裸 ⌘**（survey 9 项之外）：`components/BottomPanel.tsx:39` `<span class="vs-kbd-tip">⌘J</span>` · `panels/GitLog/GitLogPanel.tsx:1424` `<span class="vs-kbd-tip">⌘2</span>` · `panels/Terminal/SmartLayoutMenu.tsx:266` 内联文案「先 ⌘\ 分屏」。**本 task 未改**（dispatch 硬约束「只动」限定的授权文件清单不含此 3 文件 · 按 R-4.2-d「记 §10 剩余风险」处理）· 建议后续小 follow-up task 用同 formatShortcut helper 收口（低风险 · 同模式）。
+  1. **R-4.2-d 全量 grep 发现 survey 未列的 3 处 user-facing 裸 ⌘**（survey 9 项之外）：`components/BottomPanel.tsx:39` `<span class="vs-kbd-tip">⌘J</span>` · `panels/GitLog/GitLogPanel.tsx:1424` `<span class="vs-kbd-tip">⌘2</span>` · `panels/Terminal/SmartLayoutMenu.tsx:266` 内联文案「先 ⌘\ 分屏」。**本 task 未改**（dispatch 硬约束「只动」限定的授权文件清单不含此 3 文件 · 按 R-4.2-d「记 §10 剩余风险」处理）· 建议后续小 follow-up task 用同 formatShortcut helper 收口（低风险 · 同模式）。**✅ 已收口（2026-05-29 · feat/windows-support follow-up · PR #431）**：3 处均改为 `formatShortcut("⌘J","Ctrl+J")` / `formatShortcut("⌘2","Ctrl+2")` / `formatShortcut("⌘\\","Ctrl+\\")`，键位对齐实际绑定（App.tsx case "2"/"j" + usePaneShortcuts `\`）；`shortcut-replacement.test.ts` 已扩 3 条断言锁定；typecheck 0 error · 改动文件过 prettier · vitest 零回归（与 main 同基线）。
   2. 代码注释里的 ⌘（pane-keyboard.ts:142 / mvp17-keyboard.ts:4-5 / usePaneShortcuts.ts 等）非 user-facing · 按 AC2 scope（title/placeholder/aria-label/context-menu shortcut）排除 · 不动。
   3. `pane-keyboard.ts:141-143` 注释措辞优化（spec Out Of Scope low）· 未做。
   4. runtime-smoke / manual GUI 目视确认 defer Arbiter §2.14 窗口。

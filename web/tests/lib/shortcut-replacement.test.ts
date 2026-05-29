@@ -36,6 +36,10 @@ describe("TEST-4.2.2: 替换后的组件文案改为 formatShortcut 调用", () 
     { file: "panels/CommitBar/CommitBar.tsx", macToken: "⌘↵" },
     { file: "App.tsx", macToken: "⌘," },
     { file: "dialogs/ConfigImport/ConfigImportDialog.tsx", macToken: "⌘T" },
+    // task-4.2 follow-up · §10 R-4.2-d 残留 3 处裸 ⌘ 收口
+    { file: "panels/GitLog/GitLogPanel.tsx", macToken: "⌘2" },
+    { file: "components/BottomPanel.tsx", macToken: "⌘J" },
+    { file: "panels/Terminal/SmartLayoutMenu.tsx", macToken: "⌘\\" },
   ];
 
   for (const { file, macToken } of replaced) {

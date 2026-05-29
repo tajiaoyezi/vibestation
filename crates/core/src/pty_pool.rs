@@ -591,7 +591,14 @@ mod tests {
         panic!("timed out waiting for {expected:?} from {tab_id}; output={output:?}");
     }
 
+    // task-6.1（ADR-005）：spawn /bin/sh 真 shell 进程做预热池 idle PTY · Windows 无 /bin/sh
+    // → refill 永不产出 idle · wait_until 超时 panic。Windows ConPTY 预热等价覆盖见
+    // pty_windows_conpty_integration.rs（task-2.2 · cmd.exe spawn/echo/exit）。
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · ConPTY 预热等价见 pty_windows_conpty_integration.rs"
+    )]
     fn take_warm_hit_with_matching_shell() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -608,6 +615,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn take_cold_when_idle_too_young() {
         // BUG-001 round 3 · idle pty 不够成熟（zsh ZLE 还没 init · stdin 注入会被
         // termios cooked echo · 用户看到 cd 命令字面）· 必须 fall back cold spawn
@@ -645,6 +656,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn take_cold_when_shell_mismatch() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -659,6 +674,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn refill_async_eventually_fills_pool() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -667,6 +686,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn set_size_grow_triggers_refill() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -678,6 +701,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn set_size_shrink_kills_excess() {
         let (_manager, pool) = manager_and_pool(2);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -689,6 +716,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn kill_all_drains_idle() {
         let (_manager, pool) = manager_and_pool(2);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -699,6 +730,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn idle_expire_after_max_age() {
         let (_manager, pool) =
             manager_and_pool_with_timing(1, Duration::from_millis(80), Duration::from_millis(20));
@@ -713,6 +748,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn apply_config_disable_kills_all() {
         let (_manager, pool) = manager_and_pool(2);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -731,6 +770,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn handle_default_shell_change_kills_old_idle() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -746,6 +789,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn shutdown_drains_idle_and_blocks_refill() {
         let (_manager, pool) = manager_and_pool(1);
         pool.refill_async(PathBuf::from("/bin/sh"), PathBuf::from("/tmp"));
@@ -791,6 +838,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn take_warm_with_cwd_injects_cd() {
         let (manager, pool) = manager_and_pool(1);
         let events = manager
@@ -809,6 +860,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        target_os = "windows",
+        ignore = "spawn /bin/sh Unix shell · Windows 无此可执行 · 沿袭 take_warm_hit_with_matching_shell · ConPTY 等价见 pty_windows_conpty_integration.rs"
+    )]
     fn pty_session_rename_changes_emitted_tab_id() {
         let (manager, pool) = manager_and_pool(1);
         let events = manager

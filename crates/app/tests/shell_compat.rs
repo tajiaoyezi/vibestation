@@ -195,6 +195,10 @@ fn recv_until_exit(
     target_os = "linux",
     ignore = "Linux PTY epoll close event timing 在 GitHub Actions Ubuntu runner 不稳定 · 沿袭 PR #82 / pty.rs mod tests Linux ignore pattern · macOS 本地稳定"
 )]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "PTY shell 矩阵在 Windows 走 task-2.x ConPTY 探测链（pwsh→powershell→cmd）· Unix shell 候选(/bin/zsh + which)不适用 · 见 pty_windows_conpty_integration.rs"
+)]
 fn zsh_01_startup_shows_prompt() {
     let Some(shell) = locate_shell("zsh") else {
         // macOS / Linux blocker · zsh 应总在系统里 · 缺失即 fail
@@ -227,6 +231,10 @@ fn zsh_01_startup_shows_prompt() {
 #[cfg_attr(
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
+)]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(/bin/zsh + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
 )]
 fn zsh_02_term_env_is_xterm_256color() {
     let Some(shell) = locate_shell("zsh") else {
@@ -273,6 +281,10 @@ fn zsh_03_tab_completion_runtime_only() {
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
 )]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(/bin/zsh + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
+)]
 fn zsh_04_chinese_ime_utf8_roundtrip() {
     let Some(shell) = locate_shell("zsh") else {
         panic!("§I.1 case 04 BLOCKER · zsh not found");
@@ -303,6 +315,10 @@ fn zsh_04_chinese_ime_utf8_roundtrip() {
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
 )]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(/bin/bash + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
+)]
 fn bash_05_startup_shows_prompt() {
     let Some(shell) = locate_shell("bash") else {
         panic!("§I.1 case 05 BLOCKER · bash not found");
@@ -330,6 +346,10 @@ fn bash_05_startup_shows_prompt() {
 #[cfg_attr(
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
+)]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(/bin/bash + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
 )]
 fn bash_06_term_env_is_xterm_256color() {
     let Some(shell) = locate_shell("bash") else {
@@ -392,6 +412,10 @@ fn bash_08_history_arrows_runtime_only() {
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
 )]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(fish + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
+)]
 fn fish_09_startup_shows_prompt() {
     let Some(shell) = locate_shell("fish") else {
         // non-blocker · 系统未装 fish · 静默 skip
@@ -446,6 +470,10 @@ fn fish_11_tab_completion_runtime_only() {
 #[cfg_attr(
     target_os = "linux",
     ignore = "Linux PTY epoll timing · 沿袭 zsh_01_startup_shows_prompt"
+)]
+#[cfg_attr(
+    target_os = "windows",
+    ignore = "Unix shell 候选(fish + which) Windows 不适用 · 走 task-2.x ConPTY 探测链 · 沿袭 zsh_01_startup_shows_prompt"
 )]
 fn fish_12_chinese_ime_utf8_roundtrip() {
     let Some(shell) = locate_shell("fish") else {
@@ -599,5 +627,44 @@ fn codex_cli_22_long_output_scroll_runtime_only() {
     eprintln!(
         "§I.2 case 22 · Codex CLI 长输出滚动 · runtime-only placeholder · \
          同 Claude case 17 · 录屏 docs/runtime-evidence/mvp-04/phase-d/cli-codex-22-long-output.mp4"
+    );
+}
+
+// -----------------------------------------------------------------------------
+// task-6.1 AC5 · Windows 专属正向测试（非全 skip · 真覆盖 Windows 平台路径）
+//
+// ADR-005：Unix shell 矩阵在 Windows 全 ignore（走 task-2.x ConPTY 探测链）· 但
+// 不能让 Windows 只剩全 skip · 此处补一条 Windows-only 正向断言 · 验证 PTY 用例
+// 依赖的跨平台基元（临时目录 + 用户家目录）在 Windows 真实可解析。
+// -----------------------------------------------------------------------------
+
+/// **TEST-6.1.1 (AC5)**：Windows 上 `env::temp_dir()` 非空且存在 · `USERPROFILE`
+/// 解析到真实用户目录（非 Unix `/` 兜底）。
+#[cfg(target_os = "windows")]
+#[test]
+fn test_6_1_1_windows_temp_dir_and_userprofile_resolve() {
+    let temp = std::env::temp_dir();
+    assert!(
+        !temp.as_os_str().is_empty(),
+        "Windows env::temp_dir() 必须非空 · 实际={temp:?}"
+    );
+    assert!(
+        temp.exists(),
+        "Windows 临时目录必须真实存在（PTY/bench cwd 兜底依赖）· 实际={temp:?}"
+    );
+
+    let user_profile = std::env::var("USERPROFILE").expect("Windows 应设置 USERPROFILE 环境变量");
+    assert!(
+        !user_profile.is_empty(),
+        "USERPROFILE 必须非空（家目录探测兜底依赖）"
+    );
+    // Windows 家目录绝不是 Unix 根 `/` 兜底（防止 user_home() 误回落 Unix 路径）
+    assert_ne!(
+        user_profile, "/",
+        "Windows USERPROFILE 绝不应是 Unix `/` 兜底 · 实际={user_profile}"
+    );
+    assert!(
+        std::path::Path::new(&user_profile).exists(),
+        "USERPROFILE 指向的目录必须真实存在 · 实际={user_profile}"
     );
 }

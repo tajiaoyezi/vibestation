@@ -65,6 +65,11 @@ fn default_shell() -> &'static str {
     "/bin/bash"
 }
 
+// task-6.1：这些测试断言 resolved_shell / default_shell / shell_command_args —— 均为
+// #[cfg(any(target_os = "macos", target_os = "linux"))] 的 Unix-only PATH-fix 函数
+// （Windows 上 fix() 直接 Ok(()) · 无 shell 探测）· 整个测试模块走相同 cfg gate（ADR-005）·
+// Windows 不编译此模块（否则 7× E0425：找不到这些 Unix-only 函数）· mac/Linux 照常编译+跑。
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 #[cfg(test)]
 mod tests {
     use super::*;

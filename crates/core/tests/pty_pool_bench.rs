@@ -22,14 +22,33 @@ const SAMPLES: usize = 10;
 const WARMUP_TIMEOUT: Duration = Duration::from_secs(10);
 const SPAWN_TIMEOUT: Duration = Duration::from_secs(15);
 
+// task-6.1 AC4：跨平台家目录 / shell 解析 · 兜底改用 std::env::temp_dir()（跨平台）
+// 而非 Unix `/`（Windows 上不存在 · PathBuf::from("/") 会让 spawn cwd 立即失败）。
 fn user_home() -> PathBuf {
-    std::env::var("HOME")
+    #[cfg(windows)]
+    let key = "USERPROFILE";
+    #[cfg(not(windows))]
+    let key = "HOME";
+    std::env::var(key)
         .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/"))
+        .unwrap_or_else(|_| std::env::temp_dir())
 }
 
 fn user_shell() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+    #[cfg(windows)]
+    {
+        // Windows：COMSPEC 一般指向 cmd.exe · 兜底裸名 cmd.exe（task-2.1 探测链解析）
+        std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string())
+    }
+    #[cfg(not(windows))]
+    {
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string())
+    }
+}
+
+/// task-6.1 AC4：benchmark cwd · 取代硬编码 `/tmp`（Windows 不存在）· 跨平台临时目录。
+fn bench_cwd() -> String {
+    std::env::temp_dir().to_string_lossy().into_owned()
 }
 
 /// 等待指定 tab_id 的第一次 stdout · 返回从某起点到 stdout 触达的时长。
@@ -103,7 +122,7 @@ fn cold_spawn_baseline() {
         let req = PtySpawnRequest {
             tab_id: tab_id.clone(),
             shell: user_shell(),
-            cwd: "/tmp".to_string(),
+            cwd: bench_cwd(),
             cols: 80,
             rows: 24,
         };
@@ -158,7 +177,7 @@ fn warm_hit_with_pool() {
         let req = PtySpawnRequest {
             tab_id: tab_id.clone(),
             shell: user_shell(),
-            cwd: "/tmp".to_string(), // cwd 不同于 idle 的 $HOME · 触发 cd 注入
+            cwd: bench_cwd(), // cwd 不同于 idle 的 $HOME · 触发 cd 注入
             cols: 80,
             rows: 24,
         };
@@ -204,7 +223,7 @@ fn cold_path_with_pool_disabled() {
         let req = PtySpawnRequest {
             tab_id: tab_id.clone(),
             shell: user_shell(),
-            cwd: "/tmp".to_string(),
+            cwd: bench_cwd(),
             cols: 80,
             rows: 24,
         };

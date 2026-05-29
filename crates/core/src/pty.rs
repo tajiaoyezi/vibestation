@@ -2144,9 +2144,18 @@ mod tests {
     #[test]
     fn test_1_1_3_windows_reader_no_mio() {
         assert_eq!(parse_signal_windows("SIGINT").unwrap(), WindowsSignal::Kill);
-        assert_eq!(parse_signal_windows("SIGTERM").unwrap(), WindowsSignal::Kill);
-        assert_eq!(parse_signal_windows("SIGTSTP").unwrap(), WindowsSignal::Kill);
-        assert_eq!(parse_signal_windows("SIGKILL").unwrap(), WindowsSignal::Kill);
+        assert_eq!(
+            parse_signal_windows("SIGTERM").unwrap(),
+            WindowsSignal::Kill
+        );
+        assert_eq!(
+            parse_signal_windows("SIGTSTP").unwrap(),
+            WindowsSignal::Kill
+        );
+        assert_eq!(
+            parse_signal_windows("SIGKILL").unwrap(),
+            WindowsSignal::Kill
+        );
         assert!(matches!(
             parse_signal_windows("SIGHUP"),
             Err(PtyError::InvalidSignal(value)) if value == "SIGHUP"
@@ -2170,10 +2179,7 @@ mod tests {
     fn test_1_1_5_tests_compile_all_platforms() {
         // 平台无关：行解析
         let mut partial = String::new();
-        assert_eq!(
-            parse_chunk_to_lines("a\nb\n", &mut partial),
-            vec!["a", "b"]
-        );
+        assert_eq!(parse_chunk_to_lines("a\nb\n", &mut partial), vec!["a", "b"]);
         // 平台无关：ANSI clear 检测
         assert_eq!(find_ansi_clear(b"x\x1b[2Jy"), Some(1));
         // 平台无关：退出码映射（signal 变体 → None）

@@ -480,4 +480,69 @@ mod tests {
         assert!(s.cursor_blink);
         assert!((s.unfocused_pane_opacity - 0.3).abs() < f32::EPSILON);
     }
+
+    // ─── task-1.3 · 跨平台 default_shell 默认值（SCEN-1.3.1~1.3.4 / AC1~AC5） ───
+
+    /// 当前平台期望的默认 shell（测试断言基准）。
+    /// macOS → /bin/zsh · Windows → cmd.exe（占位 · ADR-003）· Linux/其他 → /bin/bash。
+    fn expected_default_shell() -> &'static str {
+        #[cfg(target_os = "macos")]
+        {
+            "/bin/zsh"
+        }
+        #[cfg(target_os = "windows")]
+        {
+            "cmd.exe"
+        }
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        {
+            "/bin/bash"
+        }
+    }
+
+    // SCEN-1.3.1 / AC1 — AppSettings::default().default_shell 三平台各自正确
+    #[test]
+    fn test_1_3_1_default_shell_per_platform() {
+        assert_eq!(
+            AppSettings::default().default_shell,
+            expected_default_shell(),
+            "default() 的 default_shell 应为当前平台默认 shell"
+        );
+    }
+
+    // SCEN-1.3.2 / AC2 — get_all（DB 无记录）fallback 与 default() 一致
+    #[test]
+    fn test_1_3_2_get_all_fallback_matches_default() {
+        let (_dir, pool) = setup();
+        let from_get_all = AppSettingsStore::get_all(&pool).default_shell;
+        assert_eq!(
+            from_get_all,
+            AppSettings::default().default_shell,
+            "get_all 的 default_shell fallback 必须与 impl Default 一致（无字面值漂移）"
+        );
+        assert_eq!(from_get_all, expected_default_shell());
+    }
+
+    // SCEN-1.3.3 / AC3 — Windows 默认占位为 cmd.exe（绝不回落 Unix 路径）
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_1_3_3_windows_default_is_cmd() {
+        let shell = AppSettings::default().default_shell;
+        assert_eq!(shell, "cmd.exe", "Windows 默认 shell 占位应为 cmd.exe（ADR-003）");
+        assert!(
+            !shell.starts_with("/bin/"),
+            "Windows 默认 shell 绝不应是 Unix 路径（/bin/bash 在 Windows 不存在 → PTY spawn 立即失败），实际={shell}"
+        );
+    }
+
+    // SCEN-1.3.4 / AC4+AC5 — Unix 默认值字节级零回归
+    #[cfg(unix)]
+    #[test]
+    fn test_1_3_4_unix_default_unchanged() {
+        let shell = AppSettings::default().default_shell;
+        #[cfg(target_os = "macos")]
+        assert_eq!(shell, "/bin/zsh", "macOS 默认 shell 必须保持 /bin/zsh（零回归）");
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(shell, "/bin/bash", "Linux 默认 shell 必须保持 /bin/bash（零回归）");
+    }
 }

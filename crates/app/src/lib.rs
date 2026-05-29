@@ -333,9 +333,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
         target_size: settings.pty_pool_size as u8,
     };
     let default_shell_path = PathBuf::from(&settings.default_shell);
-    let home_path = std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/"));
+    let home_path = home_dir();
     state
         .pty_pool
         .apply_config_change(pool_config, default_shell_path.clone());
@@ -638,15 +636,30 @@ fn config_import_apply(
 /// Unix: `$HOME`。
 /// 二者均失败时返回平台合理 fallback（Windows = `C:\` 风格可用根 · 不再无差别 `/`）。
 fn home_dir() -> PathBuf {
-    // RED 骨架（待 GREEN 替换为 dirs::home_dir() 实现）· 故意保留 buggy "/" 兜底使断言失败
-    PathBuf::from("/")
+    if let Some(home) = dirs::home_dir() {
+        return home;
+    }
+    // dirs 已覆盖绝大多数；以下仅为极端兜底（环境变量全缺失）。
+    #[cfg(windows)]
+    {
+        // Unix root "/" 在 Windows 无意义 · 回落到 USERPROFILE / 盘符根。
+        std::env::var("USERPROFILE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("C:\\"))
+    }
+    #[cfg(unix)]
+    {
+        std::env::var("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("/"))
+    }
 }
 
 /// 计算用户 home 目录 · 失败回退根目录（让扫描看到 path_exists=false 而不是 panic）
+///
+/// 收敛到跨平台 [`home_dir`]（task-1.2 · ADR-002）· Windows 不再回落 "/"。
 fn home_dir_or_root() -> PathBuf {
-    std::env::var("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/"))
+    home_dir()
 }
 
 fn apply_rebase_state_migration(pool: &DbPool) -> Result<(), String> {
@@ -2725,12 +2738,34 @@ mod home_dir_tests {
     // SCEN-1.2.3 / AC3 — 两处调用点不再残留裸 env::var("HOME") + "/" 硬编码
     #[test]
     fn test_1_2_3_no_hardcoded_home_var() {
-        let src = include_str!("lib.rs");
-        // 调用点应改用 home_dir()，不再出现裸 std::env::var("HOME") 的硬编码兜底模式
-        let hardcoded = src.matches("std::env::var(\"HOME\")").count();
-        assert_eq!(
-            hardcoded, 0,
-            "lib.rs 不应残留裸 std::env::var(\"HOME\") 硬编码（应收敛到 home_dir() · dirs crate），实际计数={hardcoded}"
+        // 仅扫描生产代码（首个 #[cfg(test)] 之前）· 排除本测试模块自身的字符串字面量与
+        // #[cfg(unix)] 测试里的合法 env::var("HOME") 调用，避免自指误判。
+        let full = include_str!("lib.rs");
+        let prod = full
+            .split_once("#[cfg(test)]")
+            .map(|(before, _)| before)
+            .unwrap_or(full);
+
+        // 1) PTY pool refill 调用点改用 home_dir()（不再裸读 HOME）。
+        assert!(
+            prod.contains("let home_path = home_dir();"),
+            "PTY pool refill 调用点应改为 `let home_path = home_dir();`"
+        );
+
+        // 2) config import scan 仍经 home_dir_or_root()，且其实现收敛到 home_dir()。
+        assert!(
+            prod.contains("fn home_dir_or_root() -> PathBuf {\n    home_dir()\n}"),
+            "home_dir_or_root() 应收敛到 home_dir()（不再裸读 HOME + \"/\" 兜底）"
+        );
+
+        // 3) 生产代码里 std::env::var("HOME") + "/" 兜底的旧反模式最多出现一次
+        //    （仅 home_dir() 内 #[cfg(unix)] 合法分支）· 两处调用点的硬编码已清除。
+        let unix_fallback = prod
+            .matches("std::env::var(\"HOME\")\n            .map(PathBuf::from)\n            .unwrap_or_else(|_| PathBuf::from(\"/\"))")
+            .count();
+        assert!(
+            unix_fallback <= 1,
+            "生产代码裸 HOME + \"/\" 兜底应仅剩 home_dir() 的 cfg(unix) 单处，实际={unix_fallback}"
         );
     }
 

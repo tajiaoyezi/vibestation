@@ -150,12 +150,12 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 
 | # | Phase | Phase Spec | Status | Tasks | Worktree（仅 team）|
 |---|---|---|---|---|---|
-| 1 | `foundation-build` | `docs/specs/phases/phase-1-foundation-build.md` | Draft | 3 | `-` |
-| 2 | `shell-runtime` | `docs/specs/phases/phase-2-shell-runtime.md` | Draft | 2 | `-` |
-| 3 | `terminal-integration` | `docs/specs/phases/phase-3-terminal-integration.md` | Draft | 4 | `-` |
+| 1 | `foundation-build` | `docs/specs/phases/phase-1-foundation-build.md` | Done | 3 | `-` |
+| 2 | `shell-runtime` | `docs/specs/phases/phase-2-shell-runtime.md` | Done | 2 | `-` |
+| 3 | `terminal-integration` | `docs/specs/phases/phase-3-terminal-integration.md` | Done | 4 | `-` |
 | 4 | `frontend-platform` | `docs/specs/phases/phase-4-frontend-platform.md` | Done | 2 | `-` |
-| 5 | `build-package-ci` | `docs/specs/phases/phase-5-build-package-ci.md` | Draft | 3 | `-` |
-| 6 | `integration-matrix` | `docs/specs/phases/phase-6-integration-matrix.md` | Draft | 2 | `-` |
+| 5 | `build-package-ci` | `docs/specs/phases/phase-5-build-package-ci.md` | Done | 3 | `-` |
+| 6 | `integration-matrix` | `docs/specs/phases/phase-6-integration-matrix.md` | Done | 2 | `-` |
 
 ## Task 总索引
 

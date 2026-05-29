@@ -3,7 +3,7 @@
 > Phase Spec（S2V §8.2 八项结构）· Windows 适配工作流 `feat/windows-support`。
 > 本 Phase 是整条 Windows 适配链路的收口阶段：把前 5 个 Phase 落地的 `#[cfg(target_os)]` 分支拼起来做端到端验证，并锁住 mac/Linux 零回归。
 
-**Status**: Ready
+**Status**: Done
 
 ---
 

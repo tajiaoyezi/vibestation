@@ -1,6 +1,6 @@
 # Phase 4: frontend-platform
 
-**Status**: Ready
+**Status**: Done
 
 > Phase Spec 按 S2V §8.2 八项结构。本 phase 为 Windows 适配纯前端切片，与 Phase 3（纯后端）文件域不交叠，可并行。
 

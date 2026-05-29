@@ -3,7 +3,7 @@
 > Phase Spec · 按 S2V standard §8.2 八项结构渲染。
 > Master Spec：[`docs/prds/windows-support.prd.md`](../../prds/windows-support.prd.md) §Implementation Phases 第 2 行。
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft / Ready / In Progress / Done / Blocked / Waived`（standard §10.5.1 状态机）。
 

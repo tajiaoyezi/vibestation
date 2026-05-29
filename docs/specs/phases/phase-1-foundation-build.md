@@ -1,6 +1,6 @@
 # Phase 1: foundation-build
 
-**Status**: Ready
+**Status**: Done
 **Phase ID**: 1
 **Master Spec**: [`docs/prds/windows-support.prd.md`](../../prds/windows-support.prd.md)
 **依赖**: -（首 phase · 解锁全部后续）

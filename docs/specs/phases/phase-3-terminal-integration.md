@@ -1,6 +1,6 @@
 # Phase 3: terminal-integration
 
-**Status**: Ready
+**Status**: Done
 
 > Phase Spec 按 S2V §8.2 八项结构。本 phase 是 Windows 适配的「外设与集成」层：把外部终端检测/启动、终端配置导入、keybinding 规范化、文件系统监视四个纯后端子系统补齐 Windows 分支，让 Windows 用户拿到与 mac/Linux 对等的集成体验。
 >

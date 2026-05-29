@@ -1,6 +1,6 @@
 # Phase 5: build-package-ci
 
-**Status**: Ready
+**Status**: Done
 
 > Phase Spec · 严格按 S2V standard §8.2 八项渲染。本 phase 让 Vibestation 在 Windows 上**产出可安装产物 + 进 CI 矩阵**，是 Windows 适配从"能编译能跑"走向"能分发能持续验证"的收口环节。
 >

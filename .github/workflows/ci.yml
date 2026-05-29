@@ -58,7 +58,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    # 40min（原 25）：windows-latest 冷 runner 上可选 NSIS bundle smoke（release 编译 + NSIS 下载打包）
+    # 会把 windows leg 推过 25min → job 被 timeout cancelled（run 26638582117 实测）。
+    # 门控步 fmt/clippy/test/build smoke 早已通过 · 仅 NSIS 拖尾 · 给足时间让 job 干净 success。
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v6

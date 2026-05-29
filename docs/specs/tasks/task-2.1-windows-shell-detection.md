@@ -2,7 +2,7 @@
 
 > Task Spec · 按 S2V standard §8.3 模板渲染。无人值守 solo 模式：主 agent 兼 Arbiter，业务字段已据 Windows 缺口调研证据（`spike-tmp/win-survey.json`）+ 实际 `crates/core/src/pty.rs` 源码填实，非编造。
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`（standard §10.5.1）。
 
@@ -190,23 +190,23 @@ fn has_windows_executable_ext(path: &Path) -> bool;             // 判 .exe/.bat
 
 <!-- 模式 A：完整给值 + PRD 引用。review 通过无需删本注释。 -->
 
-- [ ] **AC1** (PRD §Core Capabilities 2 · §User Flow 主流程 2): Windows 上 `default_shell_path()` 返回探测链首个可用 shell 全路径——装了 pwsh 时为 `pwsh.exe` 的全路径，否则 `powershell.exe`，二者都缺时保底 `cmd.exe`；返回值绝不为任何 `/bin/*` Unix 路径。
-- [ ] **AC2** (PRD §User Flow 异常流「未装 PowerShell 7」): Windows 上即使 `pwsh.exe` 与 `powershell.exe` 都不在 PATH，`default_shell_path()` / `resolve_default_shell(None)` 仍返回 `cmd.exe` 且不 panic（绝不拉起不存在的 `/bin/bash`）。
-- [ ] **AC3** (PRD §Core Capabilities 2 · §Success Metrics 次要指标): Windows 上 `list_available_shells()` 返回非空 `Vec<ShellInfo>`，含已安装的 `pwsh` / `powershell` / `cmd`（及 git-bash 若存在），且不含任何 `/bin/*` / `/etc/shells` 来源项。
-- [ ] **AC4** (PRD §Decisions Log D3 · 本 task 推导): Windows 上 `resolve_shell("pwsh.exe")` 经 `where.exe` 在 PATH 命中时返回 `Some(全路径)`；裸名解析不依赖 Unix `which`；`is_executable_file` 对 `.exe`/`.bat`/`.cmd` 返回 true、对无可执行扩展名的普通文件返回 false。
-- [ ] **AC5** (PRD §Open Questions OQ3 · §Out of Scope): Windows 上 `detect_process_cwd(pid)` 安全返回 `None`（不 panic），`working_directory()` 因此回落到 spawn-time 缓存的 `initial_cwd`，返回非空有效路径。
-- [ ] **AC6** (PRD §Anti-metrics · §Compatibility requirements): macOS / Linux 上 `default_shell_path` / `list_available_shells`（`/etc/shells`）/ `resolve_shell`（PATH + mode bits）/ `detect_process_cwd`（/proc、lsof）行为零回归——既有 Unix 单元测试全绿。
+- [x] **AC1** (PRD §Core Capabilities 2 · §User Flow 主流程 2): Windows 上 `default_shell_path()` 返回探测链首个可用 shell 全路径——装了 pwsh 时为 `pwsh.exe` 的全路径，否则 `powershell.exe`，二者都缺时保底 `cmd.exe`；返回值绝不为任何 `/bin/*` Unix 路径。✅ TEST-2.1.1 pass（本机装 pwsh 7.6 → 优先返回 pwsh.exe 全路径）。
+- [x] **AC2** (PRD §User Flow 异常流「未装 PowerShell 7」): Windows 上即使 `pwsh.exe` 与 `powershell.exe` 都不在 PATH，`default_shell_path()` / `resolve_default_shell(None)` 仍返回 `cmd.exe` 且不 panic（绝不拉起不存在的 `/bin/bash`）。✅ TEST-2.1.2 pass（`windows_cmd_fallback` 验 basename=cmd.exe · resolve_default_shell(None) 不返回 Unix 路径）。
+- [x] **AC3** (PRD §Core Capabilities 2 · §Success Metrics 次要指标): Windows 上 `list_available_shells()` 返回非空 `Vec<ShellInfo>`，含已安装的 `pwsh` / `powershell` / `cmd`（及 git-bash 若存在），且不含任何 `/bin/*` / `/etc/shells` 来源项。✅ TEST-2.1.3 pass。
+- [x] **AC4** (PRD §Decisions Log D3 · 本 task 推导): Windows 上 `resolve_shell("pwsh.exe")` 经 `where.exe` 在 PATH 命中时返回 `Some(全路径)`；裸名解析不依赖 Unix `which`；`is_executable_file` 对 `.exe`/`.bat`/`.cmd` 返回 true、对无可执行扩展名的普通文件返回 false。✅ TEST-2.1.4 pass（含大小写 + 含空格路径 round-trip）。
+- [x] **AC5** (PRD §Open Questions OQ3 · §Out of Scope): Windows 上 `detect_process_cwd(pid)` 安全返回 `None`（不 panic），`working_directory()` 因此回落到 spawn-time 缓存的 `initial_cwd`，返回非空有效路径。✅ TEST-2.1.5 pass（spawn cmd.exe → working_directory 回落有效 cwd）。
+- [x] **AC6** (PRD §Anti-metrics · §Compatibility requirements): macOS / Linux 上 `default_shell_path` / `list_available_shells`（`/etc/shells`）/ `resolve_shell`（PATH + mode bits）/ `detect_process_cwd`（/proc、lsof）行为零回归——既有 Unix 单元测试全绿。✅ TEST-2.1.6（`#[cfg(unix)]`）+ 既有 Unix 测试均保留；Unix 分支字面量/逻辑零改动（仅 `default_shell_path` 返回类型 `&'static str → String`，值不变）· 待 CI 矩阵 macOS/Linux runner 实跑确认。
 
 ## 7. SDD / BDD / TDD Traceability
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 探测链首个可用 shell | SCEN-2.1.1 | TEST-2.1.1 `test_2_1_1_default_shell_probe_chain_picks_pwsh` (`#[cfg(windows)]`) | N/A（单元覆盖） | cargo test --workspace | Not Started |
-| AC2 全缺保底 cmd.exe 不 panic | SCEN-2.1.2 | TEST-2.1.2 `test_2_1_2_default_shell_falls_back_to_cmd` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Not Started |
-| AC3 list_available_shells 非空且无 Unix 路径 | SCEN-2.1.3 | TEST-2.1.3 `test_2_1_3_list_available_shells_windows_no_unix_paths` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Not Started |
-| AC4 where.exe 解析 + 扩展名可执行判定 | SCEN-2.1.4 | TEST-2.1.4 `test_2_1_4_resolve_shell_via_where_and_exe_ext` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Not Started |
-| AC5 detect_process_cwd 兜底缓存 cwd | SCEN-2.1.5 | TEST-2.1.5 `test_2_1_5_detect_process_cwd_windows_falls_back_to_initial_cwd` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Not Started |
-| AC6 mac/Linux 零回归 | SCEN-2.1.6 | TEST-2.1.6 `test_2_1_6_unix_shell_detection_unchanged` (`#[cfg(unix)]`，复用既有 /etc/shells + mode bits 断言) | N/A | cargo test --workspace（macOS/Linux runner） | Not Started |
+| AC1 探测链首个可用 shell | SCEN-2.1.1 | TEST-2.1.1 `test_2_1_1_default_shell_probe_chain_picks_pwsh` (`#[cfg(windows)]`) | N/A（单元覆盖） | cargo test --workspace | Done |
+| AC2 全缺保底 cmd.exe 不 panic | SCEN-2.1.2 | TEST-2.1.2 `test_2_1_2_default_shell_falls_back_to_cmd` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Done |
+| AC3 list_available_shells 非空且无 Unix 路径 | SCEN-2.1.3 | TEST-2.1.3 `test_2_1_3_list_available_shells_windows_no_unix_paths` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Done |
+| AC4 where.exe 解析 + 扩展名可执行判定 | SCEN-2.1.4 | TEST-2.1.4 `test_2_1_4_resolve_shell_via_where_and_exe_ext` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Done |
+| AC5 detect_process_cwd 兜底缓存 cwd | SCEN-2.1.5 | TEST-2.1.5 `test_2_1_5_detect_process_cwd_windows_falls_back_to_initial_cwd` (`#[cfg(windows)]`) | N/A | cargo test --workspace | Done |
+| AC6 mac/Linux 零回归 | SCEN-2.1.6 | TEST-2.1.6 `test_2_1_6_unix_shell_detection_unchanged` (`#[cfg(unix)]`，复用既有 /etc/shells + mode bits 断言) | N/A | cargo test --workspace（macOS/Linux runner） | Done（Windows 本机不执行 · cfg(unix) gate · 待 CI 矩阵 macOS/Linux runner 跑） |
 
 ## 8. Risks
 
@@ -226,19 +226,26 @@ fn has_windows_executable_ext(path: &Path) -> bool;             // 判 .exe/.bat
 
 ## 10. Completion Notes
 
-- **完成日期**：<TBD-after-impl>
+- **完成日期**：2026-05-29
 - **改动文件**：
   - `crates/core/src/pty.rs`（修改 · Windows shell 探测分支 + helper + cfg-gate 测试）
-  - <TBD-after-impl>
+    - `default_shell_path()` 签名 `&'static str → String` + Windows 探测链分支
+    - 新增 helper：`windows_cmd_fallback` / `windows_list_shells` / `windows_shell_label` / `resolve_shell_via_where` / `has_windows_executable_ext`（全 `#[cfg(windows)]`）
+    - `list_available_shells` 拆 `unix_list_shells_from_etc_shells`（Unix 原逻辑迁入）+ Windows 分支
+    - `resolve_shell` / `is_executable_file` 加 `#[cfg(windows)]` 分支
+    - `PRIMARY_SHELL_BASENAMES` / `use std::ffi::OsStr` 收敛为 `#[cfg(unix)]`（clippy dead_code/unused-import）
 - **commit 列表**：
-  - <TBD-after-impl> test: 加 SCEN-2.1.1 ~ 2.1.6 的 RED 测试 + §5.3 骨架
-  - <TBD-after-impl> feat: 实现 Windows shell 探测链 + where.exe 枚举通过全部测试
-  - <TBD-after-impl> refactor:（如有）
-- **§9 Verification 结果**：
-  - install: <TBD-after-impl>
-  - typecheck: <TBD-after-impl>
-  - unit-test: <TBD-after-impl> passed / 0 failed
-  - build: <TBD-after-impl>
-  - lint: <TBD-after-impl>
-- **剩余风险 / 未做项**：<TBD-after-impl>
-- **下游 task 影响**：<TBD-after-impl>（task 2.2 依赖本 task 的 `resolve_shell` / `default_shell_path` 能在 Windows 解析出可拉起的 shell）
+  - `c60329e` test(pty): 加 SCEN-2.1.1~2.1.6 共 6 个 Windows shell 探测测试 + §5.3 骨架（RED · TEST-2.1.1~5 全 FAIL）
+  - `366596b` feat(pty): 实现 Windows shell 探测链 + where.exe 枚举通过全部测试（GREEN）
+  - refactor：无（实现已 clean · 无独立 refactor commit）
+- **§9 Verification 结果**（Windows 11 本机 · 2026-05-29）：
+  - install: 未跑（纯 Rust 改动 · 无 pnpm 依赖变化 · 不触前端）
+  - typecheck（`cargo check --workspace`）: 0 error（仅 vibestation-app 2 个 pre-existing warning）
+  - unit-test（`cargo test -p vibestation-core --lib pty::tests`）: 38 passed / 0 failed（含 TEST-2.1.1~2.1.5 Windows · TEST-2.1.6 为 `#[cfg(unix)]` 不在本机执行）
+  - build（`cargo build --workspace`）: 0 error
+  - lint（`cargo clippy -p vibestation-core --lib -- -D warnings`）: pty.rs 0 warning（`fs_watch.rs` / `external_term/detect.rs` 既有 warning 属 task 3.4 / 3.1 · 非本 task）
+- **剩余风险 / 未做项**：
+  - R-2.1-c（OQ3）：Windows `detect_process_cwd` 仍返回 `None` · 工作目录不随子进程 `cd` 更新（缓存 `initial_cwd` 兜底 · MVP 接受 · 精确 Windows API 查询留后续）。
+  - `pty_pool::tests` 13 个 Windows ConPTY 运行期测试 timeout（pre-existing · RED-parent 基线同样失败 · 非本 task 引入）· 归 task-2.2 ConPTY spawn/read/exit 收口。
+  - AC6 mac/Linux 零回归靠 `#[cfg(unix)]` 断言 + 改动局部性保证 · Windows 本机无法执行 Unix 分支 · 待 task-5.2 CI 矩阵 macOS/Linux runner 实跑最终确认。
+- **下游 task 影响**：task 2.2（conpty-spawn-io）现可在 Windows 经 `resolve_shell("cmd.exe")` / `default_shell_path()` 解析出可拉起的 shell（探测链 + where.exe 已就位）· 解锁 ConPTY spawn 集成测试前置。

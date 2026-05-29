@@ -49,6 +49,7 @@ import {
   setPopToExternalRequest,
 } from "./lib/external-term";
 import { initPaneDetachStateListener } from "./lib/pane-detach";
+import { formatShortcut } from "./lib/format-shortcut";
 import {
   ConflictBanner,
   type ConflictOperation,
@@ -993,7 +994,7 @@ const LayoutShell: Component<{
             type="button"
             class="vs-status-icon-btn"
             aria-label="Open settings"
-            title="Settings (⌘,)"
+            title={`Settings (${formatShortcut("⌘,", "Ctrl+,")})`}
             onClick={() => setSettingsVisible(true)}
           >
             <GearIcon />

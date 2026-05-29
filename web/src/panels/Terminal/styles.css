@@ -1195,6 +1195,12 @@
   content: "maximized · ⌘Enter or Esc";
 }
 
+/* Task 4.2 · Windows 平台文案（消费 Task 4.1 在 <html> 设的 data-platform） */
+:root[data-platform="windows"]
+  .vs-pane-maximized-chip[data-visible="true"]::before {
+  content: "maximized · Ctrl+Enter or Esc";
+}
+
 .vs-pane-maximized-chip[data-visible="true"] {
   display: block;
 }

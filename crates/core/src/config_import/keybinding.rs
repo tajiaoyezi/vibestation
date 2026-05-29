@@ -345,4 +345,149 @@ mod tests {
         let hits = detect_conflicts(&imported);
         assert!(hits.is_empty());
     }
+
+    // ─── task-3.3 · 平台感知主修饰键（Cmd on macOS · Ctrl on Windows/Linux）─────
+
+    /// TEST-3.3.1（AC1）：`win`/`super`/`meta` 主修饰键按平台落地 ——
+    /// Other（Windows/Linux）→ Ctrl · Mac → Cmd。
+    #[test]
+    fn test_3_3_1_canonicalize_primary_mod_per_platform() {
+        // Other 平台：主修饰键 → Ctrl
+        assert_eq!(
+            canonicalize_keybinding_for("win+t", KeyPlatform::Other),
+            "Ctrl+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("super+t", KeyPlatform::Other),
+            "Ctrl+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("meta+t", KeyPlatform::Other),
+            "Ctrl+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("command+t", KeyPlatform::Other),
+            "Ctrl+T"
+        );
+        // Mac 平台：主修饰键 → Cmd
+        assert_eq!(
+            canonicalize_keybinding_for("win+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("meta+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("⌘T", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+    }
+
+    /// TEST-3.3.2（AC2）：`vibestation_builtins_for(Other)` 全为 `Ctrl+...` ·
+    /// `Mac` 全为 `Cmd+...`。
+    #[test]
+    fn test_3_3_2_builtins_ctrl_on_other() {
+        let other = vibestation_builtins_for(KeyPlatform::Other);
+        let other_keys: Vec<&str> = other.iter().map(|(k, _)| k.as_str()).collect();
+        assert!(other_keys.contains(&"Ctrl+,"));
+        assert!(other_keys.contains(&"Ctrl+T"));
+        assert!(other_keys.contains(&"Ctrl+W"));
+        assert!(other_keys.contains(&"Ctrl+D"));
+        assert!(other_keys.contains(&"Ctrl+Shift+D"));
+        assert!(
+            other_keys.iter().all(|k| !k.contains("Cmd")),
+            "Other 平台内置不应含 Cmd · 实际={other_keys:?}"
+        );
+        let mac = vibestation_builtins_for(KeyPlatform::Mac);
+        let mac_keys: Vec<&str> = mac.iter().map(|(k, _)| k.as_str()).collect();
+        assert!(mac_keys.contains(&"Cmd+T"));
+        assert!(mac_keys.contains(&"Cmd+Shift+D"));
+    }
+
+    /// TEST-3.3.3（AC3）：Windows/Linux 上导入 `Ctrl+T` 与内置 `Ctrl+T` 冲突命中
+    /// （之前因强制规范化成 Cmd 而漏判）。
+    #[test]
+    fn test_3_3_3_detect_conflicts_ctrl_t_windows() {
+        let hits = detect_conflicts_for(
+            &[("Ctrl+T".to_string(), "new_tab".to_string())],
+            KeyPlatform::Other,
+        );
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].vibe_key, "Ctrl+T");
+        assert_eq!(hits[0].source_key, "Ctrl+T");
+        assert_eq!(hits[0].vibe_action, "tabs.create");
+        assert_eq!(hits[0].source_action, "new_tab");
+    }
+
+    /// TEST-3.3.3b（AC3）：Windows 上导入 `win+t`（终端原始）也命中内置 `Ctrl+T`。
+    #[test]
+    fn test_3_3_3b_detect_conflicts_win_t_windows() {
+        let hits = detect_conflicts_for(
+            &[("win+t".to_string(), "new_tab".to_string())],
+            KeyPlatform::Other,
+        );
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].vibe_key, "Ctrl+T");
+        assert_eq!(hits[0].vibe_action, "tabs.create");
+    }
+
+    /// TEST-3.3.4（AC4）：macOS 语义零回归 ——
+    /// `Meta+t`/`⌘T` → `Cmd+T` · `cmd+t` 命中内置 `Cmd+T`。
+    #[test]
+    fn test_3_3_4_macos_cmd_semantics_unchanged() {
+        assert_eq!(
+            canonicalize_keybinding_for("Meta+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("⌘T", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+        let hits = detect_conflicts_for(
+            &[("cmd+t".to_string(), "new_tab".to_string())],
+            KeyPlatform::Mac,
+        );
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].vibe_key, "Cmd+T");
+        assert_eq!(hits[0].vibe_action, "tabs.create");
+    }
+
+    /// TEST-3.3.5（AC5）：`tokenize`/`canonicalize_key` 算法平台无关 ——
+    /// key 部分大写 / F1-F24 / named key titlecase 不受平台影响。
+    #[test]
+    fn test_3_3_5_key_titlecase_platform_invariant() {
+        for plat in [KeyPlatform::Mac, KeyPlatform::Other] {
+            // key 部分始终大写 T
+            assert!(canonicalize_keybinding_for("Cmd+Shift+t", plat).ends_with("Shift+T"));
+            // F1-F24 全大写
+            assert!(canonicalize_keybinding_for("cmd+F11", plat).ends_with("F11"));
+            // named key titlecase
+            assert!(canonicalize_keybinding_for("alt+ESCAPE", plat).ends_with("Escape"));
+            assert!(canonicalize_keybinding_for("shift+tab", plat).ends_with("Tab"));
+        }
+    }
+
+    /// TEST-3.3.R3（spec §8 R3）：Windows 上 `Cmd+Ctrl+T` 合并为单 `Ctrl+T`
+    /// （Windows 无独立 Cmd 键 · 容错合并 · 显式断言非 bug）。
+    #[test]
+    fn test_3_3_r3_primary_mod_ctrl_merge_on_other() {
+        assert_eq!(
+            canonicalize_keybinding_for("Cmd+Ctrl+T", KeyPlatform::Other),
+            "Ctrl+T"
+        );
+    }
+
+    /// 排序规则不变（spec §H.3 锁定）：Mac 上 Cmd > Ctrl > Alt > Shift。
+    #[test]
+    fn test_3_3_sort_order_unchanged_mac() {
+        assert_eq!(
+            canonicalize_keybinding_for("shift+cmd+t", KeyPlatform::Mac),
+            "Cmd+Shift+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("alt+ctrl+shift+a", KeyPlatform::Mac),
+            "Ctrl+Alt+Shift+A"
+        );
+    }
 }

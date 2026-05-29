@@ -169,7 +169,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 | 2.1 | pty-shell | docs/specs/tasks/task-2.1-windows-shell-detection.md | Done | 依赖 1.1 | `-` |
 | 2.2 | pty-conpty | docs/specs/tasks/task-2.2-conpty-spawn-io.md | Done | 依赖 2.1 | `-` |
 | 3.1 | external_term | docs/specs/tasks/task-3.1-external-term-windows.md | Done | 依赖 1.1 | `-` |
-| 3.2 | config_import | docs/specs/tasks/task-3.2-config-import-paths.md | Draft | 依赖 1.2 | `-` |
+| 3.2 | config_import | docs/specs/tasks/task-3.2-config-import-paths.md | Done | 依赖 1.2 | `-` |
 | 3.3 | keybinding | docs/specs/tasks/task-3.3-keybinding-platform.md | Draft | 依赖 1.1 | `-` |
 | 3.4 | fs_watch | docs/specs/tasks/task-3.4-fs-watch-windows.md | Done | 依赖 1.1 | `-` |
 | 4.1 | web-platform | docs/specs/tasks/task-4.1-platform-windows-class.md | Draft | 纯前端 · 无 Rust 依赖 | `-` |

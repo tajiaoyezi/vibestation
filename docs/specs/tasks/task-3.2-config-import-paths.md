@@ -1,6 +1,6 @@
 # Task `3.2`: `config-import-paths`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`（详见 `docs/s2v/standard.md` §10.5.1 状态机）。
 
@@ -155,12 +155,12 @@ fn home_dir_or_root() -> PathBuf {
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 %APPDATA% 命中 | SCEN-3.2.1 | TEST-3.2.1 `test_3_2_1_windows_appdata_scan_detects` | N/A（tempdir + 注入 home 单测） | cargo test -p vibestation_core config_import:: | Not Started |
-| AC2 WSL .config fallback | SCEN-3.2.2 | TEST-3.2.2 `test_3_2_2_windows_dotconfig_fallback` | N/A | cargo test -p vibestation_core config_import:: | Not Started |
-| AC3 iTerm2 非 macOS 短路 | SCEN-3.2.3 | TEST-3.2.3 `test_3_2_3_iterm2_non_macos_not_found` | N/A | cargo test -p vibestation_core config_import::iterm2 | Not Started |
-| AC4 prettify Windows | SCEN-3.2.4 | TEST-3.2.4 `test_3_2_4_prettify_userprofile_tilde` | N/A | cargo test -p vibestation_core config_import::ipc | Not Started |
-| AC5 home_dir fallback | SCEN-3.2.5 | TEST-3.2.5 `test_3_2_5_home_dir_or_root_windows` | N/A | cargo test -p vibestation_app | Not Started |
-| AC6 mac/Linux 零回归 | SCEN-3.2.6 | TEST-3.2.6 `test_3_2_6_unix_config_scan_unchanged`（现有用例集） | N/A | cargo test --workspace（mac/Linux CI） | Not Started |
+| AC1 %APPDATA% 命中 | SCEN-3.2.1 | TEST-3.2.1 `test_3_2_1_windows_appdata_scan_detects`（ghostty）+ `test_3_2_1_windows_appdata_toml_detects` / `test_3_2_1b_windows_appdata_yml_fallback`（alacritty）+ `candidates_order` 路径构造单测 | N/A（tempdir + 注入 appdata 单测） | cargo test -p vibestation-core --lib config_import | Done |
+| AC2 WSL .config fallback | SCEN-3.2.2 | TEST-3.2.2 `test_3_2_2_windows_dotconfig_fallback`（ghostty + alacritty）+ `test_3_2_2b_windows_appdata_with_space_in_path`（R1 空格鲁棒） | N/A | cargo test -p vibestation-core --lib config_import | Done |
+| AC3 iTerm2 非 macOS 短路 | SCEN-3.2.3 | TEST-3.2.3 `test_3_2_3_iterm2_non_macos_not_found` | N/A | cargo test -p vibestation-core --lib config_import::iterm2 | Done |
+| AC4 prettify Windows | SCEN-3.2.4 | TEST-3.2.4 `test_3_2_4_prettify_userprofile_tilde` + `_4b_non_home_unchanged` / `_4c_unix_home_unchanged` / `_4d_no_home_returns_raw` | N/A | cargo test -p vibestation-core --lib config_import::ipc | Done |
+| AC5 home_dir fallback | SCEN-3.2.5 | TEST-3.2.5（已由 task-1.2 在 `crates/app/src/lib.rs::home_dir`/`home_dir_or_root` 实现 + 测试 · 本 task 仅消费 · 无新增） | N/A | cargo test -p vibestation-app | Done（task-1.2 覆盖） |
+| AC6 mac/Linux 零回归 | SCEN-3.2.6 | TEST-3.2.6 现有 Unix/macOS 用例集（ghostty/alacritty/iterm2/ipc · 非 Windows 分支不变 · macOS Library fallback / Unix `/bin/zsh` 用例 cfg-gate 保留） | N/A | cargo test --workspace（mac/Linux CI） | Done（Windows 本机 82 passed · mac/Linux 由 CI 跑） |
 
 ## 8. Risks
 
@@ -180,4 +180,13 @@ fn home_dir_or_root() -> PathBuf {
 
 ## 10. Completion Notes
 
-<TBD-after-impl>
+**完成于 2026-05-29 · feat/windows-support 分支 · solo 三段 commit（RED `89c5af2` → GREEN `b1b5c0b` → docs `本提交`）**
+
+1. **改动文件**：`crates/core/src/config_import/{ghostty,alacritty,iterm2,ipc}.rs`（task §3 In Scope 全部）。`crates/app/src/lib.rs::home_dir_or_root`（AC5）**未改** —— task-1.2 已把它收敛到跨平台 `home_dir()`（`dirs::home_dir()` + Windows `USERPROFILE`/盘符根兜底 · 不再回落 `/`），本 task 复用已存在产物，AC5 在 1.2 即满足。
+2. **ghostty.rs / alacritty.rs**：`scan` 读环境变量（Windows `APPDATA` · 非 Windows None）后委托可注入的 `scan_with_appdata(home, appdata)`；路径构造抽到 `candidates_for(home, appdata)`（ghostty 返回 `Vec<PathBuf>`，alacritty 返回 `Vec<(PathBuf, is_yaml)>`）。Windows 候选优先 `%APPDATA%/<app>/config(.toml/.yml)` 再 `~/.config/...`（WSL fallback）；非 Windows 候选与改前**字节级一致**（ghostty `.config` → macOS `Library/Application Support/...`；alacritty `.config` toml → yml）。`appdata` 注入设计遵 spec §8 R2：单测不依赖真实 `%APPDATA%`，CI 无该 env 也稳定。
+3. **iterm2.rs**：`scan` 首段 `#[cfg(not(target_os="macos"))]` 短路返回 `path_exists=false` + `path=None` + 空 fields/errors（即便 home 下恰有同名 plist 也不解析）；macOS 解析逻辑搬到 `scan_macos`，`parse_file`/`rgb_to_hex` + `ConfigImportError`/`ImportedField` import 一并 `#[cfg(target_os="macos")]` gate（防非 macOS dead_code/unused_imports）。AC3 满足，且 macOS plist 路径零改动（AC6）。
+4. **ipc.rs `prettify_home_path`**：平台感知家目录 env —— Windows `USERPROFILE`、非 Windows `HOME`（spec §8 R2：`HOME` 在 Windows 常缺失）；抽出可注入 `prettify_home_path_with(p, home: Option<String>)` 做前缀折叠，命中返回 `~<stripped>` 否则原样（含空 home / None / 非 home 下路径均原样）。
+5. **测试**：新增 Windows-gated AC1/AC2（ghostty `test_3_2_1_windows_appdata_scan_detects` / `_2_windows_dotconfig_fallback` / `_2b_with_space_in_path` / `_1_candidates_order`；alacritty `_1_appdata_toml_detects` / `_1b_appdata_yml_fallback` / `_2_dotconfig_fallback` / `_1_candidates_order`）+ 非 macOS AC3（`test_3_2_3_iterm2_non_macos_not_found`）+ 平台无关 AC4（`test_3_2_4_*` 四例 · 含 Unix home 折叠保持验证 AC6）。`cargo test -p vibestation-core --lib config_import` = **82 passed / 0 failed**（Windows 11 本机真实运行）。
+6. **零回归处理（AC6）**：两个**老用例**因依赖 Unix/macOS 专属语义在 Windows 必失败，cfg-gate 保留而非删除 —— (a) ghostty `scan_fallback_path_when_primary_absent` 依赖 macOS `Library/Application Support/...` fallback（不在 Windows 候选）→ `#[cfg(not(windows))]`；(b) ipc `apply_writes_multiple_fields_atomically` fixture 硬编码 Unix shell `/bin/zsh`，`apply` 内 shell 可执行性校验属 shell-existence 子系统（task-2.1 territory · 非本 task config-path 范围）在 Windows 必失败 → `#[cfg(not(windows))]`。两者在 mac/Linux CI 仍正常跑。`cargo check --workspace` / `cargo build --workspace` = **0 error**；`cargo clippy --workspace -- -D warnings` = **0 error**（未引入任何新 warning）。`web/src/bindings/*.ts` 未被重生成（无 ts-rs 类型改动）。
+
+**AC 状态**：AC1 ✅ · AC2 ✅（含含空格路径 R1 鲁棒）· AC3 ✅ · AC4 ✅ · AC5 ✅（task-1.2 已实现 · 本 task 复用）· AC6 ✅（非 Windows 候选/macOS plist 字节级不变 · Unix 专属老用例 cfg-gate 保留）。

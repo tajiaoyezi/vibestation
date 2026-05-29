@@ -48,68 +48,58 @@ impl GitStatusWatcher {
     where
         F: FnMut() + Send + 'static,
     {
-        #[cfg(target_os = "windows")]
-        {
-            let _ = repo_path;
-            let _ = callback;
-            return Err(GitStatusWatchError::UnsupportedPlatform(
-                "Windows ReadDirectoryChangesW runtime validation is deferred past v0.1"
-                    .to_string(),
-            ));
-        }
+        // ADR-006: notify 跨平台，Windows backend 即 ReadDirectoryChangesW（自动选择）。
+        // 不再短路 Windows —— 三平台共用同一 RecommendedWatcher 路径，
+        // 200ms debounce + .git/index.lock 排除 + dunce::canonicalize 契约一致。
+        let repo_path = dunce::canonicalize(&repo_path).unwrap_or(repo_path);
+        let stop = Arc::new(AtomicBool::new(false));
+        let thread_stop = Arc::clone(&stop);
+        let (startup_tx, startup_rx) = mpsc::channel();
 
-        #[cfg(not(target_os = "windows"))]
-        {
-            let repo_path = dunce::canonicalize(&repo_path).unwrap_or(repo_path);
-            let stop = Arc::new(AtomicBool::new(false));
-            let thread_stop = Arc::clone(&stop);
-            let (startup_tx, startup_rx) = mpsc::channel();
+        let join = thread::Builder::new()
+            .name("vibestation-git-status-watch".to_string())
+            .spawn(move || {
+                let (event_tx, event_rx) = mpsc::channel();
+                let watcher = RecommendedWatcher::new(
+                    move |event| {
+                        let _ = event_tx.send(event);
+                    },
+                    Config::default(),
+                )
+                .and_then(|mut watcher| {
+                    watcher.watch(&repo_path, RecursiveMode::Recursive)?;
+                    Ok(watcher)
+                });
 
-            let join = thread::Builder::new()
-                .name("vibestation-git-status-watch".to_string())
-                .spawn(move || {
-                    let (event_tx, event_rx) = mpsc::channel();
-                    let watcher = RecommendedWatcher::new(
-                        move |event| {
-                            let _ = event_tx.send(event);
-                        },
-                        Config::default(),
-                    )
-                    .and_then(|mut watcher| {
-                        watcher.watch(&repo_path, RecursiveMode::Recursive)?;
-                        Ok(watcher)
-                    });
-
-                    match watcher {
-                        Ok(watcher) => {
-                            let _ = startup_tx.send(Ok(()));
-                            run_watch_loop(repo_path, watcher, event_rx, thread_stop, callback);
-                        }
-                        Err(error) => {
-                            let _ = startup_tx.send(Err(error.to_string()));
-                        }
+                match watcher {
+                    Ok(watcher) => {
+                        let _ = startup_tx.send(Ok(()));
+                        run_watch_loop(repo_path, watcher, event_rx, thread_stop, callback);
                     }
-                })
-                .map_err(|error| GitStatusWatchError::ThreadStart(error.to_string()))?;
+                    Err(error) => {
+                        let _ = startup_tx.send(Err(error.to_string()));
+                    }
+                }
+            })
+            .map_err(|error| GitStatusWatchError::ThreadStart(error.to_string()))?;
 
-            match startup_rx.recv_timeout(WATCH_START_TIMEOUT) {
-                Ok(Ok(())) => Ok(Self {
-                    stop,
-                    join: Some(join),
-                }),
-                Ok(Err(error)) => {
-                    let _ = join.join();
-                    Err(GitStatusWatchError::Notify(error))
-                }
-                Err(RecvTimeoutError::Timeout) => {
-                    stop.store(true, Ordering::Relaxed);
-                    let _ = join.join();
-                    Err(GitStatusWatchError::StartupTimeout)
-                }
-                Err(RecvTimeoutError::Disconnected) => {
-                    let _ = join.join();
-                    Err(GitStatusWatchError::StartupChannelClosed)
-                }
+        match startup_rx.recv_timeout(WATCH_START_TIMEOUT) {
+            Ok(Ok(())) => Ok(Self {
+                stop,
+                join: Some(join),
+            }),
+            Ok(Err(error)) => {
+                let _ = join.join();
+                Err(GitStatusWatchError::Notify(error))
+            }
+            Err(RecvTimeoutError::Timeout) => {
+                stop.store(true, Ordering::Relaxed);
+                let _ = join.join();
+                Err(GitStatusWatchError::StartupTimeout)
+            }
+            Err(RecvTimeoutError::Disconnected) => {
+                let _ = join.join();
+                Err(GitStatusWatchError::StartupChannelClosed)
             }
         }
     }

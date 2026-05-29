@@ -3,14 +3,17 @@
 //! Tauri 文档提到 `fix-path-env-rs`，但当前 registry 里无法解析到对应 crate。
 //! 这里保留同名 `fix_path_env::fix()` API，行为只做 PATH 修复，不扩散到 async runtime。
 
-use std::env;
 use std::io;
+
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use std::env;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
 
 pub fn fix() -> io::Result<()> {
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
     {
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(any(target_os = "macos", target_os = "linux"))]

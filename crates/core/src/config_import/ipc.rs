@@ -136,19 +136,32 @@ impl From<&RawScanResult> for ImportScanResult {
     }
 }
 
-/// Issue #206 Advisory #3 修复：后端用 $HOME env var 准确替换家目录为 `~`
+/// Issue #206 Advisory #3 修复：后端用家目录环境变量准确替换家目录为 `~`
 /// · 前端不再需要 hard-coded `/Users/[^/]+` / `/home/[^/]+` 正则
 /// · 不命中（如 `/opt/homebrew/` / `/var/folders/`）时原样返回
+///
+/// task-3.2（AC4）：平台感知家目录环境变量 ——
+/// - Windows：`USERPROFILE`（`HOME` 在 Windows 常缺失）
+/// - 非 Windows：`HOME`
+///
+/// 读环境变量后委托 [`prettify_home_path_with`]（可注入 home · 测试不依赖真实 env）。
 fn prettify_home_path(p: &Path) -> String {
+    #[cfg(windows)]
+    let home = std::env::var("USERPROFILE").ok();
+    #[cfg(not(windows))]
+    let home = std::env::var("HOME").ok();
+    prettify_home_path_with(p, home)
+}
+
+/// 可注入实现：`home` 显式传入 · 命中前缀折叠为 `~` · 否则原样返回。
+fn prettify_home_path_with(p: &Path, home: Option<String>) -> String {
     let s = p.to_string_lossy();
-    if let Ok(home) = std::env::var("HOME") {
-        if !home.is_empty() {
-            if let Some(stripped) = s.strip_prefix(&home) {
-                return format!("~{stripped}");
-            }
+    if let Some(home) = home.filter(|h| !h.is_empty()) {
+        if let Some(stripped) = s.strip_prefix(&home) {
+            return format!("~{stripped}");
         }
     }
-    s.to_string()
+    s.into_owned()
 }
 
 // ─── 类型 3 · ImportPreview ────────────────────────────────────────────
@@ -849,6 +862,11 @@ mod tests {
 
     /// Finding 3: apply 是 transactional · 多字段同时写 · 全 commit 一致
     /// · applied 反映完整成功状态 · errors empty
+    ///
+    /// task-3.2 note：fixture 硬编码 Unix shell `/bin/zsh` · apply 内 shell 可执行性
+    /// 校验（shell-existence 子系统 · task-2.1 territory · 非 config-path 范围）在
+    /// Windows 必失败（无 `/bin/zsh`）· 故 cfg-gate 到非 Windows（Unix shell 语义专属）。
+    #[cfg(not(windows))]
     #[test]
     fn apply_writes_multiple_fields_atomically() {
         let (_dir, pool) = setup_pool();

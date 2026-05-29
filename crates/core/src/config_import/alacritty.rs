@@ -53,16 +53,49 @@ struct AlacrittyFontFamily {
     family: Option<String>,
 }
 
+/// 构造候选配置路径（按优先级）· 每项 `(path, is_yaml)` · 平台分支 + 可注入 `appdata`。
+///
+/// - 非 Windows：`~/.config/alacritty/alacritty.toml` → `.yml`
+/// - Windows：`%APPDATA%/alacritty/alacritty.toml` → `.yml` → WSL `~/.config/...` toml → yml
+///
+/// `appdata` 仅在 Windows 分支使用（None 时跳过 `%APPDATA%` 候选）。
+#[cfg_attr(not(windows), allow(unused_variables))]
+fn candidates_for(home: &Path, appdata: Option<PathBuf>) -> Vec<(PathBuf, bool)> {
+    let dotconfig = vec![
+        (home.join(".config/alacritty/alacritty.toml"), false),
+        (home.join(".config/alacritty/alacritty.yml"), true),
+    ];
+    #[cfg(windows)]
+    {
+        let mut v = Vec::with_capacity(4);
+        if let Some(appdata) = appdata {
+            v.push((appdata.join("alacritty/alacritty.toml"), false));
+            v.push((appdata.join("alacritty/alacritty.yml"), true));
+        }
+        v.extend(dotconfig); // WSL fallback
+        v
+    }
+    #[cfg(not(windows))]
+    {
+        dotconfig
+    }
+}
+
+/// 扫描 Alacritty 配置（读环境变量后委托 [`scan_with_appdata`]）
 pub fn scan(home: &Path) -> RawScanResult {
-    let toml_path = home.join(".config/alacritty/alacritty.toml");
-    let yaml_path = home.join(".config/alacritty/alacritty.yml");
-    let (path, is_yaml) = if toml_path.exists() {
-        (Some(toml_path), false)
-    } else if yaml_path.exists() {
-        (Some(yaml_path), true)
-    } else {
-        (None, false)
-    };
+    #[cfg(windows)]
+    let appdata = std::env::var("APPDATA").ok().map(PathBuf::from);
+    #[cfg(not(windows))]
+    let appdata = None;
+    scan_with_appdata(home, appdata)
+}
+
+/// scan 的可注入实现：`appdata` 显式传入（Windows）· 测试不依赖真实 `%APPDATA%`。
+fn scan_with_appdata(home: &Path, appdata: Option<PathBuf>) -> RawScanResult {
+    let (path, is_yaml) = candidates_for(home, appdata)
+        .into_iter()
+        .find(|(p, _)| p.exists())
+        .map_or((None, false), |(p, y)| (Some(p), y));
     match &path {
         Some(p) => {
             let result = if is_yaml {

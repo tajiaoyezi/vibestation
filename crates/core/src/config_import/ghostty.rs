@@ -26,17 +26,46 @@ struct GhosttyConfig {
     shell: Option<String>,
 }
 
-/// 扫描 Ghostty 配置 · 返回结构化结果
+/// 构造候选配置路径（按优先级）· 平台分支 + 可注入 `appdata`（测试用）。
+///
+/// - 非 Windows：`~/.config/ghostty/config` → `~/Library/Application Support/...`
+/// - Windows：`%APPDATA%/ghostty/config`（原生）→ `~/.config/ghostty/config`（WSL fallback）
+///
+/// `appdata` 仅在 Windows 分支使用（None 时跳过 `%APPDATA%` 候选）。
+#[cfg_attr(not(windows), allow(unused_variables))]
+fn candidates_for(home: &Path, appdata: Option<PathBuf>) -> Vec<PathBuf> {
+    #[cfg(windows)]
+    {
+        let mut v = Vec::with_capacity(2);
+        if let Some(appdata) = appdata {
+            v.push(appdata.join("ghostty/config"));
+        }
+        v.push(home.join(".config/ghostty/config")); // WSL fallback
+        v
+    }
+    #[cfg(not(windows))]
+    {
+        vec![
+            home.join(".config/ghostty/config"),
+            home.join("Library/Application Support/com.mitchellh.ghostty/config"),
+        ]
+    }
+}
+
+/// 扫描 Ghostty 配置 · 返回结构化结果（读环境变量后委托 [`scan_with_appdata`]）
 pub fn scan(home: &Path) -> RawScanResult {
-    let primary = home.join(".config/ghostty/config");
-    let fallback = home.join("Library/Application Support/com.mitchellh.ghostty/config");
-    let path = if primary.exists() {
-        Some(primary)
-    } else if fallback.exists() {
-        Some(fallback)
-    } else {
-        None
-    };
+    #[cfg(windows)]
+    let appdata = std::env::var("APPDATA").ok().map(PathBuf::from);
+    #[cfg(not(windows))]
+    let appdata = None;
+    scan_with_appdata(home, appdata)
+}
+
+/// scan 的可注入实现：`appdata` 显式传入（Windows）· 测试不依赖真实 `%APPDATA%`。
+fn scan_with_appdata(home: &Path, appdata: Option<PathBuf>) -> RawScanResult {
+    let path = candidates_for(home, appdata)
+        .into_iter()
+        .find(|p| p.exists());
     match &path {
         Some(p) => parse_file(p).map_or_else(
             |e| RawScanResult {
@@ -182,6 +211,10 @@ mod tests {
         );
     }
 
+    /// macOS `Library/Application Support/...` fallback 仅在非 Windows 候选列表中 ·
+    /// task-3.2 后 Windows 候选为 `%APPDATA%` + `~/.config`（WSL）· 故此 macOS-fallback
+    /// 用例 cfg-gate 到非 Windows（AC6 零回归：mac/Linux 行为不变）。
+    #[cfg(not(windows))]
     #[test]
     fn scan_fallback_path_when_primary_absent() {
         let tmp = tempfile::tempdir().unwrap();

@@ -4,10 +4,34 @@
 //! 格式：binary plist（默认 · 魔数 bplist00）· fallback text plist
 //! 字段：Default Bookmark Guid → 找到 default profile → 提取 Normal Font / Non Ascii Font / ANSI Color N / Shell / Command
 
-use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
+use super::{ImportSource, RawScanResult};
+#[cfg(target_os = "macos")]
+use super::{ConfigImportError, ImportedField};
 use std::path::Path;
 
 pub fn scan(home: &Path) -> RawScanResult {
+    // task-3.2 AC3：iTerm2 是 macOS 独占产品 · 非 macOS（Windows/Linux）直接短路 ·
+    // 不构造任何 `Library/Preferences/...` 路径（即便恰好存在同名文件也不解析）。
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = home;
+        RawScanResult {
+            source: ImportSource::ITerm2,
+            path: None,
+            path_exists: false,
+            detected_fields: Vec::new(),
+            errors: Vec::new(),
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        scan_macos(home)
+    }
+}
+
+/// macOS 专属扫描实现（plist 解析）· 仅 macOS 编译 · 见 [`scan`] 短路。
+#[cfg(target_os = "macos")]
+fn scan_macos(home: &Path) -> RawScanResult {
     let path = home.join("Library/Preferences/com.googlecode.iterm2.plist");
     if !path.exists() {
         return RawScanResult {
@@ -40,6 +64,9 @@ pub fn scan(home: &Path) -> RawScanResult {
 
 /// 返回 (fields, warnings) · warnings 是非致命字段级 reject 原因
 /// （例 ANSI N Color 缺 R/G/B 分量 · 不应 silent default 到 #000000）
+///
+/// macOS 专属：仅在 macOS 编译（非 macOS 平台 [`scan`] 短路 · 此函数不可达）。
+#[cfg(target_os = "macos")]
 fn parse_file(path: &Path) -> Result<(Vec<ImportedField>, Vec<String>), ConfigImportError> {
     use plist::Value;
     let root: Value =
@@ -131,6 +158,8 @@ fn parse_file(path: &Path) -> Result<(Vec<ImportedField>, Vec<String>), ConfigIm
     Ok((fields, warnings))
 }
 
+/// macOS 专属：仅 [`parse_file`] 调用 · 同 cfg-gate 防非 macOS dead_code 警告。
+#[cfg(target_os = "macos")]
 fn rgb_to_hex(r: f64, g: f64, b: f64) -> String {
     format!(
         "#{:02x}{:02x}{:02x}",
@@ -186,6 +215,7 @@ mod tests {
         assert_eq!(r.source, ImportSource::ITerm2);
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_empty_profiles_array() {
         let tmp = tempfile::tempdir().unwrap();
@@ -209,6 +239,7 @@ mod tests {
         assert!(r.errors.is_empty());
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_single_profile_extracts_font_shell() {
         let tmp = tempfile::tempdir().unwrap();
@@ -243,6 +274,7 @@ mod tests {
     /// Issue #206 Important 2 修复：现实中 iTerm2 plist 几乎都是 binary 格式（bplist00）·
     /// 之前所有测试都用 XML text plist · binary 解析路径未被直接覆盖。本测试构造一份
     /// binary plist fixture · 验证 plist crate 自动 dispatch + extract fields 一致。
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_single_profile_binary_plist_extracts_font_shell() {
         use plist::{Dictionary, Value};
@@ -294,6 +326,7 @@ mod tests {
 
     /// Issue #206 Advisory #4 修复：ANSI N Color 缺 R/G/B 分量必须 skip 整个 color
     /// 并推 warning · 不能 silent default 到 0.0（会让缺失分量的颜色变 #000000）
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_ansi_color_missing_components_skipped_with_warning() {
         let tmp = tempfile::tempdir().unwrap();
@@ -350,6 +383,7 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_broken_plist_graceful() {
         let tmp = tempfile::tempdir().unwrap();
@@ -364,6 +398,7 @@ mod tests {
         assert_eq!(r.errors.len(), 1);
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_ansi_colors_16() {
         let tmp = tempfile::tempdir().unwrap();
@@ -427,6 +462,7 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_ansi_colors_partial() {
         let tmp = tempfile::tempdir().unwrap();
@@ -470,6 +506,7 @@ mod tests {
         assert_eq!(ansi_count, 2);
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_rgb_to_hex_conversion() {
         assert_eq!(rgb_to_hex(1.0, 0.0, 0.0), "#ff0000");
@@ -485,6 +522,7 @@ mod tests {
 
     /// 多 profile + Default Bookmark Guid 命中**非第一个** profile · 必须按 GUID 取
     /// （现实用户配置都有多 profile · 不能 fallback 第一个）
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_selects_profile_by_default_bookmark_guid() {
         let tmp = tempfile::tempdir().unwrap();
@@ -541,6 +579,7 @@ mod tests {
     }
 
     /// 无 Default Bookmark Guid · fallback 第一个 profile（兼容性 · spec §B）
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_falls_back_to_first_profile_when_no_guid() {
         let tmp = tempfile::tempdir().unwrap();
@@ -583,6 +622,7 @@ mod tests {
     }
 
     /// Default Bookmark Guid 指向不存在的 profile · 应该 graceful fallback（不 panic）
+    #[cfg(target_os = "macos")]
     #[test]
     fn scan_default_guid_missing_falls_back() {
         let tmp = tempfile::tempdir().unwrap();

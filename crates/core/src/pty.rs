@@ -1298,12 +1298,34 @@ fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
     }
 }
 
-fn default_shell_path() -> &'static str {
-    if cfg!(target_os = "macos") {
-        "/bin/zsh"
-    } else {
-        "/bin/bash"
+/// 默认 shell 探测（task-2.1 · ADR-003）·
+/// Windows 走探测链 `pwsh.exe → powershell.exe → cmd.exe`（取首个 PATH 可用 · `cmd.exe` 永远保底）·
+/// macOS = `/bin/zsh` · 其他 Unix = `/bin/bash`。
+///
+/// 返回 `String` 而非 `&'static str`：Windows 探测结果是 owned 全路径（非静态字面量）·
+/// 统一签名后 Unix 分支把字面量 `.to_string()`（调用方本就多处 `.to_string()` / 比较）。
+fn default_shell_path() -> String {
+    #[cfg(windows)]
+    {
+        // RED skeleton（task-2.1）· Windows 探测链未实现 · 暂返回 Unix 占位 · GREEN 填实。
+        "/bin/bash".to_string()
     }
+    #[cfg(target_os = "macos")]
+    {
+        "/bin/zsh".to_string()
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        "/bin/bash".to_string()
+    }
+}
+
+/// Windows 保底 `cmd.exe` 全路径：优先 `%ComSpec%`，否则 `C:\Windows\System32\cmd.exe`，
+/// 二者皆缺时退回裸名 `cmd.exe`（系统必装 · PATH 必含 System32）。永不返回 Unix 路径。
+#[cfg(windows)]
+fn windows_cmd_fallback() -> String {
+    // RED skeleton（task-2.1）· 保底未实现 · GREEN 填实。
+    "/bin/bash".to_string()
 }
 
 /// 扫 /etc/shells 找到第一个实际可用的交互 shell · 终极 fallback。
@@ -1314,7 +1336,7 @@ fn find_available_shell() -> String {
     if let Some(shell) = available.first() {
         return shell.path.clone();
     }
-    default_shell_path().to_string()
+    default_shell_path()
 }
 
 pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
@@ -1332,7 +1354,7 @@ pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
         }
     } else {
         // 无已存设置 · 先用 OS 默认 · 不存在则扫系统
-        let def = default_shell_path().to_string();
+        let def = default_shell_path();
         if resolve_shell(&def).is_some() {
             def
         } else {
@@ -1349,10 +1371,10 @@ pub(crate) fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>
         .map(str::to_string);
 
     if requested.is_empty() {
-        return env_shell.unwrap_or_else(|| default_shell_path().to_string());
+        return env_shell.unwrap_or_else(default_shell_path);
     }
 
-    if requested == default_shell_path() {
+    if requested == default_shell_path().as_str() {
         return env_shell.unwrap_or_else(|| requested.to_string());
     }
 
@@ -1381,13 +1403,27 @@ pub struct ShellInfo {
 /// 仍保留在 list 里（例外保护 · 见 list_available_shells 末尾）。
 const PRIMARY_SHELL_BASENAMES: &[&str] = &["zsh", "bash", "fish"];
 
-/// 扫 `/etc/shells` · 过滤 commented / 不可执行 / 非主流交互 shell · 返回主流 shell 列表。
-/// 读不到 `/etc/shells`（macOS / Linux 都应有 · Windows 没）返回 fallback `[zsh|bash]`。
+/// 枚举系统可用的交互 shell（task-2.1 · ADR-003）·
+/// Windows 走 PATH / `where.exe` 探测 `pwsh.exe`/`powershell.exe`/`cmd.exe`（及 git-bash 若存在）·
+/// 不读 `/etc/shells`；Unix 保留扫 `/etc/shells` + 主流 basename 过滤逻辑。
 ///
 /// 调用方应该用此函数返回值作为 Settings UI dropdown · 让用户只能选系统真有的主流 shell ·
 /// 而非自由输入 / hardcoded 列表（fix24/25 · 防 "PTY 启动失败: shell not executable"
 /// + 减干扰非主流选项）。
 pub fn list_available_shells() -> Vec<ShellInfo> {
+    #[cfg(windows)]
+    {
+        windows_list_shells()
+    }
+    #[cfg(unix)]
+    {
+        unix_list_shells_from_etc_shells()
+    }
+}
+
+/// Unix `/etc/shells` 扫描（task-2.1 前的原始逻辑原样迁入 · 行为零变化）。
+#[cfg(unix)]
+fn unix_list_shells_from_etc_shells() -> Vec<ShellInfo> {
     let mut shells: Vec<ShellInfo> = std::fs::read_to_string("/etc/shells")
         .ok()
         .map(|content| {
@@ -1416,14 +1452,14 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
     if shells.is_empty() {
         // /etc/shells 读不到 / 全 invalid · fallback 到 default_shell_path（一定存在的）
         let fallback = default_shell_path();
-        if is_executable_file(Path::new(fallback)) {
-            let label = Path::new(fallback)
+        if is_executable_file(Path::new(&fallback)) {
+            let label = Path::new(&fallback)
                 .file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or(fallback)
+                .unwrap_or(&fallback)
                 .to_string();
             shells.push(ShellInfo {
-                path: fallback.to_string(),
+                path: fallback,
                 label,
             });
         }
@@ -1434,21 +1470,64 @@ pub fn list_available_shells() -> Vec<ShellInfo> {
     shells
 }
 
+/// Windows shell 枚举（task-2.1 · ADR-003）· 对探测链候选逐个 `resolve_shell` ·
+/// 命中者 push `ShellInfo{ path: 全路径, label: basename 去 .exe }`；按 path 去重；
+/// 列表为空时保底 push `cmd.exe`（`windows_cmd_fallback`）· 永不读 `/etc/shells`。
+#[cfg(windows)]
+fn windows_list_shells() -> Vec<ShellInfo> {
+    // RED skeleton（task-2.1）· Windows 枚举未实现 · 暂返回空 · GREEN 填实。
+    let _ = windows_shell_label as fn(&Path) -> String;
+    Vec::new()
+}
+
+/// Windows shell 显示用 label：取 basename 去 `.exe`/`.bat`/`.cmd`/`.com` 扩展名。
+#[cfg(windows)]
+fn windows_shell_label(path: &Path) -> String {
+    path.file_stem()
+        .and_then(|s| s.to_str())
+        .map(str::to_string)
+        .or_else(|| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .map(str::to_string)
+        })
+        .unwrap_or_else(|| path.to_string_lossy().into_owned())
+}
+
 pub(crate) fn resolve_shell(shell: &str) -> Option<PathBuf> {
     let path = Path::new(shell);
     if path.components().count() > 1 {
         return is_executable_file(path).then(|| path.to_path_buf());
     }
 
-    resolve_shell_in_path(shell, std::env::var_os("PATH").as_deref())
+    #[cfg(windows)]
+    {
+        resolve_shell_via_where(shell)
+    }
+    #[cfg(unix)]
+    {
+        resolve_shell_in_path(shell, std::env::var_os("PATH").as_deref())
+    }
 }
 
+#[cfg(unix)]
 fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBuf> {
     path_var.and_then(|path_var| {
         std::env::split_paths(path_var)
             .map(|dir| dir.join(shell))
             .find(|candidate| is_executable_file(candidate))
     })
+}
+
+/// Windows 裸名 shell 解析（task-2.1 · ADR-003）· 调 `where.exe <shell>`，
+/// 取多行输出里首个 `is_executable_file` 为 true 的项（`where.exe` 可能返回多行 ·
+/// 如 pwsh 同时命中 Program Files + WindowsApps app-execution-alias）。
+/// `where.exe` 找不到时退出码非 0 / 输出空 → 返回 None。
+#[cfg(windows)]
+fn resolve_shell_via_where(shell: &str) -> Option<PathBuf> {
+    // RED skeleton（task-2.1）· where.exe 解析未实现 · 暂返回 None · GREEN 填实。
+    let _ = shell;
+    None
 }
 
 #[cfg(unix)]
@@ -1458,13 +1537,23 @@ fn is_executable_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Windows 无 POSIX 执行位（ADR-001 + spec §5.3）· 退化为"是否为存在的文件"。
-/// .exe/.bat/.cmd 等的真正可执行判定（扩展名 + 注册表）defer Phase 2 task-2.1。
+/// Windows 无 POSIX 执行位（ADR-001 + ADR-003 + spec §5.3）· 退化为
+/// "是存在的文件 **且** 有可执行扩展名（.exe/.bat/.cmd/.com · 不区分大小写）"。
+/// 无可执行扩展名的普通文件（如 .txt）判 false（task-2.1 收紧 · 替换 task-1.1 的纯 is_file 占位）。
 #[cfg(windows)]
 fn is_executable_file(path: &Path) -> bool {
     std::fs::metadata(path)
         .map(|metadata| metadata.is_file())
         .unwrap_or(false)
+        && has_windows_executable_ext(path)
+}
+
+/// 判断路径是否带 Windows 可执行扩展名（.exe/.bat/.cmd/.com · 不区分大小写）。
+#[cfg(windows)]
+fn has_windows_executable_ext(path: &Path) -> bool {
+    // RED skeleton（task-2.1）· 扩展名判定未实现 · 暂恒 true（= 旧 is_file-only 行为）· GREEN 填实。
+    let _ = path;
+    true
 }
 
 fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
@@ -1744,7 +1833,7 @@ mod tests {
     #[test]
     fn effective_shell_prefers_env_shell_for_default_request() {
         assert_eq!(
-            effective_shell_for_spawn(default_shell_path(), Some("/opt/homebrew/bin/fish")),
+            effective_shell_for_spawn(&default_shell_path(), Some("/opt/homebrew/bin/fish")),
             "/opt/homebrew/bin/fish"
         );
     }
@@ -2206,5 +2295,196 @@ mod tests {
         assert!(!is_executable_file(&dir.path().join("missing.exe")));
         // 目录 → false（is_file 为 false）
         assert!(!is_executable_file(dir.path()));
+    }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // task-2.1 · Windows shell 探测 SCEN/TEST（§7 追踪表 · AC1~AC6）
+    // ────────────────────────────────────────────────────────────────────────
+
+    /// TEST-2.1.1（SCEN-2.1.1 · AC1）：Windows `default_shell_path()` 返回探测链首个可用 shell ·
+    /// 全路径绝不是 Unix `/bin/*`；探测链候选之一（pwsh/powershell/cmd）必命中。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_1_default_shell_probe_chain_picks_pwsh() {
+        let shell = default_shell_path();
+        // 绝不返回 Unix 路径
+        assert!(
+            !shell.starts_with("/bin/") && !shell.starts_with("/usr/"),
+            "Windows default_shell_path 不得返回 Unix 路径 · got {shell}"
+        );
+        // 必命中探测链候选（basename 去 .exe 应是 pwsh/powershell/cmd 之一）
+        let basename = Path::new(&shell)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(str::to_ascii_lowercase)
+            .unwrap_or_default();
+        assert!(
+            ["pwsh.exe", "powershell.exe", "cmd.exe"].contains(&basename.as_str()),
+            "default_shell_path basename 应在探测链内 · got {basename}"
+        );
+        // 返回的全路径必须真可执行（除非退回裸名 cmd.exe 保底）
+        if Path::new(&shell).components().count() > 1 {
+            assert!(
+                is_executable_file(Path::new(&shell)),
+                "探测链返回的全路径必须可执行 · got {shell}"
+            );
+        }
+        // 本机装了 pwsh 7+，探测链应优先选 pwsh.exe
+        if resolve_shell("pwsh.exe").is_some() {
+            assert_eq!(
+                basename, "pwsh.exe",
+                "装了 pwsh 时探测链应优先返回 pwsh.exe · got {basename}"
+            );
+        }
+    }
+
+    /// TEST-2.1.2（SCEN-2.1.2 · AC2）：探测链全缺时保底 cmd.exe · 不 panic · 不返回 /bin/bash。
+    /// 直接测保底函数 `windows_cmd_fallback`（系统 cmd.exe 必装 · 永远成立）。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_2_default_shell_falls_back_to_cmd() {
+        // 保底永远是 cmd.exe（全路径或裸名）· 绝不是 Unix 路径
+        let fallback = windows_cmd_fallback();
+        assert!(
+            !fallback.starts_with("/bin/"),
+            "保底不得返回 Unix 路径 · got {fallback}"
+        );
+        let basename = Path::new(&fallback)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(str::to_ascii_lowercase)
+            .unwrap_or_default();
+        assert_eq!(basename, "cmd.exe", "保底 shell basename 必须是 cmd.exe");
+        // resolve_default_shell(None) 在 Windows 也绝不 panic 且不返回 Unix 路径
+        let resolved = resolve_default_shell(None);
+        assert!(
+            !resolved.starts_with("/bin/"),
+            "resolve_default_shell(None) 不得返回 Unix 路径 · got {resolved}"
+        );
+    }
+
+    /// TEST-2.1.3（SCEN-2.1.3 · AC3）：Windows `list_available_shells()` 非空 ·
+    /// 不含任何 Unix `/bin/*` / `/etc/shells` 来源项 · 含已装的 pwsh/powershell/cmd。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_3_list_available_shells_windows_no_unix_paths() {
+        let shells = list_available_shells();
+        assert!(!shells.is_empty(), "Windows 可用 shell 列表不得为空");
+        for shell in &shells {
+            assert!(
+                !shell.path.starts_with("/bin/") && !shell.path.starts_with("/usr/"),
+                "Windows shell 列表不得含 Unix 路径 · got {}",
+                shell.path
+            );
+        }
+        // 本机三件套至少 cmd 必在
+        let labels: Vec<String> = shells.iter().map(|s| s.label.to_ascii_lowercase()).collect();
+        assert!(
+            labels.iter().any(|l| l == "cmd"),
+            "列表应含 cmd · got {labels:?}"
+        );
+    }
+
+    /// TEST-2.1.4（SCEN-2.1.4 · AC4）：`resolve_shell` 经 where.exe 命中裸名返回全路径 ·
+    /// `is_executable_file` 对 .exe/.bat/.cmd true · 对无可执行扩展名普通文件 false。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_4_resolve_shell_via_where_and_exe_ext() {
+        // cmd.exe 必在 PATH · where.exe 必命中 · 返回带 .exe 的全路径
+        let resolved = resolve_shell("cmd.exe").expect("cmd.exe 必能解析");
+        assert!(
+            resolved.components().count() > 1,
+            "where.exe 解析应返回全路径 · got {resolved:?}"
+        );
+        assert!(
+            is_executable_file(&resolved),
+            "解析出的 cmd.exe 全路径必须可执行"
+        );
+
+        // 扩展名可执行判定
+        let dir = tempfile::tempdir().unwrap();
+        for ext in ["exe", "bat", "cmd", "com", "EXE", "Cmd"] {
+            let f = dir.path().join(format!("tool.{ext}"));
+            std::fs::write(&f, b"x").unwrap();
+            assert!(
+                is_executable_file(&f),
+                ".{ext} 应判可执行 · {f:?}"
+            );
+        }
+        // 无可执行扩展名的普通文件 → false
+        let txt = dir.path().join("notes.txt");
+        std::fs::write(&txt, b"hello").unwrap();
+        assert!(!is_executable_file(&txt), ".txt 不应判可执行");
+        // 无扩展名文件 → false
+        let noext = dir.path().join("plainfile");
+        std::fs::write(&noext, b"x").unwrap();
+        assert!(!is_executable_file(&noext), "无扩展名文件不应判可执行");
+        // 不存在 → false（不 panic）
+        assert!(!is_executable_file(&dir.path().join("missing.exe")));
+
+        // 含空格路径 round-trip（R-2.1-b）：带空格目录下的 .exe 仍能被 is_executable_file 识别
+        let spaced = dir.path().join("Program Files Sim");
+        std::fs::create_dir_all(&spaced).unwrap();
+        let spaced_exe = spaced.join("shell tool.exe");
+        std::fs::write(&spaced_exe, b"x").unwrap();
+        assert!(
+            is_executable_file(&spaced_exe),
+            "含空格路径的 .exe 应判可执行 · {spaced_exe:?}"
+        );
+    }
+
+    /// TEST-2.1.5（SCEN-2.1.5 · AC5）：Windows `detect_process_cwd` 安全返回 None ·
+    /// `working_directory()` 回落到 spawn-time 缓存的 initial_cwd（非空有效路径）。
+    #[cfg(windows)]
+    #[test]
+    fn test_2_1_5_detect_process_cwd_windows_falls_back_to_initial_cwd() {
+        // detect_process_cwd 永远 None（不 panic · OQ3 缓存兜底）
+        assert_eq!(detect_process_cwd(std::process::id()), None);
+        assert_eq!(detect_process_cwd(1), None);
+
+        // working_directory() 经 spawn-time 缓存 initial_cwd 兜底 · 返回非空有效路径
+        let (manager, _events) = manager_with_events();
+        let dir = tempfile::tempdir().unwrap();
+        manager
+            .spawn(PtySpawnRequest {
+                tab_id: "tab-cwd-win".to_string(),
+                shell: "cmd.exe".to_string(),
+                cwd: dir.path().to_string_lossy().to_string(),
+                cols: 80,
+                rows: 24,
+            })
+            .unwrap();
+        let cwd = manager.working_directory("tab-cwd-win").unwrap();
+        assert!(
+            cwd.is_absolute() && cwd.exists(),
+            "working_directory 应回落到有效缓存 cwd · got {cwd:?}"
+        );
+        let _ = manager.kill("tab-cwd-win");
+    }
+
+    /// TEST-2.1.6（SCEN-2.1.6 · AC6）：mac/Linux shell 探测零回归 ·
+    /// default_shell_path 返回平台 Unix 路径 · list_available_shells 经 /etc/shells ·
+    /// resolve_shell 经 PATH + mode 位。复用既有 Unix 断言锁定。
+    #[cfg(unix)]
+    #[test]
+    fn test_2_1_6_unix_shell_detection_unchanged() {
+        // default_shell_path 仍返回平台 Unix 路径（签名形变为 String · 值不变）
+        if cfg!(target_os = "macos") {
+            assert_eq!(default_shell_path(), "/bin/zsh");
+        } else {
+            assert_eq!(default_shell_path(), "/bin/bash");
+        }
+        // list_available_shells 经 /etc/shells · 非空 · 全是 Unix 路径
+        let shells = list_available_shells();
+        assert!(!shells.is_empty(), "Unix shell 列表不得为空");
+        for shell in &shells {
+            assert!(
+                shell.path.starts_with('/'),
+                "Unix shell 路径应为绝对路径 · got {}",
+                shell.path
+            );
+        }
+        // resolve_shell 经 PATH + mode 位仍能解析 /bin/sh
+        assert!(resolve_shell("/bin/sh").is_some());
     }
 }

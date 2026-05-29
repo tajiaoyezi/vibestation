@@ -632,6 +632,16 @@ fn config_import_apply(
     Ok(result)
 }
 
+/// 跨平台用户家目录解析（task-1.2 · ADR-002）。
+///
+/// Windows: `%USERPROFILE%`（经 `dirs::home_dir()`，内部覆盖 `HOMEDRIVE`+`HOMEPATH` 边界）。
+/// Unix: `$HOME`。
+/// 二者均失败时返回平台合理 fallback（Windows = `C:\` 风格可用根 · 不再无差别 `/`）。
+fn home_dir() -> PathBuf {
+    // RED 骨架（待 GREEN 替换为 dirs::home_dir() 实现）· 故意保留 buggy "/" 兜底使断言失败
+    PathBuf::from("/")
+}
+
 /// 计算用户 home 目录 · 失败回退根目录（让扫描看到 path_exists=false 而不是 panic）
 fn home_dir_or_root() -> PathBuf {
     std::env::var("HOME")
@@ -2655,5 +2665,84 @@ mod pane_failure_tests {
         assert!(!is_failure_exit_code(Some(0)));
         assert!(is_failure_exit_code(Some(1)));
         assert!(is_failure_exit_code(Some(101)));
+    }
+}
+
+// ─── task-1.2 · 跨平台 home_dir() 助手单测（SCEN-1.2.1~1.2.4 / AC1~AC5） ───
+#[cfg(test)]
+mod home_dir_tests {
+    use super::*;
+
+    // SCEN-1.2.1 / AC1 — home_dir() 跨平台解析到真实家目录（非空 · 非根）
+    #[test]
+    fn test_1_2_1_home_dir_resolves_per_platform() {
+        let home = home_dir();
+        assert!(
+            home.as_os_str().len() > 1,
+            "home_dir() 应返回真实家目录，而非空或单字符根，实际={home:?}"
+        );
+
+        #[cfg(windows)]
+        {
+            let s = home.to_string_lossy();
+            // Windows 家目录应是盘符根（如 C:\Users\<user>）· 绝不是 Unix 风格 "/"
+            assert!(
+                s.contains(":\\") || s.contains(":/"),
+                "Windows home_dir() 应含盘符（如 C:\\Users\\...），实际={s}"
+            );
+        }
+
+        #[cfg(unix)]
+        {
+            // Unix 上应与 $HOME 等价（若已设置）
+            if let Ok(env_home) = std::env::var("HOME") {
+                assert_eq!(
+                    home,
+                    PathBuf::from(env_home),
+                    "Unix home_dir() 应等于 $HOME"
+                );
+            }
+        }
+    }
+
+    // SCEN-1.2.2 / AC2 — HOME 未设时 Windows 经 USERPROFILE/dirs 兜底 · 绝不返回 "/"
+    #[cfg(windows)]
+    #[test]
+    fn test_1_2_2_home_dir_no_env_windows_not_root() {
+        let home = home_dir();
+        assert_ne!(
+            home,
+            PathBuf::from("/"),
+            "Windows home_dir() 绝不应返回 Unix 根 \"/\"，实际={home:?}"
+        );
+        // 进一步保证不是任何 Unix 风格绝对根
+        assert!(
+            !home.to_string_lossy().starts_with('/'),
+            "Windows home_dir() 不应以 Unix 风格 / 开头，实际={home:?}"
+        );
+    }
+
+    // SCEN-1.2.3 / AC3 — 两处调用点不再残留裸 env::var("HOME") + "/" 硬编码
+    #[test]
+    fn test_1_2_3_no_hardcoded_home_var() {
+        let src = include_str!("lib.rs");
+        // 调用点应改用 home_dir()，不再出现裸 std::env::var("HOME") 的硬编码兜底模式
+        let hardcoded = src.matches("std::env::var(\"HOME\")").count();
+        assert_eq!(
+            hardcoded, 0,
+            "lib.rs 不应残留裸 std::env::var(\"HOME\") 硬编码（应收敛到 home_dir() · dirs crate），实际计数={hardcoded}"
+        );
+    }
+
+    // SCEN-1.2.4 / AC5 — Unix 家目录解析零回归（home_dir() == $HOME）
+    #[cfg(unix)]
+    #[test]
+    fn test_1_2_4_unix_home_unchanged() {
+        let env_home = std::env::var("HOME").expect("Unix 测试环境应设置 HOME");
+        assert_eq!(
+            home_dir(),
+            PathBuf::from(env_home),
+            "Unix 上 home_dir() 必须等价于 $HOME（零回归）"
+        );
     }
 }

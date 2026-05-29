@@ -16,8 +16,13 @@ pub struct ExternalTerminalInfo {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DetectionPlatform {
+    // `Macos` is only constructed in the `#[cfg(target_os = "macos")]` branch of
+    // `current_detection_platform()`; on Linux/Windows builds it is reachable only
+    // via tests, so suppress dead_code off-macOS (variant kept for cross-platform match arms).
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
     Macos,
     Linux,
+    Windows,
 }
 
 #[derive(Debug, Default)]
@@ -34,11 +39,15 @@ struct TerminalDefinition {
     display_name: &'static str,
     mac_priority: Option<u8>,
     linux_priority: Option<u8>,
+    windows_priority: Option<u8>,
     mac_app_paths: &'static [&'static str],
     mac_bins: &'static [&'static str],
     linux_bins: &'static [&'static str],
+    windows_bins: &'static [&'static str],
     linux_desktop_markers: &'static [&'static str],
     term_program_markers: &'static [&'static str],
+    /// Always present on Windows regardless of PATH probe (e.g. conhost/cmd ship with the OS).
+    windows_builtin: bool,
 }
 
 const TERMINALS: &[TerminalDefinition] = &[
@@ -47,69 +56,130 @@ const TERMINALS: &[TerminalDefinition] = &[
         display_name: "Ghostty",
         mac_priority: Some(80),
         linux_priority: Some(80),
+        windows_priority: None,
         mac_app_paths: &["/Applications/Ghostty.app"],
         mac_bins: &["ghostty"],
         linux_bins: &["ghostty"],
+        windows_bins: &[],
         linux_desktop_markers: &["ghostty"],
         term_program_markers: &["ghostty"],
+        windows_builtin: false,
     },
     TerminalDefinition {
         id: "iterm2",
         display_name: "iTerm2",
         mac_priority: Some(70),
         linux_priority: None,
+        windows_priority: None,
         mac_app_paths: &["/Applications/iTerm.app", "/Applications/iTerm2.app"],
         mac_bins: &["iterm2", "iterm"],
         linux_bins: &[],
+        windows_bins: &[],
         linux_desktop_markers: &[],
         term_program_markers: &["iterm"],
+        windows_builtin: false,
     },
     TerminalDefinition {
         id: "terminal-app",
         display_name: "Terminal.app",
         mac_priority: Some(60),
         linux_priority: None,
+        windows_priority: None,
         mac_app_paths: &[
             "/Applications/Terminal.app",
             "/System/Applications/Utilities/Terminal.app",
         ],
         mac_bins: &["terminal"],
         linux_bins: &[],
+        windows_bins: &[],
         linux_desktop_markers: &[],
         term_program_markers: &["apple_terminal", "terminal.app"],
+        windows_builtin: false,
     },
     TerminalDefinition {
         id: "alacritty",
         display_name: "Alacritty",
         mac_priority: Some(50),
         linux_priority: Some(70),
+        windows_priority: None,
         mac_app_paths: &["/Applications/Alacritty.app"],
         mac_bins: &["alacritty"],
         linux_bins: &["alacritty"],
+        windows_bins: &[],
         linux_desktop_markers: &["alacritty"],
         term_program_markers: &["alacritty"],
+        windows_builtin: false,
     },
     TerminalDefinition {
         id: "gnome-terminal",
         display_name: "GNOME Terminal",
         mac_priority: None,
         linux_priority: Some(60),
+        windows_priority: None,
         mac_app_paths: &[],
         mac_bins: &[],
         linux_bins: &["gnome-terminal"],
+        windows_bins: &[],
         linux_desktop_markers: &["gnome-terminal", "gnome.terminal", "org.gnome.terminal"],
         term_program_markers: &["gnome terminal", "gnome-terminal", "gnome.terminal"],
+        windows_builtin: false,
     },
     TerminalDefinition {
         id: "konsole",
         display_name: "Konsole",
         mac_priority: None,
         linux_priority: Some(50),
+        windows_priority: None,
         mac_app_paths: &[],
         mac_bins: &[],
         linux_bins: &["konsole"],
+        windows_bins: &[],
         linux_desktop_markers: &["konsole", "org.kde.konsole"],
         term_program_markers: &["konsole"],
+        windows_builtin: false,
+    },
+    TerminalDefinition {
+        id: "windows-terminal",
+        display_name: "Windows Terminal",
+        mac_priority: None,
+        linux_priority: None,
+        windows_priority: Some(80),
+        mac_app_paths: &[],
+        mac_bins: &[],
+        linux_bins: &[],
+        windows_bins: &["wt"],
+        linux_desktop_markers: &[],
+        term_program_markers: &["windows terminal", "windows-terminal", "wt"],
+        windows_builtin: false,
+    },
+    TerminalDefinition {
+        id: "pwsh",
+        display_name: "PowerShell",
+        mac_priority: None,
+        linux_priority: None,
+        windows_priority: Some(70),
+        mac_app_paths: &[],
+        mac_bins: &[],
+        linux_bins: &[],
+        windows_bins: &["pwsh"],
+        linux_desktop_markers: &[],
+        term_program_markers: &["pwsh", "powershell"],
+        windows_builtin: false,
+    },
+    TerminalDefinition {
+        id: "conhost",
+        display_name: "Console Host (cmd)",
+        mac_priority: None,
+        linux_priority: None,
+        windows_priority: Some(50),
+        mac_app_paths: &[],
+        mac_bins: &[],
+        linux_bins: &[],
+        windows_bins: &["conhost", "cmd"],
+        linux_desktop_markers: &[],
+        term_program_markers: &[],
+        // conhost/cmd ships with Windows, so it is always available as a baseline.
+        windows_builtin: true,
     },
 ];
 
@@ -143,6 +213,7 @@ pub(crate) fn detect_terminals_with_context(
             let base_priority = match platform {
                 DetectionPlatform::Macos => definition.mac_priority?,
                 DetectionPlatform::Linux => definition.linux_priority?,
+                DetectionPlatform::Windows => definition.windows_priority?,
             };
             let detected = match platform {
                 DetectionPlatform::Macos => {
@@ -158,6 +229,9 @@ pub(crate) fn detect_terminals_with_context(
                                 .iter()
                                 .any(|marker| normalized.contains(&normalize_hint(marker)))
                         })
+                }
+                DetectionPlatform::Windows => {
+                    definition.windows_builtin || any_match(&ctx.path_bins, definition.windows_bins)
                 }
             };
 
@@ -204,7 +278,11 @@ fn current_detection_platform() -> Option<DetectionPlatform> {
     {
         Some(DetectionPlatform::Linux)
     }
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    #[cfg(target_os = "windows")]
+    {
+        Some(DetectionPlatform::Windows)
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "windows")))]
     {
         None
     }
@@ -222,7 +300,13 @@ fn detect_existing_macos_apps() -> Vec<String> {
 fn detect_path_bins() -> Vec<String> {
     let mut bins = TERMINALS
         .iter()
-        .flat_map(|terminal| terminal.mac_bins.iter().chain(terminal.linux_bins.iter()))
+        .flat_map(|terminal| {
+            terminal
+                .mac_bins
+                .iter()
+                .chain(terminal.linux_bins.iter())
+                .chain(terminal.windows_bins.iter())
+        })
         .copied()
         .collect::<Vec<_>>();
     bins.sort_unstable();
@@ -234,8 +318,20 @@ fn detect_path_bins() -> Vec<String> {
         .collect()
 }
 
+/// PATH-lookup probe binary: `where` on Windows, `which` on Unix.
+fn command_exists_probe() -> &'static str {
+    #[cfg(windows)]
+    {
+        "where"
+    }
+    #[cfg(not(windows))]
+    {
+        "which"
+    }
+}
+
 fn command_exists(bin: &str) -> bool {
-    Command::new("which")
+    Command::new(command_exists_probe())
         .arg(bin)
         .status()
         .is_ok_and(|status| status.success())
@@ -483,7 +579,8 @@ mod tests {
         let mut ctx = ctx(DetectionPlatform::Windows);
         ctx.path_bins = vec!["wt".to_string(), "pwsh".to_string()];
 
-        let detected = ids(&detect_terminals_with_context(&ctx));
+        let result = detect_terminals_with_context(&ctx);
+        let detected = ids(&result);
         assert!(!detected.is_empty(), "Windows detection must be non-empty");
         assert!(
             detected.contains(&"windows-terminal"),
@@ -498,7 +595,8 @@ mod tests {
         let ctx = ctx(DetectionPlatform::Windows);
 
         // No path_bins injected; conhost/cmd ships with Windows so it is always present.
-        let detected = ids(&detect_terminals_with_context(&ctx));
+        let result = detect_terminals_with_context(&ctx);
+        let detected = ids(&result);
         assert!(
             detected.contains(&"conhost"),
             "conhost must always be detected on Windows, got {detected:?}"
@@ -511,7 +609,8 @@ mod tests {
         let ctx = ctx(DetectionPlatform::Windows);
 
         // pwsh not in path_bins => must not be reported as detected.
-        let detected = ids(&detect_terminals_with_context(&ctx));
+        let result = detect_terminals_with_context(&ctx);
+        let detected = ids(&result);
         assert!(
             !detected.contains(&"pwsh"),
             "pwsh must be absent when not installed, got {detected:?}"

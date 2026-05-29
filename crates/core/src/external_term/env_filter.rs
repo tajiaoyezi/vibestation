@@ -19,7 +19,21 @@ pub struct EnvPreview {
     pub filtered_count: u32,
 }
 
+#[cfg(not(windows))]
 pub const WHITELIST: &[&str] = &["PATH", "HOME", "LANG", "TERM", "SHELL", "USER"];
+
+#[cfg(windows)]
+pub const WHITELIST: &[&str] = &[
+    "PATH",
+    "LANG",
+    "TERM",
+    "USER",
+    "COMSPEC",
+    "PATHEXT",
+    "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
+];
 
 pub const BLACKLIST_PATTERNS: &[&str] = &[
     "KEY",
@@ -113,6 +127,9 @@ mod tests {
             .collect()
     }
 
+    // Unix-fixture test (HOME / SHELL in WHITELIST) · Windows WHITELIST differs,
+    // Windows coverage in `test_3_1_4_windows_env_whitelist_comspec`.
+    #[cfg(not(windows))]
     #[test]
     fn whitelist_entries_pass_through() {
         let preview = filter_env(&env(&[
@@ -196,6 +213,8 @@ mod tests {
         assert!(preview.visible_entries.is_empty());
     }
 
+    // Unix-fixture test (HOME / SHELL in WHITELIST) · Windows WHITELIST differs.
+    #[cfg(not(windows))]
     #[test]
     fn visible_entries_are_limited_to_ten_and_sorted() {
         let preview = filter_env(&env(&[

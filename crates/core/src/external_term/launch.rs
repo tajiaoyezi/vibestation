@@ -7,6 +7,7 @@ use ts_rs::TS;
 pub enum Platform {
     Macos,
     Linux,
+    Windows,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,7 +53,11 @@ pub fn current_platform() -> Platform {
     {
         Platform::Macos
     }
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        Platform::Windows
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         Platform::Linux
     }
@@ -94,20 +99,21 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+            Platform::Windows => unsupported(terminal_id, platform),
         },
         "iterm2" => match platform {
             Platform::Macos => Ok(LaunchCommand {
                 program: "open".to_string(),
                 args: vec!["-a".to_string(), "iTerm.app".to_string(), cwd],
             }),
-            Platform::Linux => unsupported(terminal_id, platform),
+            Platform::Linux | Platform::Windows => unsupported(terminal_id, platform),
         },
         "terminal-app" => match platform {
             Platform::Macos => Ok(LaunchCommand {
                 program: "open".to_string(),
                 args: vec!["-a".to_string(), "Terminal".to_string(), cwd],
             }),
-            Platform::Linux => unsupported(terminal_id, platform),
+            Platform::Linux | Platform::Windows => unsupported(terminal_id, platform),
         },
         "alacritty" => match platform {
             Platform::Macos => Ok(LaunchCommand {
@@ -131,9 +137,10 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+            Platform::Windows => unsupported(terminal_id, platform),
         },
         "gnome-terminal" => match platform {
-            Platform::Macos => unsupported(terminal_id, platform),
+            Platform::Macos | Platform::Windows => unsupported(terminal_id, platform),
             Platform::Linux => Ok(LaunchCommand {
                 program: "gnome-terminal".to_string(),
                 args: vec![
@@ -144,7 +151,7 @@ pub fn build_launch_command(
             }),
         },
         "konsole" => match platform {
-            Platform::Macos => unsupported(terminal_id, platform),
+            Platform::Macos | Platform::Windows => unsupported(terminal_id, platform),
             Platform::Linux => Ok(LaunchCommand {
                 program: "konsole".to_string(),
                 args: vec![
@@ -154,6 +161,38 @@ pub fn build_launch_command(
                     shell.to_string(),
                 ],
             }),
+        },
+        "windows-terminal" => match platform {
+            // wt.exe -d <cwd> <shell> · -d 设工作目录，trailing shell 作为首个 profile 命令。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "wt.exe".to_string(),
+                args: vec!["-d".to_string(), cwd, shell.to_string()],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
+        },
+        "pwsh" => match platform {
+            // pwsh.exe -NoExit -WorkingDirectory <cwd> · 进入交互式会话且不退出。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "pwsh.exe".to_string(),
+                args: vec![
+                    "-NoExit".to_string(),
+                    "-WorkingDirectory".to_string(),
+                    cwd,
+                ],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
+        },
+        "conhost" => match platform {
+            // cmd.exe /D /K cd /d <cwd> · /D 跳过 AutoRun，/K 执行后保留窗口，cd /d 切到 cwd。
+            Platform::Windows => Ok(LaunchCommand {
+                program: "cmd.exe".to_string(),
+                args: vec![
+                    "/D".to_string(),
+                    "/K".to_string(),
+                    format!("cd /d {cwd}"),
+                ],
+            }),
+            Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
         },
         other => Err(LaunchError::UnknownTerminal(other.to_string())),
     }

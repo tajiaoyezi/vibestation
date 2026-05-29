@@ -262,7 +262,12 @@ pub struct PtySession {
     #[cfg(unix)]
     fd: RawFd,
     process_id: Option<u32>,
-    master: Mutex<Box<dyn MasterPty + Send>>,
+    /// PTY master。`Option` 是为了 Windows ConPTY 在 terminate 时能 `take()` 掉 master ·
+    /// drop 它会 `ClosePseudoConsole` · 关闭 conhost 输出管道 · 让阻塞在 `reader.read()` 的
+    /// per-session 读线程拿到 EOF 退出（否则仅 `child.kill()` 杀掉 shell · conhost 仍持管道 ·
+    /// reader 永久 block · stop() 的 join() 死锁 · task-2.2 RED 复现）。Unix 不依赖此（mio 走裸 fd ·
+    /// terminate 经 libc::kill + fd close 自然 EOF），但统一为 `Option` 以共享结构。
+    master: Mutex<Option<Box<dyn MasterPty + Send>>>,
     writer: Mutex<Box<dyn Write + Send>>,
     child: Mutex<Box<dyn Child + Send + Sync>>,
     initial_cwd: PathBuf,
@@ -310,6 +315,10 @@ impl PtySession {
 
     fn resize(&self, cols: u16, rows: u16) -> Result<(), PtyError> {
         let master = lock(&self.master);
+        let Some(master) = master.as_ref() else {
+            // master 已被 terminate 关闭（Windows EOF 路径）· resize 无目标 · 视为 no-op。
+            return Ok(());
+        };
         master
             .resize(PtySize {
                 rows: rows.max(1),
@@ -318,6 +327,14 @@ impl PtySession {
                 pixel_height: 0,
             })
             .map_err(|error| PtyError::OpenFailed(error.to_string()))
+    }
+
+    /// Windows ConPTY 收尾：drop master（`ClosePseudoConsole`）· 关闭 conhost 输出管道 ·
+    /// 让阻塞 `reader.read()` 的 per-session 读线程拿到 EOF 退出（避免 stop() join 死锁）。
+    /// Unix 不调用此（mio + 裸 fd 路径 terminate 后自然 EOF）。
+    #[cfg(windows)]
+    fn close_master(&self) {
+        let _ = lock(&self.master).take();
     }
 
     #[cfg(unix)]
@@ -362,6 +379,12 @@ impl PtySession {
             let mut child = lock(&self.child);
             let _ = child.kill();
         }
+
+        // Windows ConPTY 收尾（task-2.2）：仅 kill child 不够 · conhost 仍持输出管道 ·
+        // 阻塞 reader 永不 EOF → reader 线程 join 死锁。drop master（ClosePseudoConsole）
+        // 关闭管道 → reader 拿 EOF 退出 → worker.stop() 的 join() 能返回。Unix 无此问题（裸 fd）。
+        #[cfg(windows)]
+        self.close_master();
 
         let status = self.wait_for_exit(EXIT_WAIT_TIMEOUT)?;
         self.emit_exit_once(events, status)
@@ -497,7 +520,9 @@ impl PtySession {
             return Some(SignalTarget::ProcessGroup(foreground));
         }
 
-        let leader = lock(&self.master).process_group_leader();
+        let leader = lock(&self.master)
+            .as_ref()
+            .and_then(|master| master.process_group_leader());
         if let Some(group) = leader.filter(|group| *group > 0) {
             return Some(SignalTarget::ProcessGroup(group));
         }
@@ -686,7 +711,7 @@ impl PtyManager {
             #[cfg(unix)]
             fd,
             process_id,
-            master: Mutex::new(pair.master),
+            master: Mutex::new(Some(pair.master)),
             writer: Mutex::new(writer),
             child: Mutex::new(child),
             initial_cwd,
@@ -1000,6 +1025,20 @@ fn reader_loop(
             }
         }
 
+        // 退出检测（task-2.2 · AC3）：ConPTY 下 child 自然退出（如 `exit`）时 · conhost 仍可能
+        // 持有输出管道 · 阻塞 `reader.read()` 拿不到 EOF · reader 永不知道 child 已死。故在此主循环
+        // 周期轮询 `child.try_wait()`；一旦检测到退出 · close_master（ClosePseudoConsole）关管道 ·
+        // reader 随即拿 EOF → emit_exit_once + 线程退出（下轮 is_finished 清理）。
+        // 有界延迟 ≤ IDLE_SLEEP + read 唤醒（不 hang · 不漏 exit）。
+        for worker in workers.values() {
+            if worker.is_finished() {
+                continue;
+            }
+            if matches!(worker.session.try_wait(), Ok(Some(_))) {
+                worker.session.close_master();
+            }
+        }
+
         // 清理已自然退出的 worker（child 退出 / EOF）· join 回收线程。
         let finished: Vec<usize> = workers
             .iter()
@@ -1062,17 +1101,27 @@ fn spawn_windows_session_reader(
     let thread_stop = Arc::clone(&stop);
     let thread_session = Arc::clone(&session);
 
-    let reader = lock(&thread_session.master).try_clone_reader();
+    // 在 spawn 前从 master clone reader（master 此刻必在 · 刚构造）· clone 出的 reader
+    // 持自己的管道句柄 · 后续 terminate drop master（ClosePseudoConsole）会 EOF 此 reader。
+    let reader = lock(&thread_session.master)
+        .as_ref()
+        .map(|master| master.try_clone_reader());
     let handle = thread::Builder::new()
         .name("vibestation-pty-conpty-reader".to_string())
         .spawn(move || {
             let mut reader = match reader {
-                Ok(reader) => reader,
-                Err(error) => {
+                Some(Ok(reader)) => reader,
+                Some(Err(error)) => {
                     eprintln!(
                         "[mvp-04] conpty clone_reader failed for {}: {error}",
                         thread_session.tab_id_clone()
                     );
+                    let _ = thread_session.emit_exit_once(&events, None);
+                    lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
+                    return;
+                }
+                None => {
+                    // master 已被关闭（极少见 · register 与 terminate 竞争）· 直接收尾。
                     let _ = thread_session.emit_exit_once(&events, None);
                     lock(&sessions_by_id).remove(&thread_session.tab_id_clone());
                     return;

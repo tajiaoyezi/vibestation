@@ -1,6 +1,6 @@
 # Task `3.3`: `keybinding-platform`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`（详见 `docs/s2v/standard.md` §10.5.1 状态机）。
 
@@ -143,11 +143,11 @@ pub fn detect_conflicts(imported: &[(String, String)]) -> Vec<ConflictHit> {
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 win+t 平台映射 | SCEN-3.3.1 | TEST-3.3.1 `test_3_3_1_canonicalize_primary_mod_per_platform` | N/A（纯函数双平台参数单测） | cargo test -p vibestation_core config_import::keybinding | Not Started |
-| AC2 builtins 平台感知 | SCEN-3.3.2 | TEST-3.3.2 `test_3_3_2_builtins_ctrl_on_other` | N/A | cargo test -p vibestation_core config_import::keybinding | Not Started |
-| AC3 Windows Ctrl+T 冲突命中 | SCEN-3.3.3 | TEST-3.3.3 `test_3_3_3_detect_conflicts_ctrl_t_windows` | N/A | cargo test -p vibestation_core config_import::keybinding | Not Started |
-| AC4 macOS 零回归 | SCEN-3.3.4 | TEST-3.3.4 `test_3_3_4_macos_cmd_semantics_unchanged`（现有用例集） | N/A | cargo test --workspace（macOS CI） | Not Started |
-| AC5 算法平台无关 | SCEN-3.3.5 | TEST-3.3.5 `test_3_3_5_key_titlecase_platform_invariant` | N/A | cargo test -p vibestation_core config_import::keybinding | Not Started |
+| AC1 win+t 平台映射 | SCEN-3.3.1 | TEST-3.3.1 `test_3_3_1_canonicalize_primary_mod_per_platform`（win/super/meta/command/⌘ · Other→Ctrl · Mac→Cmd） | N/A（纯函数双平台参数单测） | cargo test -p vibestation-core --lib config_import::keybinding | Done |
+| AC2 builtins 平台感知 | SCEN-3.3.2 | TEST-3.3.2 `test_3_3_2_builtins_ctrl_on_other`（Other 全 Ctrl+无 Cmd · Mac 全 Cmd） | N/A | cargo test -p vibestation-core --lib config_import::keybinding | Done |
+| AC3 Windows Ctrl+T 冲突命中 | SCEN-3.3.3 | TEST-3.3.3 `test_3_3_3_detect_conflicts_ctrl_t_windows` + `test_3_3_3b_detect_conflicts_win_t_windows`（win+t 也命中） | N/A | cargo test -p vibestation-core --lib config_import::keybinding | Done |
+| AC4 macOS 零回归 | SCEN-3.3.4 | TEST-3.3.4 `test_3_3_4_macos_cmd_semantics_unchanged` + 11 现有 no-arg 用例改 `_for(KeyPlatform::Mac)` 锁 Mac 分支 + `test_3_3_sort_order_unchanged_mac` | N/A | cargo test -p vibestation-core --lib config_import + cargo test --workspace（macOS CI） | Done（Windows 本机 90 passed · mac 由 CI 跑） |
+| AC5 算法平台无关 | SCEN-3.3.5 | TEST-3.3.5 `test_3_3_5_key_titlecase_platform_invariant`（两平台 loop · key 大写 / F1-F24 / named titlecase 一致）+ R3 `test_3_3_r3_primary_mod_ctrl_merge_on_other` | N/A | cargo test -p vibestation-core --lib config_import::keybinding | Done |
 
 ## 8. Risks
 
@@ -167,4 +167,13 @@ pub fn detect_conflicts(imported: &[(String, String)]) -> Vec<ConflictHit> {
 
 ## 10. Completion Notes
 
-<TBD-after-impl>
+**完成于 2026-05-29 · feat/windows-support 分支 · solo 三段 commit（RED `1d48157` → GREEN `f6506fb` → docs `本提交`）**
+
+1. **改动文件**：`crates/core/src/config_import/keybinding.rs`（task §3 主体）+ `crates/core/src/config_import/ipc.rs`（**连带修复** · 仅测试断言 · 见第 5 点）。production `ipc.rs::detect_conflicts_ipc` / `apply` 调用点**零改动**（见第 3 点 wrapper 策略）。
+2. **`keybinding.rs` 核心**：选 spec §5.3 推荐的「平台参数」方案。新增 `pub(crate) enum KeyPlatform { Mac, Other }`（`current()` 按 `#[cfg(target_os="macos")]` · `primary_modifier()` → `Cmd`/`Ctrl`）。`classify_token` 把 `cmd`/`command`/`meta`/`super`/`win`/`windows`/`⌘` 由原 `TokenKind::Cmd` 改分类为**中性** `TokenKind::PrimaryMod`（平台无关），canonical 落地时由 `canonicalize_keybinding_for(input, platform)` 按 `platform` 决定 `Cmd`（Mac）或 `Ctrl`（Other）。`tokenize`/split/`canonicalize_key`/F1-F24/titlecase 算法**字节不变**（spec §3 Out Of Scope）。
+3. **公共 API 兼容（无 caller 改动）**：保留既有无参 `pub fn canonicalize_keybinding` / `vibestation_builtins` / `detect_conflicts` 为薄 wrapper（内部调 `*_for(KeyPlatform::current())`）；新增 `pub(crate)` 的 `*_for(platform)` 变体供测试两平台。因 `ipc.rs` 调的是无参 wrapper，spec §3 / §8 R2 提到的「同步更新 `detect_conflicts_ipc` caller」**无需发生**（未删 wrapper · caller 签名不变 · 编译期亦无缺参）。
+4. **Other（Windows+Linux）合并语义（spec §8 R3）**：Other 上 `PrimaryMod` 与显式 `Ctrl` 都落到 `Ctrl`，`Cmd+Ctrl+T` → `Ctrl+T`（无独立 Cmd 键 · 容错合并），`test_3_3_r3_primary_mod_ctrl_merge_on_other` 显式断言非 bug。排序规则 `Cmd > Ctrl > Alt > Shift` 不变（spec §H.3 锁定 · `test_3_3_sort_order_unchanged_mac`）。Linux 归 Other → Ctrl 是 spec §8 R1 钦定的**修正**（非回归 · 前端键盘事件处理本就走 Ctrl）。
+5. **连带修复（`ipc.rs` · 仅测试）**：5 个既有 ipc 用例（`detect_conflicts_ipc_finds_cmd_t` / `apply_non_conflicting_keybinding_persists` / `apply_protects_vibe_builtins_when_client_omits_conflict_resolutions` / `apply_allows_explicit_override_of_vibe_builtin` / `apply_keybinding_override_writes_imported_keybindings`）经 `apply`/`detect_conflicts_ipc` 走**运行期平台** canonical，原硬编码 `"Cmd+T"` 期望在 Windows 必失败。引入测试常量 `PRIMARY_MOD`（macOS=`Cmd` · 其余=`Ctrl`），断言改 `format!("{PRIMARY_MOD}+T")`。production 逻辑零改 · 仅断言平台化（类比 task-3.4 §10 连带修复 · 不属本 task §3 范围但为达 §9 gate 必需）。同理 `keybinding.rs` 内 11 个锁 macOS `Cmd` 输出的老 no-arg 用例改用显式 `_for(KeyPlatform::Mac)`，使其在任意宿主（含 Windows）确定性验 Mac 分支零回归（spec §8 R1「现有 macOS 用例锁 Mac 分支不变」）。
+6. **测试 + gate**：新增 Windows/平台参数化 TEST-3.3.1/.2/.3/.3b/.4/.5 + R3 + sort-order。`cargo test -p vibestation-core --lib config_import` = **90 passed / 0 failed**（Windows 11 本机真实运行 · 含 keybinding 子模块 26 passed + ipc/ghostty/alacritty/iterm2）。`cargo check --workspace` / `cargo build --workspace` = **0 error**；`cargo clippy --workspace -- -D warnings` = **0 error**（`KeyPlatform::Mac` 变体在非 macOS 非测试视角为「跨平台双分支变体」· cfg-gate `#[cfg_attr(not(target_os="macos"), allow(dead_code))]` 抑制 · 非真死代码）。`web/src/bindings/*.ts` 未被重生成（`KeyPlatform` 为内部 enum · 无 `#[ts(export)]`）。
+
+**AC 状态**：AC1 ✅（win/super/meta/command/⌘ 平台映射）· AC2 ✅（builtins Other 全 Ctrl · Mac 全 Cmd）· AC3 ✅（Ctrl+T 与 win+t 均命中内置 · 不再静默失效）· AC4 ✅（macOS Cmd 语义零回归 · 现有用例锁 Mac 分支）· AC5 ✅（key 大写 / F1-F24 / titlecase 两平台一致 + R3 合并显式断言）。

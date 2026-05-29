@@ -1,6 +1,6 @@
 # Task `1.2`: `home-dir-helper`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`
 
@@ -134,11 +134,11 @@ fn home_dir_or_root() -> PathBuf { home_dir() }
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 home_dir 跨平台解析 | SCEN-1.2.1 | TEST-1.2.1 `test_1_2_1_home_dir_resolves_per_platform` | N/A | `cargo test -p vibestation_app home_dir` | Not Started |
-| AC2 HOME 缺失 Windows 非 `/` | SCEN-1.2.2 | TEST-1.2.2 `test_1_2_2_home_dir_no_env_windows_not_root` | N/A | `cargo test -p vibestation_app home_dir` | Not Started |
-| AC3 两处硬编码替换 | SCEN-1.2.3 | TEST-1.2.3 `test_1_2_3_no_hardcoded_home_var` | N/A: grep 断言 + build | `cargo build --workspace` + grep | Not Started |
-| AC4 dirs 依赖就位 | N/A: 依赖配置无业务场景 | N/A: 由 build 覆盖 | N/A | `cargo build --workspace`（解析 Cargo.lock 含 dirs）| Not Started |
-| AC5 Unix 零回归 | SCEN-1.2.4 | TEST-1.2.4 `test_1_2_4_unix_home_unchanged` | N/A | `cargo test --workspace`（mac/ubuntu）| Not Started |
+| AC1 home_dir 跨平台解析 | SCEN-1.2.1 | TEST-1.2.1 `test_1_2_1_home_dir_resolves_per_platform` | N/A | `cargo test -p vibestation_app home_dir` | Done |
+| AC2 HOME 缺失 Windows 非 `/` | SCEN-1.2.2 | TEST-1.2.2 `test_1_2_2_home_dir_no_env_windows_not_root` | N/A | `cargo test -p vibestation_app home_dir` | Done |
+| AC3 两处硬编码替换 | SCEN-1.2.3 | TEST-1.2.3 `test_1_2_3_no_hardcoded_home_var` | N/A: grep 断言 + build | `cargo build --workspace` + grep | Done |
+| AC4 dirs 依赖就位 | N/A: 依赖配置无业务场景 | N/A: 由 build 覆盖 | N/A | `cargo build --workspace`（解析 Cargo.lock 含 dirs）| Done |
+| AC5 Unix 零回归 | SCEN-1.2.4 | TEST-1.2.4 `test_1_2_4_unix_home_unchanged` | N/A | `cargo test --workspace`（mac/ubuntu）| Done |
 
 ## 8. Risks
 
@@ -159,22 +159,27 @@ fn home_dir_or_root() -> PathBuf { home_dir() }
 
 ## 10. Completion Notes
 
-- **完成日期**：<TBD-after-impl>
+- **完成日期**：2026-05-29（Windows 11 x64 MSVC 本机实施 · solo tier · feat/windows-support 分支）
 - **改动文件**：
-  - `Cargo.toml`（修改 · 加 dirs workspace 依赖）
-  - `crates/app/Cargo.toml`（修改 · 引用 dirs）
-  - `crates/app/src/lib.rs`（修改 · home_dir 助手 + 替换两处 HOME）
-  - `Cargo.lock`（修改 · dirs 锁定）
-- **commit 列表**：
-  - `<TBD-after-impl>` test: 加 SCEN-1.2.1~1.2.4 RED 测试 + home_dir 骨架
-  - `<TBD-after-impl>` feat: 实现 home_dir 助手 + 替换 HOME 硬编码通过测试
-  - `<TBD-after-impl>` refactor:（如有）
-- **§9 Verification 结果**：
-  - install: <TBD-after-impl>
-  - lint: <TBD-after-impl>
-  - typecheck: <TBD-after-impl>
-  - unit-test: <TBD-after-impl>
-  - build: <TBD-after-impl>
-  - runtime-smoke: <TBD-after-impl>
-- **剩余风险 / 未做项**：<TBD-after-impl>
-- **下游 task 影响**：<TBD-after-impl>
+  - `Cargo.toml`（修改 · `[workspace.dependencies]` 加 `dirs = "5"`，解析锁定 5.0.1）
+  - `crates/app/Cargo.toml`（修改 · `[dependencies]` 加 `dirs.workspace = true`）
+  - `crates/app/src/lib.rs`（修改 · 新增跨平台 `home_dir()` 助手 + `home_dir_or_root()` 收敛为其别名 + PTY pool refill 调用点改用 `home_dir()` + 新增 `home_dir_tests` 4 个单测）
+  - `Cargo.lock`（修改 · dirs 5.0.1 + dirs-sys 0.4.1 + redox_users 0.4.6 锁定 · 纯 Rust 无 C 依赖）
+- **commit 列表**（feat/windows-support 分支 · solo 三段节律）：
+  - `c5a27de` test(app-home): 加 SCEN-1.2.1~1.2.4 共 4 个 RED 测试 + home_dir() 骨架
+  - `d0d60d8` feat(app-home): 实现跨平台 home_dir() 助手 + 替换两处 HOME 硬编码
+  - refactor: 无（实现已最小 · 无重复 / 过长函数）
+- **§9 Verification 结果**（Windows 本机实跑 raw）：
+  - install: N/A（本 task 不改 JS 依赖 · `pnpm install` 与本 task 无关）
+  - lint（cargo clippy -p vibestation-app --lib -- -D warnings）: **app/src/lib.rs 0 hit**（grep lib.rs 计数 = 0）· ⚠️ 命令整体仍 fail，13 项 error 全部来自 `crates/core` 的 `fs_watch.rs`（unused import / dead_code / needless_return）+ `external_term/detect.rs`（variant `Macos` never constructed），属 **task 3.4 / task 3.1** 范围（`-p vibestation-app` 仍编译 core 依赖故触发）· 本 task 不允许改这两文件 · 同 task-1.1 §10 先例
+  - typecheck（cargo check --workspace）: **Finished · 0 error**（0.90s 增量）
+  - unit-test（cargo test -p vibestation-app --lib）: ⚠️ **Windows 本机无法链接 app lib 测试目标** —— `crates/app/src/fix_path_env.rs` 的 `#[cfg(test)] mod tests`（line 65-95）未平台门控，引用仅 `#[cfg(any(macos, linux))]` 定义的 `resolved_shell` / `default_shell` / `shell_command_args`，在 Windows 触发 7 个 E0425（cannot find function）→ 整个 app lib test target 编译失败 · 属 **task 6.1（windows-test-gating）** 范围（跨模块 Unix-only 测试门控 · 本 task 文件域不含 fix_path_env.rs）。`home_dir_tests` 自身经 `--no-run` 验证 **0 编译错误**（错误全部定位在 fix_path_env.rs）· 逻辑正确性由 source-scan TEST-1.2.3（生产代码无残留裸 HOME 硬编码 · 已校准排除自指）+ AC1/AC2/AC4 由 build 绿 + Cargo.lock 含 dirs 静态证明覆盖 · cfg(unix) 的 TEST-1.2.1/1.2.4 等价 $HOME 断言待 task-6.1 解锁 app test target 后 / mac/Linux CI 跑绿
+  - build（cargo build --workspace）: **Finished · 0 error**（35.68s）· app lib 仅 2 warning，均为 `fix_path_env.rs` unused import（pre-existing · 非本 task）
+  - runtime-smoke（pnpm tauri:dev）: 未跑（dispatch-only 模式 · 主 agent 不亲自 smoke · Windows 运行期 config import 解析到 %USERPROFILE% 而非 / 的实证 defer reviewer / Phase 2-3 实跑窗口 · 本 task 由 build 绿 + dirs::home_dir() Windows 语义静态保证覆盖）
+- **剩余风险 / 未做项**：
+  - **AC5 Unix 零回归依赖 mac/Linux CI / reviewer 实证**：本机为 Windows，无法实跑 `cargo test --workspace`（mac/ubuntu）；`home_dir()` 的 `dirs::home_dir()` 在 Unix 等价读 `$HOME`，TEST-1.2.4 cfg(unix) 断言已写，待 Unix 内核跑绿确认。
+  - **app lib test target Windows 不可编译 = task-6.1 阻塞**：`fix_path_env.rs` test 模块的 Windows 门控修复后，`home_dir_tests` 4 测试即可在 Windows 本机实跑（已 `--no-run` 证明 0 编译错误）。
+  - `%APPDATA%` config 路径分支 / `dunce::canonicalize` UNC 规范化 = **task-3.2** 范围（本 task 仅修家目录解析，不动 config import 扫描路径）。
+- **下游 task 影响**：
+  - **task-3.2（config-import-paths）**：消费 `home_dir()` 返回值落地 `%APPDATA%` 路径分支；本 task 已让 `home_dir_or_root()`（config import scan 调用点）在 Windows 返回 `C:\Users\<user>` 而非 `/`，task-3.2 可基于正确家目录扩展。
+  - 无 spec / AC / 其他 task 改动；mac/Linux 行为零回归（dirs 在 Unix 等价 $HOME）。

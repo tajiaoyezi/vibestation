@@ -1,15 +1,21 @@
 //! Alacritty 配置 parser · TOML 0.14+ 优先 · YAML 0.13- fallback
 //!
-//! 路径优先级（spec §Acceptance C）：
-//!   1. ~/.config/alacritty/alacritty.toml（0.14+）
-//!   2. ~/.config/alacritty/alacritty.yml（0.13- 已 deprecated 但仍有用户）
+//! 路径优先级（spec §Acceptance C · task-3.2 加 Windows 分支）：
+//!   - 非 Windows（macOS/Linux）：
+//!     1. ~/.config/alacritty/alacritty.toml（0.14+）
+//!     2. ~/.config/alacritty/alacritty.yml（0.13- 已 deprecated 但仍有用户）
+//!   - Windows：
+//!     1. %APPDATA%/alacritty/alacritty.toml
+//!     2. %APPDATA%/alacritty/alacritty.yml
+//!     3. ~/.config/alacritty/alacritty.toml（WSL fallback）
+//!     4. ~/.config/alacritty/alacritty.yml（WSL fallback）
 //!
 //! 字段：font.normal.family / font.size / colors / key_bindings
 //! key_bindings action 映射延后到 Phase B（如 Alacritty SpawnNewInstance → 无映射 warn）
 
 use super::{ConfigImportError, ImportSource, ImportedField, RawScanResult};
 use serde::Deserialize;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(default)]
@@ -321,5 +327,84 @@ key_bindings:
         assert!(
             matches!(&r.detected_fields[0], ImportedField::KeyBinding { key, action } if key == "Command|Shift+T" && action == "SpawnNewTab")
         );
+    }
+
+    // ─── task-3.2 · Windows 路径分支 ──────────────────────────────────────
+
+    /// TEST-3.2.1（AC1）：Windows 上 `%APPDATA%/alacritty/alacritty.toml`（含 `[font]`）
+    /// 命中 · `path_exists=true` + font 字段被 detect。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_1_windows_appdata_toml_detects() {
+        let appdata = tempfile::tempdir().unwrap();
+        let home = tempfile::tempdir().unwrap();
+        write_fixture(
+            appdata.path(),
+            "alacritty/alacritty.toml",
+            r#"
+            [font.normal]
+            family = "JetBrains Mono"
+            [font]
+            size = 13.0
+        "#,
+        );
+        let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
+        assert!(r.path_exists, "应命中 %APPDATA%/alacritty/alacritty.toml");
+        assert_eq!(r.detected_fields.len(), 2);
+        assert!(
+            matches!(&r.detected_fields[0], ImportedField::FontFamily(f) if f == "JetBrains Mono")
+        );
+    }
+
+    /// TEST-3.2.1b（AC1）：Windows 上 `%APPDATA%/alacritty/alacritty.yml` fallback 命中。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_1b_windows_appdata_yml_fallback() {
+        let appdata = tempfile::tempdir().unwrap();
+        let home = tempfile::tempdir().unwrap();
+        write_fixture(
+            appdata.path(),
+            "alacritty/alacritty.yml",
+            "font:\n  normal:\n    family: Fira Code\n  size: 11.0\n",
+        );
+        let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
+        assert!(r.path_exists, "应命中 %APPDATA%/alacritty/alacritty.yml");
+        assert_eq!(r.detected_fields.len(), 2);
+        assert!(matches!(&r.detected_fields[0], ImportedField::FontFamily(f) if f == "Fira Code"));
+    }
+
+    /// TEST-3.2.2（AC2）：Windows 上 `%APPDATA%` 无配置而 `~/.config/alacritty/alacritty.toml`
+    /// （WSL 风格）存在时 · fallback 仍命中。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_2_windows_dotconfig_fallback() {
+        let appdata = tempfile::tempdir().unwrap(); // 空
+        let home = tempfile::tempdir().unwrap();
+        write_fixture(
+            home.path(),
+            ".config/alacritty/alacritty.toml",
+            r#"
+            [font]
+            size = 12.0
+        "#,
+        );
+        let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
+        assert!(r.path_exists, "WSL fallback ~/.config/alacritty 应命中");
+        assert_eq!(r.detected_fields.len(), 1);
+    }
+
+    /// AC1 路径构造单测（Windows · 顺序：%APPDATA% toml → %APPDATA% yml → WSL toml → WSL yml）。
+    #[cfg(windows)]
+    #[test]
+    fn test_3_2_1_windows_candidates_order() {
+        let home = Path::new("C:\\Users\\alice");
+        let appdata = PathBuf::from("C:\\Users\\alice\\AppData\\Roaming");
+        let c = candidates_for(home, Some(appdata.clone()));
+        assert_eq!(c[0].0, appdata.join("alacritty/alacritty.toml"));
+        assert!(!c[0].1, "[0] 是 toml · is_yaml=false");
+        assert_eq!(c[1].0, appdata.join("alacritty/alacritty.yml"));
+        assert!(c[1].1, "[1] 是 yml · is_yaml=true");
+        assert_eq!(c[2].0, home.join(".config/alacritty/alacritty.toml"));
+        assert_eq!(c[3].0, home.join(".config/alacritty/alacritty.yml"));
     }
 }

@@ -151,6 +151,41 @@ mod tests {
         assert!(!r.path_exists);
     }
 
+    /// TEST-3.2.3（AC3）：非 macOS 平台（Windows/Linux）· iTerm2 macOS 独占 ·
+    /// `scan` 必须短路返回 `path_exists=false` + 空 `detected_fields` + 空 `errors` +
+    /// `path=None`（不构造任何 `Library/Preferences/...` 路径）· 即便 home 下恰好存在
+    /// 同名 plist 文件也不解析（短路语义优先）。
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn test_3_2_3_iterm2_non_macos_not_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        // 故意在 home 下放一个合法 plist · 验证非 macOS 仍短路不解析
+        let path = tmp
+            .path()
+            .join("Library/Preferences/com.googlecode.iterm2.plist");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>New Bookmarks</key>
+    <array>
+        <dict>
+            <key>Normal Font</key>
+            <string>JetBrains Mono 14</string>
+        </dict>
+    </array>
+</dict>
+</plist>"#;
+        std::fs::write(&path, xml).unwrap();
+        let r = scan(tmp.path());
+        assert!(!r.path_exists, "非 macOS 应短路 path_exists=false");
+        assert!(r.path.is_none(), "非 macOS 不应构造 path");
+        assert!(r.detected_fields.is_empty(), "非 macOS detected_fields 应空");
+        assert!(r.errors.is_empty(), "非 macOS errors 应空");
+        assert_eq!(r.source, ImportSource::ITerm2);
+    }
+
     #[test]
     fn scan_empty_profiles_array() {
         let tmp = tempfile::tempdir().unwrap();

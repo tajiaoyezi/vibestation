@@ -963,4 +963,61 @@ mod tests {
             "无效 shell 不应被持久化"
         );
     }
+
+    // ─── task-3.2 · prettify_home_path 平台感知（可注入 home · 不依赖真实 env）──
+
+    /// TEST-3.2.4（AC4）：Windows 上以 `USERPROFILE` 折叠家目录为 `~` 前缀。
+    /// 用可注入的 `prettify_home_path_with(p, home)` 显式传 home（spec §8 R2 ·
+    /// 不依赖真实环境变量 · CI 无 USERPROFILE 也稳定）。
+    #[test]
+    fn test_3_2_4_prettify_userprofile_tilde() {
+        // Windows 风格家目录 + 反斜杠子路径
+        let home = "C:\\Users\\alice";
+        let p = Path::new("C:\\Users\\alice\\AppData\\Roaming\\alacritty\\config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert!(
+            pretty.starts_with('~'),
+            "应折叠为 ~ 前缀 · 实际={pretty}"
+        );
+        assert!(
+            pretty.contains("alacritty"),
+            "应保留子路径 · 实际={pretty}"
+        );
+        assert!(
+            !pretty.contains("C:\\Users\\alice\\AppData"),
+            "不应再含完整家目录前缀 · 实际={pretty}"
+        );
+    }
+
+    /// TEST-3.2.4b（AC4 · 不命中原样返回）：path 不在 home 下时原样返回（不误折叠）。
+    #[test]
+    fn test_3_2_4b_prettify_non_home_unchanged() {
+        let home = "C:\\Users\\alice";
+        let p = Path::new("D:\\OtherDrive\\config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert_eq!(pretty, "D:\\OtherDrive\\config");
+    }
+
+    /// TEST-3.2.4c（AC4/AC6 · Unix 语义保持）：Unix 风格 home 折叠仍正确。
+    #[test]
+    fn test_3_2_4c_prettify_unix_home_unchanged() {
+        let home = "/Users/alice";
+        let p = Path::new("/Users/alice/.config/ghostty/config");
+        let pretty = prettify_home_path_with(p, Some(home.to_string()));
+        assert_eq!(pretty, "~/.config/ghostty/config");
+    }
+
+    /// TEST-3.2.4d（AC4 · home 缺失/空时原样返回）。
+    #[test]
+    fn test_3_2_4d_prettify_no_home_returns_raw() {
+        let p = Path::new("C:\\Users\\alice\\AppData\\Roaming\\x");
+        assert_eq!(
+            prettify_home_path_with(p, None),
+            "C:\\Users\\alice\\AppData\\Roaming\\x"
+        );
+        assert_eq!(
+            prettify_home_path_with(p, Some(String::new())),
+            "C:\\Users\\alice\\AppData\\Roaming\\x"
+        );
+    }
 }

@@ -877,9 +877,11 @@ mod tests {
     /// Finding 3: apply 是 transactional · 多字段同时写 · 全 commit 一致
     /// · applied 反映完整成功状态 · errors empty
     ///
-    /// task-3.2 note：fixture 硬编码 Unix shell `/bin/zsh` · apply 内 shell 可执行性
-    /// 校验（shell-existence 子系统 · task-2.1 territory · 非 config-path 范围）在
-    /// Windows 必失败（无 `/bin/zsh`）· 故 cfg-gate 到非 Windows（Unix shell 语义专属）。
+    /// task-3.2 note：本测试验多字段原子写入 · Shell 仅为 5 字段之一（偶然 fixture）·
+    /// 用 POSIX 保证存在的 `/bin/sh`（apply 内 shell 可执行性校验 = shell-existence
+    /// 子系统 · task-2.1 territory · 非 config-path 范围）· 原 `/bin/zsh` 在无 zsh 的
+    /// Unix CI runner（如 ubuntu-latest）必失败〔macOS 开发机默认有 zsh 故历史 PASS〕·
+    /// Windows 亦无 `/bin/sh` 故 cfg-gate 到非 Windows（Unix shell 语义专属）。
     #[cfg(not(windows))]
     #[test]
     fn apply_writes_multiple_fields_atomically() {
@@ -894,7 +896,7 @@ mod tests {
                     value: ThemeMode::Dark,
                 },
                 ImportFieldType::Shell {
-                    value: "/bin/zsh".to_string(),
+                    value: "/bin/sh".to_string(),
                 },
                 ImportFieldType::KeyBinding {
                     key: "Cmd+Shift+P".to_string(),
@@ -920,7 +922,7 @@ mod tests {
         assert_eq!(s.font_family, "JetBrains Mono");
         assert_eq!(s.font_size, 15); // 14.5 round → 15
         assert_eq!(s.theme, "dark");
-        assert_eq!(s.default_shell, "/bin/zsh");
+        assert_eq!(s.default_shell, "/bin/sh");
     }
 
     /// Issue #206 Important 1 修复：ThemeMode::parse_normalized 直接单测

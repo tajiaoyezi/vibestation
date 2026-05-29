@@ -1,6 +1,6 @@
 # Task `4.2`: `平台感知快捷键显示助手 + 替换硬编码 ⌘ 文案`
 
-**Status**: Ready
+**Status**: Done
 
 > Allowed values: `Draft` · `Ready` · `In Progress` · `Blocked` · `Waived` · `Done`。
 > 本项目 solo + unattended 模式：主 agent 兼 Arbiter，业务字段据 Windows 缺口调研（`spike-tmp/win-survey.json` 前端 subsystem · 9 处硬编码 ⌘ 精确行号）+ 实际源码填实，非编造，故直接 Ready。
@@ -146,11 +146,11 @@ placeholder={`Commit message… (${formatShortcut("⌘↵", "Ctrl+↵")} 提交)
 
 | Acceptance Criterion | BDD Scenario | TDD Test | Integration / E2E Test | Verification | Status |
 |---|---|---|---|---|---|
-| AC1 formatShortcut mac/非 mac 双路径 | SCEN-4.2.1 | TEST-4.2.1 `test_format_shortcut_per_platform` | N/A | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC2 8 处文案替换无残留裸 ⌘ | SCEN-4.2.2 | TEST-4.2.2 `test_no_hardcoded_cmd_symbol`（grep 断言测试） | 本机 §2.14 hover/右键 smoke | `pnpm --filter @vibestation/web exec vitest run` + grep | Not Started |
-| AC3 maximized chip CSS content 平台切换 | SCEN-4.2.3 | TEST-4.2.3 `test_maximized_chip_css_content`（解析 styles.css 断言含 windows 规则） | 本机 §2.14 maximize Pane smoke | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC4 mac 文案逐字零回归 | SCEN-4.2.4 | TEST-4.2.4 `test_mac_labels_unchanged` | mac 对照 smoke | `pnpm --filter @vibestation/web exec vitest run` | Not Started |
-| AC5 事件 helper 零改动 | SCEN-4.2.5 | TEST-4.2.5 `test_event_helpers_untouched`（git diff 断言 / 快照） | 本机 §2.14 实按键验证 | `pnpm typecheck` + 手工 diff 核对 | Not Started |
+| AC1 formatShortcut mac/非 mac 双路径 | SCEN-4.2.1 | TEST-4.2.1 `tests/lib/format-shortcut.test.ts`（isMacPlatform mac/Win/Linux + formatShortcut 双路径单键/组合键） | N/A | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC2 8 处文案替换无残留裸 ⌘ | SCEN-4.2.2 | TEST-4.2.2 `tests/lib/shortcut-replacement.test.ts`（读 6 源文件断言改调 formatShortcut）+ 全量 grep（见 §10 剩余项） | 本机 §2.14 hover/右键 smoke（defer） | `pnpm --filter @vibestation/web exec vitest run` + grep | Done |
+| AC3 maximized chip CSS content 平台切换 | SCEN-4.2.3 | TEST-4.2.3 `tests/lib/shortcut-replacement.test.ts`（解析 styles.css 断言含 `:root[data-platform="windows"]` Ctrl+Enter 规则 + 默认 ⌘Enter 保留） | 本机 §2.14 maximize Pane smoke（defer） | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC4 mac 文案逐字零回归 | SCEN-4.2.4 | TEST-4.2.4 `tests/lib/format-shortcut.test.ts`（mac 路径 ⌘B/⌘⇧O/⌘⌃W/⌘↵/⌘\/⌘⇧\/⌘, 逐字返回原符号） | mac 对照 smoke（defer） | `pnpm --filter @vibestation/web exec vitest run` | Done |
+| AC5 事件 helper 零改动 | SCEN-4.2.5 | TEST-4.2.5 `git diff` 断言（见 §10：usePaneShortcuts/mvp17-keyboard/pane-keyboard/usePaneNavigation/hooks 对 origin/main 与 HEAD 均 0 diff） | 本机 §2.14 实按键验证（defer） | `pnpm typecheck` + 手工 diff 核对 | Done |
 
 ## 8. Risks
 
@@ -173,28 +173,36 @@ placeholder={`Commit message… (${formatShortcut("⌘↵", "Ctrl+↵")} 提交)
 
 ## 10. Completion Notes
 
-- **完成日期**：<TBD-after-impl>
+- **完成日期**：2026-05-29
 - **改动文件**：
-  - `web/src/lib/format-shortcut.ts`（新增 · formatShortcut + isMacPlatform）
-  - `web/src/components/TopBar.tsx`（修改）
-  - `web/src/components/ActivityStrip.tsx`（修改）
-  - `web/src/panels/Terminal/PaneTerminal.tsx`（修改）
-  - `web/src/panels/CommitBar/CommitBar.tsx`（修改）
-  - `web/src/App.tsx`（修改）
-  - `web/src/dialogs/ConfigImport/ConfigImportDialog.tsx`（修改）
-  - `web/src/panels/Terminal/styles.css`（修改 · data-platform CSS content）
-  - `web/src/lib/format-shortcut.test.ts`（新增 · RED 测试）
+  - `web/src/lib/format-shortcut.ts`（新增 · formatShortcut + isMacPlatform · import 用相对 `./platform`）
+  - `web/src/components/TopBar.tsx`（修改 · ⌘B title）
+  - `web/src/components/ActivityStrip.tsx`（修改 · ⌘2 / ⌘J shortcut）
+  - `web/src/panels/Terminal/PaneTerminal.tsx`（修改 · context menu ⌘⇧O/⌘⇧D/⌘⌃W + 按钮 title ⌘\/⌘⇧\/⌘⌃W）
+  - `web/src/panels/CommitBar/CommitBar.tsx`（修改 · ⌘↵ placeholder）
+  - `web/src/App.tsx`（修改 · ⌘, settings title）
+  - `web/src/dialogs/ConfigImport/ConfigImportDialog.tsx`（修改 · ⌘T/⌘W/⌘D/⌘⇧D/⌘, help text）
+  - `web/src/panels/Terminal/styles.css`（修改 · `:root[data-platform="windows"]` chip content）
+  - `web/src/index.tsx`（修改 · `@/lib/platform` → 相对 `./lib/platform`，与 src 约定一致）
+  - `web/tests/lib/format-shortcut.test.ts`（新增 · RED helper 单测）
+  - `web/tests/lib/shortcut-replacement.test.ts`（新增 · 文件级 grep/CSS 断言 TEST-4.2.2/4.2.3）
+  - 注：测试落 `web/tests/` 而非 spec 草拟 `web/src/lib/...test.ts`（vitest include 仅收 `tests/**`）。
 - **commit 列表**：
-  - `<TBD-after-impl>` test: 加 SCEN-4.2.1~4.2.5 RED 测试
-  - `<TBD-after-impl>` feat: 实现 formatShortcut + 替换 8 处文案 + styles.css 平台条件化
-  - `<TBD-after-impl>` refactor:（如有）
-- **§9 Verification 结果**：
-  - install: <TBD-after-impl>
-  - lint: <TBD-after-impl>
-  - typecheck: <TBD-after-impl>
-  - unit-test: <TBD-after-impl>
-  - build: <TBD-after-impl>
-  - runtime-smoke: <TBD-after-impl>
-  - manual: <TBD-after-impl>
-- **剩余风险 / 未做项**：<TBD-after-impl>（含 `pane-keyboard.ts:141-143` 注释措辞是否一并清晰化）
-- **下游 task 影响**：<TBD-after-impl>（Phase 6 vitest 矩阵覆盖本 helper）
+  - `6cd3369` test(task-4.2): 加 SCEN-4.2.1/4.2.4 RED 测试 + format-shortcut.ts 桩
+  - `e735fb6` feat(task-4.2): 实现 formatShortcut + 替换 8 处硬编码 ⌘ + styles.css 平台条件化
+  - refactor: 无
+- **非 mac 文案与实际键盘绑定对齐**（消除认知摩擦核心）：Close=`Ctrl+Alt+W`（对 usePaneShortcuts isOtherCloseCombo · 非 Ctrl+Shift+W）· split=`Ctrl+\` / `Ctrl+Shift+\`（对 usePaneShortcuts）· pop/detach=`Ctrl+Shift+O` / `Ctrl+Shift+D`（对 mvp17-keyboard）· commit=`Ctrl+Enter`（对 CommitBar handleKeyDown metaKey||ctrlKey）。
+- **§9 Verification 结果**（2026-05-29 · 前端 pnpm 命令）：
+  - install: pnpm install --frozen-lockfile — 既有 node_modules，无需重装
+  - lint: `pnpm lint`（prettier --check）— 我改的 13 文件单独 `prettier --check` 全 PASS（All matched files use Prettier code style!）；`pnpm lint` 全量报 121 文件 fail 系 **pre-existing**（origin/main 基线即 122 文件 fail · 与本 task 无关 · 本项目 `pnpm lint` scope = src/\*\* + index.html · 历史未全量 prettier 化）
+  - typecheck: `pnpm typecheck`（tsc --noEmit）— PASS · 0 error
+  - unit-test: `pnpm --filter @vibestation/web exec vitest run`（全量）— 本 task 3 测试文件 23 passed（platform 6 + format-shortcut 11 + shortcut-replacement 6）；全量 314 tests = **307 passed / 7 failed**。7 failed 均 **pre-existing 环境失败**（23 个 SolidJS .tsx 组件 suite 在本机 transform/import 层 fail + validate-runtime-evidence.test.ts Windows 临时路径 ENOENT）· 经 origin/main detached worktree 基线核对：baseline 291 tests = **284 passed / 7 failed** 同样 7 个 · 本 task 净增 **+23 passing / +3 test file · 0 新失败 · 0 回归**
+  - build: 未单跑（typecheck = tsc --noEmit 已覆盖 build 的类型阶段 · vite build 同栈已在 4.1 期间验过一次 PASS）
+  - runtime-smoke: defer（pnpm tauri:dev · hover TopBar=Ctrl+B / 右键=Ctrl+Shift+O / placeholder=Ctrl+Enter / maximize chip=Ctrl+Enter · 留 Arbiter §2.14 窗口）
+  - manual: defer（同 runtime-smoke · mac 对照仍显 ⌘）
+- **剩余风险 / 未做项**：
+  1. **R-4.2-d 全量 grep 发现 survey 未列的 3 处 user-facing 裸 ⌘**（survey 9 项之外）：`components/BottomPanel.tsx:39` `<span class="vs-kbd-tip">⌘J</span>` · `panels/GitLog/GitLogPanel.tsx:1424` `<span class="vs-kbd-tip">⌘2</span>` · `panels/Terminal/SmartLayoutMenu.tsx:266` 内联文案「先 ⌘\ 分屏」。**本 task 未改**（dispatch 硬约束「只动」限定的授权文件清单不含此 3 文件 · 按 R-4.2-d「记 §10 剩余风险」处理）· 建议后续小 follow-up task 用同 formatShortcut helper 收口（低风险 · 同模式）。
+  2. 代码注释里的 ⌘（pane-keyboard.ts:142 / mvp17-keyboard.ts:4-5 / usePaneShortcuts.ts 等）非 user-facing · 按 AC2 scope（title/placeholder/aria-label/context-menu shortcut）排除 · 不动。
+  3. `pane-keyboard.ts:141-143` 注释措辞优化（spec Out Of Scope low）· 未做。
+  4. runtime-smoke / manual GUI 目视确认 defer Arbiter §2.14 窗口。
+- **下游 task 影响**：Phase 6 vitest 矩阵可直接覆盖本 helper（format-shortcut.test.ts 已就位）。helper + isMacPlatform 复用 4.1 detectPlatform 单 source · 后续新增快捷键提示统一走 formatShortcut。

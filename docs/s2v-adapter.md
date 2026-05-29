@@ -153,7 +153,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 | 1 | `foundation-build` | `docs/specs/phases/phase-1-foundation-build.md` | Draft | 3 | `-` |
 | 2 | `shell-runtime` | `docs/specs/phases/phase-2-shell-runtime.md` | Draft | 2 | `-` |
 | 3 | `terminal-integration` | `docs/specs/phases/phase-3-terminal-integration.md` | Draft | 4 | `-` |
-| 4 | `frontend-platform` | `docs/specs/phases/phase-4-frontend-platform.md` | Draft | 2 | `-` |
+| 4 | `frontend-platform` | `docs/specs/phases/phase-4-frontend-platform.md` | Done | 2 | `-` |
 | 5 | `build-package-ci` | `docs/specs/phases/phase-5-build-package-ci.md` | Draft | 3 | `-` |
 | 6 | `integration-matrix` | `docs/specs/phases/phase-6-integration-matrix.md` | Draft | 2 | `-` |
 
@@ -173,7 +173,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 | 3.3 | keybinding | docs/specs/tasks/task-3.3-keybinding-platform.md | Done | 依赖 1.1 | `-` |
 | 3.4 | fs_watch | docs/specs/tasks/task-3.4-fs-watch-windows.md | Done | 依赖 1.1 | `-` |
 | 4.1 | web-platform | docs/specs/tasks/task-4.1-platform-windows-class.md | Done | 纯前端 · 无 Rust 依赖 | `-` |
-| 4.2 | web-shortcuts | docs/specs/tasks/task-4.2-shortcut-display.md | Draft | 依赖 4.1 | `-` |
+| 4.2 | web-shortcuts | docs/specs/tasks/task-4.2-shortcut-display.md | Done | 依赖 4.1 | `-` |
 | 5.1 | tauri-bundle | docs/specs/tasks/task-5.1-windows-bundle.md | Draft | 依赖 1.1 | `-` |
 | 5.2 | ci | docs/specs/tasks/task-5.2-windows-ci-matrix.md | Draft | 依赖 1.1, 2.1 | `-` |
 | 5.3 | app-window | docs/specs/tasks/task-5.3-prepare-titlebar.md | Draft | 依赖 1.1 | `-` |

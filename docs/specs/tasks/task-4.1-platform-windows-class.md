@@ -164,7 +164,7 @@ export function applyPlatformClass(
   - install: pnpm install --frozen-lockfile — lockfile 已就绪，无需重装（既有 node_modules）
   - lint: `pnpm lint`（prettier --check）— PASS · All matched files use Prettier code style!
   - typecheck: `pnpm typecheck`（tsc --noEmit）— PASS · 0 error
-  - unit-test: `pnpm --filter @vibestation/web exec vitest run`（全量）— 见 §9 末两 task 合并结果（platform.test.ts 单跑 6 passed）
+  - unit-test: `pnpm --filter @vibestation/web exec vitest run`（全量）— platform.test.ts 6 passed；全量 314 tests = 307 passed / 7 failed（7 failed 均为 pre-existing 环境失败 · 与本 task 无关 · 经 origin/main detached worktree 基线核对：baseline 291 tests = 284 passed / 7 failed 同样 7 个失败 · 本 task 净增 +6 passing 无回归）
   - build: 未单跑（typecheck 已覆盖 tsc · build = tsc + vite build · 同栈）
   - runtime-smoke: defer（pnpm tauri:dev / DevTools 查 `<html>` class · 留 Arbiter §2.14 窗口）
   - manual: defer（同 runtime-smoke）

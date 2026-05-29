@@ -171,7 +171,7 @@ TS:    it("TEST-X.Y.Z: <描述>", ...)
 | 3.1 | external_term | docs/specs/tasks/task-3.1-external-term-windows.md | Done | 依赖 1.1 | `-` |
 | 3.2 | config_import | docs/specs/tasks/task-3.2-config-import-paths.md | Draft | 依赖 1.2 | `-` |
 | 3.3 | keybinding | docs/specs/tasks/task-3.3-keybinding-platform.md | Draft | 依赖 1.1 | `-` |
-| 3.4 | fs_watch | docs/specs/tasks/task-3.4-fs-watch-windows.md | Draft | 依赖 1.1 | `-` |
+| 3.4 | fs_watch | docs/specs/tasks/task-3.4-fs-watch-windows.md | Done | 依赖 1.1 | `-` |
 | 4.1 | web-platform | docs/specs/tasks/task-4.1-platform-windows-class.md | Draft | 纯前端 · 无 Rust 依赖 | `-` |
 | 4.2 | web-shortcuts | docs/specs/tasks/task-4.2-shortcut-display.md | Draft | 依赖 4.1 | `-` |
 | 5.1 | tauri-bundle | docs/specs/tasks/task-5.1-windows-bundle.md | Draft | 依赖 1.1 | `-` |

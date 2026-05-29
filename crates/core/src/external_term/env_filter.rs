@@ -227,4 +227,48 @@ mod tests {
             format!("{}...", "a".repeat(40))
         );
     }
+
+    // TEST-3.1.4 (AC4) — Windows WHITELIST surfaces COMSPEC / PATHEXT.
+    #[cfg(windows)]
+    #[test]
+    fn test_3_1_4_windows_env_whitelist_comspec() {
+        let preview = filter_env(&env(&[
+            ("COMSPEC", r"C:\Windows\System32\cmd.exe"),
+            ("PATHEXT", ".COM;.EXE;.BAT;.CMD"),
+            ("USERPROFILE", r"C:\Users\leaf"),
+        ]));
+
+        let visible: Vec<&str> = preview
+            .visible_entries
+            .iter()
+            .map(|entry| entry.key.as_str())
+            .collect();
+        assert!(
+            visible.contains(&"COMSPEC"),
+            "COMSPEC must be whitelisted on Windows, got {visible:?}"
+        );
+        assert!(
+            visible.contains(&"PATHEXT"),
+            "PATHEXT must be whitelisted on Windows, got {visible:?}"
+        );
+        assert_eq!(preview.filtered_count, 0);
+    }
+
+    // TEST-3.1.4 (AC4) — Unix WHITELIST keeps SHELL (zero regression).
+    #[cfg(not(windows))]
+    #[test]
+    fn unix_env_whitelist_keeps_shell() {
+        assert!(
+            WHITELIST.contains(&"SHELL"),
+            "SHELL must stay whitelisted on Unix"
+        );
+
+        let preview = filter_env(&env(&[("SHELL", "/bin/zsh")]));
+        assert_eq!(
+            preview.visible_entries.len(),
+            1,
+            "SHELL must remain visible on Unix"
+        );
+        assert_eq!(preview.visible_entries[0].key, "SHELL");
+    }
 }

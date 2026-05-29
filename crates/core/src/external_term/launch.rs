@@ -423,4 +423,85 @@ mod tests {
             );
         }
     }
+
+    // TEST-3.1.2 (AC2) — Windows launch recipes.
+    #[test]
+    fn test_3_1_2_windows_launch_recipes() {
+        let cwd = Path::new(r"C:\Users\leaf\project");
+
+        // windows-terminal → wt.exe with cwd present.
+        let wt = build_launch_command("windows-terminal", cwd, "pwsh.exe", Platform::Windows)
+            .expect("windows-terminal should be supported on Windows");
+        assert!(
+            wt.program.contains("wt.exe"),
+            "program should be wt.exe, got {}",
+            wt.program
+        );
+        assert!(
+            wt.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "wt args should contain cwd, got {:?}",
+            wt.args
+        );
+
+        // pwsh → pwsh.exe program.
+        let pwsh = build_launch_command("pwsh", cwd, "pwsh.exe", Platform::Windows)
+            .expect("pwsh should be supported on Windows");
+        assert_eq!(pwsh.program, "pwsh.exe");
+        assert!(
+            pwsh.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "pwsh args should contain cwd, got {:?}",
+            pwsh.args
+        );
+
+        // conhost/cmd → cmd.exe based recipe.
+        let conhost = build_launch_command("conhost", cwd, "cmd.exe", Platform::Windows)
+            .expect("conhost should be supported on Windows");
+        assert!(
+            conhost.program.contains("cmd.exe") || conhost.program.contains("conhost"),
+            "conhost recipe should be cmd.exe/conhost based, got {}",
+            conhost.program
+        );
+        assert!(
+            conhost.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            "conhost args should contain cwd, got {:?}",
+            conhost.args
+        );
+    }
+
+    // TEST-3.1.2 (AC2) — macOS-only terminals are unsupported on Windows.
+    #[test]
+    fn windows_macos_only_terminals_are_unsupported() {
+        let cwd = Path::new(r"C:\Users\leaf\project");
+
+        for terminal_id in ["iterm2", "terminal-app", "gnome-terminal", "konsole"] {
+            let result = build_launch_command(terminal_id, cwd, "pwsh.exe", Platform::Windows);
+            assert!(
+                matches!(
+                    result,
+                    Err(LaunchError::UnsupportedCombination { platform, .. })
+                        if platform == Platform::Windows
+                ),
+                "{terminal_id} should be UnsupportedCombination on Windows, got {result:?}"
+            );
+        }
+    }
+
+    // TEST-3.1.2 (AC2) — Windows cwd with spaces stays a single argument.
+    #[test]
+    fn windows_paths_with_spaces_remain_single_arguments() {
+        let cwd = PathBuf::from(r"C:\Users\leaf\My Project");
+
+        for terminal_id in ["windows-terminal", "pwsh", "conhost"] {
+            let command =
+                build_launch_command(terminal_id, &cwd, "pwsh.exe", Platform::Windows).unwrap();
+            assert!(
+                command
+                    .args
+                    .iter()
+                    .any(|arg| arg.contains(r"C:\Users\leaf\My Project")),
+                "{terminal_id} on Windows should preserve cwd with spaces as one arg, got {:?}",
+                command.args
+            );
+        }
+    }
 }

@@ -476,4 +476,61 @@ mod tests {
 
         assert!(detect_terminals_with_context(&ctx).is_empty());
     }
+
+    // TEST-3.1.1 (AC1) — Windows detect returns non-empty list with wt / pwsh.
+    #[test]
+    fn test_3_1_1_windows_detect_returns_wt_pwsh() {
+        let mut ctx = ctx(DetectionPlatform::Windows);
+        ctx.path_bins = vec!["wt".to_string(), "pwsh".to_string()];
+
+        let detected = ids(&detect_terminals_with_context(&ctx));
+        assert!(!detected.is_empty(), "Windows detection must be non-empty");
+        assert!(
+            detected.contains(&"windows-terminal"),
+            "expected windows-terminal in {detected:?}"
+        );
+        assert!(detected.contains(&"pwsh"), "expected pwsh in {detected:?}");
+    }
+
+    // TEST-3.1.1 (AC1) — conhost is a built-in baseline always detected on Windows.
+    #[test]
+    fn windows_conhost_is_detected_as_builtin_baseline() {
+        let ctx = ctx(DetectionPlatform::Windows);
+
+        // No path_bins injected; conhost/cmd ships with Windows so it is always present.
+        let detected = ids(&detect_terminals_with_context(&ctx));
+        assert!(
+            detected.contains(&"conhost"),
+            "conhost must always be detected on Windows, got {detected:?}"
+        );
+    }
+
+    // TEST-3.1.1 (AC1) — a not-installed terminal must not appear.
+    #[test]
+    fn windows_uninstalled_terminal_is_absent() {
+        let ctx = ctx(DetectionPlatform::Windows);
+
+        // pwsh not in path_bins => must not be reported as detected.
+        let detected = ids(&detect_terminals_with_context(&ctx));
+        assert!(
+            !detected.contains(&"pwsh"),
+            "pwsh must be absent when not installed, got {detected:?}"
+        );
+    }
+
+    // TEST-3.1.5 (AC5) — command_exists probe selection: where on Windows, which on Unix.
+    #[test]
+    fn test_3_1_5_command_exists_platform_probe() {
+        assert_eq!(command_exists_probe(), expected_probe_for_current_platform());
+    }
+
+    #[cfg(windows)]
+    fn expected_probe_for_current_platform() -> &'static str {
+        "where"
+    }
+
+    #[cfg(not(windows))]
+    fn expected_probe_for_current_platform() -> &'static str {
+        "which"
+    }
 }

@@ -4,9 +4,9 @@
 //! 格式：binary plist（默认 · 魔数 bplist00）· fallback text plist
 //! 字段：Default Bookmark Guid → 找到 default profile → 提取 Normal Font / Non Ascii Font / ANSI Color N / Shell / Command
 
-use super::{ImportSource, RawScanResult};
 #[cfg(target_os = "macos")]
 use super::{ConfigImportError, ImportedField};
+use super::{ImportSource, RawScanResult};
 use std::path::Path;
 
 pub fn scan(home: &Path) -> RawScanResult {
@@ -210,7 +210,10 @@ mod tests {
         let r = scan(tmp.path());
         assert!(!r.path_exists, "非 macOS 应短路 path_exists=false");
         assert!(r.path.is_none(), "非 macOS 不应构造 path");
-        assert!(r.detected_fields.is_empty(), "非 macOS detected_fields 应空");
+        assert!(
+            r.detected_fields.is_empty(),
+            "非 macOS detected_fields 应空"
+        );
         assert!(r.errors.is_empty(), "非 macOS errors 应空");
         assert_eq!(r.source, ImportSource::ITerm2);
     }

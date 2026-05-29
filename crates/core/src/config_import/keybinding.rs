@@ -290,19 +290,31 @@ mod tests {
 
     #[test]
     fn canonical_simple_lowercase() {
-        assert_eq!(canonicalize_keybinding_for("cmd+t", KeyPlatform::Mac), "Cmd+T");
+        assert_eq!(
+            canonicalize_keybinding_for("cmd+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
     }
 
     #[test]
     fn canonical_unicode_modifier() {
         assert_eq!(canonicalize_keybinding_for("⌘T", KeyPlatform::Mac), "Cmd+T");
-        assert_eq!(canonicalize_keybinding_for("⌘+t", KeyPlatform::Mac), "Cmd+T");
+        assert_eq!(
+            canonicalize_keybinding_for("⌘+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
     }
 
     #[test]
     fn canonical_meta_alias_for_cmd() {
-        assert_eq!(canonicalize_keybinding_for("Meta+t", KeyPlatform::Mac), "Cmd+T");
-        assert_eq!(canonicalize_keybinding_for("super+t", KeyPlatform::Mac), "Cmd+T");
+        assert_eq!(
+            canonicalize_keybinding_for("Meta+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
+        assert_eq!(
+            canonicalize_keybinding_for("super+t", KeyPlatform::Mac),
+            "Cmd+T"
+        );
         assert_eq!(
             canonicalize_keybinding_for("command+t", KeyPlatform::Mac),
             "Cmd+T"
@@ -373,7 +385,10 @@ mod tests {
     #[test]
     fn canonical_punctuation_key() {
         // `,` 字符不变（非字母）· Mac 分支
-        assert_eq!(canonicalize_keybinding_for("cmd+,", KeyPlatform::Mac), "Cmd+,");
+        assert_eq!(
+            canonicalize_keybinding_for("cmd+,", KeyPlatform::Mac),
+            "Cmd+,"
+        );
     }
 
     #[test]
@@ -489,10 +504,7 @@ mod tests {
             canonicalize_keybinding_for("meta+t", KeyPlatform::Mac),
             "Cmd+T"
         );
-        assert_eq!(
-            canonicalize_keybinding_for("⌘T", KeyPlatform::Mac),
-            "Cmd+T"
-        );
+        assert_eq!(canonicalize_keybinding_for("⌘T", KeyPlatform::Mac), "Cmd+T");
     }
 
     /// TEST-3.3.2（AC2）：`vibestation_builtins_for(Other)` 全为 `Ctrl+...` ·
@@ -551,10 +563,7 @@ mod tests {
             canonicalize_keybinding_for("Meta+t", KeyPlatform::Mac),
             "Cmd+T"
         );
-        assert_eq!(
-            canonicalize_keybinding_for("⌘T", KeyPlatform::Mac),
-            "Cmd+T"
-        );
+        assert_eq!(canonicalize_keybinding_for("⌘T", KeyPlatform::Mac), "Cmd+T");
         let hits = detect_conflicts_for(
             &[("cmd+t".to_string(), "new_tab".to_string())],
             KeyPlatform::Mac,

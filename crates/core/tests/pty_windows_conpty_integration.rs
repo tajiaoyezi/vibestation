@@ -90,9 +90,7 @@ fn recv_until_contains(
                 if output.to_ascii_lowercase().contains(&needle_lower) {
                     return output;
                 }
-                panic!(
-                    "tab {tab_id} exited before producing {needle:?} · got output: {output:?}"
-                );
+                panic!("tab {tab_id} exited before producing {needle:?} · got output: {output:?}");
             }
             Ok(_) => continue,
             Err(RecvTimeoutError::Timeout) => {
@@ -246,7 +244,12 @@ fn test_2_2_4_signal_terminate_kills_conpty_child() {
     spawn_cmd(&manager, "conpty-signal");
 
     // 让 cmd.exe 越过 DSR 握手跑起来 · 不写 exit · 保持存活
-    pump_dsr(&manager, &events, "conpty-signal", Duration::from_millis(800));
+    pump_dsr(
+        &manager,
+        &events,
+        "conpty-signal",
+        Duration::from_millis(800),
+    );
 
     // signal SIGTERM → Windows 退化为 child.kill()（TerminateProcess · 无 libc）
     manager

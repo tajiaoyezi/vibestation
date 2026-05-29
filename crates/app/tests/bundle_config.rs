@@ -7,8 +7,8 @@ use std::path::PathBuf;
 /// 读取 crates/app/tauri.conf.json 并解析为 serde_json::Value
 fn load_tauri_conf() -> Value {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tauri.conf.json");
-    let raw = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    let raw =
+        std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
     serde_json::from_str(&raw).expect("tauri.conf.json must be valid JSON")
 }
 

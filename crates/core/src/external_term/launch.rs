@@ -174,11 +174,7 @@ pub fn build_launch_command(
             // pwsh.exe -NoExit -WorkingDirectory <cwd> · 进入交互式会话且不退出。
             Platform::Windows => Ok(LaunchCommand {
                 program: "pwsh.exe".to_string(),
-                args: vec![
-                    "-NoExit".to_string(),
-                    "-WorkingDirectory".to_string(),
-                    cwd,
-                ],
+                args: vec!["-NoExit".to_string(), "-WorkingDirectory".to_string(), cwd],
             }),
             Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
         },
@@ -186,11 +182,7 @@ pub fn build_launch_command(
             // cmd.exe /D /K cd /d <cwd> · /D 跳过 AutoRun，/K 执行后保留窗口，cd /d 切到 cwd。
             Platform::Windows => Ok(LaunchCommand {
                 program: "cmd.exe".to_string(),
-                args: vec![
-                    "/D".to_string(),
-                    "/K".to_string(),
-                    format!("cd /d {cwd}"),
-                ],
+                args: vec!["/D".to_string(), "/K".to_string(), format!("cd /d {cwd}")],
             }),
             Platform::Macos | Platform::Linux => unsupported(terminal_id, platform),
         },
@@ -477,7 +469,9 @@ mod tests {
             wt.program
         );
         assert!(
-            wt.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            wt.args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
             "wt args should contain cwd, got {:?}",
             wt.args
         );
@@ -487,7 +481,9 @@ mod tests {
             .expect("pwsh should be supported on Windows");
         assert_eq!(pwsh.program, "pwsh.exe");
         assert!(
-            pwsh.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            pwsh.args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
             "pwsh args should contain cwd, got {:?}",
             pwsh.args
         );
@@ -501,7 +497,10 @@ mod tests {
             conhost.program
         );
         assert!(
-            conhost.args.iter().any(|arg| arg.contains(r"C:\Users\leaf\project")),
+            conhost
+                .args
+                .iter()
+                .any(|arg| arg.contains(r"C:\Users\leaf\project")),
             "conhost args should contain cwd, got {:?}",
             conhost.args
         );

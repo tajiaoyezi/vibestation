@@ -474,7 +474,10 @@ keybind = cmd+t=new_tab
         let home = tempfile::tempdir().unwrap();
         write_fixture(home.path(), ".config/ghostty/config", r#"font_size = 16"#);
         let r = scan_with_appdata(home.path(), Some(appdata.path().to_path_buf()));
-        assert!(r.path_exists, "WSL fallback ~/.config/ghostty/config 应命中");
+        assert!(
+            r.path_exists,
+            "WSL fallback ~/.config/ghostty/config 应命中"
+        );
         assert_eq!(r.detected_fields.len(), 1);
     }
 

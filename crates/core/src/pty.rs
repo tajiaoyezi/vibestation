@@ -2485,7 +2485,10 @@ mod tests {
             );
         }
         // 本机三件套至少 cmd 必在
-        let labels: Vec<String> = shells.iter().map(|s| s.label.to_ascii_lowercase()).collect();
+        let labels: Vec<String> = shells
+            .iter()
+            .map(|s| s.label.to_ascii_lowercase())
+            .collect();
         assert!(
             labels.iter().any(|l| l == "cmd"),
             "列表应含 cmd · got {labels:?}"
@@ -2513,10 +2516,7 @@ mod tests {
         for ext in ["exe", "bat", "cmd", "com", "EXE", "Cmd"] {
             let f = dir.path().join(format!("tool.{ext}"));
             std::fs::write(&f, b"x").unwrap();
-            assert!(
-                is_executable_file(&f),
-                ".{ext} 应判可执行 · {f:?}"
-            );
+            assert!(is_executable_file(&f), ".{ext} 应判可执行 · {f:?}");
         }
         // 无可执行扩展名的普通文件 → false
         let txt = dir.path().join("notes.txt");

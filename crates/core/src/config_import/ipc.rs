@@ -1007,14 +1007,8 @@ mod tests {
         let home = "C:\\Users\\alice";
         let p = Path::new("C:\\Users\\alice\\AppData\\Roaming\\alacritty\\config");
         let pretty = prettify_home_path_with(p, Some(home.to_string()));
-        assert!(
-            pretty.starts_with('~'),
-            "应折叠为 ~ 前缀 · 实际={pretty}"
-        );
-        assert!(
-            pretty.contains("alacritty"),
-            "应保留子路径 · 实际={pretty}"
-        );
+        assert!(pretty.starts_with('~'), "应折叠为 ~ 前缀 · 实际={pretty}");
+        assert!(pretty.contains("alacritty"), "应保留子路径 · 实际={pretty}");
         assert!(
             !pretty.contains("C:\\Users\\alice\\AppData"),
             "不应再含完整家目录前缀 · 实际={pretty}"

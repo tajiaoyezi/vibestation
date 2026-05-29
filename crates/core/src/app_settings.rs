@@ -537,7 +537,10 @@ mod tests {
     #[test]
     fn test_1_3_3_windows_default_is_cmd() {
         let shell = AppSettings::default().default_shell;
-        assert_eq!(shell, "cmd.exe", "Windows 默认 shell 占位应为 cmd.exe（ADR-003）");
+        assert_eq!(
+            shell, "cmd.exe",
+            "Windows 默认 shell 占位应为 cmd.exe（ADR-003）"
+        );
         assert!(
             !shell.starts_with("/bin/"),
             "Windows 默认 shell 绝不应是 Unix 路径（/bin/bash 在 Windows 不存在 → PTY spawn 立即失败），实际={shell}"
@@ -550,8 +553,14 @@ mod tests {
     fn test_1_3_4_unix_default_unchanged() {
         let shell = AppSettings::default().default_shell;
         #[cfg(target_os = "macos")]
-        assert_eq!(shell, "/bin/zsh", "macOS 默认 shell 必须保持 /bin/zsh（零回归）");
+        assert_eq!(
+            shell, "/bin/zsh",
+            "macOS 默认 shell 必须保持 /bin/zsh（零回归）"
+        );
         #[cfg(not(target_os = "macos"))]
-        assert_eq!(shell, "/bin/bash", "Linux 默认 shell 必须保持 /bin/bash（零回归）");
+        assert_eq!(
+            shell, "/bin/bash",
+            "Linux 默认 shell 必须保持 /bin/bash（零回归）"
+        );
     }
 }

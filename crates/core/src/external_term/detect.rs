@@ -620,7 +620,10 @@ mod tests {
     // TEST-3.1.5 (AC5) — command_exists probe selection: where on Windows, which on Unix.
     #[test]
     fn test_3_1_5_command_exists_platform_probe() {
-        assert_eq!(command_exists_probe(), expected_probe_for_current_platform());
+        assert_eq!(
+            command_exists_probe(),
+            expected_probe_for_current_platform()
+        );
     }
 
     #[cfg(windows)]

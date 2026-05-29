@@ -1283,9 +1283,11 @@ pub(crate) enum WindowsSignal {
 }
 
 #[cfg(windows)]
-fn parse_signal_windows(_signal: &str) -> Result<WindowsSignal, PtyError> {
-    // RED stub（task-1.1 · 待 GREEN 填实信号名校验 · 当前不拒绝未知信号 → test_1_1_3 FAIL）
-    Ok(WindowsSignal::Kill)
+fn parse_signal_windows(signal: &str) -> Result<WindowsSignal, PtyError> {
+    match signal {
+        "SIGINT" | "SIGTERM" | "SIGTSTP" | "SIGKILL" => Ok(WindowsSignal::Kill),
+        _ => Err(PtyError::InvalidSignal(signal.to_string())),
+    }
 }
 
 fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
@@ -1459,9 +1461,10 @@ fn is_executable_file(path: &Path) -> bool {
 /// Windows 无 POSIX 执行位（ADR-001 + spec §5.3）· 退化为"是否为存在的文件"。
 /// .exe/.bat/.cmd 等的真正可执行判定（扩展名 + 注册表）defer Phase 2 task-2.1。
 #[cfg(windows)]
-fn is_executable_file(_path: &Path) -> bool {
-    // RED stub（task-1.1 · 待 GREEN 填实 is_file 判定 · 当前恒 false → windows_is_executable_file FAIL）
-    false
+fn is_executable_file(path: &Path) -> bool {
+    std::fs::metadata(path)
+        .map(|metadata| metadata.is_file())
+        .unwrap_or(false)
 }
 
 fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
@@ -1485,8 +1488,11 @@ fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {
     }
     #[cfg(target_os = "windows")]
     {
-        // RED stub（task-1.1 · 待 GREEN 改回 None · 当前返回 Some 占位 → test_1_1_4 FAIL）
-        Some(PathBuf::from(format!("\\\\stub\\{process_id}")))
+        // PRD §Out of Scope · ConPTY 无 /proc/lsof 等价物 · 显式返回 None ·
+        // 由 spawn-time 缓存的 initial_cwd 兜底（见 PtySession::working_directory）·
+        // 精确实现（Windows API 查询）defer · ADR-001 OQ3。
+        let _ = process_id;
+        None
     }
     #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
     {

@@ -10,6 +10,8 @@ use crossbeam_channel::{self, Receiver, Sender, TryRecvError, TrySendError};
 use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty, PtySize};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+// OsStr 仅 Unix resolve_shell_in_path 用（task-2.1：Windows 走 where.exe · 不经 PATH split）。
+#[cfg(unix)]
 use std::ffi::OsStr;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -1307,8 +1309,14 @@ fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
 fn default_shell_path() -> String {
     #[cfg(windows)]
     {
-        // RED skeleton（task-2.1）· Windows 探测链未实现 · 暂返回 Unix 占位 · GREEN 填实。
-        "/bin/bash".to_string()
+        // 依次探测 pwsh.exe → powershell.exe → cmd.exe · 取首个 where.exe 能定位的全路径；
+        // 全找不到时保底 cmd.exe（%ComSpec% · 否则 System32\cmd.exe · 系统永远存在）。
+        for candidate in ["pwsh.exe", "powershell.exe", "cmd.exe"] {
+            if let Some(path) = resolve_shell(candidate) {
+                return path.to_string_lossy().into_owned();
+            }
+        }
+        windows_cmd_fallback()
     }
     #[cfg(target_os = "macos")]
     {
@@ -1324,8 +1332,17 @@ fn default_shell_path() -> String {
 /// 二者皆缺时退回裸名 `cmd.exe`（系统必装 · PATH 必含 System32）。永不返回 Unix 路径。
 #[cfg(windows)]
 fn windows_cmd_fallback() -> String {
-    // RED skeleton（task-2.1）· 保底未实现 · GREEN 填实。
-    "/bin/bash".to_string()
+    if let Some(comspec) = std::env::var_os("ComSpec") {
+        let path = PathBuf::from(&comspec);
+        if is_executable_file(&path) {
+            return path.to_string_lossy().into_owned();
+        }
+    }
+    let system32 = PathBuf::from(r"C:\Windows\System32\cmd.exe");
+    if is_executable_file(&system32) {
+        return system32.to_string_lossy().into_owned();
+    }
+    "cmd.exe".to_string()
 }
 
 /// 扫 /etc/shells 找到第一个实际可用的交互 shell · 终极 fallback。
@@ -1401,6 +1418,8 @@ pub struct ShellInfo {
 /// 等系统/脚本 shell · 它们出现在 `/etc/shells` 但几乎没人作为交互 terminal 用。
 /// nu / pwsh 通常不写 `/etc/shells` · MVP 不为它们加路径探测。用户已选的非白名单 shell
 /// 仍保留在 list 里（例外保护 · 见 list_available_shells 末尾）。
+/// task-2.1：仅 Unix `/etc/shells` 路径使用（Windows 走 where.exe 探测链 · 不读 /etc/shells）。
+#[cfg(unix)]
 const PRIMARY_SHELL_BASENAMES: &[&str] = &["zsh", "bash", "fish"];
 
 /// 枚举系统可用的交互 shell（task-2.1 · ADR-003）·
@@ -1475,9 +1494,33 @@ fn unix_list_shells_from_etc_shells() -> Vec<ShellInfo> {
 /// 列表为空时保底 push `cmd.exe`（`windows_cmd_fallback`）· 永不读 `/etc/shells`。
 #[cfg(windows)]
 fn windows_list_shells() -> Vec<ShellInfo> {
-    // RED skeleton（task-2.1）· Windows 枚举未实现 · 暂返回空 · GREEN 填实。
-    let _ = windows_shell_label as fn(&Path) -> String;
-    Vec::new()
+    // pwsh（PowerShell 7+）→ powershell（内置 5.1）→ cmd（保底）→ bash（git-bash 若装）
+    const WINDOWS_SHELL_CANDIDATES: &[&str] =
+        &["pwsh.exe", "powershell.exe", "cmd.exe", "bash.exe"];
+
+    let mut shells: Vec<ShellInfo> = Vec::new();
+    for candidate in WINDOWS_SHELL_CANDIDATES {
+        if let Some(path) = resolve_shell(candidate) {
+            shells.push(ShellInfo {
+                path: path.to_string_lossy().into_owned(),
+                label: windows_shell_label(&path),
+            });
+        }
+    }
+
+    if shells.is_empty() {
+        // 探测链全空（理论上不该 · cmd.exe 必装）· 保底 cmd.exe 全路径
+        let fallback = windows_cmd_fallback();
+        let label = windows_shell_label(Path::new(&fallback));
+        shells.push(ShellInfo {
+            path: fallback,
+            label,
+        });
+    }
+
+    // 按 path 去重（保留首项 · 探测链已是优先序）
+    shells.dedup_by(|a, b| a.path == b.path);
+    shells
 }
 
 /// Windows shell 显示用 label：取 basename 去 `.exe`/`.bat`/`.cmd`/`.com` 扩展名。
@@ -1525,9 +1568,19 @@ fn resolve_shell_in_path(shell: &str, path_var: Option<&OsStr>) -> Option<PathBu
 /// `where.exe` 找不到时退出码非 0 / 输出空 → 返回 None。
 #[cfg(windows)]
 fn resolve_shell_via_where(shell: &str) -> Option<PathBuf> {
-    // RED skeleton（task-2.1）· where.exe 解析未实现 · 暂返回 None · GREEN 填实。
-    let _ = shell;
-    None
+    let output = std::process::Command::new("where.exe")
+        .arg(shell)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(PathBuf::from)
+        .find(|candidate| is_executable_file(candidate))
 }
 
 #[cfg(unix)]
@@ -1551,9 +1604,14 @@ fn is_executable_file(path: &Path) -> bool {
 /// 判断路径是否带 Windows 可执行扩展名（.exe/.bat/.cmd/.com · 不区分大小写）。
 #[cfg(windows)]
 fn has_windows_executable_ext(path: &Path) -> bool {
-    // RED skeleton（task-2.1）· 扩展名判定未实现 · 暂恒 true（= 旧 is_file-only 行为）· GREEN 填实。
-    let _ = path;
-    true
+    const EXECUTABLE_EXTS: &[&str] = &["exe", "bat", "cmd", "com"];
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            let lower = ext.to_ascii_lowercase();
+            EXECUTABLE_EXTS.contains(&lower.as_str())
+        })
+        .unwrap_or(false)
 }
 
 fn detect_process_cwd(process_id: u32) -> Option<PathBuf> {

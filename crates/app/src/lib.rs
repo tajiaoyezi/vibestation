@@ -2423,6 +2423,9 @@ fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     }
 }
 
+// 非 macOS（含 Windows + Linux）：沿用框架默认 title bar 装饰，本 task 不引入 macOS 专属 overlay。
+// Task 5.3 确认点：Windows 走此空 stub = 使用 Windows 原生标题栏，无 macOS overlay / traffic light artifact。
+// 编译期 cfg 已保证 Windows 走此分支；调用零副作用、不 panic（TEST-5.3.2 守护 cfg 分支编译健全）。
 #[cfg(not(target_os = "macos"))]
 fn configure_title_bar<R: tauri::Runtime>(_app: &tauri::App<R>) {}
 

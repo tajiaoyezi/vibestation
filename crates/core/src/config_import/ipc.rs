@@ -557,6 +557,14 @@ mod tests {
         (dir, pool)
     }
 
+    /// task-3.3 连带：keybinding 主修饰键 canonical 名按平台（macOS `Cmd` · 其余 `Ctrl`）。
+    /// 这些 ipc 用例经 `apply`/`detect_conflicts_ipc` 走运行期平台 canonical · 故期望值
+    /// 平台化（mac 期望 `Cmd+T` · Windows/Linux 期望 `Ctrl+T`）· 替代原硬编码 `Cmd`。
+    #[cfg(target_os = "macos")]
+    const PRIMARY_MOD: &str = "Cmd";
+    #[cfg(not(target_os = "macos"))]
+    const PRIMARY_MOD: &str = "Ctrl";
+
     #[test]
     fn imported_field_to_ipc_roundtrip() {
         let f = ImportedField::FontFamily("JetBrains Mono".to_string());
@@ -609,7 +617,7 @@ mod tests {
         ];
         let conflicts = detect_conflicts_ipc(&fields);
         assert_eq!(conflicts.len(), 1);
-        assert_eq!(conflicts[0].vibe_key, "Cmd+T");
+        assert_eq!(conflicts[0].vibe_key, format!("{PRIMARY_MOD}+T"));
         assert_eq!(conflicts[0].source_action, "new_tab");
         // user_choice 默认 KeepVibe
         assert_eq!(conflicts[0].user_choice, KeyBindingResolution::KeepVibe);
@@ -756,9 +764,9 @@ mod tests {
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
 
-        // 验证 DB 内容是 JSON
+        // 验证 DB 内容是 JSON（canonical 主修饰键按平台）
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+T"));
+        assert!(raw.contains(&format!("{PRIMARY_MOD}+T")));
         assert!(raw.contains("spawn_tab"));
     }
 
@@ -776,7 +784,8 @@ mod tests {
         assert!(result.errors.is_empty());
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+Shift+P"));
+        // canonical 主修饰键按平台（mac Cmd · 其余 Ctrl）
+        assert!(raw.contains(&format!("{PRIMARY_MOD}+Shift+P")));
     }
 
     #[test]
@@ -824,9 +833,12 @@ mod tests {
             "vibe 内置 ⌘T 不应被覆盖 · applied={:?}",
             result.applied
         );
-        // 必须出现在 skipped_conflicts（默认 KeepVibe）
+        // 必须出现在 skipped_conflicts（默认 KeepVibe）· canonical 主修饰键按平台
         assert_eq!(result.skipped_conflicts.len(), 1);
-        assert_eq!(result.skipped_conflicts[0].source_key, "Cmd+T");
+        assert_eq!(
+            result.skipped_conflicts[0].source_key,
+            format!("{PRIMARY_MOD}+T")
+        );
         assert_eq!(
             result.skipped_conflicts[0].user_choice,
             KeyBindingResolution::KeepVibe
@@ -839,14 +851,16 @@ mod tests {
     #[test]
     fn apply_allows_explicit_override_of_vibe_builtin() {
         let (_dir, pool) = setup_pool();
+        // conflict_resolutions 的 key 必须匹配 server 端 canonical（主修饰键按平台）
+        let primary_t = format!("{PRIMARY_MOD}+T");
         let req = ImportApplyRequest {
             fields: vec![ImportFieldType::KeyBinding {
                 key: "Cmd+T".to_string(),
                 action: "spawn_tab".to_string(),
             }],
             conflict_resolutions: vec![KeyBindingConflict {
-                vibe_key: "Cmd+T".to_string(),
-                source_key: "Cmd+T".to_string(),
+                vibe_key: primary_t.clone(),
+                source_key: primary_t.clone(),
                 vibe_action: "tabs.create".to_string(),
                 source_action: "spawn_tab".to_string(),
                 user_choice: KeyBindingResolution::Override,
@@ -856,7 +870,7 @@ mod tests {
         assert!(result.applied.contains(&AppliedField::ImportedKeybindings));
         assert!(result.skipped_conflicts.is_empty());
         let raw = AppSettingsStore::get(&pool, "imported_keybindings").unwrap();
-        assert!(raw.contains("Cmd+T"));
+        assert!(raw.contains(&primary_t));
         assert!(raw.contains("spawn_tab"));
     }
 

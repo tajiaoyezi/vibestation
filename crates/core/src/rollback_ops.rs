@@ -1117,10 +1117,13 @@ fn find_commit<'repo>(
 fn commit_summary(commit: &git2::Commit<'_>) -> String {
     commit
         .summary()
+        .ok()
+        .flatten()
         .map(ToOwned::to_owned)
         .or_else(|| {
             commit
                 .message()
+                .ok()
                 .map(|msg| msg.lines().next().unwrap_or("").to_string())
         })
         .unwrap_or_default()
@@ -1436,7 +1439,7 @@ mod tests {
                 _dir: dir,
                 path: repo.workdir().unwrap().to_path_buf(),
                 repo,
-                base_tree: Oid::zero(),
+                base_tree: Oid::ZERO_SHA1,
             };
             let base = fixture.commit_file("app.txt", "base\n", "base");
             fixture.base_tree = fixture.repo.find_commit(base).unwrap().tree_id();

@@ -35,6 +35,6 @@ dirs.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-git2 = "0.20"
+git2 = "0.21"
 # MVP-04 §I shell 兼容矩阵 integration test · 走 PTY runtime 事件 · 与 core crate 同版本
 crossbeam-channel = "0.5"

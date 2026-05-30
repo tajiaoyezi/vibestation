@@ -317,14 +317,14 @@ pub fn git_remote_list(workspace_path: &Path) -> Result<RemoteListResponse, Netw
     let names = repo.remotes().map_err(map_git_error)?;
     let mut remotes = Vec::new();
 
-    for name in names.iter().flatten() {
+    for name in names.iter().flatten().flatten() {
         let remote = repo
             .find_remote(name)
             .map_err(|error| map_remote_error(error, name))?;
         remotes.push(RemoteInfo {
             name: name.to_string(),
-            url: remote.url().map(ToOwned::to_owned),
-            fetch_url: remote.url().map(ToOwned::to_owned),
+            url: remote.url().ok().map(ToOwned::to_owned),
+            fetch_url: remote.url().ok().map(ToOwned::to_owned),
         });
     }
 

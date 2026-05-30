@@ -324,7 +324,7 @@ fn status_entry_path(entry: &git2::StatusEntry<'_>) -> String {
         .index_to_workdir()
         .map(diff_delta_path)
         .or_else(|| entry.head_to_index().map(diff_delta_path))
-        .or_else(|| entry.path().map(|path| path.to_string()))
+        .or_else(|| entry.path().ok().map(|path| path.to_string()))
         .unwrap_or_default()
 }
 

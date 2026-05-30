@@ -687,7 +687,7 @@ fn head_message(repo: &Repository) -> Option<String> {
     repo.head()
         .ok()
         .and_then(|head| head.peel_to_commit().ok())
-        .and_then(|commit| commit.message().map(ToOwned::to_owned))
+        .and_then(|commit| commit.message().ok().map(ToOwned::to_owned))
 }
 
 fn commit_index_from_step(repo: &Repository, state: &OperationState) -> Result<(), RebaseOpError> {
@@ -811,7 +811,7 @@ fn fast_forward_to(repo: &Repository, target: Oid) -> Result<(), RebaseOpError> 
         .head()
         .map_err(map_git_error)?
         .name()
-        .ok_or_else(|| git_error("Reference", -1, "HEAD has no name"))?
+        .map_err(|_| git_error("Reference", -1, "HEAD has no name"))?
         .to_string();
     let mut reference = repo.find_reference(&head_name).map_err(map_git_error)?;
     reference
@@ -865,7 +865,7 @@ fn checkout_branch_if_needed(repo: &Repository, branch: &str) -> Result<(), Reba
     let reference_name = branch_ref
         .get()
         .name()
-        .ok_or_else(|| git_error("Reference", -1, "branch reference has no name"))?
+        .map_err(|_| git_error("Reference", -1, "branch reference has no name"))?
         .to_string();
     repo.set_head(&reference_name).map_err(map_git_error)?;
     force_checkout_head(repo)
@@ -974,7 +974,7 @@ fn current_head_oid(repo: &Repository) -> Result<Oid, RebaseOpError> {
 fn current_branch_name(repo: &Repository) -> Option<String> {
     repo.head()
         .ok()
-        .and_then(|head| head.shorthand().map(ToOwned::to_owned))
+        .and_then(|head| head.shorthand().ok().map(ToOwned::to_owned))
 }
 
 fn cherrypick_status_from_rebase(status: RebaseStatus) -> CherryPickStatus {
@@ -1651,7 +1651,8 @@ mod tests {
                     .unwrap()
                     .peel_to_commit()
                     .unwrap()
-                    .message(),
+                    .message()
+                    .ok(),
                 Some("rewritten")
             );
         }

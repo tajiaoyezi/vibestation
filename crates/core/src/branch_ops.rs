@@ -168,7 +168,7 @@ pub fn branch_list(workspace_path: &Path) -> Result<BranchListResponse, BranchEr
     } else {
         repo.head()
             .ok()
-            .and_then(|head| head.shorthand().map(ToOwned::to_owned))
+            .and_then(|head| head.shorthand().ok().map(ToOwned::to_owned))
     };
 
     Ok(BranchListResponse {
@@ -431,7 +431,7 @@ fn collect_refs_with_git2(repo: &Repository) -> Result<Vec<BranchInfo>, BranchEr
                 .get()
                 .name()
                 .map(ToOwned::to_owned)
-                .unwrap_or_else(|| format!("refs/heads/{name}"));
+                .unwrap_or_else(|_| format!("refs/heads/{name}"));
             let mut info = BranchInfo {
                 name,
                 full_ref,
@@ -447,7 +447,7 @@ fn collect_refs_with_git2(repo: &Repository) -> Result<Vec<BranchInfo>, BranchEr
     }
 
     if let Ok(tags) = repo.tag_names(None) {
-        for tag in tags.iter().flatten() {
+        for tag in tags.iter().flatten().flatten() {
             let full_ref = format!("refs/tags/{tag}");
             let head_commit = repo
                 .revparse_single(&full_ref)
@@ -608,7 +608,7 @@ fn checkout_local_branch(repo: &Repository, name: &str, force: bool) -> Result<(
     let full_ref = branch
         .get()
         .name()
-        .ok_or_else(|| BranchError::NotFound {
+        .map_err(|_| BranchError::NotFound {
             name: name.to_string(),
         })?
         .to_string();
@@ -626,7 +626,7 @@ fn checkout_local_branch(repo: &Repository, name: &str, force: bool) -> Result<(
 
 fn current_head_label(repo: &Repository) -> Result<String, BranchError> {
     let head = repo.head().map_err(map_git_error)?;
-    if let Some(name) = head.shorthand() {
+    if let Ok(name) = head.shorthand() {
         return Ok(name.to_string());
     }
     if let Some(target) = head.target() {
@@ -676,7 +676,7 @@ fn dirty_working_tree(repo: &Repository) -> Result<DirtyState, BranchError> {
     let mut dirty = DirtyState::default();
 
     for entry in statuses.iter() {
-        let Some(path) = entry.path() else {
+        let Ok(path) = entry.path() else {
             continue;
         };
         let status = entry.status();
@@ -1003,7 +1003,7 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            repo.repo().head().unwrap().shorthand(),
+            repo.repo().head().unwrap().shorthand().ok(),
             Some("feat/checkout")
         );
     }
@@ -1133,7 +1133,10 @@ mod tests {
 
         assert_eq!(result.prev_head, "main");
         assert_eq!(result.new_head, "feature");
-        assert_eq!(repo.repo().head().unwrap().shorthand(), Some("feature"));
+        assert_eq!(
+            repo.repo().head().unwrap().shorthand().ok(),
+            Some("feature")
+        );
     }
 
     #[test]

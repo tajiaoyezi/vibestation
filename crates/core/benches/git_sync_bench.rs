@@ -272,10 +272,9 @@ fn bench_pull_conflict_abort(c: &mut Criterion) {
                     error,
                     NetworkOpError::MergeConflict { aborted: true, .. }
                 ));
-                assert_eq!(
-                    std::fs::read_to_string(fixture.work_path.join("seed.txt")).unwrap(),
-                    "local-conflict\n"
-                );
+                let actual = std::fs::read_to_string(fixture.work_path.join("seed.txt")).unwrap();
+                let normalized = actual.replace("\r\n", "\n").replace('\r', "\n");
+                assert_eq!(normalized, "local-conflict\n");
                 black_box(error);
                 black_box(fixture);
             },

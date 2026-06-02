@@ -148,7 +148,7 @@ gitleaks CI（Phase 4）会扫此目录。
 
 ## 🧭 Session Archive Timeline（session-17 ~ session-30）
 
-> 数据源：各 `session-NN.md` 顶部元信息（`session/date/pr_range/theme`）实读整理。  
+> 数据源：各 `session-NN.md` 顶部元信息（`session/date/pr_range/theme`）实读整理。
 > 目标：把 `docs/session-history/` 从“命名约定文档”升级为“可导航索引入口”。
 
 | Session                     | Date                     | PR Range  | Theme（一句话）                           | 标志性事件                           |

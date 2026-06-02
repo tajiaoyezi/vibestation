@@ -698,7 +698,7 @@ pub struct RailGraphPerfSample {
 - `docs/implementation-plan.md` §5.4（CommitNode.rail 预留）
 - `docs/implementation-plan.md` §10.1（v0.2 范围）
 - `docs/implementation-plan.md` §11 W16（rail graph 里程碑）
-- `docs/tasks/MVP-07-git-log-view.md`（上游数据流）
+- `docs/tasks/MVP-07-git-log-readonly.md`（上游数据流）
 - `docs/tasks/MVP-13-branch-crud.md`（branch event 来源）
 - `docs/tasks/MVP-16-*.md`（rebase overlay 联动边界）
 - `design/directions/1-calm-studio.html`（UI 基准）

@@ -172,7 +172,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
 
 ## 📸 Runtime 证据要求
 
-按 [ADR-011](../adr/ADR-011-runtime-evidence-location.md) + `.claude/rules/runtime-evidence-location.md` · MVP-11 实施 PR 必须提交以下证据到 `docs/runtime-evidence/mvp-11/`（进 git · ADR-011 R1-R5）：
+按 [ADR-011](../adr/ADR-011-runtime-evidence-location.md) + [ADR-023](../adr/ADR-023-capture-mandate-removed.md)（capture mandate 已移除）· MVP-11 实施 PR 证据要求已弃用，以下证据列表保留作历史 audit 归档：
 
 - `01-vibrancy-macos.png`（macOS 窗口 Vibrancy 效果 · 能看到桌面壁纸透出）
 - `02-title-bar-overlay.png`（title bar overlay · traffic light 融入 sidebar）

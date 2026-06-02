@@ -170,7 +170,7 @@ MVP-16 估时 **7d** · 拆 4 Phase 串行实施：
   - body：commit 列表（每行 commit message + SHA · 可点击取消）
   - 选项：`Auto-commit each` checkbox（默认 on · off → 进 working tree 不 commit）
   - 按钮：`Cancel` / `Cherry-pick`
-- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-16/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
+- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-16/`（由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，此项已弃用）
 
 ## ✅ Acceptance
 
@@ -685,7 +685,7 @@ MVP-16 仅本地操作 · **不调用任何网络**。
    - 不引：第三方 merge 库（如 `merge`, `diff3`）· 自实现 3-way（git2 已经写到 working tree marker · 解析即可）
 5. **对齐上游 binding**（§G.5）：BranchInfo（MVP-13 PR #220 复用 IPC）· GitStatusResponse（MVP-08 复用 IPC）· CommitInfo / GitLogEntry（MVP-07 复用 IPC）· CommitError（MVP-09）/ BranchError（MVP-13）不复用 · 错误语义不同 · MVP-16 新建 RebaseOpError · 新增 18 个独立 binding 清单明确（§G.6）
 6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 不碰列表 / H.3 plan 状态机自实现 / H.4 API 调用链 / H.5 3-way 锁定 / H.6 持久化策略 / H.7 跨平台 / H.8 与 MVP-13/21 边界 · 防 v0.3 实施期反复讨论
-7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-16/`（按 `.claude/rules/runtime-evidence-location.md` R1）
+7. **runtime evidence 要求已弃用**：由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，不再强制要求截图归档（ADR-023 §3 保留已捕证据作历史 audit）
 
 ---
 

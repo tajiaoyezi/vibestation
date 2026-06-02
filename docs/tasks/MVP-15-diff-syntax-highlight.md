@@ -239,7 +239,7 @@ MVP-15 估时 **4d** · 拆 4 Phase 串行实施：
 - **主题切换**：与 Calm Studio light/dark 全局主题联动
   - shiki theme 名：`github-light` / `github-dark`（或自定义 Calm Studio 适配 theme）
   - 切换时 diff 视图内所有 token 颜色瞬时更新（CSS variable · 不重 parse）
-- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-15/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
+- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-15/`（由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，此项已弃用）
 
 ---
 
@@ -734,7 +734,7 @@ MVP-15 是**纯前端装饰层** · 对齐 `implementation-plan.md §W21`（2026
    - 服务端渲染 shiki → 明确推后（`§W21` 锁定前端）
 5. **对齐上游 binding**：MVP-08 `DiffRequest` / `DiffResponse` / `DiffLine` / `GitStatusResponse` 全部复用 · 新增 binding = 0（§G.5-G.6）
 6. **§H 决策锁定全覆盖**：H.1 技术栈 / H.2 不碰列表 / H.3 渲染策略 / H.4 缓存策略 / H.5 主题切换 / H.6 Worker 分档 / H.7 视觉回归 / H.8 与 MVP-08 边界 · 防 v0.3 实施期反复讨论
-7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-15/`（按 `.claude/rules/runtime-evidence-location.md` R1）
+7. **runtime evidence 要求已弃用**：由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，不再强制要求截图归档（ADR-023 §3 保留已捕证据作历史 audit）
 
 ---
 

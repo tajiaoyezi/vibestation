@@ -298,7 +298,7 @@ fn capture_panic_handles_repo_path() {
 
 ## 📸 运行时证据要求
 
-按 [ADR-011](../adr/ADR-011-runtime-evidence-location.md) + `.claude/rules/runtime-evidence-location.md` · MVP-10 实施 PR 必须提交以下证据到 `docs/runtime-evidence/mvp-10/`（进 git · ADR-011 R1-R5）：
+按 [ADR-011](../adr/ADR-011-runtime-evidence-location.md) + [ADR-023](../adr/ADR-023-capture-mandate-removed.md)（capture mandate 已移除）· MVP-10 实施 PR 证据要求已弃用，以下证据列表保留作历史 audit 归档：
 
 - `01-settings-panel.png`（设置面板打开 · 4 分组显示）
 - `02-settings-realtime.png`（改 theme 后实时生效 · 无重启）

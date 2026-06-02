@@ -201,7 +201,7 @@ MVP-14 估时 **7d**，拆 4 个 Phase 串行实施。Phase A 先放开 core con
 | Criterion         | validator / preset apply / navigation geometry pure function / close collapse / serialize v1 envelope                  | `crates/core/benches/pane_advanced_bench.rs`                        |
 | E2E（Playwright） | split 到 5 层、拖 ratio、apply preset、direction nav、maximize restore、workspace switch restore                       | `web/tests/e2e/pane-advanced.spec.ts`                               |
 | 视觉回归          | Dual AI / Triple Review / Quad / 5 层 nested / maximized / reduced-motion                                              | Playwright screenshot diff                                          |
-| 手动 QA           | macOS / Linux keyboard modifier、Retina + 1x DPI、1024px 小屏、外接键盘方向键、长期 PTY stdout 不丢                    | `docs/runtime-evidence/mvp-14/manual-qa.md`                         |
+| 手动 QA           | macOS / Linux keyboard modifier、Retina + 1x DPI、1024px 小屏、外接键盘方向键、长期 PTY stdout 不丢                    | 由于 [ADR-023](../../docs/adr/ADR-023-capture-mandate-removed.md) 已弃用截图要求 |
 
 ### C.1 · fixture 准备
 

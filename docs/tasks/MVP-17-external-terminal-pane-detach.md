@@ -139,7 +139,7 @@ reviewer: Claude Code · self-review（单人项目 v2-D.2 模式 · session 29 
   - 内容：`<workspace-name> · pane-<id>` 左侧 / Reattach + ✕ 右侧
   - 主体：PaneTerminal 100% 填充
 
-详化时实施 PR 补截图到 `docs/runtime-evidence/mvp-17/phase-d/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）。
+（由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，原定于 Phase D 提交截图的验收项已弃用）。
 
 ---
 
@@ -441,7 +441,7 @@ impl DetachedPaneMap {
 - **下游**：无（v1.0 cross-window drag / v1.0 global shortcut 都是独立 MVP · 不依赖本 MVP）
 - **依据**：`implementation-plan.md` §10.1（v0.3 砍到名单）· §5.3（多窗口策略）
 - **ADR 引用**：ADR-014（IPC contract via ts-rs）· ADR-006（Tauri 2 desktop framework）
-- **相关 rule**：`.claude/rules/tauri-v2-patterns.md` §1 ACL permission · `.claude/rules/runtime-evidence-location.md` R1-R5
+- **相关 rule**：`.claude/rules/tauri-v2-patterns.md` §1 ACL permission · `docs/adr/ADR-023-capture-mandate-removed.md`（capture mandate 已移除）
 
 ---
 

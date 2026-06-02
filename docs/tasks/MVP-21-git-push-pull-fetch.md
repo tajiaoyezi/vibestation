@@ -156,7 +156,7 @@ MVP-21 估时 **5d** · 拆 4 Phase 串行实施：
   - body：`"以下 N 个文件含冲突 · 工作区已恢复到 pull 前状态：\n - <file 1>\n - <file 2>\n..."`
   - 提示文案：`"v0.2 不支持 GUI 解决 · 请在终端运行 git pull 后用 git mergetool / 编辑器手动解决"`
   - 按钮：`"复制 git pull 命令"` / `OK`
-- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-21/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
+- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-21/`（由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，此项已弃用）
 
 ## ✅ Acceptance
 
@@ -1027,7 +1027,7 @@ MVP-21 是**网络层** · 严格隔离：
    - 不引入：第三方 keyring crate（用 OS git credential helper）/ 第三方 git 库
 5. **对齐上游 binding**（§G.5）：复用 MVP-07 `BranchInfo` + MVP-08 `GitStatusResponse` · 不造平行类型 · 新增 12 个独立 binding 清单明确
 6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 Auth 矩阵 / H.3 Merge vs Rebase 默认 / H.4 API 调用链 / H.5 Auth 安全 / H.6 Force push 保护 / H.7 跨平台依赖 / H.8 与 MVP-09/13 边界 · 防 v0.2 实施期反复讨论
-7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-21/`（按 `.claude/rules/runtime-evidence-location.md` R1）
+7. **runtime evidence 要求已弃用**：由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，不再强制要求截图归档（ADR-023 §3 保留已捕证据作历史 audit）
 8. **ID 冲突已解决**：2026-05-03 session 23 PR #210 完成 rename · 文件顶部历史 HTML 注释保留作 trace
 
 ---

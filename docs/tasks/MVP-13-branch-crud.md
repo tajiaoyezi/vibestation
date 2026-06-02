@@ -128,7 +128,7 @@ MVP-13 估时 **4d** · 拆 4 Phase 串行实施：
   - 标题：`"强制删除分支 {branch_name}"`
   - body：`"该分支含 N 个未合并 commit · 删除后**无法通过 UI 恢复**"`
   - 红色 `"Force delete (data loss)"` 按钮 + `Cancel` 默认
-- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-13/`（按 `.claude/rules/runtime-evidence-location.md` R1 命名）
+- **截图归档**：详化时实施 PR 补到 `docs/runtime-evidence/mvp-13/`（由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，此项已弃用）
 
 ## ✅ Acceptance
 
@@ -594,7 +594,7 @@ MVP-13 仅本地 branch 操作 · **不调用任何网络**。
    - 不引入：fuzzy 第三方 crate（自实现 30 行内）/ 第三方 git 库
 5. **对齐上游 binding**（§G.5）：BranchInfo / BranchKind **MVP-13 PR #220 首次定义**（修正 stale assumption · 详见 §G.5 修正说明）· MVP-08 `GitStatusResponse` 前端复用 IPC · 不造平行类型 · 新增 12 个独立 binding 清单明确（§G.6）
 6. **§H 决策锁定全覆盖**：H.1 Git 栈 / H.2 不碰列表 / H.3 stash 策略 / H.4 API 调用链 / H.5 detached HEAD / H.6 name 校验 / H.7 跨平台 / H.8 与 MVP-21 边界 · 防 v0.2 实施期反复讨论
-7. **runtime evidence 路径已锁定**：§Phase D 明确 `docs/runtime-evidence/mvp-13/`（按 `.claude/rules/runtime-evidence-location.md` R1）
+7. **runtime evidence 要求已弃用**：由于 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) capture mandate 已移除，不再强制要求截图归档（ADR-023 §3 保留已捕证据作历史 audit）
 
 ---
 

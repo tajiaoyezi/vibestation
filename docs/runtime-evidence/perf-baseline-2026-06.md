@@ -1,7 +1,9 @@
 # Perf 基线 · 2026-06-02 · gix 0.84 / 低风险批后
 
-> **基线 commit**：`cc7ff3f`（Merge PR #438 · gix 0.84 migration）  
-> **采样**：Criterion 默认（release · 100 samples / 5s target，个别 bench 自动降 sample）  
+> **基线 commit**：`cc7ff3f`（Merge PR #438 · gix 0.84 migration）
+>
+> **采样**：Criterion 默认（release · 100 samples / 5s target，个别 bench 自动降 sample）
+>
 > **Raw**：`H:\devlopment\code\perf-criterion-raw.txt` · `H:\devlopment\code\perf-pty-raw.txt`（PR body 全文粘贴）
 
 | bench | 指标 | 数值（Criterion estimate 或 P50/P99） | 备注 |
@@ -48,9 +50,9 @@
 
 ## 执行说明
 
-1. **首轮**：`cargo bench -p vibestation-core 2>&1 | tee ..\perf-criterion-raw.txt`  
-   - 顺序跑至 `git_sync_bench` 时 `pull_conflict_abort` CRLF 断言失败，后续 `pane_layout_bench` / `rebase_bench` / `workspace_query` 未执行。  
-2. **补跑**：`cargo bench -p vibestation-core --bench workspace_query --bench pane_layout_bench --bench rebase_bench`（结果追加至同一 raw 文件，标记 `RERUN`）。  
+1. **首轮**：`cargo bench -p vibestation-core 2>&1 | tee ..\perf-criterion-raw.txt`
+   - 顺序跑至 `git_sync_bench` 时 `pull_conflict_abort` CRLF 断言失败，后续 `pane_layout_bench` / `rebase_bench` / `workspace_query` 未执行。
+2. **补跑**：`cargo bench -p vibestation-core --bench workspace_query --bench pane_layout_bench --bench rebase_bench`（结果追加至同一 raw 文件，标记 `RERUN`）。
 3. **pty_pool**：`cargo test -p vibestation-core --test pty_pool_bench -- --ignored --nocapture` → `perf-pty-raw.txt`；`warm_hit_with_pool` 失败后测试挂起，已 `Stop-Process` 清理，无残留 cargo/pty 进程。
 
 ## Raw 输出（贴关键摘要 · 或注明完整 raw 在 PR）

@@ -666,19 +666,19 @@ pub struct RailGraphPerfSample {
 
 ## ⚠️ 已知风险（R1-R5）
 
-- **R1 · Canvas 性能边界**：10 万 commit 下每帧 draw 调用可能逼近 16ms。  
+- **R1 · Canvas 性能边界**：10 万 commit 下每帧 draw 调用可能逼近 16ms。
   **Mitigation**：虚拟化 + 合帧 + offscreen；Phase D 提交 perf trace 与 P99 报告。
 
-- **R2 · DAG 边界复杂度**：octopus merge、cross-branch、orphan history 处理易出错。  
+- **R2 · DAG 边界复杂度**：octopus merge、cross-branch、orphan history 处理易出错。
   **Mitigation**：SPIKE-09 用 20 个边界 case 量化，低于 80% 通过率即不进入主线。
 
-- **R3 · 高 DPI 模糊或性能放大**：2x/3x DPR 可能导致渲染像素面积暴涨。  
+- **R3 · 高 DPI 模糊或性能放大**：2x/3x DPR 可能导致渲染像素面积暴涨。
   **Mitigation**：`Math.min(devicePixelRatio, 2)` + 双倍率视觉回归截图。
 
-- **R4 · 颜色可分辨性不足**：30 色在 CVD 下可能聚类。  
+- **R4 · 颜色可分辨性不足**：30 色在 CVD 下可能聚类。
   **Mitigation**：oklch 调色 + CVD 模拟，保证至少 15 色可分辨；不达标则降色环规模。
 
-- **R5 · 触屏 hover 缺失 + 4K 宽屏布局压缩**：触屏无 hover，4K 下 rail/列表比例失衡。  
+- **R5 · 触屏 hover 缺失 + 4K 宽屏布局压缩**：触屏无 hover，4K 下 rail/列表比例失衡。
   **Mitigation**：tap fallback 交互 + rail 宽度 clamp（120-180px）+ 4K 手测基线。
 
 ---
@@ -708,7 +708,7 @@ pub struct RailGraphPerfSample {
 
 ## 自审四问（spec 级）
 
-1. **递归完备性**  
+1. **递归完备性**
    本 spec 自身是否受本 spec 约束？是。已包含结构完整性、验收可测性、边界/风险/YAGNI，并在末尾给出 12 段评估表闭环。
 
 2. **反向场景**
@@ -717,10 +717,10 @@ pub struct RailGraphPerfSample {
    - detached HEAD：输入层显式支持（Acceptance A.6）
    - touch 设备 hover 缺失：tap fallback（Acceptance C.8 / R5）
 
-3. **边界适用性**  
+3. **边界适用性**
    已覆盖 commit 规模 1 / 100 / 10k / 100k / 1M，分支规模 1 / 5 / 20 / 50 / 200，显示规模 1x / 2x DPR，light/dark/CVD 三组视觉边界。
 
-4. **YAGNI**  
+4. **YAGNI**
    明确推后：WebGL、3D、interactive rebase、rail tooltip 卡片、跨 remote 全图。保持 v0.2 目标聚焦「可读 + 快 + 稳」。
 
 ---

@@ -1,8 +1,11 @@
 # Session 17 · 2026-04-23
 
-**session**: 17  
-**date**: 2026-04-23  
-**pr_range**: #99-#105  
+**session**: 17
+
+**date**: 2026-04-23
+
+**pr_range**: #99-#105
+
 **theme**: MVP-04 Phase F 收口 + MVP-08 Phase A/B/C 落地 + PR Actions 分钟节流
 
 ---

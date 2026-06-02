@@ -153,7 +153,10 @@ impl GitLogReader {
                 Err(_) => continue,
             };
             let author_name = author_ref.name.to_string();
-            let authored_date = author_ref.time.seconds;
+            // time 解析失败 → 展示降级到 epoch（commit 可读，不静默丢）
+            let authored_date = gix::date::parse_header(author_ref.time)
+                .map(|t| t.seconds)
+                .unwrap_or(0);
             let message_summary = match commit.message() {
                 Ok(msg) => msg.summary().to_string(),
                 Err(_) => {
@@ -251,6 +254,12 @@ impl GitLogReader {
             .committer()
             .map_err(|e| GitLogError::Object(e.to_string()))?;
 
+        let author_time = gix::date::parse_header(author_ref.time)
+            .ok_or_else(|| GitLogError::Object("Failed to parse author timestamp".to_string()))?;
+        let committer_time = gix::date::parse_header(committer_ref.time).ok_or_else(|| {
+            GitLogError::Object("Failed to parse committer timestamp".to_string())
+        })?;
+
         let parents: Vec<CommitParent> = commit
             .parent_ids()
             .map(|pid| {
@@ -275,12 +284,12 @@ impl GitLogReader {
             author: CommitAuthor {
                 name: author_ref.name.to_string(),
                 email: author_ref.email.to_string(),
-                timestamp: author_ref.time.seconds,
+                timestamp: author_time.seconds,
             },
             committer: CommitAuthor {
                 name: committer_ref.name.to_string(),
                 email: committer_ref.email.to_string(),
-                timestamp: committer_ref.time.seconds,
+                timestamp: committer_time.seconds,
             },
             message,
             parents,

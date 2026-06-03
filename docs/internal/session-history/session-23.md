@@ -144,7 +144,7 @@ session 23 的核心特征是“同一窗口完成两条 sprint 主线”：W13 
 
 - 上一 session：[`session-22.md`](./session-22.md)（MVP-22 PTY warm pool 主线）
 - 下一 session：[`session-24.md`](./session-24.md)（v0.3 sprint kickoff · 4-agent 并发详化）
-- 治理节点：[`ADR-016`](../adr/ADR-016-admin-override-trailer-exemption.md)（v2-D.1 -> v2-D.2）
+- 治理节点：[`ADR-016`](../../adr/ADR-016-admin-override-trailer-exemption.md)（v2-D.1 -> v2-D.2）
 - 数据源：`docs/PROGRESS.md` session 23 展开段（L129-L178）+ PR #207-#233 合并记录
 
 ---

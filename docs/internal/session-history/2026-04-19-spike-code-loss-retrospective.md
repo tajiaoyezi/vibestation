@@ -306,8 +306,8 @@ cargo build --release
 - PR #26（本次紧急归档）：https://github.com/tajiaoyezi/vibestation/pull/26 · merged
 - 相关 Spike：SPIKE-03（PR #23 merged）· SPIKE-04（PR #24 merged · redb→rusqlite 结论翻转）· SPIKE-04.5（spec ready · 待下发）
 - 全局 rule：[`~/.claude/rules/13-cross-agent-delivery.md`](/Users/leaf/.claude/rules/13-cross-agent-delivery.md)
-- 项目 rule：[`.claude/rules/spike-delivery-checklist.md`](../.claude/rules/spike-delivery-checklist.md)
-- 模板更新：[`docs/tasks/_template.md`](./tasks/_template.md) §Deliverables
+- 项目 rule：[`.claude/rules/spike-delivery-checklist.md`](../../../.claude/rules/spike-delivery-checklist.md)
+- 模板更新：[`docs/tasks/_template.md`](../../tasks/_template.md) §Deliverables
 
 ---
 

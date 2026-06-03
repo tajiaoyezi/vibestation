@@ -210,4 +210,4 @@ session 20 全部 19 PR 主 agent 实施部分 author 字段 = `Claude Code <nor
 
 ---
 
-← 当前进度见 [docs/PROGRESS.md](../PROGRESS.md)
+← 当前进度见 [docs/PROGRESS.md](../../PROGRESS.md)

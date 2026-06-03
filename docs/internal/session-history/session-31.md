@@ -179,8 +179,8 @@ CLAUDE.md / ADR README / CHANGELOG 等 critical decision file 派工时：
 
 - 上一 session：[`session-30.md`](./session-30.md)（PR #281-#307 · 跨 2 day 15 PR · 4-agent dispatch pool 首次同时跑）
 - 下一 session：待 Arbiter 决定 session 32 方向（v1.0 vision flip / Phase D capture / 新方向）
-- 治理节点：[`ADR-012`](../adr/ADR-012-v2d1-arbiter-approval-simplification.md) v2-D.1 · [`ADR-016`](../adr/ADR-016-admin-override-trailer-exemption.md) v2-D.2 · `.claude/rules/dispatch-prompt-template.md` §2.9 + §2.10（PR #323 升级 · 2026-05-14）
-- v1.0 vision 4 spec：[MVP-18](../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../tasks/MVP-20-ai-one-click-rollback.md) · [SPIKE-07](../tasks/SPIKE-07-cli-protocol-parser.md)
+- 治理节点：[`ADR-012`](../../adr/ADR-012-v2d1-arbiter-approval-simplification.md) v2-D.1 · [`ADR-016`](../../adr/ADR-016-admin-override-trailer-exemption.md) v2-D.2 · `.claude/rules/dispatch-prompt-template.md` §2.9 + §2.10（PR #323 升级 · 2026-05-14）
+- v1.0 vision 4 spec：[MVP-18](../../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../../tasks/MVP-20-ai-one-click-rollback.md) · [SPIKE-07](../../tasks/SPIKE-07-cli-protocol-parser.md)
 - Memory 沉淀：`feedback_4-agent-dispatch-pool.md` · `feedback_opencode-dispatch-self-verify-gate.md` · `feedback_cursor-ide-completion-gate.md`
 
 ---

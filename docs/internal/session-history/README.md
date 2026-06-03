@@ -151,22 +151,26 @@ gitleaks CI（Phase 4）会扫此目录。
 > 数据源：各 `session-NN.md` 顶部元信息（`session/date/pr_range/theme`）实读整理。
 > 目标：把 `docs/session-history/` 从“命名约定文档”升级为“可导航索引入口”。
 
-| Session                     | Date                     | PR Range  | Theme（一句话）                           | 标志性事件                           |
-| --------------------------- | ------------------------ | --------- | ----------------------------------------- | ------------------------------------ |
-| [session-30](session-30.md) | 2026-05-13 + 2026-05-14  | #281-#307 | 4-agent pool 首次同时跑 + MVP-17 完整收口 | OpenCode N=4 试金石通过              |
-| [session-29](session-29.md) | 2026-05-12 晚→2026-05-13 | #281-#294 | MVP-17 收口推进 + 协作 failure mode 暴露  | OpenCode N=3 §2.10 violation         |
-| [session-28](session-28.md) | 2026-05-12               | #271-#279 | 4-track 并发峰值 + validator 工具化       | `validate-runtime-evidence.mjs` 落地 |
-| [session-27](session-27.md) | 2026-05-10               | #264-#266 | v0.3 sprint A/B/C 全收 + D 启动           | MVP-16 Phase D bench 启动            |
-| [session-26](session-26.md) | 2026-05-09               | #259-#263 | 四并行 phase 推进 + 文件域隔离实证        | OpenCode §2.10 第 2 次重演           |
-| [session-25](session-25.md) | 2026-05-07               | #251-#253 | v0.3 phase A 启动（2/4 完成）             | 主 agent reviewer gate 实战          |
-| [session-24](session-24.md) | 2026-05-04 ~ 2026-05-06  | #245-#250 | v0.3 sprint kickoff spec-only 批处理      | 4 agent 并发详化 6 PR                |
-| [session-23](session-23.md) | 2026-05-02 ~ 2026-05-04  | #207-#233 | v0.1 收尾 + v0.2 W13/W14 双推进           | 3 day 27 PR（当前最大）              |
-| [session-22](session-22.md) | 2026-04-30               | #189-#194 | MVP-20（后重命名为 MVP-22）全 5 phase     | PTY warm pool 一日闭环               |
-| [session-21](session-21.md) | 2026-04-26 ~ 2026-04-29  | #173-#187 | v0.1.0 GA + admin override 特殊窗口       | 7 direct pushes 治理触发             |
-| [session-20](session-20.md) | 2026-04-26               | #152-#169 | MVP-10 Phase B 完整闭环 + 规则化教训      | dispatch §2.13/§2.14 固化            |
-| [session-19](session-19.md) | 2026-04-25               | #117-#152 | 史上最高产窗口（36 PR）                   | ADR-006 Ubuntu validated             |
-| [session-18](session-18.md) | 2026-04-25               | #106-#116 | 4-track 并发 11 PR                        | MVP-09 Phase A 落地                  |
-| [session-17](session-17.md) | 2026-04-23               | #99-#105  | MVP-04 收口 + MVP-08 A/B/C                | PR Actions 分钟节流                  |
+| Session                     | Date                     | PR Range  | Theme（一句话）                                         | 标志性事件                                 |
+| --------------------------- | ------------------------ | --------- | ------------------------------------------------------- | ------------------------------------------ |
+| [session-34](session-34.md) | 2026-05-29               | #431      | Windows 11 适配（v0.4 milestone）· S2V 规格驱动无人值守 | ConPTY 落地 + CI 矩阵 ubuntu+windows 实跑  |
+| [session-33](session-33.md) | 2026-05-17               | #365-#394 | MVP-18/19/20 多 phase + MVP-20 Phase A/C/D              | v1.0 vision rollback 实施侧收口            |
+| [session-32](session-32.md) | 2026-05-15 ~ 2026-05-16  | #328-#364 | v1.0 vision 4 spec ready-gate + MVP-18 Phase A          | SPIKE-07 + MVP-18/19/20 draft→ready        |
+| [session-31](session-31.md) | 2026-05-14               | #309-#326 | 4-agent dispatch pool 协议成熟期（18 PR）               | OpenCode N=4 + Cursor IDE V1-V4 试金石闭环 |
+| [session-30](session-30.md) | 2026-05-13 + 2026-05-14  | #281-#307 | 4-agent pool 首次同时跑 + MVP-17 完整收口               | OpenCode N=4 试金石通过                    |
+| [session-29](session-29.md) | 2026-05-12 晚→2026-05-13 | #281-#294 | MVP-17 收口推进 + 协作 failure mode 暴露                | OpenCode N=3 §2.10 violation               |
+| [session-28](session-28.md) | 2026-05-12               | #271-#279 | 4-track 并发峰值 + validator 工具化                     | `validate-runtime-evidence.mjs` 落地       |
+| [session-27](session-27.md) | 2026-05-10               | #264-#266 | v0.3 sprint A/B/C 全收 + D 启动                         | MVP-16 Phase D bench 启动                  |
+| [session-26](session-26.md) | 2026-05-09               | #259-#263 | 四并行 phase 推进 + 文件域隔离实证                      | OpenCode §2.10 第 2 次重演                 |
+| [session-25](session-25.md) | 2026-05-07               | #251-#253 | v0.3 phase A 启动（2/4 完成）                           | 主 agent reviewer gate 实战                |
+| [session-24](session-24.md) | 2026-05-04 ~ 2026-05-06  | #245-#250 | v0.3 sprint kickoff spec-only 批处理                    | 4 agent 并发详化 6 PR                      |
+| [session-23](session-23.md) | 2026-05-02 ~ 2026-05-04  | #207-#233 | v0.1 收尾 + v0.2 W13/W14 双推进                         | 3 day 27 PR（当前最大）                    |
+| [session-22](session-22.md) | 2026-04-30               | #189-#194 | MVP-20（后重命名为 MVP-22）全 5 phase                   | PTY warm pool 一日闭环                     |
+| [session-21](session-21.md) | 2026-04-26 ~ 2026-04-29  | #173-#187 | v0.1.0 GA + admin override 特殊窗口                     | 7 direct pushes 治理触发                   |
+| [session-20](session-20.md) | 2026-04-26               | #152-#169 | MVP-10 Phase B 完整闭环 + 规则化教训                    | dispatch §2.13/§2.14 固化                  |
+| [session-19](session-19.md) | 2026-04-25               | #117-#152 | 史上最高产窗口（36 PR）                                 | ADR-006 Ubuntu validated                   |
+| [session-18](session-18.md) | 2026-04-25               | #106-#116 | 4-track 并发 11 PR                                      | MVP-09 Phase A 落地                        |
+| [session-17](session-17.md) | 2026-04-23               | #99-#105  | MVP-04 收口 + MVP-08 A/B/C                              | PR Actions 分钟节流                        |
 
 ### Timeline 扩展注记（用于快速查读）
 

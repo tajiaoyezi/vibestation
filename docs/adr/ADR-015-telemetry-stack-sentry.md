@@ -60,14 +60,14 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 
 ## Spike 证据
 
-证据目录：[docs/runtime-evidence/mvp-10/sentry-spike](../runtime-evidence/mvp-10/sentry-spike/README.md)
+证据目录：`docs/runtime-evidence/mvp-10/sentry-spike`（目录未产出 · capture mandate 已 [ADR-023](./ADR-023-capture-mandate-removed.md) 移除）
 
-| 步骤              | 结果                                                                                                                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step 1 · SDK 集成 | `cargo add sentry` + `cargo build`/example 编译通过；本轮无 DSN/Auth Token，未验证 Web UI 实收事件                                                                                                            |
-| Step 2 · PII 脱敏 | 4 个测试通过；payload 只保留 `version` / `os_type` / `stack_trace_hash`；`default_integrations = false` 时捕获事件无路径、终端内容、IP、commit 信息                                                           |
+| 步骤              | 结果                                                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step 1 · SDK 集成 | `cargo add sentry` + `cargo build`/example 编译通过；本轮无 DSN/Auth Token，未验证 Web UI 实收事件                                                                                                                                                                                                                                                                        |
+| Step 2 · PII 脱敏 | 4 个测试通过；payload 只保留 `version` / `os_type` / `stack_trace_hash`；`default_integrations = false` 时捕获事件无路径、终端内容、IP、commit 信息                                                                                                                                                                                                                       |
 | Step 3 · 体积     | `cargo bloat --release --crates -n 30 --package vibestation-core` 对 `sentry_smoke` example 显示 `.text` 1.8 MiB（`sentry_smoke` example 整体 binary 大小 · 非纯 sentry 增量；纯 sentry 三 crate ≈ 176 KiB · 加 transport 层 ≈ 500-700 KiB · 在 < 2 MB 门槛内有充足 margin）、file size 3.2 MiB；Sentry/transport 依赖可接受，但最终 AppImage/dmg 仍需 release build 复测 |
-| Step 5 · 清理     | `cargo remove sentry` 后恢复 `Cargo.toml` / `Cargo.lock`；本 ADR 不把 SDK 依赖带入正式代码                                                                                                                    |
+| Step 5 · 清理     | `cargo remove sentry` 后恢复 `Cargo.toml` / `Cargo.lock`；本 ADR 不把 SDK 依赖带入正式代码                                                                                                                                                                                                                                                                                |
 
 本地源码确认：
 
@@ -109,7 +109,7 @@ Rust 原生 SDK，crash 生态成熟，支持 self-hosted Sentry。Spike 验证�
 
 - `CLAUDE.md` 决策表：#10
 - Task：[MVP-10 设置面板 + Telemetry opt-in + 打包发布](../tasks/MVP-10-settings-telemetry-packaging.md)
-- Runtime evidence：[docs/runtime-evidence/mvp-10/sentry-spike](../runtime-evidence/mvp-10/sentry-spike/README.md)
+- Runtime evidence：`docs/runtime-evidence/mvp-10/sentry-spike`（目录未产出 · capture mandate 已 [ADR-023](./ADR-023-capture-mandate-removed.md) 移除）
 - Local SDK source checked:
   - `/Users/leaf/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sentry-core-0.47.0/src/clientoptions.rs`
   - `/Users/leaf/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sentry-0.47.0/src/defaults.rs`

@@ -473,7 +473,7 @@ pub struct CrashReportPayload {
 - Step 2 PII 脱敏 4 测试通过；`default_integrations = false` 下捕获事件未含路径 / 终端内容 / IP / commit 信息。
 - Step 3 `cargo bloat` 对 `sentry_smoke` release example 显示 `.text` 1.8 MiB、file size 3.2 MiB；最终 Tauri artifact 仍需 Phase B/C 复测。
 - Step 5 已清理临时依赖，正式 `Cargo.toml` / `Cargo.lock` 不含 `sentry`。
-- 证据目录：[docs/runtime-evidence/mvp-10/sentry-spike](../runtime-evidence/mvp-10/sentry-spike/README.md)。
+- 证据目录：`docs/runtime-evidence/mvp-10/sentry-spike`（目录未产出 · capture mandate 已 [ADR-023](../adr/ADR-023-capture-mandate-removed.md) 移除）。
 
 **禁止**：
 

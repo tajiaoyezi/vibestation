@@ -4,7 +4,7 @@
 
 ## Runtime Evidence Validator
 
-按 [`.claude/rules/runtime-evidence-location.md`](../.claude/rules/runtime-evidence-location.md) **R1–R4** 扫描 `docs/runtime-evidence/<task-id>/`：**位置**、**git 跟踪**、**媒体文件命名**、**体积（单文件 / 目录总和）**。
+按 `runtime-evidence-location.md` **R1–R4**（原规则定义 · 该规则已由 [ADR-023](../docs/adr/ADR-023-capture-mandate-removed.md) 移除 capture mandate · 本 validator 随之事实停用 · 下述用法仅历史参考）扫描 `docs/runtime-evidence/<task-id>/`：**位置**、**git 跟踪**、**媒体文件命名**、**体积（单文件 / 目录总和）**。
 
 **R5**（PR body 必须引用证据路径）为 PR 阶段人工检查项，本脚本不解析 GitHub PR。
 
@@ -46,7 +46,7 @@ RUNTIME_EVIDENCE_VALIDATOR_ROOT=/path/to/tmp-repo node scripts/validate-runtime-
   与现有 `pnpm lint` / `pnpm typecheck` 并列。
 - **pre-push**（可选）：与 [`.githooks/pre-push`](../.githooks/pre-push) 相同模式追加调用；默认不强制，避免本地未归档证据时分支无法推送。
 
-首版全量扫描报告见 [`docs/runtime-evidence/_VALIDATION-REPORT.md`](../docs/runtime-evidence/_VALIDATION-REPORT.md)；批量补 capture 后由维护者重跑上述命令刷新。
+首版全量扫描报告 `docs/runtime-evidence/_VALIDATION-REPORT.md`（未产出 · capture mandate 已由 [ADR-023](../docs/adr/ADR-023-capture-mandate-removed.md) 移除）。
 
 ## 其他脚本
 

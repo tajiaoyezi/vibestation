@@ -121,7 +121,7 @@
 - `.claude/rules/spike-delivery-checklist.md` · v2 修订后的规则文件
 - 全局上位规则：`~/.claude/rules/13-cross-agent-delivery.md` · 跨 agent 交付物持久化（v2 仍遵守上位的"持久化 + 可复现"原则）
 - 同期 ADR：[ADR-012](./ADR-012-v2d1-arbiter-approval-simplification.md) · 同样用"规则可维持"思路的 v2-D → v2-D.1
-- 审查报告：[`docs/internal/session-12-audit-report-2026-04-20.md`](../session-12-audit-report-2026-04-20.md) §4.1 M-1（后续 session 13 扩展审视）
+- 审查报告：[`docs/internal/session-12-audit-report-2026-04-20.md`](../internal/session-12-audit-report-2026-04-20.md) §4.1 M-1（后续 session 13 扩展审视）
 - PR：本 PR（chore/session-13-audit-followup · 同 ADR-012 同 PR）
 
 ---

@@ -164,6 +164,30 @@ gitleaks CI（Phase 4）会扫此目录。
 
 ### Timeline 扩展注记（用于快速查读）
 
+#### session-34
+
+- 关键词：`Windows 适配`、`ConPTY`、`S2V 规格驱动`、`v0.4 milestone`.
+- 适用场景：查“跨平台移植如何用 `#[cfg(target_os)]` 零回归 + CI 矩阵兜底”。
+- 关联决策：决策表 #8 / ADR-006（Windows 原推 v0.4 · 本 session 推进）。
+
+#### session-33
+
+- 关键词：`MVP-18/19/20 多 phase`、`MVP-20 Phase A/C/D`、`ADR-021/022`.
+- 适用场景：查“v1.0 vision rollback 实施侧如何收口 + 治理 ADR 节奏”。
+- 关联决策：ADR-021（CI mandate → 质量门）· ADR-022（dispatch 范本去断链）。
+
+#### session-32
+
+- 关键词：`v1.0 vision ready-gate`、`MVP-18 Phase A`、`SPIKE-07`.
+- 适用场景：查“4 spec 从 draft 到 ready 的预审 + Arbiter 拍板路径”。
+- 关联决策：ADR-018（R1 greenlight · supersede ADR-017）。
+
+#### session-31
+
+- 关键词：`4-agent dispatch pool 协议成熟期`、`OpenCode N=4`、`Cursor IDE V1-V4`.
+- 适用场景：查“多 agent 试金石闭环 + 单 session 18 PR 峰值如何协调”。
+- 关联规则：dispatch §2.9（Cursor 双形态）+ §2.10（markdown prettier check）。
+
 #### session-30
 
 - 关键词：`4-agent dispatch`、`MVP-17 收口`、`stale base race`.

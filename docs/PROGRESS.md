@@ -62,40 +62,40 @@
 - **当前态**：main `9454b89` · open PR 0 · 无残留 worktree/分支 · 4 dependabot 远程分支已 prune · git2 0.21 + similar 3 + serde_json/npm patch 全在 main
 - **下一步候选**：① markdown lint 既有 trailing whitespace 清理（quick win 让 CI 全绿 · 但 MVP-12/session-history 两空格疑似故意硬换行 · 需甄别再定 lint 规则 vs 内容）② 营销发布物料 / Apple Dev Program / 域名 TLD（v1.0 vision 代码侧已收口的非代码项）③ deferred capture playbook（Arbiter 窗口 · 非 ship 阻塞）
 
-### Session 34（2026-05-29 · Windows 适配 v0.4 milestone · S2V 规格驱动 · 无人值守 · PR #431 · 已归档至 [`session-34.md`](./session-history/session-34.md)）
+### Session 34（2026-05-29 · Windows 适配 v0.4 milestone · S2V 规格驱动 · 无人值守 · PR #431 · 已归档至 [`session-34.md`](./internal/session-history/session-34.md)）
 
 - **为项目适配 Windows 11（x64 MSVC）· 全程 S2V 规格驱动 · 无人值守 `/goal`**：`/s2v-prd` → `/s2v-init`（6 phase + 16 task + 6 ADR + 7 BDD · tier=solo 单分支）→ `/s2v-implement`（16 task 全 Done · 逐 task RED→GREEN→verify）· 推进决策表 #8 / ADR-006 原推 v0.4 的 Windows 路线
 - **核心**：`pty.rs` cfg 分离 Unix 内核 + Windows ConPTY reader（修 2 个真实运行期 bug：reader join 死锁 → `Mutex<Option>` + `close_master()` · 自然退出漏检 → `try_wait()`）· shell 探测链 `pwsh→powershell→cmd` · external_term/config_import/keybinding/fs_watch 全平台分支 · 前端 `platform-windows` + `format-shortcut` 11 处 ⌘ 平台感知
 - **CI 矩阵实跑闭合 deferred**（run 26638582117）：ubuntu-latest 全绿（闭合 Linux 回归）+ windows-latest 实跑 · 真实产出 `.exe`（NSIS 7.57MB）+ `.msi`（WiX 10.18MB）· ConPTY 真 spawn 实证
 - **零回归**：全走 `#[cfg(target_os)]` 分支 · Unix 逻辑零改动 · DB schema 不变 · 5 维对抗式审查 0 confirmed · 单分支 60+ commit · Arbiter 2026-05-29 approve
 - ⏳ deferred（环境性）：mac 全量回归（无 mac CI leg）· GUI critical UX path 目视（§2.14 Arbiter 窗口 · 进程级 ConPTY 已自动化兜底）
-- 详情见 [`session-34.md`](./session-history/session-34.md)
+- 详情见 [`session-34.md`](./internal/session-history/session-34.md)
 
-### Session 33（2026-05-17 · MVP-18/19/20 多 phase + 治理 ADR-021/022 + MVP-20 Phase A/C/D · merged #365-#394 · 已归档至 [`session-33.md`](./session-history/session-33.md)）
+### Session 33（2026-05-17 · MVP-18/19/20 多 phase + 治理 ADR-021/022 + MVP-20 Phase A/C/D · merged #365-#394 · 已归档至 [`session-33.md`](./internal/session-history/session-33.md)）
 
 - **MVP-18 Phase A/B/C 完整收官**（#344-#364）+ **MVP-19 实施启动 + W1/W2 + Phase C/D/E-impl 全 merged**（#365-#379 · 4-agent 真并行 · 文件域 disjoint · Phase E finalize defer Arbiter playbook #376）
 - **MVP-20 Phase A/C/D 全链收口**（v1.0 vision rollback）：Phase A #385-#388（M1 revert-plan + Phase B 前端 + M2 backend + seam→@/bindings reconcile）· Phase C #391/#392/#390（Codex resume + Cursor wire + Grok CAPTURE-PLAYBOOK）· **Phase D #394**（`RollbackStatusKind` typed enum + 全局 `detect_crash_recovery` + `RollbackRecoveryBanner` · 主 agent 自实施 TDD · Arbiter 2026-05-17 22:04 approve）· 🟡 Phase E（runtime 证据 + Criterion 量化）defer Arbiter playbook 窗口
 - 治理：ADR-021（CI mandate → 质量门）+ ADR-022（dispatch 范本去断链）proposed→accepted（#381-#384）· 全 v2-D.2 + §2.14/§2.15 · 0 author 污染
 - **2026-05-21 audit polish**（#410/#411）：MVP-18 §F.3 fixture 契约 smoke + self-review 5 nit 闭合 · cargo test --workspace 1004+ tests/0 · main HEAD `d18425b`
-- 详情见 [`session-33.md`](./session-history/session-33.md)
+- 详情见 [`session-33.md`](./internal/session-history/session-33.md)
 
-> **Session 32**（2026-05-15/16 · #328-#364 · v1.0 vision 4 spec ready-gate 通过〔SPIKE-07 + MVP-18/19/20 `draft→ready`〕+ MVP-18 Phase A 实施启动 · 4-agent 并行预审 → 主 agent 核实 → Arbiter 拍板）已归档至 [`session-32.md`](./session-history/session-32.md)。
+> **Session 32**（2026-05-15/16 · #328-#364 · v1.0 vision 4 spec ready-gate 通过〔SPIKE-07 + MVP-18/19/20 `draft→ready`〕+ MVP-18 Phase A 实施启动 · 4-agent 并行预审 → 主 agent 核实 → Arbiter 拍板）已归档至 [`session-32.md`](./internal/session-history/session-32.md)。
 
-### Session 30（2026-05-13 + 2026-05-14 · 跨 2 day 15 PR merged · 已归档至 [`session-30.md`](./session-history/session-30.md)）
+### Session 30（2026-05-13 + 2026-05-14 · 跨 2 day 15 PR merged · 已归档至 [`session-30.md`](./internal/session-history/session-30.md)）
 
 - **2 day 跨 15 PR merged**（2026-05-13 阶段 11 PR #295-#303 + 2026-05-14 末 5 项收尾 4 PR #304-#307）· 比 session 28 峰值 9 PR 跃升 67%
 - 4-agent dispatch pool 首次同时跑（OpenCode + Codex + Droid + Cursor · 文件域 0 交叠）+ MVP-17 Phase A/B/C/E.4 完整代码收口
 - §2.5.1 worktreeConfig 隔离完美 · 0 author 污染 · §2.15 stale base race 规则化（PR #298 · 来自 Cursor PR #297 实证）· OpenCode N=4 试金石通过留 pool
 - session 末 5 项收尾全 done（A 归档 #305 · B 漂移 housekeeping #306 · C MVP-17 E.4 #307 · D drift 报告 spike-tmp · E dispatch TOC #304）
-- 详情见 [`session-30.md`](./session-history/session-30.md)
+- 详情见 [`session-30.md`](./internal/session-history/session-30.md)
 
 > **更早 session（22–29 及之前）**：见 `docs/internal/session-history/session-NN.md` 归档（M-2 滚动窗口 · session 33 整理）。
 
-> **Session 21**（PR #173-#187 · v0.1.0 GA 发布配套 + GitHub Actions billing admin override 触发首次大规模 7 direct push + v0.1.1 双批 fix + PR #187 主 worktree dangling history close）已归档至 [`docs/internal/session-history/session-21.md`](./session-history/session-21.md)。
+> **Session 21**（PR #173-#187 · v0.1.0 GA 发布配套 + GitHub Actions billing admin override 触发首次大规模 7 direct push + v0.1.1 双批 fix + PR #187 主 worktree dangling history close）已归档至 [`docs/internal/session-history/session-21.md`](./internal/session-history/session-21.md)。
 
-> **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/internal/session-history/session-20.md`](./session-history/session-20.md)。
+> **Session 20**（PR #152-#172 · 19 PR · MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix）已归档至 [`docs/internal/session-history/session-20.md`](./internal/session-history/session-20.md)。
 
-> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/internal/session-history/session-19.md`](./session-history/session-19.md)。
+> **Session 19**（PR #117-#152 · 36 PR · 史上最高产）已归档至 [`docs/internal/session-history/session-19.md`](./internal/session-history/session-19.md)。
 
 > **滚动窗口前**：session 18 及更早（PR #1-#116）的完整摘要请查 `git log --all --oneline | grep PR` · 或 `docs/internal/session-history/` 里的归档文件。本 PROGRESS 每 session 末按 M-2 规则整理（当前展开 session 22 + 23 · session 18/19/20/21 已归档至 `docs/internal/session-history/`）。
 
@@ -320,27 +320,21 @@
 ## Session 日志
 
 > **M-2 滚动规则**：本节只列归档索引 · 详细 session 摘要见 `docs/internal/session-history/<session-N>.md` · 全部 PR 历史见 `git log --all --oneline`。
-> 当前活跃窗口（近 2 session · session 19 + 20）已在上方"已合入的 PR"段展开。
+> 当前活跃窗口（近 2 session · session 35 + 36）已在上方"已合入的 PR"段展开。
 
 ### 归档索引
 
-| Session | 日期               | PR 范围       | 主题                                                                                                                                                                                                                                                                                                                                                             | 归档文件                                           |
-| ------- | ------------------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| 7       | 2026-04-18 ~ 04-19 | 见 git log    | Spike W0 多 agent 并行 · 首行代码 + 4 Spike + 1 新 Spike                                                                                                                                                                                                                                                                                                         | git log（未单独归档）                              |
-| 8       | 2026-04-19         | 见 git log    | SPIKE 全收口 + MVP-01 Phase A 首行生产代码                                                                                                                                                                                                                                                                                                                       | git log（未单独归档）                              |
-| 9       | 2026-04-19         | 见 git log    | 三路并行 · MVP-01 Phase B 视觉骨架 + md 盘点                                                                                                                                                                                                                                                                                                                     | git log（未单独归档）                              |
-| 10      | 2026-04-19         | 见 git log    | 三路收敛 · MVP-02 落地                                                                                                                                                                                                                                                                                                                                           | git log（未单独归档）                              |
-| 11      | 2026-04-20         | 见 git log    | MVP-03/SPIKE-08 落地 + ts-rs rollout + MVP-04 spec ready + Kimi 首次成功协作                                                                                                                                                                                                                                                                                     | git log（未单独归档）                              |
-| 12      | 2026-04-20         | 见 git log    | 多 agent 四路并发 · v0.1 Git 能力闭环 + 终端画面闭环 + SPIKE W0 macOS 完结                                                                                                                                                                                                                                                                                       | git log（未单独归档）                              |
-| 13 ~ 16 | 2026-04-21 ~ 04-22 | 见 git log    | 未单独归档 · session 13 audit + Kimi 11 次协作 + MVP-04 Phase C/E + SPIKE W0 macOS 完结尾声                                                                                                                                                                                                                                                                      | git log（未单独归档）                              |
-| **33**  | 2026-05-17         | **#365-#379** | MVP-18 Phase A/B/C 收官 + MVP-19 claim/waive + W1 + W2-A.0/B/C/D + W2-doc + Phase C/D/E-impl 全 merged（15 PR）· C GitLog 徽章 CSS reviewer-fix · 组合 C+D vitest 442 零回归 + dev-boot clean · Phase E finalize defer Arbiter playbook #376                                                                                                                     | [`session-33.md`](./session-history/session-33.md) |
-| **17**  | 2026-04-23         | **#99-#105**  | MVP-04 Phase F 收口 + MVP-08 Phase A/B/C 落地 + PR Actions 分钟节流                                                                                                                                                                                                                                                                                              | [`session-17.md`](./session-history/session-17.md) |
-| **18**  | 2026-04-25         | **#106-#116** | 4 track 并发极致产出 · 11 PR · 5 Phase 落地 + 3 spec ready 加强                                                                                                                                                                                                                                                                                                  | [`session-18.md`](./session-history/session-18.md) |
-| **19**  | 2026-04-25         | **#117-#152** | MVP-11 全 done + MVP-05 Pane 落地 + ADR-006 Ubuntu validated + branch protect 机械化 · 史上最高产 36 PR                                                                                                                                                                                                                                                          | [`session-19.md`](./session-history/session-19.md) |
-| **20**  | 2026-04-26         | **#152-#172** | MVP-10 Phase B 完整闭环 + 2 critical/secondary bug fix + dispatch §2.13/§2.14 教训规则化                                                                                                                                                                                                                                                                         | [`session-20.md`](./session-history/session-20.md) |
-| **21**  | 2026-04-26 ~ 04-29 | **#173-#187** | v0.1.0 GA 发布配套 + Phase D Linux AppImage 实测 + GitHub Actions billing 暂停触发首次 admin override 模式 + v0.1.1 双批 fix（admin push + PR #186）+ PR #187 主 worktree dangling history 验证 close                                                                                                                                                            | [`session-21.md`](./session-history/session-21.md) |
-| **22**  | 2026-04-30         | **#189-#193** | MVP-22（ex-MVP-20）PTY 预热池全 5 phase · 1 day · Codex CLI fast 主导 + 主 agent 协调 · 解 user "新 tab 卡 1-2s" 痛点（提速 ~15-25 倍）· Kimi 远程 review · v2-D.1 trailer 100%                                                                                                                                                                                  | git log（session 23 末归档时合并）                 |
-| **23**  | 2026-05-02 ~ 05-03 | **#207-#229** | 23 PR · v0.1 收尾 + 治理升级 ADR-016 v2-D.2 + v0.2 sprint W13 完成 + **W14 启动 · MVP-13 自动化 100% + MVP-21 Phase A done**（Codex CLI 全 fast 模式 · 总实测 ~11h vs 估时 6d · ~6.5x 平均提速 · 5572 行代码 + 100 单测 + 6 Criterion bench + 4 AuthMethod manual Debug redact · 19 binding ts-rs 拆）· 主 agent + Codex + Explore 子 agent 并行协作模式五度验证 | 本 PROGRESS 展开 · 待归档                          |
+| Session | 日期               | PR 范围    | 主题                                                                                        | 归档文件              |
+| ------- | ------------------ | ---------- | ------------------------------------------------------------------------------------------- | --------------------- |
+| 7       | 2026-04-18 ~ 04-19 | 见 git log | Spike W0 多 agent 并行 · 首行代码 + 4 Spike + 1 新 Spike                                    | git log（未单独归档） |
+| 8       | 2026-04-19         | 见 git log | SPIKE 全收口 + MVP-01 Phase A 首行生产代码                                                  | git log（未单独归档） |
+| 9       | 2026-04-19         | 见 git log | 三路并行 · MVP-01 Phase B 视觉骨架 + md 盘点                                                | git log（未单独归档） |
+| 10      | 2026-04-19         | 见 git log | 三路收敛 · MVP-02 落地                                                                      | git log（未单独归档） |
+| 11      | 2026-04-20         | 见 git log | MVP-03/SPIKE-08 落地 + ts-rs rollout + MVP-04 spec ready + Kimi 首次成功协作                | git log（未单独归档） |
+| 12      | 2026-04-20         | 见 git log | 多 agent 四路并发 · v0.1 Git 能力闭环 + 终端画面闭环 + SPIKE W0 macOS 完结                  | git log（未单独归档） |
+| 13 ~ 16 | 2026-04-21 ~ 04-22 | 见 git log | 未单独归档 · session 13 audit + Kimi 11 次协作 + MVP-04 Phase C/E + SPIKE W0 macOS 完结尾声 | git log（未单独归档） |
+
+> **session 17-34 的逐 session 索引见** `docs/internal/session-history/README.md` 的「🧭 Session Archive Timeline」表（单一来源 · 各有 `session-NN.md` 归档文件）· 本表只保留 ≤16 的 git-log-only 早期 session（避免与 Timeline 三表并存再漂移 · 17-23+33 旧行已 dedupe · 2026-06-03）。
 
 ### 跨 session 关键里程碑
 

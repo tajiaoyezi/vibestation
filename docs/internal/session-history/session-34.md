@@ -24,7 +24,7 @@
 
 - 上一 session：[`session-33.md`](./session-33.md)（#365-#394 · MVP-18/19/20 多 phase 推进 + MVP-20 Phase A/C/D · v1.0 vision rollback 实施侧收口）
 - 下一 session：[git log](https://github.com/tajiaoyezi/vibestation)（session 35 · dependabot 4 PR + git2 0.21 major migration · PR #432）
-- 决策节点：决策表 #8（平台 MVP）/ [ADR-006](../adr/ADR-006-desktop-framework.md)（Windows 原推 v0.4 · 本 session 推进）
+- 决策节点：决策表 #8（平台 MVP）/ [ADR-006](../../adr/ADR-006-desktop-framework.md)（Windows 原推 v0.4 · 本 session 推进）
 
 ---
 

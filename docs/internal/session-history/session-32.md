@@ -23,8 +23,8 @@
 
 - 上一 session：[`session-31.md`](./session-31.md)（#309-#326 · 4-agent dispatch pool 协议成熟期 · 18 PR）
 - 下一 session：[`session-33.md`](./session-33.md)（#365-#394 · MVP-18/19/20 多 phase + MVP-20 Phase A/C/D）
-- v1.0 vision spec：[MVP-18](../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../tasks/MVP-20-ai-one-click-rollback.md) · [SPIKE-07](../tasks/SPIKE-07-cli-protocol-parser.md)
-- 决策节点：[ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md)（R1 greenlight · supersede ADR-017）
+- v1.0 vision spec：[MVP-18](../../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../../tasks/MVP-20-ai-one-click-rollback.md) · [SPIKE-07](../../tasks/SPIKE-07-cli-protocol-parser.md)
+- 决策节点：[ADR-018](../../adr/ADR-018-ai-aware-r1-rejudge.md)（R1 greenlight · supersede ADR-017）
 
 ---
 

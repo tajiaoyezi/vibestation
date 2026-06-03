@@ -30,8 +30,8 @@
 
 - 上一 session：[`session-32.md`](./session-32.md)（#328-#364 · v1.0 vision ready-gate + MVP-18 Phase A + 多 Wave doc-sync）
 - 下一 session：[`session-34.md`](./session-34.md)（#431 · Windows 适配 v0.4 milestone · S2V 规格驱动）
-- 治理节点：[ADR-021](../adr/ADR-021-ci-mandate-staleness.md)（CI mandate → 质量门）· [ADR-022](../adr/ADR-022-dispatch-template-ref-path-staleness.md)（dispatch 范本去断链）
-- v1.0 vision spec：[MVP-18](../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../tasks/MVP-20-ai-one-click-rollback.md)
+- 治理节点：[ADR-021](../../adr/ADR-021-ci-mandate-staleness.md)（CI mandate → 质量门）· [ADR-022](../../adr/ADR-022-dispatch-template-ref-path-staleness.md)（dispatch 范本去断链）
+- v1.0 vision spec：[MVP-18](../../tasks/MVP-18-ai-aware-pane-linking.md) · [MVP-19](../../tasks/MVP-19-session-commit-binding.md) · [MVP-20](../../tasks/MVP-20-ai-one-click-rollback.md)
 
 ---
 

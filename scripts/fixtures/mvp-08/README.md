@@ -7,7 +7,7 @@
 > **关联**：
 >
 > - Spec：[`docs/tasks/MVP-08-diff-and-git-status.md`](../../../docs/tasks/MVP-08-diff-and-git-status.md) §F.E（A.6 / F.3 acceptance）
-> - 度量记录：[`docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md`](../../../docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md)（v0.2 复现段引用本目录）
+> - 度量记录：`docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md`（未产出 · capture mandate 已 [ADR-023](../../../docs/adr/ADR-023-capture-mandate-removed.md) 移除）
 > - PR #136 round 3：限制中标明 v0.2 真测需用 fixture · 本脚本兑现该承诺
 
 ## 脚本清单

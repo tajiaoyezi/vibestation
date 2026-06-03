@@ -1,10 +1,10 @@
 # Dispatch Prompt 规则 · 事件档案与详例（审计附录）
 
-> 本文件是 [`.claude/rules/dispatch-prompt-template.md`](../.claude/rules/dispatch-prompt-template.md) 的**审计附录**。
+> 本文件是 [`.claude/rules/dispatch-prompt-template.md`](../../.claude/rules/dispatch-prompt-template.md) 的**审计附录**。
 >
 > - **规范正文**（规则 + 具体做法 + code block + 速查表 + 模板）在 `.claude/rules/dispatch-prompt-template.md`，进 `.claude/rules/` auto-load。
 > - **本文件**保存每条硬约束的：完整「事件」叙述、完整「反模式」对照表、详细「为什么」、逐条「关联」、参考实现历史、规则来源时间线。
-> - 本文件**不在 `.claude/rules/`**（不进每 session auto-load · 降 context 注入量），但**进 git**（满足 v2-D.2 / [ADR-016](./adr/ADR-016-admin-override-trailer-exemption.md) / 全局 rule 13 的审计要求 · clone 零依赖可溯源）。
+> - 本文件**不在 `.claude/rules/`**（不进每 session auto-load · 降 context 注入量），但**进 git**（满足 v2-D.2 / [ADR-016](../adr/ADR-016-admin-override-trailer-exemption.md) / 全局 rule 13 的审计要求 · clone 零依赖可溯源）。
 > - **回引**：规范正文每条的「📎 事件 / 反模式详例 →」锚点指向本文件对应 section。锚点用稳定 `<a id>`，不随中文 slug 变化（符合本规则 §2.13 精神：引用稳定锚点，不 inline 易变内容）。
 > - **拆分依据**：2026-05-15 · `docs/dispatch-rule-compress` · 原单文件 849 行 / 55KB / ~40.6k 字符触发 context 性能警告 · 档位 B 拆分 · 规范正文降至 ~340 行 / ~21KB / ~15k 字符。
 
@@ -364,7 +364,7 @@ status: proposed
 
 ## §4 参考实现
 
-> ⚠️ **范本文件不进 git**（`.gitignore:116` = `spike-tmp/` 整个 gitignored · clone repo 后不可见 · 本机 `spike-tmp/dispatch/` + `_archived/` 有则可查 · 无则不可依赖）· [ADR-022](./adr/ADR-022-dispatch-template-ref-path-staleness.md) accepted @ 2026-05-17 方案 d 起 · 本节**只保留每个历史范本的结构特征**（institutional knowledge · 为什么它是好范本）· **不给可点击 git 路径**。写 dispatch 时照 `.claude/rules/dispatch-prompt-template.md` §3 标准模板 + 下列特征。
+> ⚠️ **范本文件不进 git**（`.gitignore:116` = `spike-tmp/` 整个 gitignored · clone repo 后不可见 · 本机 `spike-tmp/dispatch/` + `_archived/` 有则可查 · 无则不可依赖）· [ADR-022](../adr/ADR-022-dispatch-template-ref-path-staleness.md) accepted @ 2026-05-17 方案 d 起 · 本节**只保留每个历史范本的结构特征**（institutional knowledge · 为什么它是好范本）· **不给可点击 git 路径**。写 dispatch 时照 `.claude/rules/dispatch-prompt-template.md` §3 标准模板 + 下列特征。
 
 ### 4.1 · 推荐参考特征（session 12 验证成功 · 高可复用 · 按特征复刻 · 非按文件复制）
 
@@ -381,7 +381,7 @@ status: proposed
 
 ### 4.3 · 参考选择指南（结构侧重 · 与规范正文 §4 同步 · 均不给 git 路径）
 
-> ⚠️ 本表与规范正文 `.claude/rules/dispatch-prompt-template.md` §4 同步（写 dispatch 时用正文那份）· 此处为完整 §4 附录的一部分保留 · [ADR-022](./adr/ADR-022-dispatch-template-ref-path-staleness.md) 方案 d 起均改为结构侧重描述（不给可点击范本文件名）。
+> ⚠️ 本表与规范正文 `.claude/rules/dispatch-prompt-template.md` §4 同步（写 dispatch 时用正文那份）· 此处为完整 §4 附录的一部分保留 · [ADR-022](../adr/ADR-022-dispatch-template-ref-path-staleness.md) 方案 d 起均改为结构侧重描述（不给可点击范本文件名）。
 
 | 任务类型                            | 结构侧重（在 §3 标准模板基础上强化）                                      |
 | ----------------------------------- | ------------------------------------------------------------------------- |
@@ -422,4 +422,4 @@ status: proposed
 
 ---
 
-> 本附录由规范正文 [`.claude/rules/dispatch-prompt-template.md`](../.claude/rules/dispatch-prompt-template.md) 拆分而来 · 内容逐字保真 · 演进时与规范正文同步追加（新条款的事件 / 反模式落本文件 · 规则正文落规范文件）。
+> 本附录由规范正文 [`.claude/rules/dispatch-prompt-template.md`](../../.claude/rules/dispatch-prompt-template.md) 拆分而来 · 内容逐字保真 · 演进时与规范正文同步追加（新条款的事件 / 反模式落本文件 · 规则正文落规范文件）。

@@ -6,16 +6,16 @@
 >
 > **关联**：
 >
-> - Spec：[`docs/tasks/MVP-08-diff-view-mode-core.md`](../../../docs/tasks/MVP-08-diff-view-mode-core.md) §F.E（A.6 / F.3 acceptance）
+> - Spec：[`docs/tasks/MVP-08-diff-and-git-status.md`](../../../docs/tasks/MVP-08-diff-and-git-status.md) §F.E（A.6 / F.3 acceptance）
 > - 度量记录：[`docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md`](../../../docs/runtime-evidence/mvp-08/phase-e/metrics-phase-e.md)（v0.2 复现段引用本目录）
 > - PR #136 round 3：限制中标明 v0.2 真测需用 fixture · 本脚本兑现该承诺
 
 ## 脚本清单
 
-| 脚本 | 用途 | spec 对应 |
-|------|------|-----------|
-| `gen-10k-diff.sh` | 创建临时 git repo · 单文件 10000 行 · ~5000 行 unstaged diff | A.6 · 大文件滚动帧时长 |
-| `gen-1k-files.sh` | 创建临时 git repo · 1000 文件 · ~500 unstaged 改动 | F.3 · 1k 文件 Status 渲染 |
+| 脚本              | 用途                                                         | spec 对应                 |
+| ----------------- | ------------------------------------------------------------ | ------------------------- |
+| `gen-10k-diff.sh` | 创建临时 git repo · 单文件 10000 行 · ~5000 行 unstaged diff | A.6 · 大文件滚动帧时长    |
+| `gen-1k-files.sh` | 创建临时 git repo · 1000 文件 · ~500 unstaged 改动           | F.3 · 1k 文件 Status 渲染 |
 
 ## 使用方法
 
@@ -88,23 +88,23 @@ F.3（1k 文件 Status 渲染）流程同上 · 把 fixture 换成 `gen-1k-files
 
 ## 设计约束
 
-| 约束 | 说明 |
-|------|------|
-| 跨平台 | macOS（BSD coreutils） + Linux（GNU coreutils）双兼容 |
-| 0 外部依赖 | 仅依赖 `bash` + `git` + `seq` / `wc` / `find` / `awk`（POSIX 通用） |
-| 可丢弃 | 输出目录是临时 fixture · 跑完 v0.2 trace 后 `rm -rf` |
-| 不污染用户 workspace | 输出路径由调用方指定 · 默认推荐 `/tmp/<name>` |
-| 退出码语义 | 0 = 成功 · 非 0 = 失败 + stderr 错误信息 |
-| set -euo pipefail | 严格 bash 模式 · 任何命令失败立即 abort |
+| 约束                 | 说明                                                                |
+| -------------------- | ------------------------------------------------------------------- |
+| 跨平台               | macOS（BSD coreutils） + Linux（GNU coreutils）双兼容               |
+| 0 外部依赖           | 仅依赖 `bash` + `git` + `seq` / `wc` / `find` / `awk`（POSIX 通用） |
+| 可丢弃               | 输出目录是临时 fixture · 跑完 v0.2 trace 后 `rm -rf`                |
+| 不污染用户 workspace | 输出路径由调用方指定 · 默认推荐 `/tmp/<name>`                       |
+| 退出码语义           | 0 = 成功 · 非 0 = 失败 + stderr 错误信息                            |
+| set -euo pipefail    | 严格 bash 模式 · 任何命令失败立即 abort                             |
 
 ## 反模式（不要做）
 
-| 反模式 | 正确做法 |
-|---|---|
-| 在用户主 workspace（`~/`）生成 fixture | 用 `/tmp/` 等临时目录 · 跑完 `rm -rf` |
-| 把 fixture 进 git（commit 到本 repo） | fixture 是临时产物 · 不进 repo · 仅脚本进 repo |
-| 依赖 python / node / 自定义工具 | 仅 bash + git + coreutils · 任何 *nix 系统可跑 |
-| 在脚本里硬编码 macOS-only 命令（如 `seq` 的 BSD 行为） | 显式测试两端 · 用 POSIX 子集 |
+| 反模式                                                 | 正确做法                                        |
+| ------------------------------------------------------ | ----------------------------------------------- |
+| 在用户主 workspace（`~/`）生成 fixture                 | 用 `/tmp/` 等临时目录 · 跑完 `rm -rf`           |
+| 把 fixture 进 git（commit 到本 repo）                  | fixture 是临时产物 · 不进 repo · 仅脚本进 repo  |
+| 依赖 python / node / 自定义工具                        | 仅 bash + git + coreutils · 任何 \*nix 系统可跑 |
+| 在脚本里硬编码 macOS-only 命令（如 `seq` 的 BSD 行为） | 显式测试两端 · 用 POSIX 子集                    |
 
 ## 自测流程
 
@@ -141,11 +141,11 @@ rm -rf /tmp/fixture-10k-test /tmp/fixture-1k-test
 
 ## 何时升级本脚本
 
-| 触发 | 动作 |
-|---|---|
-| MVP-08 spec 改 A.6 / F.3 阈值（如 10k → 50k 行） | 改脚本 line/file 数量 + 同步本 README + metrics-phase-e.md v0.2 复现段 |
-| v0.2 真测发现 fixture pattern 不真实（如 lorem ipsum 太规律 · diff 算法走捷径） | 引入更现实的 pattern（如真实代码 sample · 多类型 hunk） |
-| 加新 acceptance（如 binary diff · large file fallback 真测） | 新增 `gen-binary-diff.sh` / `gen-large-file.sh` 脚本 + 索引到本 README |
+| 触发                                                                            | 动作                                                                   |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| MVP-08 spec 改 A.6 / F.3 阈值（如 10k → 50k 行）                                | 改脚本 line/file 数量 + 同步本 README + metrics-phase-e.md v0.2 复现段 |
+| v0.2 真测发现 fixture pattern 不真实（如 lorem ipsum 太规律 · diff 算法走捷径） | 引入更现实的 pattern（如真实代码 sample · 多类型 hunk）                |
+| 加新 acceptance（如 binary diff · large file fallback 真测）                    | 新增 `gen-binary-diff.sh` / `gen-large-file.sh` 脚本 + 索引到本 README |
 
 ---
 

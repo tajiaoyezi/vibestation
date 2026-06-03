@@ -19,21 +19,23 @@
 
 **触发原因**：GitHub Actions billing 暂停 · PR-level CI 完全无法运行 · `gh pr merge --auto` 等待 CI pending 永不触发 · 走 PR 流程实际等同卡死。Arbiter 切 admin override 模式 `git push origin main`（受 `.githooks/pre-push` 阻拦时用 `SKIP_BRANCH_PROTECT=1` env override）。
 
-| commit | 类型 | trailer 合规 | 备注 |
-|---|---|---|---|
+| commit    | 类型                                                              | trailer 合规                                                            | 备注                                |
+| --------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------- |
 | `2c1044a` | 人工 admin push（v0.1.1 GA blocker fix · 23 文件 / +1054 / -123） | ⚠️ 无 trailer · commit body 写 "GitHub Actions billing 暂停，CI 无法跑" | 主 agent 写代码 → Arbiter 直推 main |
-| `7697b8b` | dependabot auto（actions/upload-artifact 4→7） | ⚠️ 无 trailer · dependabot 标准 commit format | bot 自动 |
-| `a9336ff` | dependabot auto（libc 0.2.185→0.2.186） | ⚠️ 无 trailer | bot 自动 |
-| `347140a` | dependabot auto（plist 1.8.0→1.9.0） | ⚠️ 无 trailer | bot 自动 |
-| `492c283` | dependabot auto（minor-updates group · 4 个） | ⚠️ 无 trailer | bot 自动 |
-| `93a1317` | dependabot auto（sha2 0.10.9→0.11.0） | ⚠️ 无 trailer | bot 自动 |
-| `739da3d` | dependabot auto（vite 6.4.2→8.0.10 · dev） | ⚠️ 无 trailer | bot 自动 |
+| `7697b8b` | dependabot auto（actions/upload-artifact 4→7）                    | ⚠️ 无 trailer · dependabot 标准 commit format                           | bot 自动                            |
+| `a9336ff` | dependabot auto（libc 0.2.185→0.2.186）                           | ⚠️ 无 trailer                                                           | bot 自动                            |
+| `347140a` | dependabot auto（plist 1.8.0→1.9.0）                              | ⚠️ 无 trailer                                                           | bot 自动                            |
+| `492c283` | dependabot auto（minor-updates group · 4 个）                     | ⚠️ 无 trailer                                                           | bot 自动                            |
+| `93a1317` | dependabot auto（sha2 0.10.9→0.11.0）                             | ⚠️ 无 trailer                                                           | bot 自动                            |
+| `739da3d` | dependabot auto（vite 6.4.2→8.0.10 · dev）                        | ⚠️ 无 trailer                                                           | bot 自动                            |
 
 **Audit 问题**（session 22-23 deferred · 本 ADR 闭合）：
+
 - v2-D.1 规则**未涵盖** admin direct push 场景（无 PR body 可写）
 - 是否补 retroactive trailer · 或显式声明豁免 · 未决
 
 **不决策的后果**：
+
 - 规则空白 · 未来 admin override 时主 agent 不知是否合规
 - audit 项悬空 · session-end 累积技术债
 - 未来 v2-strict 升级时 · 历史 admin push 治理状态不清
@@ -55,31 +57,37 @@
 ### 选项 A · 显式豁免 + commit body audit marker（v2-D.2 · 推荐）
 
 **改动**：
+
 - v2-D.1 §(2) 加新子条款："admin direct push（含 emergency human + bot auto）豁免 PR body trailer 要求 · 但 commit body 必须含 audit marker"
 - audit marker 规范：
   - **人工 admin push**：commit body 显式 `admin override · 原因：<X>`（X 例：`GitHub Actions billing 暂停 · CI pending 卡死` / `紧急修复 v0.1.1 GA blocker · 主 agent 已本地全过 gates`）
   - **bot auto push**：默认 dependabot / renovate commit format 已含 source ref（"Bumps X from A to B"）· 视为足够 audit · 无需额外 marker
 
 **优点**：
+
 - 实施成本最低（< 30 min · 仅文档更新 · 无代码 / hook / CI 改动）
 - 与 ADR-012 选项 A 同思路（简化规则 · 接受实务）
 - 不阻塞 v0.2 sprint
 - audit trail 仍存在（commit body 而非 PR body）· 未来 v2-strict 升级时可追溯
 
 **缺点**：
+
 - v2-D.2 比 v2-D.1 略松（admin override 可绕开 PR review）· 治理强度下降
 - 若未来 admin override 频率上升（> 5 次/month 持续）· 可能需要 revisit
 
 ### 选项 B · retroactive 补 trailer
 
 **改动**：
+
 - 给 7 个 direct push 各开一个 GitHub issue（或 retroactive PR comment 引用 commit SHA）补 trailer
 - 未来每次 admin direct push 都必须立即开 issue 补 trailer
 
 **优点**：
+
 - audit 完整 · 与 v2-D.1 等强度
 
 **缺点**：
+
 - 6 个 dependabot bumps 补 trailer **完全无意义**（bot 自动 · 没"Implemented by 人类"概念）
 - session 22-23 累积 1 month 已默认豁免 · 现在补是 retro-fitting 治理而非治理本身
 - 操作成本高（7 个 issue / PR comment · 各 2-3 min · 每月若有 10 个 dependabot 滚动 · 持续负担）
@@ -87,15 +95,18 @@
 ### 选项 C · 升级 pre-push hook 强制
 
 **改动**：
+
 - `.githooks/pre-push` 加：检测 main 上的 commit message 不含 trailer / 不含 admin marker → 阻止
 - Arbiter override：`SKIP_BRANCH_PROTECT=1`（已有）· commit body 必含 `admin override` 字符串
 - dependabot 走 GitHub auto-merge · 不经过本机 hook · 自然豁免
 
 **优点**：
+
 - 技术兜底 · 不靠人肉自觉
 - 主 agent 强制要写 marker · 治理强度高于选项 A
 
 **缺点**：
+
 - hook 复杂化（已有 branch protection 检测 · 加 commit message 检测）
 - 仅检测本机 push · GitHub UI / API 直推可绕过
 - dependabot / renovate 配置任何变化都要 revisit hook
@@ -108,6 +119,7 @@
 **选择**：选项 A · v2-D.2 显式豁免 + commit body audit marker
 
 **理由**：
+
 - 与 ADR-012 选项 A 同思路（"规则简化 · 实务对齐"）· 一致性强
 - 实施成本最低（< 30 min · 同 PR 改 ADR + CLAUDE.md）· 不阻塞 v0.2 sprint
 - 选项 B 已 1 month 不补 = de facto 默许豁免 · 不再补即接受
@@ -181,7 +193,7 @@
 - [ADR-006 · 桌面框架 + v2-D 单人项目 Arbiter approval 起源](./ADR-006-desktop-framework.md)（session 10 末 · 2026-04-19）
 - [ADR-012 · v2-D → v2-D.1 简化](./ADR-012-v2d1-arbiter-approval-simplification.md)（session 13 · 2026-04-21 · 同决策思路）
 - [`CLAUDE.md` §"改锁定表 A 栏前必须" §(2)](../../CLAUDE.md)（本 ADR accept 后同 PR sync v2-D.1 → v2-D.2）
-- session 21 PROGRESS.md 段（已归档至 [`session-21.md`](../session-history/session-21.md) · 详 admin override 模式实证）
+- session 21 PROGRESS.md 段（已归档至 [`session-21.md`](../internal/session-history/session-21.md) · 详 admin override 模式实证）
 - session 23 audit 决议（本 ADR · 2026-05-03 闭合 audit 项）
 
 ### 未来触发 Revisit 的条件（任一满足）

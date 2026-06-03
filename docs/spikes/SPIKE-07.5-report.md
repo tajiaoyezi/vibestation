@@ -1,6 +1,6 @@
 # SPIKE-07.5 报告 · 结构化模式 CLI 协议 parser 验证（路径 A · R1 重判）
 
-> 决策级 Spike · [ADR-017](./adr/ADR-017-ai-aware-deferred.md) 路径 A 落地 · R1（AI-Aware v1.0 vision）gate 重判前置。
+> 决策级 Spike · [ADR-017](../adr/ADR-017-ai-aware-deferred.md) 路径 A 落地 · R1（AI-Aware v1.0 vision）gate 重判前置。
 > 实测环境：claude 2.1.142 · codex 0.130.0 · macOS 26.3.1 · Rust 1.95.0（同 SPIKE-07 报告测试环境）。
 > 本报告每个数字均可溯源 `docs/spikes/raw/SPIKE-07.5/phase3-matrix.json`（§E.7）· 0 编造声明见文末。
 
@@ -10,7 +10,7 @@
 
 **路径 A 假设实锤成立**：claude / codex **结构化模式**（`stream-json` / `exec --json`）输出干净行分隔 JSON 机器协议，统一 `CliEvent` IR 抽象**可行且高保真**——claude **18/18=100%（六场景全过）** · 非退化 **29/30=96.7%** · **panic 0**。SPIKE-07 §H 路径 3 deferred 被实测确认为 **SPIKE-06 corpus 方法论 artifact**（录的是交互 TUI 屏幕重绘 · 非结构化协议），与 ADR-017 推断一致。
 
-**§H 三路径裁决 = 路径 1 greenlight · Arbiter ACCEPTED**（tajiaoyezi · 2026-05-16 · 拍板原话 "你直接执行" · v2-D.2 单人项目 self-review + Arbiter approval · 同 ADR-017 "按照你的推荐执行" 先例）。carve-out (b) **已用真实数字坐实**（§E.4）：重校准口径（assertions.rs 仍 byte-identical · 仅 matrix 覆盖 mixed）**非退化 30/30=100% · overall 33/36=91.7%**。R1 **HIGH/HIGH → 降级**（[ADR-018](./adr/ADR-018-ai-aware-r1-rejudge.md) accepted · supersede ADR-017）· MVP-18/19/20 解锁 ready-gate。
+**§H 三路径裁决 = 路径 1 greenlight · Arbiter ACCEPTED**（tajiaoyezi · 2026-05-16 · 拍板原话 "你直接执行" · v2-D.2 单人项目 self-review + Arbiter approval · 同 ADR-017 "按照你的推荐执行" 先例）。carve-out (b) **已用真实数字坐实**（§E.4）：重校准口径（assertions.rs 仍 byte-identical · 仅 matrix 覆盖 mixed）**非退化 30/30=100% · overall 33/36=91.7%**。R1 **HIGH/HIGH → 降级**（[ADR-018](../adr/ADR-018-ai-aware-r1-rejudge.md) accepted · supersede ADR-017）· MVP-18/19/20 解锁 ready-gate。
 
 ---
 
@@ -25,7 +25,7 @@
 | adapter | TUI 文本启发式                                                          | **新写** `parser/claude.rs`+`codex.rs`（结构化事件路由）                                                          |
 | 结果    | 24/36=66.7% · long_stream/mixed **0%** · 两 CLI 对称 67% → **deferred** | 32/36=88.9% · 非退化 29/30=**96.7%** · claude **100%** · panic 0                                                  |
 
-方法依据：[`SPIKE-07.5` spec](../tasks/SPIKE-07.5-structured-mode-rerun.md) · [ADR-017](./adr/ADR-017-ai-aware-deferred.md) 路径 A。
+方法依据：[`SPIKE-07.5` spec](../tasks/SPIKE-07.5-structured-mode-rerun.md) · [ADR-017](../adr/ADR-017-ai-aware-deferred.md) 路径 A。
 
 ---
 
@@ -195,7 +195,7 @@ parser 结构化 error-detection 91.7% 仅比关键字基线高 +2.8pp（SPIKE-0
 
 ## J · Arbiter 拍板后已执行（2026-05-16 · "你直接执行"）
 
-- **ADR-018 accepted**（[`docs/adr/ADR-018-ai-aware-r1-rejudge.md`](./adr/ADR-018-ai-aware-r1-rejudge.md)）：路径 1 greenlight · R1 HIGH/HIGH → 降级 · **supersede ADR-017**（ADR-017 → superseded）
+- **ADR-018 accepted**（[`docs/adr/ADR-018-ai-aware-r1-rejudge.md`](../adr/ADR-018-ai-aware-r1-rejudge.md)）：路径 1 greenlight · R1 HIGH/HIGH → 降级 · **supersede ADR-017**（ADR-017 → superseded）
 - **SPIKE-07.5 spec → done**（reviewer self-review v2-D.2 · 翻转 gate option (a) reviewer push）
 - **CLAUDE.md 决策表 #3 + implementation-plan.md 同步**（A 栏 sync · R1 greenlight · AI-Aware v1.0 实施 unblocked · MVP-18/19/20 解锁 ready-gate）
 - **对外文案禁区保守保留**：greenlight 解锁**实施**非营销 · 未建先宣有风险 · README/landing 暂仍不提 AI-Aware（待 v1.0 实际 ship）· Arbiter 可单独指令解除（ADR-018 决议 4 记录）

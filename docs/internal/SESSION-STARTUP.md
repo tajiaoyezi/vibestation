@@ -59,7 +59,7 @@ PR #271 playbook 已就位 · 4 MVP × ~28 PNG + 1 MP4 + 4 metrics 一气呵成�
 - SPIKE-07 CLI parser draft → ready（v1.0-pre · 3d）
 - MVP-18/19/20 是 v1.0 vision · 严格按 CLAUDE.md 禁区不对外暴露 · 不主动详化（等 Arbiter 明确触发）
 
-> ⚠️ **已过时（session 32）**：SPIKE-07 已 `in-progress`（Phase A done @ PR #333 · Phase B 实跑中）· MVP-18/19/20 已 `ready`（PR #330）· 现状见 [`docs/tasks/README.md`](./tasks/README.md)。选项 D 此段仅存历史引导语义。
+> ⚠️ **已过时（session 32）**：SPIKE-07 已 `in-progress`（Phase A done @ PR #333 · Phase B 实跑中）· MVP-18/19/20 已 `ready`（PR #330）· 现状见 [`docs/tasks/README.md`](../tasks/README.md)。选项 D 此段仅存历史引导语义。
 
 ---
 
@@ -296,8 +296,8 @@ git2 读慢（Day 4）：
 - Bug：GitHub Issue `bug_report` 模板（已建 · `.github/ISSUE_TEMPLATE/bug_report.yml`）
 - Feature：GitHub Issue `feature_request` 模板（已建）→ 写 spec 放 `docs/tasks/` → PR
 - Task spec 提议：GitHub Issue `task_spec_proposal` 模板（已建）
-- 代码规范：[`CONTRIBUTING.md`](../CONTRIBUTING.md)（已建）
-- 行为准则：[`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md)（Contributor Covenant 2.1 中文 · 已建）
+- 代码规范：[`CONTRIBUTING.md`](../../CONTRIBUTING.md)（已建）
+- 行为准则：[`CODE_OF_CONDUCT.md`](../../CODE_OF_CONDUCT.md)（Contributor Covenant 2.1 中文 · 已建）
 - 不签 CLA（Apache 2.0 本身有 patent grant）
 
 ---

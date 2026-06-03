@@ -92,25 +92,15 @@ docs/session-history/
 
 ## 📂 已归档 Session
 
-| 文件                           | 日期       | Session | PR 范围   | 主题                                                                                                                           |
-| ------------------------------ | ---------- | ------- | --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| [session-27.md](session-27.md) | 2026-05-10 | 27      | #264-#266 | v0.3 sprint phase A+B+C 全收 + Phase D 启动 · 3-track 模式实证 · bench-only PR 模式开启                                        |
-| [session-26.md](session-26.md) | 2026-05-09 | 26      | #259-#263 | 4-track 文件域隔离首次实证 · 单 day 4 PR concurrent · v0.3 sprint phase B+C 大跃进 · OpenCode §2.10 第 2 次 → N=3 永久转出条款 |
-| [session-25.md](session-25.md) | 2026-05-07 | 25      | #251-#253 | v0.3 sprint phase A 50% 启动 · MVP-15/16 Phase A · 主 agent reviewer 翻转 gate (a) 实战 · OpenCode 谎报 lint/typecheck 首次    |
-| [session-24.md](session-24.md) | 2026-05-04 | 24      | spec only | v0.3 sprint kickoff · 4 agent 并发 spec 详化 6 PR                                                                              |
-| [session-21.md](session-21.md) | 2026-04-29 | 21      | #173-#175 | v0.1.0-alpha 双平台 GA · macOS unsigned .dmg + Linux .deb / .AppImage                                                          |
-| [session-20.md](session-20.md) | 2026-04-26 | 20      | #152-#168 | ADR-015 accepted + PR #157 round 1/2 inline 反模式 → §2.13 规则化                                                              |
-| [session-19.md](session-19.md) | 2026-04-25 | 19      | #117-#152 | 史上最高产 36 PR · MVP-11 5/5 ✅ + MVP-05 Phase A/B/C + ADR-006 Ubuntu validated + branch protect 机械化 + ADR-015 accepted    |
-| [session-18.md](session-18.md) | 2026-04-25 | 18      | #106-#116 | 4 track 并发极致产出 · 11 PR merge · 5 Phase 落地 + 3 spec ready 加强                                                          |
-| [session-17.md](session-17.md) | 2026-04-23 | 17      | #99-#105  | MVP-04 Phase F 收口 + MVP-08 Phase A/B/C 落地 + PR Actions 分钟节流                                                            |
+> **完整索引见下方「🧭 Session Archive Timeline」表**（本文件内 · session **17-34** 全部已单独归档 · 含 PR 范围 / 主题 / 标志性事件 / 逐 session 扩展注记）。
+>
+> 本段原有的独立索引表已并入 Timeline（**单一来源 · 避免双表漂移** · 2026-06-03 housekeeping）：旧表与 Timeline 长期并存导致两边状态漂移（旧表停在 session 27 · 缺 22/23/28-34），故移除冗余，统一以 Timeline 为准。
 
-## 🗂️ 待归档（M-2 滚动窗口外 · 按需补）
+## 🗂️ 未单独成文的 session（git log 检索 · 不强制）
 
-以下 session 仍在 git 历史中可追溯 · 但未单独归档（PROGRESS.md M-2 滚动窗口仅保留最近 2 session 摘要 · 更早信息需 `git log` 检索 · 不强制单独成文）：
+session **17-34** 均已单独归档（见上方索引 / 下方 Timeline）。**session ≤ 16**（pre-code Phase 1-4 + Spike W0 + 早期 MVP 实施）未单独成文 · 以 `git log --all` + `docs/PROGRESS.md` 底部「session 索引表」为准 · 不强制回填。
 
-- **session 22 / 23**（2026-04-30 ~ 2026-05-03 · Apple Dev / dependabot 批处理阶段 · 详见 `git log --grep="session 2[23]"`）
-- **session 28**（2026-05-12 · 单 day 9 PR merged · 4-track + 5 idle 查漏补缺 · MVP-15 Phase D §F+§G · 当前 PROGRESS.md 头条 · 下次 session 末归档）
-- **session 29**（2026-05-12 ~ active · MVP-17 spec ready + Phase B skeleton + 3-track dispatch 启动 · 主 agent 已 7 PR merged · Codex Phase A / OpenCode Phase C 待 push · in-progress 状态 · session 结束后归档）
+> M-2 滚动窗口只要求 `docs/PROGRESS.md` 的 PR 段保留最近 2 个 session 摘要 · 并不要求每个旧 session 逐个成文。session 17-34 成文是历史沉淀的产物 · ≤16 保持 git-log 可溯即可。
 
 ## 🗂️ 预期归档（Phase 2 历史复盘 · 按需补）
 
@@ -146,7 +136,7 @@ gitleaks CI（Phase 4）会扫此目录。
 
 ---
 
-## 🧭 Session Archive Timeline（session-17 ~ session-30）
+## 🧭 Session Archive Timeline（session-17 ~ session-34）
 
 > 数据源：各 `session-NN.md` 顶部元信息（`session/date/pr_range/theme`）实读整理。
 > 目标：把 `docs/session-history/` 从“命名约定文档”升级为“可导航索引入口”。

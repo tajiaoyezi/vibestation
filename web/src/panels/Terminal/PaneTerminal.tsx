@@ -46,6 +46,8 @@ import {
   createPaneContextMenu,
   PaneContextMenuOverlay,
 } from "./PaneContextMenu";
+
+const MAX_PANES = 16; // 与后端 panes.rs MAX_LAYOUT_PANES 保持一致
 import { detachPane } from "../../lib/pane-detach";
 import { formatShortcut } from "../../lib/format-shortcut";
 import { setPopToExternalRequest } from "../../lib/external-term";
@@ -182,6 +184,9 @@ const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const { settings } = useSettings();
   const [spawnError, setSpawnError] = createSignal<string | null>(null);
+
+  // pane 数量达上限时禁用 split 按钮 · siblingPanes + 自身 = 总数
+  const canSplit = () => props.siblingPanes.length + 1 < MAX_PANES;
 
   // ── MVP-18 Wave 2 · pane linking integration ──────────────────────────────
   const paneLinks = usePaneLinks();
@@ -796,9 +801,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class="vs-pane-action-btn"
-          title={`右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`}
+          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          title={
+            canSplit()
+              ? `右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`
+              : `已达上限（${MAX_PANES} 个 Pane）`
+          }
           aria-label="右分屏"
+          disabled={!canSplit()}
           onClick={(e) => {
             e.stopPropagation();
             props.onSplit?.("horizontal", props.paneId);
@@ -826,9 +836,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class="vs-pane-action-btn"
-          title={`下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`}
+          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          title={
+            canSplit()
+              ? `下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`
+              : `已达上限（${MAX_PANES} 个 Pane）`
+          }
           aria-label="下分屏"
+          disabled={!canSplit()}
           onClick={(e) => {
             e.stopPropagation();
             props.onSplit?.("vertical", props.paneId);

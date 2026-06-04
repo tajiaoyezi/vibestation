@@ -351,6 +351,12 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       queueFit();
       if (props.focused) {
         term?.focus();
+      } else {
+        // 失焦时 blur xterm · 否则旧 pane 的 xterm 仍持 DOM focus ·
+        // 浏览器不会自动把焦点移到新 pane 的 xterm · 导致无法切换
+        hostRef
+          ?.querySelector<HTMLInputElement>(".xterm-helper-textarea")
+          ?.blur();
       }
     }
   });

@@ -743,6 +743,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) return;
     const list = panesByTabId()[tabId];
     if (!list || list.focusedPaneId === paneId) return;
+    // 乐观更新 · 点击即刻切换焦点 · 不等 IPC 返回 · IPC 失败时 toast
+    setPaneListForTab(tabId, { ...list, focusedPaneId: paneId });
     try {
       const response = await invoke<PaneListResponse>("pane_focus", {
         req: {
@@ -752,6 +754,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
       });
       setPaneListForTab(tabId, response);
     } catch (error) {
+      // IPC 失败 · 回滚到旧 focusedPaneId
+      setPaneListForTab(tabId, list);
       showToast(`Pane 聚焦失败：${errorMessage(error)}`);
     }
   };

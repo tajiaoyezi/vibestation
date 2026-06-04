@@ -244,6 +244,10 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       cursorStyle: toCursorStyle(settings.cursorStyle),
       fontFamily: [
         settings.fontFamily,
+        "JetBrains Mono Variable",
+        "JetBrainsMono NF",
+        "JetBrains Mono",
+        "Cascadia Code",
         "DejaVu Sans Mono",
         "Ubuntu Mono",
         "ui-monospace",

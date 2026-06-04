@@ -1,16 +1,19 @@
-/* MVP-11 Phase 5 · 字体对齐 HIG
- * 不 bundle 字体 · 走系统字体 · bundle size 零增
- * macOS: SF Pro Display + SF Mono · Linux: Inter + JetBrains Mono fallback
+/* 字体策略（单一来源）
+ * - bundle Inter Variable（UI）+ JetBrains Mono Variable（等宽）→ 各平台一致好看，不依赖系统安装
+ * - 等宽栈保留 "JetBrainsMono NF"（用户已装的 Nerd Font · 终端图标）+ Cascadia / SF Mono 兜底
+ * - 字体文件由 @fontsource-variable/* 经 index.tsx import 引入打包
  */
 
 :root {
-  /* UI 字体：macOS SF Pro 优先 · Linux Inter fallback · 最后 system-ui */
+  /* UI 字体：bundled Inter Variable 优先 · 系统字体兜底 */
   --font-ui:
-    -apple-system, "SF Pro Display", system-ui, "Inter", "Segoe UI", sans-serif;
+    "Inter Variable", "Inter", -apple-system, "Segoe UI Variable Text",
+    "Segoe UI", system-ui, sans-serif;
 
-  /* 等宽字体：macOS SF Mono 优先 · JetBrains Mono 兜底 · 最后通用 monospace */
+  /* 等宽字体：bundled JetBrains Mono Variable 优先 · Nerd Font / 系统等宽兜底 */
   --font-mono:
-    ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", "Consolas", monospace;
+    "JetBrains Mono Variable", "JetBrainsMono NF", "JetBrains Mono",
+    ui-monospace, "Cascadia Code", "SF Mono", "Consolas", monospace;
 }
 
 /* 全局 UI 字体 */

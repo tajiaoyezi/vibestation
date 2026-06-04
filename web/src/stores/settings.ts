@@ -79,7 +79,10 @@ function applyCssVars(s: AppSettings): void {
   root.setProperty("--cursor-style", s.cursorStyle);
   root.setProperty("--unfocused-opacity", String(s.unfocusedPaneOpacity));
 
-  const fallback = 'ui-monospace, "SF Mono", "Menlo", "Consolas", monospace';
+  // 用户选的字体放栈首 · 后接 bundled JetBrains Mono Variable + Nerd Font + 系统等宽兜底
+  // （选 "JetBrains Mono" 不匹配 bundled "JetBrains Mono Variable" 时由此兜底渲染）
+  const fallback =
+    '"JetBrains Mono Variable", "JetBrainsMono NF", "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", "Consolas", monospace';
   root.setProperty("--font-mono", `"${s.fontFamily}", ${fallback}`);
 
   // 同步 data-theme attribute · 避免 ThemeProvider race · settings_changed 一并生效

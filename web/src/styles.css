@@ -30,13 +30,7 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Typography */
-  --font-ui:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-    sans-serif;
-  --font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas,
-    "Liberation Mono", monospace;
+  /* Typography · --font-ui / --font-mono 单一来源见 styles/typography.css */
   --text-size-base: 13px;
   --text-line: 1.5;
 

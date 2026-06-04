@@ -487,6 +487,13 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       });
     });
 
+    // 点击 xterm canvas/webgl 时浏览器原生给 helper-textarea focus ·
+    // 但 xterm 可能 stopPropagation 导致外层 div onClick 不触发 ·
+    // 故用 focusin 事件（bubble）驱动 handlePaneFocus
+    hostRef.addEventListener("focusin", () => {
+      props.onClick?.(props.paneId);
+    });
+
     resizeObserver = new ResizeObserver(() => queueFit());
     resizeObserver.observe(hostRef);
 

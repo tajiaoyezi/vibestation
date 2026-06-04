@@ -324,6 +324,28 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     });
   };
 
+  // 字体栈（用户选的字体放栈首 · bundled + Nerd Font + CJK 兜底）· 读 settings 故响应式
+  const fontStack = () =>
+    [
+      settings.fontFamily,
+      "JetBrains Mono Variable",
+      "JetBrainsMono NF",
+      "JetBrains Mono",
+      "Cascadia Code",
+      "DejaVu Sans Mono",
+      "Ubuntu Mono",
+      "ui-monospace",
+      "Liberation Mono",
+      // CJK 字符 fallback · 防中文光标错位。
+      "Sarasa Term SC",
+      "PingFang SC",
+      "Hiragino Sans GB",
+      "Microsoft YaHei",
+      "Noto Sans CJK SC",
+      "WenQuanYi Micro Hei",
+      "monospace",
+    ].join(", ");
+
   createEffect(() => {
     if (props.active) {
       queueFit();
@@ -342,33 +364,25 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     }
   });
 
+  // 字体 / 字号实时生效 · 改 settings 后推到已开终端 + 重新 fit（字号变 → cell 尺寸变 → cols/rows 重算）
+  createEffect(() => {
+    const family = fontStack();
+    const size = settings.fontSize;
+    if (term) {
+      term.options.fontFamily = family;
+      term.options.fontSize = size;
+      queueFit();
+    }
+  });
+
   onMount(async () => {
     term = new XTerm({
       allowProposedApi: true,
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily: [
-        settings.fontFamily,
-        "JetBrains Mono Variable",
-        "JetBrainsMono NF",
-        "JetBrains Mono",
-        "Cascadia Code",
-        "DejaVu Sans Mono",
-        "Ubuntu Mono",
-        "ui-monospace",
-        "Liberation Mono",
-        // CJK 字符 fallback · 主 mono 字体不含中日韩字符时 · 浏览器走这里 ·
-        // 优先选系统已有 / 接近严格 mono ratio 的字体 · 避免光标错位。
-        "Sarasa Term SC", // 等距更纱 (用户可选装 · 严格 1:2 mono · 完美对齐)
-        "PingFang SC", // macOS 默认中文
-        "Hiragino Sans GB", // macOS 备选
-        "Microsoft YaHei", // Windows
-        "Noto Sans CJK SC", // Linux / 跨平台
-        "WenQuanYi Micro Hei", // Linux 备选
-        "monospace",
-      ].join(", "),
-      fontSize: 13,
+      fontFamily: fontStack(),
+      fontSize: settings.fontSize,
       lineHeight: 1.3,
       scrollback: 10000,
       theme: createTheme(),

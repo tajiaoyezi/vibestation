@@ -1,4 +1,3 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
@@ -108,6 +107,15 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [pendingPaste, setPendingPaste] = createSignal<PendingPaste | null>(
     null,
   );
+  // 关闭 workspace 确认弹窗 · Promise-based · 替代原生 ask() 深色自绘
+  let closeWorkspaceResolver: ((confirmed: boolean) => void) | undefined;
+  const [pendingCloseWorkspace, setPendingCloseWorkspace] = createSignal(false);
+  const confirmCloseWorkspace = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      closeWorkspaceResolver = resolve;
+      setPendingCloseWorkspace(true);
+    });
+  };
   const [toast, setToast] = createSignal<TerminalToast | null>(null);
   const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
     string | null
@@ -1047,10 +1055,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const isLastTab = tabs.length === 1;
 
     if (isLastTab) {
-      const confirmed = await ask("关闭 workspace？", {
-        title: "Vibestation",
-        kind: "warning",
-      });
+      const confirmed = await confirmCloseWorkspace();
       if (!confirmed) {
         return;
       }
@@ -1273,7 +1278,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
   };
 
   useKeybindings(
-    () => props.activeWorkspace() !== null && pendingPaste() === null,
+    () =>
+      props.activeWorkspace() !== null &&
+      pendingPaste() === null &&
+      !pendingCloseWorkspace(),
     (action) => handleShortcutAction(action),
   );
 
@@ -1626,6 +1634,45 @@ export const Terminal: Component<TerminalProps> = (props) => {
             onConfirm={confirmPaste}
           />
         )}
+      </Show>
+
+      <Show when={pendingCloseWorkspace()}>
+        <div
+          class="vs-terminal-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="vs-terminal-modal">
+            <h3>关闭 workspace？</h3>
+            <p>
+              这是最后一个标签页，关闭后将退出当前 workspace 的所有终端会话。
+            </p>
+            <div class="vs-terminal-modal-actions">
+              <button
+                type="button"
+                class="vs-btn-secondary"
+                onClick={() => {
+                  setPendingCloseWorkspace(false);
+                  closeWorkspaceResolver?.(false);
+                  closeWorkspaceResolver = undefined;
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="vs-btn-primary"
+                onClick={() => {
+                  setPendingCloseWorkspace(false);
+                  closeWorkspaceResolver?.(true);
+                  closeWorkspaceResolver = undefined;
+                }}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
       </Show>
 
       <Show when={smartLayoutOpen() && activePaneList()}>

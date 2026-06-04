@@ -136,13 +136,14 @@ gitleaks CI（Phase 4）会扫此目录。
 
 ---
 
-## 🧭 Session Archive Timeline（session-17 ~ session-34）
+## 🧭 Session Archive Timeline（session-17 ~ session-35）
 
 > 数据源：各 `session-NN.md` 顶部元信息（`session/date/pr_range/theme`）实读整理。
 > 目标：把 `docs/session-history/` 从“命名约定文档”升级为“可导航索引入口”。
 
 | Session                     | Date                     | PR Range  | Theme（一句话）                                         | 标志性事件                                 |
 | --------------------------- | ------------------------ | --------- | ------------------------------------------------------- | ------------------------------------------ |
+| [session-35](session-35.md) | 2026-05-30 ~ 2026-05-31 | #427-#432 | dependabot 4 PR + git2 0.21 major migration | 决策表 #13 Git 栈 · CI 矩阵 ubuntu+windows 兜底 |
 | [session-34](session-34.md) | 2026-05-29               | #431      | Windows 11 适配（v0.4 milestone）· S2V 规格驱动无人值守 | ConPTY 落地 + CI 矩阵 ubuntu+windows 实跑  |
 | [session-33](session-33.md) | 2026-05-17               | #365-#394 | MVP-18/19/20 多 phase + MVP-20 Phase A/C/D              | v1.0 vision rollback 实施侧收口            |
 | [session-32](session-32.md) | 2026-05-15 ~ 2026-05-16  | #328-#364 | v1.0 vision 4 spec ready-gate + MVP-18 Phase A          | SPIKE-07 + MVP-18/19/20 draft→ready        |
@@ -163,6 +164,12 @@ gitleaks CI（Phase 4）会扫此目录。
 | [session-17](session-17.md) | 2026-04-23               | #99-#105  | MVP-04 收口 + MVP-08 A/B/C                              | PR Actions 分钟节流                        |
 
 ### Timeline 扩展注记（用于快速查读）
+
+#### session-35
+
+- 关键词：`git2 0.21 migration`、`dependabot`、`string accessor breaking`.
+- 适用场景：查"core Git 写栈 major bump 如何语义保真适配 + CI 矩阵兜底"。
+- 关联决策：决策表 #13（Git 栈）· ADR-016（dependabot admin merge 豁免）。
 
 #### session-34
 

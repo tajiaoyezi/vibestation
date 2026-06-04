@@ -533,7 +533,9 @@ fn read_pane_list(pool: &DbPool, tab_id: &str) -> Result<PaneListResponse, PaneE
     let panes = PanesDao::list_by_tab(pool, tab_id)?;
     let conn = pool.get().map_err(DbError::from)?;
     let envelope = read_tab_layout_envelope(&conn, tab_id)?;
-    let focused_pane_id = envelope.focused_pane_id.clone();
+    // focused_pane_id 从独立列读取（write_focused_pane 只写此列 · 不更新 layout JSON）
+    // 若独立列无值 · fallback 到 envelope JSON 里的值（兼容旧数据）
+    let focused_pane_id = read_focused_pane(&conn, tab_id)?.or(envelope.focused_pane_id);
     Ok(PaneListResponse {
         panes,
         layout: envelope.root,

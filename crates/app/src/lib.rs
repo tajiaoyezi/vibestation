@@ -2423,10 +2423,23 @@ fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
     }
 }
 
-// 非 macOS（含 Windows + Linux）：沿用框架默认 title bar 装饰，本 task 不引入 macOS 专属 overlay。
-// Task 5.3 确认点：Windows 走此空 stub = 使用 Windows 原生标题栏，无 macOS overlay / traffic light artifact。
-// 编译期 cfg 已保证 Windows 走此分支；调用零副作用、不 panic（TEST-5.3.2 守护 cfg 分支编译健全）。
-#[cfg(not(target_os = "macos"))]
+// Windows：关闭原生标题栏装饰，改用前端自绘深色标题栏（与 Calm Studio 主题统一）。
+// 原生标题栏 + 原生菜单栏由 OS 用浅色 chrome 渲染，与深色主题撞色；frameless 后
+// 拖拽走前端 data-tauri-drag-region，min/max/close 由 TopBar 自绘按钮接管。
+#[cfg(target_os = "windows")]
+fn configure_title_bar<R: tauri::Runtime>(app: &tauri::App<R>) {
+    let Some(window) = app.get_webview_window("main") else {
+        eprintln!("[windows] main window not found for title bar setup");
+        return;
+    };
+    if let Err(error) = window.set_decorations(false) {
+        eprintln!("[windows] disable native decorations failed: {error}");
+    }
+}
+
+// 其余非 macOS 平台（Linux）：沿用框架默认 title bar 装饰，不引入 macOS 专属 overlay。
+// 调用零副作用、不 panic（TEST-5.3.2 守护 cfg 分支编译健全）。
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 fn configure_title_bar<R: tauri::Runtime>(_app: &tauri::App<R>) {}
 
 /// 安装 panic hook · 必须在 Tauri builder 启动前调用（一次性 · 进程级）
@@ -2639,6 +2652,9 @@ pub fn run() {
                 .map_err(|error| -> Box<dyn std::error::Error> { Box::new(error) })?;
 
             menu::setup_menu_events(app.handle());
+            // Windows 不挂原生菜单栏（OS 浅色 chrome 与深色主题撞色 · 改用前端控件）。
+            // context menu（tab / terminal popup）不受影响 · 仍走 menu_show_* 命令。
+            #[cfg(not(target_os = "windows"))]
             if let Err(e) = menu::app_menu(app.handle())
                 .and_then(|m| app.handle().set_menu(m).map_err(|e| e.to_string()))
             {

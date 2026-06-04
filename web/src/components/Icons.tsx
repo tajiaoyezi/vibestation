@@ -51,6 +51,32 @@ export const GearIcon: Component = () => (
   </svg>
 );
 
+export const WindowMinimizeIcon: Component = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <line x1="3" y1="8" x2="13" y2="8" />
+  </svg>
+);
+
+export const WindowMaximizeIcon: Component = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="3.5" y="3.5" width="9" height="9" rx="1" />
+  </svg>
+);
+
+export const WindowRestoreIcon: Component = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <rect x="3" y="5" width="8" height="8" rx="1" />
+    <path d="M5 5V4a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-1" />
+  </svg>
+);
+
+export const WindowCloseIcon: Component = () => (
+  <svg {...iconProps} aria-hidden="true">
+    <line x1="4" y1="4" x2="12" y2="12" />
+    <line x1="12" y1="4" x2="4" y2="12" />
+  </svg>
+);
+
 /** Toggle primary sidebar 图标 · Cursor / VSCode 标准样式：
  *  外框矩形 + 左侧实心条表示 sidebar · 与 ⌘B 行为一致 */
 export const SidebarLeftIcon: Component = () => (

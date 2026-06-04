@@ -19,7 +19,10 @@ export const AppearanceGroup: Component = () => {
   ];
 
   const fonts = [
+    "JetBrainsMono NF",
+    "JetBrains Mono Variable",
     "JetBrains Mono",
+    "Cascadia Code",
     "Fira Code",
     "SF Mono",
     "Consolas",

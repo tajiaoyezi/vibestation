@@ -2,6 +2,7 @@
 import { render } from "solid-js/web";
 import { App } from "./App";
 import { applyPlatformClass } from "./lib/platform";
+import "./styles/fonts-latin.css";
 import "./styles.css";
 import "./styles/typography.css";
 

@@ -157,6 +157,28 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     rows: term?.rows || props.runtime.rows || DEFAULT_PTY_ROWS,
   });
 
+  // 字体栈（用户选的字体放栈首 · bundled + Nerd Font + CJK 兜底）· 读 settings 故响应式
+  const fontStack = () =>
+    [
+      settings.fontFamily,
+      "JetBrains Mono Variable",
+      "JetBrainsMono NF",
+      "JetBrains Mono",
+      "Cascadia Code",
+      "DejaVu Sans Mono",
+      "Ubuntu Mono",
+      "ui-monospace",
+      "Liberation Mono",
+      // CJK 字符 fallback · 防中文光标错位。
+      "Sarasa Term SC",
+      "PingFang SC",
+      "Hiragino Sans GB",
+      "Microsoft YaHei",
+      "Noto Sans CJK SC",
+      "WenQuanYi Micro Hei",
+      "monospace",
+    ].join(", ");
+
   const syncTheme = () => {
     if (!term) {
       return;
@@ -226,6 +248,17 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     }
   });
 
+  // 字体 / 字号实时生效 · 改 settings 后推到已开终端 + 重新 fit（字号变 → cell 尺寸变 → cols/rows 重算）
+  createEffect(() => {
+    const family = fontStack();
+    const size = settings.fontSize;
+    if (term) {
+      term.options.fontFamily = family;
+      term.options.fontSize = size;
+      queueFit();
+    }
+  });
+
   onMount(async () => {
     handlePasteCapture = (event: ClipboardEvent) => {
       const text = event.clipboardData?.getData("text") ?? "";
@@ -242,22 +275,8 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily: [
-        settings.fontFamily,
-        "DejaVu Sans Mono",
-        "Ubuntu Mono",
-        "ui-monospace",
-        "Liberation Mono",
-        // CJK 字符 fallback · 与 PaneTerminal.tsx 保持一致 · 防中文光标错位。
-        "Sarasa Term SC",
-        "PingFang SC",
-        "Hiragino Sans GB",
-        "Microsoft YaHei",
-        "Noto Sans CJK SC",
-        "WenQuanYi Micro Hei",
-        "monospace",
-      ].join(", "),
-      fontSize: 13,
+      fontFamily: fontStack(),
+      fontSize: settings.fontSize,
       lineHeight: 1.3,
       scrollback: 10000,
       theme: createTheme(),

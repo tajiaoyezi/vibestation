@@ -30,13 +30,7 @@
   --space-7: 48px;
   --space-8: 64px;
 
-  /* Typography */
-  --font-ui:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-    sans-serif;
-  --font-mono:
-    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Consolas,
-    "Liberation Mono", monospace;
+  /* Typography · --font-ui / --font-mono 单一来源见 styles/typography.css */
   --text-size-base: 13px;
   --text-line: 1.5;
 
@@ -73,6 +67,10 @@
   --warning: oklch(0.82 0.13 80);
   --danger: oklch(0.72 0.19 25);
   --focus-ring: oklch(0.78 0.13 230 / 0.5);
+
+  /* 让 WebView2 / Chromium 原生控件（滚动条、表单元素）跟随暗色主题。
+   * 缺省时 Windows 下原生滚动条用 OS 浅色 → 终端右侧白条与主题撞色。 */
+  color-scheme: dark;
 }
 
 /* Light — 原型同值 */
@@ -93,6 +91,10 @@
   --warning: oklch(0.65 0.16 70);
   --danger: oklch(0.55 0.22 25);
   --focus-ring: oklch(0.52 0.16 235 / 0.4);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {
@@ -325,6 +327,42 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+
+/* Windows frameless 自绘窗口控制（min/max/close）· 仅 .platform-windows 渲染。
+ * 顶栏右上角对齐 Windows 习惯 · 负 margin 贴满顶栏右/上边缘消除 padding 缝隙。 */
+.vs-window-controls {
+  display: flex;
+  align-items: stretch;
+  margin-left: auto;
+  margin-right: calc(-1 * var(--space-3));
+  align-self: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.vs-window-control {
+  appearance: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.vs-window-control:hover {
+  background: var(--bg-2, rgba(255, 255, 255, 0.08));
+  color: var(--text-1);
+}
+
+.vs-window-control-close:hover {
+  background: #e81123;
+  color: #fff;
 }
 
 /* Main grid: Primary | Main | Secondary | Activity Strip */

@@ -480,6 +480,20 @@
   background: transparent !important;
 }
 
+.vs-terminal-host .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vs-terminal-host .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vs-terminal-host .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg-0);
+  border-radius: 4px;
+}
+
 .vs-terminal-toast {
   position: absolute;
   right: var(--space-4);
@@ -576,6 +590,55 @@
 
 .vs-btn-primary:hover {
   background: color-mix(in oklch, var(--accent-soft) 70%, var(--accent));
+}
+
+/* 确认类弹窗（关闭 workspace 等）· 比粘贴确认弹窗更紧凑 · 加 warning 色调 */
+.vs-terminal-confirm-backdrop {
+  background: rgb(0 0 0 / 0.56);
+  backdrop-filter: blur(6px);
+}
+
+.vs-terminal-confirm-modal {
+  width: min(380px, calc(100% - 2 * var(--space-5)));
+  padding: var(--space-4) var(--space-5);
+}
+
+.vs-terminal-confirm-modal h3 {
+  font-size: 0.9375rem;
+}
+
+.vs-terminal-confirm-modal p {
+  font-size: 0.8125rem;
+  margin-bottom: 0;
+}
+
+.vs-terminal-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--accent) 15%, transparent);
+  color: var(--accent);
+  margin-bottom: var(--space-3);
+}
+
+.vs-btn-danger {
+  appearance: none;
+  border: 1px solid #e5484d;
+  border-radius: var(--r-6);
+  background: color-mix(in oklch, #e5484d 15%, var(--bg-0));
+  color: #e5484d;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: var(--space-2) var(--space-4);
+  transition: background-color var(--dur-fast) var(--ease);
+}
+
+.vs-btn-danger:hover {
+  background: color-mix(in oklch, #e5484d 25%, var(--bg-0));
 }
 
 @media (width <= 900px) {
@@ -726,6 +789,20 @@
   background: transparent !important;
 }
 
+.vs-pane-terminal-host .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vs-pane-terminal-host .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vs-pane-terminal-host .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border: 2px solid var(--bg-0);
+  border-radius: 4px;
+}
+
 .vs-pane-terminal-error {
   color: var(--danger);
   padding: var(--space-2) var(--space-3);
@@ -794,6 +871,12 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   color: var(--text-1);
+}
+
+.vs-pane-action-btn.is-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .vs-pane-action-btn:active {

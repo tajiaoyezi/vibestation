@@ -1,4 +1,3 @@
-import { ask } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import {
@@ -108,6 +107,29 @@ export const Terminal: Component<TerminalProps> = (props) => {
   const [pendingPaste, setPendingPaste] = createSignal<PendingPaste | null>(
     null,
   );
+  // 关闭 workspace 确认弹窗 · Promise-based · 替代原生 ask() 深色自绘
+  let closeWorkspaceResolver: ((confirmed: boolean) => void) | undefined;
+  const [pendingCloseWorkspace, setPendingCloseWorkspace] = createSignal(false);
+  const confirmCloseWorkspace = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      closeWorkspaceResolver = resolve;
+      setPendingCloseWorkspace(true);
+    });
+  };
+  // Escape 关闭确认弹窗
+  createEffect(() => {
+    if (!pendingCloseWorkspace()) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setPendingCloseWorkspace(false);
+        closeWorkspaceResolver?.(false);
+        closeWorkspaceResolver = undefined;
+      }
+    };
+    document.addEventListener("keydown", handler);
+    onCleanup(() => document.removeEventListener("keydown", handler));
+  });
   const [toast, setToast] = createSignal<TerminalToast | null>(null);
   const [pendingRenameTabId, setPendingRenameTabId] = createSignal<
     string | null
@@ -721,6 +743,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) return;
     const list = panesByTabId()[tabId];
     if (!list || list.focusedPaneId === paneId) return;
+    // 乐观更新 · 点击即刻切换焦点 · 不等 IPC 返回 · IPC 失败时 toast
+    setPaneListForTab(tabId, { ...list, focusedPaneId: paneId });
     try {
       const response = await invoke<PaneListResponse>("pane_focus", {
         req: {
@@ -730,6 +754,8 @@ export const Terminal: Component<TerminalProps> = (props) => {
       });
       setPaneListForTab(tabId, response);
     } catch (error) {
+      // IPC 失败 · 回滚到旧 focusedPaneId
+      setPaneListForTab(tabId, list);
       showToast(`Pane 聚焦失败：${errorMessage(error)}`);
     }
   };
@@ -1047,10 +1073,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const isLastTab = tabs.length === 1;
 
     if (isLastTab) {
-      const confirmed = await ask("关闭 workspace？", {
-        title: "Vibestation",
-        kind: "warning",
-      });
+      const confirmed = await confirmCloseWorkspace();
       if (!confirmed) {
         return;
       }
@@ -1273,7 +1296,10 @@ export const Terminal: Component<TerminalProps> = (props) => {
   };
 
   useKeybindings(
-    () => props.activeWorkspace() !== null && pendingPaste() === null,
+    () =>
+      props.activeWorkspace() !== null &&
+      pendingPaste() === null &&
+      !pendingCloseWorkspace(),
     (action) => handleShortcutAction(action),
   );
 
@@ -1626,6 +1652,60 @@ export const Terminal: Component<TerminalProps> = (props) => {
             onConfirm={confirmPaste}
           />
         )}
+      </Show>
+
+      <Show when={pendingCloseWorkspace()}>
+        <div
+          class="vs-terminal-modal-backdrop vs-terminal-confirm-backdrop"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="vs-terminal-modal vs-terminal-confirm-modal">
+            <div class="vs-terminal-confirm-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path
+                  d="M10 3.5a6.5 6.5 0 100 13 6.5 6.5 0 000-13zM1.5 10a8.5 8.5 0 1117 0 8.5 8.5 0 01-17 0z"
+                  fill="currentColor"
+                />
+                <path
+                  d="M10 6a1 1 0 011 1v3a1 1 0 11-2 0V7a1 1 0 011-1z"
+                  fill="currentColor"
+                />
+                <circle cx="10" cy="13.5" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <h3>关闭 workspace？</h3>
+            <p>最后一个标签页，关闭后所有终端会话将退出。</p>
+            <div class="vs-terminal-modal-actions">
+              <button
+                type="button"
+                class="vs-btn-secondary"
+                ref={(el) => {
+                  // 自动聚焦取消按钮 · 防 Enter 误触关闭
+                  requestAnimationFrame(() => el?.focus());
+                }}
+                onClick={() => {
+                  setPendingCloseWorkspace(false);
+                  closeWorkspaceResolver?.(false);
+                  closeWorkspaceResolver = undefined;
+                }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                class="vs-btn-danger"
+                onClick={() => {
+                  setPendingCloseWorkspace(false);
+                  closeWorkspaceResolver?.(true);
+                  closeWorkspaceResolver = undefined;
+                }}
+              >
+                关闭 workspace
+              </button>
+            </div>
+          </div>
+        </div>
       </Show>
 
       <Show when={smartLayoutOpen() && activePaneList()}>

@@ -46,6 +46,8 @@ import {
   createPaneContextMenu,
   PaneContextMenuOverlay,
 } from "./PaneContextMenu";
+
+const MAX_PANES = 16; // 与后端 panes.rs MAX_LAYOUT_PANES 保持一致
 import { detachPane } from "../../lib/pane-detach";
 import { formatShortcut } from "../../lib/format-shortcut";
 import { setPopToExternalRequest } from "../../lib/external-term";
@@ -183,6 +185,9 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const { settings } = useSettings();
   const [spawnError, setSpawnError] = createSignal<string | null>(null);
 
+  // pane 数量达上限时禁用 split 按钮 · siblingPanes + 自身 = 总数
+  const canSplit = () => props.siblingPanes.length + 1 < MAX_PANES;
+
   // ── MVP-18 Wave 2 · pane linking integration ──────────────────────────────
   const paneLinks = usePaneLinks();
   const linkSel = paneLinks.selectorsFor(() => props.workspaceId);
@@ -284,6 +289,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let activeWebglAddon: WebglAddon | undefined;
   let activeCanvasAddon: CanvasAddon | undefined;
   let themeObserver: MutationObserver | undefined;
+  let paneContainerRef: HTMLDivElement | undefined;
   // MVP-20 BUG-001 · 收集所有 setTimeout · onCleanup 时 clear 防 unmount 后 fire
   // 触发 SolidJS <Show> stale accessor 警告（异步 callback 在 component unmount 后
   // 访问 reactive props 的典型 race）。
@@ -324,11 +330,39 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     });
   };
 
+  // 字体栈（用户选的字体放栈首 · bundled + Nerd Font + CJK 兜底）· 读 settings 故响应式
+  const fontStack = () =>
+    [
+      settings.fontFamily,
+      "JetBrains Mono Variable",
+      "JetBrainsMono NF",
+      "JetBrains Mono",
+      "Cascadia Code",
+      "DejaVu Sans Mono",
+      "Ubuntu Mono",
+      "ui-monospace",
+      "Liberation Mono",
+      // CJK 字符 fallback · 防中文光标错位。
+      "Sarasa Term SC",
+      "PingFang SC",
+      "Hiragino Sans GB",
+      "Microsoft YaHei",
+      "Noto Sans CJK SC",
+      "WenQuanYi Micro Hei",
+      "monospace",
+    ].join(", ");
+
   createEffect(() => {
     if (props.active) {
       queueFit();
       if (props.focused) {
         term?.focus();
+      } else {
+        // 失焦时 blur xterm · 否则旧 pane 的 xterm 仍持 DOM focus ·
+        // 浏览器不会自动把焦点移到新 pane 的 xterm · 导致无法切换
+        hostRef
+          ?.querySelector<HTMLInputElement>(".xterm-helper-textarea")
+          ?.blur();
       }
     }
   });
@@ -342,29 +376,25 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     }
   });
 
+  // 字体 / 字号实时生效 · 改 settings 后推到已开终端 + 重新 fit（字号变 → cell 尺寸变 → cols/rows 重算）
+  createEffect(() => {
+    const family = fontStack();
+    const size = settings.fontSize;
+    if (term) {
+      term.options.fontFamily = family;
+      term.options.fontSize = size;
+      queueFit();
+    }
+  });
+
   onMount(async () => {
     term = new XTerm({
       allowProposedApi: true,
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
-      fontFamily: [
-        settings.fontFamily,
-        "DejaVu Sans Mono",
-        "Ubuntu Mono",
-        "ui-monospace",
-        "Liberation Mono",
-        // CJK 字符 fallback · 主 mono 字体不含中日韩字符时 · 浏览器走这里 ·
-        // 优先选系统已有 / 接近严格 mono ratio 的字体 · 避免光标错位。
-        "Sarasa Term SC", // 等距更纱 (用户可选装 · 严格 1:2 mono · 完美对齐)
-        "PingFang SC", // macOS 默认中文
-        "Hiragino Sans GB", // macOS 备选
-        "Microsoft YaHei", // Windows
-        "Noto Sans CJK SC", // Linux / 跨平台
-        "WenQuanYi Micro Hei", // Linux 备选
-        "monospace",
-      ].join(", "),
-      fontSize: 13,
+      fontFamily: fontStack(),
+      fontSize: settings.fontSize,
       lineHeight: 1.3,
       scrollback: 10000,
       theme: createTheme(),
@@ -639,6 +669,18 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     }
   });
 
+  // mousedown capture: 点击 xterm canvas 时 xterm 可能 stopPropagation 吞 click ·
+  // capture 阶段 mousedown 在 xterm 处理之前触发 · 保证 pane 焦点切换不被拦截
+  onMount(() => {
+    paneContainerRef?.addEventListener(
+      "mousedown",
+      () => {
+        props.onClick?.(props.paneId);
+      },
+      true,
+    ); // true = capture phase
+  });
+
   onCleanup(() => {
     // mount guard 立即设 false · 防止 listener 在后续 unlisten 调用之前
     // 还能 fire 一次 access props（stale reactive accessor 的根源）
@@ -669,6 +711,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   return (
     <div
+      ref={paneContainerRef}
       class={`vs-pane-terminal ${props.focused ? "is-focused" : ""} ${props.maximized ? "is-maximized-pane" : ""}`}
       data-pane-id={props.paneId}
       data-is-maximized={props.maximized ? "true" : "false"}
@@ -758,9 +801,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class="vs-pane-action-btn"
-          title={`右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`}
+          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          title={
+            canSplit()
+              ? `右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`
+              : `已达上限（${MAX_PANES} 个 Pane）`
+          }
           aria-label="右分屏"
+          disabled={!canSplit()}
           onClick={(e) => {
             e.stopPropagation();
             props.onSplit?.("horizontal", props.paneId);
@@ -788,9 +836,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class="vs-pane-action-btn"
-          title={`下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`}
+          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          title={
+            canSplit()
+              ? `下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`
+              : `已达上限（${MAX_PANES} 个 Pane）`
+          }
           aria-label="下分屏"
+          disabled={!canSplit()}
           onClick={(e) => {
             e.stopPropagation();
             props.onSplit?.("vertical", props.paneId);

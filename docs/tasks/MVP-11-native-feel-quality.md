@@ -156,7 +156,7 @@ MVP-11 估时 6d · 拆 5 Phase 实施 · Phase 1-4 可多 agent 并行（文件
   }
   ```
 - [ ] E.2 全局 `body { font-family: var(--font-ui); }` · terminal/diff/commit `font-family: var(--font-mono);`
-- [ ] E.3 不 bundle 字体（走系统字体 · bundle size 零增）
+- [ ] E.3 ~~不 bundle 字体（走系统字体 · bundle size 零增）~~ → **修订 2026-06-04（PR #452）**：bundle Inter + JetBrains Mono Variable（latin 子集 · 实测 dist 字体增量 ~88.65 KB）· 不再要求「bundle size 零增」· 系统字体链保留作 fallback（详见 §H.5 修订）
 - [ ] E.4 Linux 测试：系统装 Inter 的显示 Inter · 没装的 fallback system-ui（Ubuntu 24 默认 Ubuntu font）· 截图 Ubuntu VM `docs/runtime-evidence/mvp-11/06-linux-font.png`（可选 · Ubuntu 非主线）
 - [ ] E.5 MVP-10 Phase A 的 Font Family 设置 override typography.css 默认（用户显式选字体优先）
 
@@ -269,8 +269,9 @@ pub struct AppSettings {
 
 ### H.5 · 字体选择策略
 
-- **锁定**：不 bundle 字体 · 走系统字体优先级链（SF Pro Display → Inter → system-ui → sans-serif）
-- **禁止**：bundle Google Fonts 或自托管字体（bundle size 爆 · 违反 §10.2）
+- **锁定（修订后）**：bundle **Inter Variable + JetBrains Mono Variable（仅 latin 子集 · wght 轴）** · 仍保留系统字体优先级链作 fallback（SF Pro Display → Inter → system-ui → sans-serif；mono 同理 → JetBrains Mono → ...）
+  > 修订 2026-06-04（Arbiter tajiaoyezi approve · PR #452）：反转为 **bundle Inter Variable + JetBrains Mono Variable（latin 子集）** 以获跨平台（Windows/macOS/Linux）字体一致性。实测 dist 字体增量 ~88.65 KB（latin 2 个 woff2：inter-latin 48.25 KB + jetbrains-mono-latin 40.40 KB · 已从整包 ~302.67 KB / 12 子集收窄到 latin only · 远低于 §10.2 预算）。原「不 bundle」决策（2026 早期 MVP-11 Phase 5）保留于此作历史。
+- **禁止**：bundle 非 latin 子集（cyrillic / greek / vietnamese / latin-ext 等 · 收窄到 latin 控 bundle size · 避免违反 §10.2）
 - **允许**：MVP-10 Phase A 的 `Font Family` 设置 override 默认（用户显式选字体优先）
 
 ## ⚠️ 已知风险

@@ -2,8 +2,7 @@
 import { render } from "solid-js/web";
 import { App } from "./App";
 import { applyPlatformClass } from "./lib/platform";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/jetbrains-mono";
+import "./styles/fonts-latin.css";
 import "./styles.css";
 import "./styles/typography.css";
 

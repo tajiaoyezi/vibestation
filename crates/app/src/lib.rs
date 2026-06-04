@@ -2654,6 +2654,7 @@ pub fn run() {
             menu::setup_menu_events(app.handle());
             // Windows 不挂原生菜单栏（OS 浅色 chrome 与深色主题撞色 · 改用前端控件）。
             // context menu（tab / terminal popup）不受影响 · 仍走 menu_show_* 命令。
+            // 已知 gap：menu 关闭后 app-menu accelerators（Ctrl+T 新标签 / Ctrl+W 关标签 / Ctrl+, 设置）在 Windows 暂无前端 keydown fallback · 动作仍可经右键上下文菜单达成 · 后续单独补（PR #452 Arbiter defer）。
             #[cfg(not(target_os = "windows"))]
             if let Err(e) = menu::app_menu(app.handle())
                 .and_then(|m| app.handle().set_menu(m).map_err(|e| e.to_string()))

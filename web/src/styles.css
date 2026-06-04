@@ -93,6 +93,14 @@
   --warning: oklch(0.65 0.16 70);
   --danger: oklch(0.55 0.22 25);
   --focus-ring: oklch(0.52 0.16 235 / 0.4);
+
+  /* 让 WebView2 / Chromium 原生控件（滚动条、表单元素）跟随暗色主题。
+   * 缺省时 Windows 下原生滚动条用 OS 浅色 → 终端右侧白条与主题撞色。 */
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {

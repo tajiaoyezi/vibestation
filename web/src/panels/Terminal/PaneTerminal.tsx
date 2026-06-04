@@ -284,6 +284,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let activeWebglAddon: WebglAddon | undefined;
   let activeCanvasAddon: CanvasAddon | undefined;
   let themeObserver: MutationObserver | undefined;
+  let paneContainerRef: HTMLDivElement | undefined;
   // MVP-20 BUG-001 · 收集所有 setTimeout · onCleanup 时 clear 防 unmount 后 fire
   // 触发 SolidJS <Show> stale accessor 警告（异步 callback 在 component unmount 后
   // 访问 reactive props 的典型 race）。
@@ -487,13 +488,6 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       });
     });
 
-    // 点击 xterm canvas/webgl 时浏览器原生给 helper-textarea focus ·
-    // 但 xterm 可能 stopPropagation 导致外层 div onClick 不触发 ·
-    // 故用 focusin 事件（bubble）驱动 handlePaneFocus
-    hostRef.addEventListener("focusin", () => {
-      props.onClick?.(props.paneId);
-    });
-
     resizeObserver = new ResizeObserver(() => queueFit());
     resizeObserver.observe(hostRef);
 
@@ -670,6 +664,18 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     }
   });
 
+  // mousedown capture: 点击 xterm canvas 时 xterm 可能 stopPropagation 吞 click ·
+  // capture 阶段 mousedown 在 xterm 处理之前触发 · 保证 pane 焦点切换不被拦截
+  onMount(() => {
+    paneContainerRef?.addEventListener(
+      "mousedown",
+      () => {
+        props.onClick?.(props.paneId);
+      },
+      true,
+    ); // true = capture phase
+  });
+
   onCleanup(() => {
     // mount guard 立即设 false · 防止 listener 在后续 unlisten 调用之前
     // 还能 fire 一次 access props（stale reactive accessor 的根源）
@@ -700,6 +706,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
 
   return (
     <div
+      ref={paneContainerRef}
       class={`vs-pane-terminal ${props.focused ? "is-focused" : ""} ${props.maximized ? "is-maximized-pane" : ""}`}
       data-pane-id={props.paneId}
       data-is-maximized={props.maximized ? "true" : "false"}

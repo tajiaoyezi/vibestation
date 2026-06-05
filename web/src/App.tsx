@@ -7,7 +7,7 @@ import {
   type Component,
 } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen, emit, type UnlistenFn } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -50,6 +50,7 @@ import {
 } from "./lib/external-term";
 import { initPaneDetachStateListener } from "./lib/pane-detach";
 import { formatShortcut } from "./lib/format-shortcut";
+import { detectPlatform } from "./lib/platform";
 import {
   ConflictBanner,
   type ConflictOperation,
@@ -359,6 +360,52 @@ const LayoutShell: Component<{
         break;
       // ⌘, 由 Menu Accelerator 处理（menu:action "preferences"）· 删除 keydown 重复触发（round 2 fix INFO-2）
     }
+  };
+
+  // Windows app-menu 快捷键 fallback（PR #452 起 Windows 关原生 menu · 见 lib.rs cfg gate）。
+  // 原生 menu 同时承载键盘 accelerator · 关掉后这些动作在 Windows 失去键盘来源（右键菜单仍可达）。
+  // 这里前端补发 menu:action 事件复用既有 wiring（App.tsx + Terminal.tsx 的 listen("menu:action")）·
+  // 触发与原生菜单完全相同的逻辑 · 零 handler 重复。
+  //
+  // 为何用 Ctrl+Shift 而非裸 Ctrl：Ctrl+T/W/D 撞 shell readline（transpose / kill-word /
+  // EOF 直接关 shell）· 故采用 Windows Terminal / VS Code 约定（不撞 readline）：
+  //   Ctrl+Shift+T → new_tab · Ctrl+Shift+W → close_tab · Ctrl+, → preferences。
+  //
+  // 用 capture 阶段注册（先于 xterm 的 bubble-phase handler）+ stopPropagation 阻止键落到终端 ·
+  // 故无视终端聚焦也能触发（不同于 handleKeyDown · 后者在 .vs-terminal-shell 内 early-return）。
+  const isWindows = detectPlatform() === "windows";
+  const winMenuShortcutHandler = (e: KeyboardEvent) => {
+    let action: string | null = null;
+    // e.code 布局无关（不受键盘布局 / IME 影响）
+    if (
+      e.ctrlKey &&
+      e.shiftKey &&
+      !e.altKey &&
+      !e.metaKey &&
+      e.code === "KeyT"
+    ) {
+      action = "new_tab";
+    } else if (
+      e.ctrlKey &&
+      e.shiftKey &&
+      !e.altKey &&
+      !e.metaKey &&
+      e.code === "KeyW"
+    ) {
+      action = "close_tab";
+    } else if (
+      e.ctrlKey &&
+      !e.shiftKey &&
+      !e.altKey &&
+      !e.metaKey &&
+      e.code === "Comma"
+    ) {
+      action = "preferences";
+    }
+    if (!action) return;
+    e.preventDefault();
+    e.stopPropagation();
+    void emit("menu:action", { action });
   };
 
   const normalizeConflictOperation = (operation: string): ConflictOperation => {
@@ -718,6 +765,10 @@ const LayoutShell: Component<{
 
   onMount(async () => {
     document.addEventListener("keydown", handleKeyDown);
+    // Windows menu accelerator 前端 fallback · capture 阶段 · 仅 Windows 注册
+    if (isWindows) {
+      document.addEventListener("keydown", winMenuShortcutHandler, true);
+    }
     unlistenMenu = await listen<{ action: string }>("menu:action", (event) => {
       switch (event.payload.action) {
         case "preferences":
@@ -818,6 +869,9 @@ const LayoutShell: Component<{
 
   onCleanup(() => {
     document.removeEventListener("keydown", handleKeyDown);
+    if (isWindows) {
+      document.removeEventListener("keydown", winMenuShortcutHandler, true);
+    }
     unlistenMenu?.();
     unlistenRebaseProgress?.();
     unlistenConflictDetected?.();

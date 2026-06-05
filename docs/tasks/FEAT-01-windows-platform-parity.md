@@ -36,7 +36,7 @@ reviewer:
 
 **Do**：
 
-- **app-menu 快捷键 keydown fallback（Windows）**：menu 在 Windows 关闭后，`Ctrl+T`（新标签）/ `Ctrl+W`（关标签）/ `Ctrl+,`（设置）无来源（#452 defer）。前端加 keydown → emit 现有 `menu:action` 监听已处理的动作（后端无需改）· 与 macOS Cmd+ 行为对齐。
+- **app-menu 快捷键 keydown fallback（Windows）** ✅ 已实现（本 PR）：menu 在 Windows 关闭后键盘 accelerator 失去来源（#452 defer）。前端加 capture-phase keydown → `emit("menu:action")` 复用现有监听（后端无需改）。**键位 `Ctrl+Shift+T`（新标签）/ `Ctrl+Shift+W`（关标签）/ `Ctrl+,`（设置）** —— 不用裸 `Ctrl+T/W/D`（撞 shell readline transpose / kill-word / EOF）· 采 Windows Terminal / VS Code 约定。**剩 split（`Cmd+D`/`Cmd+Shift+D`）的 Windows fallback 未做 · follow-up。**
 - **GUI critical UX path runtime 验证（§2.14）**：Windows 自绘窗口 min/max/restore/close · 字体/字号实时切换 · split 达 MAX_PANES=16 禁用 · pane mousedown 焦点切换 · Escape 关闭确认弹窗 · color-scheme 暗/浅主题原生控件配色。
 - **macOS 回归策略（R1）**：项目无 mac CI leg · 三平台并列后 Windows/Linux 改动可能静默破 mac → 评估补 mac runner 或定期 Arbiter 本机回归窗口（二选一并记录）。
 - **v0.1 GA Windows parity gate 决策**：Windows 是否 block v0.1 GA · 含签名（Windows code signing）/ 安装包（NSIS/MSI 分发）/ QA 矩阵口径。
@@ -52,7 +52,7 @@ reviewer:
 
 > ⚠️ draft 阶段 · 部分项待打磨到 ready 时量化（自审四问 §1 递归完备性）。
 
-- [ ] Windows app-menu 快捷键 fallback：`Ctrl+T` / `Ctrl+W` / `Ctrl+,` 在 Windows 触发对应动作（与 macOS Cmd+ 对齐 · 后端 `menu:action` 监听不改）
+- [x] Windows app-menu 快捷键 fallback：**`Ctrl+Shift+T` / `Ctrl+Shift+W` / `Ctrl+,`** 触发 new_tab / close_tab / preferences（前端 `emit("menu:action")` 复用既有 wiring · 后端不改 · 代码 + typecheck/build 过 · 本 PR）· ⏳ Windows dev-mode 运行时验证（xterm capture 拦截）待 Arbiter
 - [ ] GUI critical UX path 在 Windows `pnpm tauri:dev` 实跑验证通过（§2.14 · 上列各路径目视确认）
 - [ ] macOS 回归策略落地并记录（补 mac CI leg · 或 Arbiter 定期回归窗口 · 二选一）
 - [ ] v0.1 GA Windows parity gate 决策记录（block / 不 block · 含签名 / 安装包 / QA 矩阵口径）
@@ -60,16 +60,16 @@ reviewer:
 
 ## 🧪 测试策略
 
-| 层次 | 范围 | 覆盖路径 |
-| ---- | ---- | -------- |
-| 单元/集成 | `core/` Rust（含 Windows cfg 分支） | `cargo test --workspace`（windows-latest CI leg） |
-| 前端 | TS/组件 | `pnpm typecheck` + `pnpm vitest run`（Linux CI 为准 · Windows 本机有 CRLF/@solid-refresh 已知假失败） |
-| Runtime | GUI critical UX path | §2.14 `pnpm tauri:dev`（Windows + macOS 各一遍 · 防三平台漂移） |
+| 层次      | 范围                                | 覆盖路径                                                                                              |
+| --------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| 单元/集成 | `core/` Rust（含 Windows cfg 分支） | `cargo test --workspace`（windows-latest CI leg）                                                     |
+| 前端      | TS/组件                             | `pnpm typecheck` + `pnpm vitest run`（Linux CI 为准 · Windows 本机有 CRLF/@solid-refresh 已知假失败） |
+| Runtime   | GUI critical UX path                | §2.14 `pnpm tauri:dev`（Windows + macOS 各一遍 · 防三平台漂移）                                       |
 
 ## 📝 Notes / 讨论
 
 - mac CI gap（R1）是三平台并列后最大的回归风险源 —— Windows/Linux 改动当前无 mac 自动兜底。GA 前必须定策略。
-- app-menu fallback 是 #452 唯一显式 defer 的功能项 · 优先级最高（terminal app 的 Ctrl+T/W 是肌肉记忆）。
+- app-menu fallback（#452 唯一显式 defer 项）已实现（本 PR）· 键位 Ctrl+Shift+T/W + Ctrl+,（裸 Ctrl+T/W/D 撞 readline · 故采 Windows Terminal 约定）· split（Cmd+D/Cmd+Shift+D）的 Windows fallback 仍是 follow-up。
 
 ## 🔗 相关
 

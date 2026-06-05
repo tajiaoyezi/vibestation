@@ -36,7 +36,7 @@ reviewer:
 
 **Do**：
 
-- **app-menu 快捷键 keydown fallback（Windows）** ✅ 已实现（本 PR）：menu 在 Windows 关闭后键盘 accelerator 失去来源（#452 defer）。前端加 capture-phase keydown → `emit("menu:action")` 复用现有监听（后端无需改）。**键位 `Ctrl+Shift+T`（新标签）/ `Ctrl+Shift+W`（关标签）/ `Ctrl+,`（设置）** —— 不用裸 `Ctrl+T/W/D`（撞 shell readline transpose / kill-word / EOF）· 采 Windows Terminal / VS Code 约定。**剩 split（`Cmd+D`/`Cmd+Shift+D`）的 Windows fallback 未做 · follow-up。**
+- **app-menu 快捷键 keydown fallback（Windows）** ✅ 已实现（#456）：menu 在 Windows 关闭后键盘 accelerator 失去来源（#452 defer）。前端加 capture-phase keydown → `emit("menu:action")` 复用现有监听（后端无需改）。**键位 `Ctrl+Shift+T`（新标签）/ `Ctrl+Shift+W`（关标签）/ `Ctrl+,`（设置）** —— 不用裸 `Ctrl+T/W/D`（撞 shell readline transpose / kill-word / EOF）· 采 Windows Terminal / VS Code 约定。**split（`Cmd+D`/`Cmd+Shift+D`）的 Windows fallback 暂不做** —— split-via-`menu:action` 当前是「即将推出」placeholder（`Terminal.tsx:1426-1429` · 所有平台都只弹 toast）· Windows 补 fallback 会 wire 到 stub 无实义 · 待 split-via-menu 真实现后同步补。
 - **GUI critical UX path runtime 验证（§2.14）**：Windows 自绘窗口 min/max/restore/close · 字体/字号实时切换 · split 达 MAX_PANES=16 禁用 · pane mousedown 焦点切换 · Escape 关闭确认弹窗 · color-scheme 暗/浅主题原生控件配色。
 - **macOS 回归策略（R1）**：项目无 mac CI leg · 三平台并列后 Windows/Linux 改动可能静默破 mac → 评估补 mac runner 或定期 Arbiter 本机回归窗口（二选一并记录）。
 - **v0.1 GA Windows parity gate 决策**：Windows 是否 block v0.1 GA · 含签名（Windows code signing）/ 安装包（NSIS/MSI 分发）/ QA 矩阵口径。
@@ -52,11 +52,11 @@ reviewer:
 
 > ⚠️ draft 阶段 · 部分项待打磨到 ready 时量化（自审四问 §1 递归完备性）。
 
-- [x] Windows app-menu 快捷键 fallback：**`Ctrl+Shift+T` / `Ctrl+Shift+W` / `Ctrl+,`** 触发 new_tab / close_tab / preferences（前端 `emit("menu:action")` 复用既有 wiring · 后端不改 · 代码 + typecheck/build 过 · 本 PR）· ⏳ Windows dev-mode 运行时验证（xterm capture 拦截）待 Arbiter
+- [x] Windows app-menu 快捷键 fallback：**`Ctrl+Shift+T` / `Ctrl+Shift+W` / `Ctrl+,`** 触发 new_tab / close_tab / preferences（前端 `emit("menu:action")` 复用既有 wiring · 后端不改 · 代码 + typecheck/build 过 · #456）· ⏳ Windows dev-mode 运行时验证（xterm capture 拦截）待 Arbiter
 - [ ] GUI critical UX path 在 Windows `pnpm tauri:dev` 实跑验证通过（§2.14 · 上列各路径目视确认）
 - [ ] macOS 回归策略落地并记录（补 mac CI leg · 或 Arbiter 定期回归窗口 · 二选一）
 - [ ] v0.1 GA Windows parity gate 决策记录（block / 不 block · 含签名 / 安装包 / QA 矩阵口径）
-- [ ] 三平台 `#[cfg(target_os)]` parity 审计（无平台特有功能缺口 · 列审计结论）
+- [x] 三平台 `#[cfg(target_os)]` parity 审计（本 PR · 整体健康 · shell/PTY/配置导入/外部终端/标题栏/窗口控件/路径 七大子系统 Windows 分支均非 stub · **0 真 high gap** · 2 tech-debt follow-up〔见 Notes 审计结论〕）
 
 ## 🧪 测试策略
 
@@ -69,13 +69,22 @@ reviewer:
 ## 📝 Notes / 讨论
 
 - mac CI gap（R1）是三平台并列后最大的回归风险源 —— Windows/Linux 改动当前无 mac 自动兜底。GA 前必须定策略。
-- app-menu fallback（#452 唯一显式 defer 项）已实现（本 PR）· 键位 Ctrl+Shift+T/W + Ctrl+,（裸 Ctrl+T/W/D 撞 readline · 故采 Windows Terminal 约定）· split（Cmd+D/Cmd+Shift+D）的 Windows fallback 仍是 follow-up。
+- app-menu fallback（#452 唯一显式 defer 项）已实现（#456）· 键位 Ctrl+Shift+T/W + Ctrl+,（裸 Ctrl+T/W/D 撞 readline · 故采 Windows Terminal 约定）。
+
+### 📊 三平台 cfg parity 审计结论（item 5 · 本 PR）
+
+全仓 `#[cfg(target_os)]`（Rust）+ 前端平台判断只读审计。**整体健康 · 0 真 high gap**：shell（app_settings / pty 探测链）、PTY（ConPTY）、配置导入（ghostty / alacritty / iterm2 / keybinding）、外部终端、标题栏（#452）、窗口控件（#456 权限齐）、路径解析 七大子系统的 Windows 分支均实打实（非 stub）· mac/linux 路径无回归。审计同时澄清 / 记录：
+
+- **split 快捷键 fallback = 非真 gap**：split-via-`menu:action` 全平台都是「即将推出」placeholder（`Terminal.tsx:1426-1429`）· Windows 与 mac 同样「无可用键盘 split」· 非 Windows 独缺 · 待 split 真实现后同步补 Windows 键位。
+- **🟡 tech-debt #1 · Windows live-cwd 缺失**（`crates/core/src/pty.rs:1685` `detect_process_cwd` 恒 `None` · mac=lsof / linux=/proc）：`working_directory()` 在 Windows 永远回落 spawn-time cwd → 「新 tab 继承当前目录」/「在此处开外部终端」拿到旧目录。已知 ADR-001 OQ3 deferred · 补全需 Windows API（`NtQueryInformationProcess`）· 不阻塞 · follow-up。
+- **🟡 tech-debt #2 · 前端平台检测双实现**：canonical `detectPlatform()` / `isMacPlatform()`（`navigator.platform` + `userAgentData` 双信号）vs 7 处内联裸 `navigator.platform.includes("mac")`（`hooks.ts:58` · `pane-keyboard.ts:149` · `usePaneShortcuts.ts:32` · `usePaneNavigation.ts:94` · `mvp17-keyboard.ts:20/35` · `Terminal.tsx:956` · `index.tsx:15`）。`navigator.platform` 渐废 · 内联点在其返回空值时可能误判 → Ctrl 修饰键映射错。当前 Tauri webview 下仍可用故未爆 · follow-up：统一到 `isMacPlatform()`。**本 PR 未盲改**（跨平台键盘逻辑 · 本机无法验 mac/linux）。
+- **🟢 已文档化非问题**：ConPTY signal 退化为 kill（`pty.rs:365` · ConPTY 硬限制 · Ctrl+C 走 PTY 输入正常）· GCM 凭据测试 Windows ignore（仅测试门控）。
 
 ## 🔗 相关
 
 - ADR：[ADR-024](../adr/ADR-024-windows-platform-pull-forward.md)（Windows 提前立项）
 - 对应 `CLAUDE.md` 决策表：#8（三平台并列）
-- 相关 PR：#431（Windows 适配）· #452（Windows GUI）
+- 相关 PR：#431（Windows 适配）· #452（Windows GUI）· #456（快捷键 fallback · item 1）
 - 风险：R12（跨平台 · `implementation-plan.md §9`）· ADR-024 R1（无 mac CI leg）/ R2（三平台同演进复杂度）
 
 ---

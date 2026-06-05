@@ -1,9 +1,9 @@
 # ADR-024: Windows 平台从 v0.4 提前到当前 scope（修订决策表 #8）
 
-**状态**：proposed
-**日期**：2026-06-04 proposed
-**决策者**：Claude Code（主 agent · 提议）· tajiaoyezi（Arbiter · 2026-06-04 · 选 (a) 正式提前立项 · via dispatch dialogue）
-**修订**：CLAUDE.md 决策表 **#8**（平台 MVP = macOS + Ubuntu 24 · Windows 推到 v0.4）· implementation-plan.md §3.1（含 line 74 "不支持 Windows（v1.0 前）" / line 96 跨平台 row "mac+ubuntu（v1.0 前）"）
+**状态**：accepted
+**日期**：2026-06-04 proposed · 2026-06-04 accepted
+**决策者**：Claude Code（主 agent · 提议）· tajiaoyezi（Arbiter · 2026-06-04 · 选 (a) 正式提前立项 + 确认 ADR 措辞翻 accepted · via dispatch dialogue）
+**修订**：CLAUDE.md 决策表 **#8**（平台 MVP = macOS + Ubuntu 24 · Windows 推到 v0.4）· implementation-plan.md §1.4 Non-goals 第 5 条（原"不支持 Windows · v1.0 前"）+ §2 竞品矩阵 跨平台行（原"mac+ubuntu · v1.0 前"）+ §3.1 平台技术栈
 **关联**：[ADR-006](./ADR-006-desktop-framework.md)（桌面框架 Tauri 2 · macOS + Ubuntu validated · 本 ADR 补 Windows 第三平台）· 决策表 #19（Tauri 2）
 
 ---

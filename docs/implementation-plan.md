@@ -71,7 +71,7 @@
 2. **不 Fork Ghostty 源码**：Ghostty 是 Zig，技术栈冲突，只做配置兼容。
 3. **不做云同步**：workspace/配置纯本地 rusqlite。
 4. **不做协作/团队功能**：不做 PR review、不做评论、不做 issue 追踪。
-5. **不支持 Windows（v1.0 前）**：macOS + Ubuntu 24 先打磨透；ConPTY 和 Wayland/X11 两套坑不同步踩。
+5. ~~**不支持 Windows（v1.0 前）**：macOS + Ubuntu 24 先打磨透；ConPTY 和 Wayland/X11 两套坑不同步踩。~~ → **修订 2026-06-04（[ADR-024](adr/ADR-024-windows-platform-pull-forward.md)）**：Windows 11（x64 MSVC）从 v0.4 提前到当前 active scope（session 34 #431 适配 + session 37 #452 GUI · ConPTY 已踩平）· 与 macOS + Ubuntu 24 三平台并列 · 原 Non-goal 保留作历史。
 6. **不做 Git Flow / GitHub Flow 工作流教条**。
 7. **不做插件市场（v1.0 前）**。
 8. **（v2 新增）不支持远程 / SSH / devcontainer 场景**（v1.x 考虑）。
@@ -93,7 +93,7 @@
 | Diff 渲染       | ❌            | ❌        | ❌       | ❌           | ❌             | ❌            | ✅ 强        | ✅ 中      | ✅ 中        | ✅ 基础行对比（v0.3 升级）                       |
 | 终端配置导入    | 自有          | 自有      | 自有     | ❌           | ❌             | ❌            | ❌           | ❌         | ❌           | ✅ Ghostty/iTerm2/Alacritty                      |
 | Pane 分屏       | ✅            | ✅        | ✅       | ❌           | ❌             | ❌            | ✅           | ✅         | ✅           | ✅ 最多 1 层嵌套（4 Pane）                       |
-| 跨平台          | mac+linux+win | mac+linux | mac      | 全平台       | 全平台         | mac+linux     | 全平台       | 全平台     | 全平台       | mac+ubuntu（v1.0 前）                            |
+| 跨平台          | mac+linux+win | mac+linux | mac      | 全平台       | 全平台         | mac+linux     | 全平台       | 全平台     | 全平台       | mac+ubuntu+win（ADR-024 提前）                            |
 | 包体积          | ~200MB        | ~50MB     | ~30MB    | ~40MB        | ~150MB         | ~120MB        | ~1GB+        | ~150MB     | ~300MB+      | <30MB（目标，Tauri）/ <80MB（Electron fallback） |
 | 开源            | ❌ 商业       | ✅ MIT    | 免费闭源 | ✅ MIT       | ❌ 商业        | ✅ Apache     | ❌ 商业      | ✅ GPL     | ❌ 商业      | ✅ **Apache 2.0**                                |
 

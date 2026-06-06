@@ -1,0 +1,67 @@
+name: Release Windows Installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and upload assets for"
+        required: true
+        default: "v1.1"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-installers:
+    name: Build and upload Windows installers
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm via corepack
+        shell: pwsh
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build NSIS and MSI installers
+        run: pnpm exec tauri build --config crates/app/tauri.conf.json --bundles nsis --bundles msi
+
+      - name: List installer assets
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path target/release/bundle -Recurse -File |
+            Select-Object FullName, Length, LastWriteTime |
+            Format-Table -AutoSize
+
+      - name: Upload installers to GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          $assets = @(
+            Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*.exe" -File -ErrorAction SilentlyContinue
+            Get-ChildItem -Path "target/release/bundle/msi" -Filter "*.msi" -File -ErrorAction SilentlyContinue
+          )
+          if ($assets.Count -eq 0) {
+            throw "No Windows installer assets were produced"
+          }
+          gh release upload $env:RELEASE_TAG @($assets.FullName) --repo $env:GITHUB_REPOSITORY --clobber

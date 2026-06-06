@@ -84,10 +84,10 @@ describe("FEAT-02 Settings chrome copy", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导入..." })).toBeInTheDocument();
     expect(screen.getByLabelText("关闭设置")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /外观/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /终端/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "外观" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "终端" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /外部终端/ }),
+      screen.getByRole("button", { name: "外部终端" }),
     ).toBeInTheDocument();
   });
 });

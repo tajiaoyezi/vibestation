@@ -68,6 +68,7 @@ describe("FEAT-02 Language selector", () => {
       "Language",
     )) as HTMLSelectElement;
     expect(select.value).toBe("en");
+    expect(screen.getByRole("group", { name: "Theme" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "English" })).toHaveValue("en");
     expect(
       screen.getByRole("option", { name: "Simplified Chinese" }),
@@ -91,5 +92,7 @@ describe("FEAT-02 Language selector", () => {
     expect(screen.getByRole("option", { name: "简体中文" })).toHaveValue(
       "zh-Hans",
     );
+    expect(screen.getByRole("group", { name: "主题" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/字体/)).toBeInTheDocument();
   });
 });

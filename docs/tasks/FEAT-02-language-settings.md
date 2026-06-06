@@ -195,17 +195,22 @@ Runtime smoke 记录项：
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（8 files / 45 tests）。
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` PASS（2 files / 24 tests）。
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（8 files / 53 tests）。
+  - `cargo test --workspace` PASS。
+  - `cargo clippy --workspace --all-targets -- -D warnings` PASS。
+  - `cargo fmt --all -- --check` PASS。
   - `pnpm typecheck` PASS（`tsc --noEmit`）。
+  - `pnpm --filter @vibestation/web exec vitest run` FAILS on pre-existing script suites outside FEAT-02 scope：`tests/scripts/setup-git-hooks.test.ts` 3 failures（Rolldown parse `#!/usr/bin/env node` after transform）与 `tests/scripts/validate-runtime-evidence.test.ts` 7 failures（temporary report `ENOENT`）；same run reports 68 passed files / 567 passed tests before these 10 script failures.
   - `git diff --check` PASS。
   - `npx prettier --check` on touched FEAT-02 source/test/spec files PASS。
-  - `pnpm --filter @vibestation/web lint` / `pnpm lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 103 files.
+  - `pnpm lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 94 files.
 - 偏离 spec 的说明：
   - 按 Kimi `READY-WITH-NITS` 建议采用 `split-settings-first`，将 FEAT-02.4 拆为 02.4a Settings、02.4b app chrome、02.4c dialogs/common errors；当前声明 02.4a、02.4b 与 02.4c phase 1/phase 2/phase 3 完成。
   - `We collect` / `We do NOT collect` 及隐私长 bullet 文案保持排除，后续放入 `content.privacy.*`。
   - 动态 shell label/path、external terminal displayName、endpointHost、Git 内容、terminal output、branch name、commit message 继续保持原文。
   - 当前未新增通用插值 helper；remote ahead/behind 的运行期计数只用 dictionary 中的静态前后缀拼接，未把动态数据迁入 dictionary。
+  - ADR-025 已在 FEAT-02.4 完成后翻为 `accepted`；未引入运行期网络翻译服务或第三方 i18n runtime。
 - 后续 follow-up：
-  - FEAT-02.5：完整 §9 verification、runtime smoke、ADR-025 accepted 准备、FEAT-02 done gate。
+  - FEAT-02.5：runtime smoke、完整 web vitest/lint 既有失败归档、FEAT-02 done gate。
 
 ## 📝 Notes / 讨论
 

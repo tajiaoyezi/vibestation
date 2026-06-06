@@ -1034,6 +1034,22 @@ Set `§10 Completion Notes` with the actual RED/GREEN commits and verification o
 
 If Arbiter approves the i18n architecture, change ADR-025 status from `proposed` to `accepted` and add the approval date. If not approved, update FEAT-02 to the chosen architecture before implementation.
 
+Progress on 2026-06-06:
+
+- Non-interactive verification run:
+  - `cargo test --workspace` PASS.
+  - `cargo clippy --workspace --all-targets -- -D warnings` PASS.
+  - `cargo fmt --all -- --check` PASS.
+  - `pnpm typecheck` PASS.
+  - FEAT-02 focused regression `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 53/53 tests.
+- Full web vitest status:
+  - `pnpm --filter @vibestation/web exec vitest run` FAILS in pre-existing script suites outside FEAT-02: `tests/scripts/setup-git-hooks.test.ts` 3 failures from Rolldown parsing transformed shebang, and `tests/scripts/validate-runtime-evidence.test.ts` 7 failures from temporary report `ENOENT`.
+  - The same full run reported 68 passed files / 567 passed tests before the 10 script failures.
+- Lint status:
+  - `pnpm lint` FAILS on 94 pre-existing repository-wide Prettier warnings outside FEAT-02 touched files.
+- ADR status:
+  - `docs/adr/ADR-025-frontend-i18n-dictionary.md` changed from `proposed` to `accepted` after FEAT-02.4 implementation and multi-agent review.
+
 - [ ] **Step 5: Commit docs closure**
 
 ```powershell

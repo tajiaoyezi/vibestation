@@ -12,6 +12,7 @@ import {
 import { createStore } from "solid-js/store";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { t, normalizeLanguage } from "../../i18n";
 import type {
   BranchCheckoutRequest,
   BranchError,
@@ -31,6 +32,7 @@ import {
   recordRecentBranch,
   type BranchRecentEntry,
 } from "./recentHistory";
+import { useSettings } from "../../stores/settings";
 import "./branchSwitcher.css";
 
 const BRANCH_CHANGED_EVENT = "git:branch-changed";
@@ -63,14 +65,15 @@ const emptyState: BranchWorkspaceState = {
   error: null,
 };
 
-const groupLabels: Record<BranchSwitcherGroup, string> = {
-  current: "Current",
-  recent: "Recent",
-  local: "Local branches",
-  remote: "Remote branches",
+const groupLabelKeys: Record<BranchSwitcherGroup, string> = {
+  current: "dialogs.branchSwitcher.groups.current",
+  recent: "dialogs.branchSwitcher.groups.recent",
+  local: "dialogs.branchSwitcher.groups.local",
+  remote: "dialogs.branchSwitcher.groups.remote",
 };
 
 export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
+  const { settings } = useSettings();
   const [states, setStates] = createStore<Record<string, BranchWorkspaceState>>(
     {},
   );
@@ -79,6 +82,8 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
   const [recent, setRecent] = createSignal<BranchRecentEntry[]>([]);
   const [message, setMessage] = createSignal<string | null>(null);
   const [checkingOut, setCheckingOut] = createSignal(false);
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   let inputRef: HTMLInputElement | undefined;
   let unlistenBranchChanged: UnlistenFn | undefined;
@@ -291,7 +296,7 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
           onMouseDown={(event) => event.stopPropagation()}
         >
           <h3 id="vs-branch-switcher-title" class="vs-branch-switcher-title">
-            Switch branch
+            {label("dialogs.branchSwitcher.title")}
           </h3>
 
           <input
@@ -299,7 +304,7 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
             type="text"
             class="vs-branch-switcher-input"
             value={query()}
-            placeholder="Type branch name"
+            placeholder={label("dialogs.branchSwitcher.typeBranchName")}
             onInput={(event) => setQuery(event.currentTarget.value)}
             spellcheck={false}
             autocomplete="off"
@@ -309,7 +314,7 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
             when={hasGitWorkspace()}
             fallback={
               <p class="vs-branch-switcher-empty">
-                当前 workspace 不是 Git 仓库
+                {label("dialogs.branchSwitcher.notGitWorkspace")}
               </p>
             }
           >
@@ -317,13 +322,17 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
               <Show
                 when={!currentState().loading || currentState().loaded}
                 fallback={
-                  <p class="vs-branch-switcher-empty">Loading branches…</p>
+                  <p class="vs-branch-switcher-empty">
+                    {label("dialogs.branchSwitcher.loadingBranches")}
+                  </p>
                 }
               >
                 <Show
                   when={items().length > 0}
                   fallback={
-                    <p class="vs-branch-switcher-empty">No branch matched</p>
+                    <p class="vs-branch-switcher-empty">
+                      {label("dialogs.branchSwitcher.noBranchMatched")}
+                    </p>
                   }
                 >
                   <div class="vs-branch-switcher-list" role="listbox">
@@ -337,7 +346,7 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
                             }
                           >
                             <div class="vs-branch-switcher-group">
-                              {groupLabels[item.group]}
+                              {label(groupLabelKeys[item.group])}
                             </div>
                           </Show>
                           <button
@@ -358,17 +367,17 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
                             </span>
                             <Show when={item.group === "current"}>
                               <span class="vs-branch-switcher-badge">
-                                current
+                                {label("dialogs.branchSwitcher.badges.current")}
                               </span>
                             </Show>
                             <Show when={item.group === "recent"}>
                               <span class="vs-branch-switcher-badge">
-                                recent
+                                {label("dialogs.branchSwitcher.badges.recent")}
                               </span>
                             </Show>
                             <Show when={item.branch.kind === "remote"}>
                               <span class="vs-branch-switcher-badge">
-                                remote
+                                {label("dialogs.branchSwitcher.badges.remote")}
                               </span>
                             </Show>
                           </button>
@@ -396,7 +405,7 @@ export const BranchSwitcher: Component<BranchSwitcherProps> = (props) => {
       <div class="vs-branch-switcher-empty">
         <p>{currentState().error}</p>
         <button type="button" onClick={() => void loadBranches(workspaceId())}>
-          Retry
+          {label("dialogs.branchSwitcher.retry")}
         </button>
       </div>
     );

@@ -788,12 +788,17 @@ Post-GREEN OpenCode scope audit on 2026-06-06: APPROVE.
 
 ### Task 7: App Chrome Migration
 
-Status: Settings slice completed; broader chrome migration remains pending behind the FEAT-02.4 inventory/review prompts.
+Status: Settings shell/Appearance/remaining-controls slices completed; non-Settings chrome migration remains pending behind FEAT-02.4 review prompts.
 
 **Files:**
 
 - Modify: `web/src/panels/Settings/SettingsPanel.tsx`
 - Modify: `web/src/panels/Settings/AppearanceGroup.tsx`
+- Modify: `web/src/panels/Settings/TerminalGroup.tsx`
+- Modify: `web/src/panels/Settings/ExternalTerminalGroup.tsx`
+- Modify: `web/src/panels/Settings/GitGroup.tsx`
+- Modify: `web/src/panels/Settings/PrivacyGroup.tsx`
+- Modify: `web/src/i18n/dictionaries.ts`
 - Create: `web/tests/i18n/chrome-copy.test.ts`
 - Modify: `web/tests/panels/Settings/language-selector.test.tsx`
 - Create: `web/tests/panels/Settings/settings-panel-copy.test.tsx`
@@ -813,6 +818,8 @@ Before editing UI copy, use this OpenCode-derived checklist as the FEAT-02.4 sco
 - Dialog common chrome: `Help improve Vibestation`, `Decline`, `Accept`, `Open in External Terminal`, `Don't ask again`, `Cancel`, `Retry`, `No external terminals detected.`, `No branch matched`, `Loading branches...`, `Switch branch`, `Close <name> dialog` aria-label.
 - Existing non-English hardcoded copy found by OpenCode: App remote aria Chinese sentence, CreateBranch `取消` / `确认`, delete modal description, and loading errors only if they fall into the chrome/dialog/common error list above.
 - Exclude: class / role / type / internal data values, font names, env lists, dynamic backend labels, backend raw errors, Git content, branch names, commit messages, terminal output, and Tauri native menu labels.
+
+OpenCode inventory response on 2026-06-06: `INVENTORY-COMPLETE`. It confirmed `SettingsPanel.tsx` and `AppearanceGroup.tsx` were already migrated, identified remaining Settings first-level controls in `TerminalGroup.tsx`, `ExternalTerminalGroup.tsx`, `GitGroup.tsx`, and `PrivacyGroup.tsx`, and kept font names, env list values, dynamic backend labels, Git content, terminal output, and long privacy prose out of scope.
 
 Actual Settings-slice RED coverage on 2026-06-06:
 
@@ -863,7 +870,7 @@ Actual: `SettingsPanel.tsx` now derives `label()` from `useSettings().settings.l
 
 Replace Theme, Auto, Light, Dark, Font family, Font size, Background opacity, Background blur, Window padding X/Y, Cursor style, Block, Bar, Underline, Cursor blink with `label("settings.appearance.<key>")`. Use `settings.terminal.*`, `settings.externalTerminal.*`, `settings.git.*`, and `settings.privacy.*` for first-level controls listed above; defer long privacy prose to a later `content.privacy.*` task.
 
-Actual: AppearanceGroup migrated the existing labels listed above. Settings Terminal / External Terminal / Git / Privacy first-level controls and non-settings app chrome remain pending FEAT-02.4 follow-up, not part of commit `985efc7`.
+Actual: AppearanceGroup migrated the existing labels listed above. Settings Terminal / External Terminal / Git / Privacy first-level controls were migrated in the follow-up settings-controls slice below. Non-settings app chrome remains pending FEAT-02.4 follow-up.
 
 - [x] **Step 4: Run focused tests**
 
@@ -895,6 +902,20 @@ git commit -m "feat(i18n): 迁移设置面板文案" -m "Co-authored-by: Codex C
 ```
 
 GREEN commit: `985efc7 feat(i18n): 迁移设置面板文案`.
+
+Additional Settings-controls slice on 2026-06-06:
+
+- RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `settings.terminal.*`, `settings.externalTerminal.*`, `settings.git.*`, and `settings.privacy.*`; `web/tests/panels/Settings/settings-panel-copy.test.tsx` renders real `SettingsPanel` in `zh-Hans` and asserts remaining Settings controls.
+- RED command: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/panels/Settings/settings-panel-copy.test.tsx` exited 1. Expected failures: missing dictionary key returned raw `settings.terminal.defaultShell`, and component UI still rendered English `Default shell`.
+- RED commit: `8f3c84d test(i18n): 加设置控件文案迁移 RED 测试`.
+- GREEN implementation: added dictionary namespaces for remaining Settings controls and wired `TerminalGroup.tsx`, `ExternalTerminalGroup.tsx`, `GitGroup.tsx`, and `PrivacyGroup.tsx` through `label()`. Dynamic shell/terminal labels, env whitelist values, Git content, terminal output, backend raw strings, and long privacy prose remain excluded.
+- GREEN verification: `pnpm --dir web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 22/22 tests.
+- `pnpm typecheck` PASS.
+- `npx prettier --check "web/src/i18n/dictionaries.ts" "web/src/panels/Settings/TerminalGroup.tsx" "web/src/panels/Settings/ExternalTerminalGroup.tsx" "web/src/panels/Settings/GitGroup.tsx" "web/src/panels/Settings/PrivacyGroup.tsx" "web/tests/i18n/chrome-copy.test.ts" "web/tests/panels/Settings/settings-panel-copy.test.tsx"` PASS.
+- `git diff --check` PASS.
+- Scope grep confirmed touched Settings group code uses only `settings.terminal.*`, `settings.externalTerminal.*`, `settings.git.*`, and `settings.privacy.*`; it still contains excluded long privacy prose mentioning commit messages, which remains intentionally unmigrated for `content.privacy.*`.
+- `pnpm --filter @vibestation/web lint` still FAILS on 109 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are no longer listed.
+- GREEN commit: `3451e48 feat(i18n): 迁移设置控件文案`.
 
 ---
 

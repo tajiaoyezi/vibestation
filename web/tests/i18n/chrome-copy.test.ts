@@ -155,4 +155,54 @@ describe("FEAT-02 first Settings chrome copy", () => {
     );
     expect(t("dialogs.branchSwitcher.retry", "zh-Hans")).toBe("重试");
   });
+
+  it("TEST-FEAT-02.6: remaining git dialog chrome labels translate", () => {
+    expect(t("dialogs.common.cancel", "zh-Hans")).toBe("取消");
+    expect(t("dialogs.common.confirm", "zh-Hans")).toBe("确认");
+    expect(t("dialogs.common.continue", "zh-Hans")).toBe("继续");
+
+    expect(t("dialogs.createBranch.title", "en")).toBe("Create branch");
+    expect(t("dialogs.createBranch.title", "zh-Hans")).toBe("创建分支");
+    expect(t("dialogs.createBranch.name", "zh-Hans")).toBe("名称");
+    expect(t("dialogs.createBranch.from", "zh-Hans")).toBe("来源");
+    expect(t("dialogs.createBranch.createAndCheckout", "zh-Hans")).toBe(
+      "创建并切换",
+    );
+    expect(t("dialogs.createBranch.creating", "zh-Hans")).toBe("创建中...");
+
+    expect(t("dialogs.cherryPick.close", "zh-Hans")).toBe(
+      "关闭 cherry-pick 对话框",
+    );
+    expect(t("dialogs.cherryPick.autoCommitEach", "zh-Hans")).toBe(
+      "逐个自动提交",
+    );
+    expect(t("dialogs.cherryPick.action", "zh-Hans")).toBe("Cherry-pick");
+    expect(t("dialogs.cherryPick.submitting", "zh-Hans")).toBe(
+      "Cherry-pick 中...",
+    );
+
+    expect(t("dialogs.merge.close", "zh-Hans")).toBe("关闭合并对话框");
+    expect(t("dialogs.merge.sourceBranch", "zh-Hans")).toBe("源分支");
+    expect(t("dialogs.merge.loadingBranches", "zh-Hans")).toBe(
+      "正在加载分支...",
+    );
+    expect(t("dialogs.merge.searchBranch", "zh-Hans")).toBe("搜索分支");
+    expect(t("dialogs.merge.commitMessage", "zh-Hans")).toBe("提交信息");
+    expect(t("dialogs.merge.action", "zh-Hans")).toBe("合并");
+    expect(t("dialogs.merge.submitting", "zh-Hans")).toBe("合并中...");
+
+    expect(t("dialogs.remoteSelector.pushTitle", "en")).toBe(
+      "Select push remote",
+    );
+    expect(t("dialogs.remoteSelector.pullTitle", "zh-Hans")).toBe(
+      "选择 pull 远端",
+    );
+    expect(t("dialogs.remoteSelector.fetchTitle", "zh-Hans")).toBe(
+      "Fetch 远端",
+    );
+    expect(t("dialogs.remoteSelector.remoteRefs", "zh-Hans")).toBe("远端 refs");
+    expect(t("dialogs.remoteSelector.pruneDeletedRefs", "zh-Hans")).toBe(
+      "清理已删除的 refs",
+    );
+  });
 });

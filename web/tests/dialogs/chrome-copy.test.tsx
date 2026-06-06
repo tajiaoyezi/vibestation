@@ -1,6 +1,9 @@
 import { render, screen, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AppSettings } from "../../src/bindings/AppSettings";
+import type { BranchInfo } from "../../src/bindings/BranchInfo";
+import type { GitLogEntry } from "../../src/bindings/GitLogEntry";
+import type { RemoteInfo } from "../../src/bindings/RemoteInfo";
 import type { WorkspaceMetadata } from "../../src/bindings/WorkspaceMetadata";
 
 const {
@@ -84,6 +87,10 @@ import { reloadSettings } from "../../src/stores/settings";
 import { TelemetryOptInModal } from "../../src/dialogs/TelemetryOptIn/TelemetryOptInModal";
 import { PopToExternalDialog } from "../../src/dialogs/PopToExternal/PopToExternalDialog";
 import { BranchSwitcher } from "../../src/dialogs/BranchSwitcher/BranchSwitcher";
+import { CreateBranchDialog } from "../../src/dialogs/CreateBranchDialog/CreateBranchDialog";
+import { CherryPickDialog } from "../../src/dialogs/CherryPickDialog/CherryPickDialog";
+import { MergeDialog } from "../../src/dialogs/MergeDialog/MergeDialog";
+import { RemoteSelector } from "../../src/dialogs/RemoteSelector/RemoteSelector";
 import { listTerminals, previewEnv } from "../../src/lib/external-term";
 
 const mockedListTerminals = vi.mocked(listTerminals);
@@ -97,6 +104,32 @@ const gitWorkspace: WorkspaceMetadata = {
   hasGit: true,
   createdAt: 1,
   lastOpened: 1,
+};
+
+const mainBranch: BranchInfo = {
+  name: "main",
+  fullRef: "refs/heads/main",
+  kind: "local",
+  upstream: null,
+  ahead: 0,
+  behind: 0,
+  headCommit: "abc123",
+};
+
+const commit: GitLogEntry = {
+  shortSha: "abc1234",
+  message: "keep commit messages raw",
+  authorName: "Leaf",
+  authoredDate: 1,
+  relativeTime: "now",
+  branchLabels: [],
+  tagLabels: [],
+};
+
+const originRemote: RemoteInfo = {
+  name: "origin",
+  url: "https://example.test/repo.git",
+  fetchUrl: "https://example.test/repo.git",
 };
 
 beforeEach(async () => {
@@ -196,5 +229,88 @@ describe("FEAT-02 dialog chrome copy", () => {
     ));
 
     expect(screen.getByText("正在加载分支...")).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders create branch chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <CreateBranchDialog
+        branches={[mainBranch]}
+        onCreate={vi.fn(async () => false)}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Create branch" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Name")).toBeInTheDocument();
+    expect(screen.getByText("From")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders cherry-pick chrome in zh-Hans", () => {
+    render(() => (
+      <CherryPickDialog
+        workspaceId="ws-1"
+        commits={[commit]}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByLabelText("关闭 cherry-pick 对话框"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("逐个自动提交")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders merge dialog chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <MergeDialog
+        workspaceId="ws-1"
+        currentBranch="main"
+        initialSource="feature"
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Merge feature into main" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Close merge dialog")).toBeInTheDocument();
+    expect(screen.getByText("source branch")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search branch")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Merge" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders remote selector chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <RemoteSelector
+        operation="push"
+        branch="main"
+        remotes={[originRemote]}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Select push remote" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Continue" }),
+    ).toBeInTheDocument();
   });
 });

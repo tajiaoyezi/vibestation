@@ -388,6 +388,63 @@ mod tests {
     }
 
     #[test]
+    fn app_settings_language_default_is_en() {
+        let settings = AppSettings::default();
+        assert_eq!(settings.language, "en");
+    }
+
+    #[test]
+    fn app_settings_language_get_all_defaults_to_en_when_empty() {
+        let (_dir, pool) = setup();
+        let settings = AppSettingsStore::get_all(&pool);
+        assert_eq!(settings.language, "en");
+    }
+
+    #[test]
+    fn app_settings_language_persists_across_get_all() {
+        let (_dir, pool) = setup();
+        let req = SettingsUpdateRequest {
+            language: Some("zh-Hans".to_string()),
+            ..Default::default()
+        };
+
+        AppSettingsStore::update(&pool, &req).expect("language update succeeds");
+
+        let settings = AppSettingsStore::get_all(&pool);
+        assert_eq!(settings.language, "zh-Hans");
+    }
+
+    #[test]
+    fn app_settings_language_persists_across_pool_reopen() {
+        let dir = TempDir::new().unwrap();
+        let db_path = dir.path().join("persist_language.db");
+
+        {
+            let pool = db::open_pool(&db_path).unwrap();
+            let req = SettingsUpdateRequest {
+                language: Some("zh-Hans".to_string()),
+                ..Default::default()
+            };
+            AppSettingsStore::update(&pool, &req).expect("language update succeeds");
+        }
+
+        let pool = db::open_pool(&db_path).unwrap();
+        let settings = AppSettingsStore::get_all(&pool);
+        assert_eq!(settings.language, "zh-Hans");
+    }
+
+    #[test]
+    fn app_settings_language_invalid_value_falls_back_to_en() {
+        let (_dir, pool) = setup();
+
+        for invalid in ["fr", "", "zh"] {
+            AppSettingsStore::set(&pool, "language", invalid).expect("seed invalid language");
+            let settings = AppSettingsStore::get_all(&pool);
+            assert_eq!(settings.language, "en");
+        }
+    }
+
+    #[test]
     fn pty_pool_settings_roundtrip() {
         // MVP-20 · 验证 pty_pool_* 字段持久化 · 关闭 + 容量改 3
         let (_dir, pool) = setup();

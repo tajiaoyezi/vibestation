@@ -205,4 +205,61 @@ describe("FEAT-02 first Settings chrome copy", () => {
       "清理已删除的 refs",
     );
   });
+
+  it("TEST-FEAT-02.6: destructive and auth dialog chrome labels translate", () => {
+    expect(t("dialogs.forceDelete.titlePrefix", "en")).toBe(
+      "Force delete branch",
+    );
+    expect(t("dialogs.forceDelete.titlePrefix", "zh-Hans")).toBe(
+      "强制删除分支",
+    );
+    expect(t("dialogs.forceDelete.confirmLabel", "zh-Hans")).toBe(
+      "输入分支名确认",
+    );
+    expect(t("dialogs.forceDelete.action", "zh-Hans")).toBe(
+      "强制删除（数据丢失）",
+    );
+
+    expect(t("dialogs.forcePush.titlePrefix", "en")).toBe("Force push");
+    expect(t("dialogs.forcePush.titleTo", "zh-Hans")).toBe("到");
+    expect(t("dialogs.forcePush.action", "zh-Hans")).toBe("强制推送（破坏性）");
+
+    expect(t("dialogs.dirtyTree.title", "en")).toBe(
+      "Uncommitted changes before switching branch",
+    );
+    expect(t("dialogs.dirtyTree.stashAndSwitch", "zh-Hans")).toBe("暂存并切换");
+    expect(t("dialogs.dirtyTree.discardAndSwitch", "zh-Hans")).toBe(
+      "丢弃并切换",
+    );
+
+    expect(t("dialogs.gitSync.pushTitlePrefix", "zh-Hans")).toBe("推送到");
+    expect(t("dialogs.gitSync.waitingForRemote", "zh-Hans")).toBe("等待远端");
+    expect(t("dialogs.gitSync.pruneDeletedRefs", "zh-Hans")).toBe(
+      "清理已删除的 refs",
+    );
+
+    expect(t("dialogs.auth.title", "en")).toBe("Authentication required");
+    expect(t("dialogs.auth.title", "zh-Hans")).toBe("需要凭证");
+    expect(t("dialogs.auth.method", "zh-Hans")).toBe("认证方式");
+    expect(t("dialogs.auth.saveToKeychain", "zh-Hans")).toBe(
+      "保存到系统 keychain",
+    );
+    expect(t("dialogs.auth.submitting", "zh-Hans")).toBe("验证中...");
+  });
+
+  it("TEST-FEAT-02.6: config import dialog chrome labels translate", () => {
+    expect(t("dialogs.configImport.title", "en")).toBe(
+      "Import terminal config",
+    );
+    expect(t("dialogs.configImport.title", "zh-Hans")).toBe("导入终端配置");
+    expect(t("dialogs.configImport.close", "zh-Hans")).toBe("关闭导入对话框");
+    expect(t("dialogs.configImport.steps.source", "zh-Hans")).toBe("来源");
+    expect(t("dialogs.configImport.scanning", "zh-Hans")).toBe(
+      "正在扫描默认路径...",
+    );
+    expect(t("dialogs.configImport.retry", "zh-Hans")).toBe("重试");
+    expect(t("dialogs.configImport.skipManual", "zh-Hans")).toBe(
+      "跳过，手动配置",
+    );
+  });
 });

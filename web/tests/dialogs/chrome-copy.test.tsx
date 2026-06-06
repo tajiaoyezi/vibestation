@@ -69,6 +69,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "telemetry_opt_in_set") {
       return null;
     }
+    if (cmd === "config_import_scan") {
+      return new Promise(() => undefined);
+    }
     return null;
   }),
 }));
@@ -91,6 +94,12 @@ import { CreateBranchDialog } from "../../src/dialogs/CreateBranchDialog/CreateB
 import { CherryPickDialog } from "../../src/dialogs/CherryPickDialog/CherryPickDialog";
 import { MergeDialog } from "../../src/dialogs/MergeDialog/MergeDialog";
 import { RemoteSelector } from "../../src/dialogs/RemoteSelector/RemoteSelector";
+import { ForceDeleteDialog } from "../../src/dialogs/ForceDeleteDialog/ForceDeleteDialog";
+import { ForcePushDialog } from "../../src/dialogs/ForcePushDialog/ForcePushDialog";
+import { DirtyTreeDialog } from "../../src/dialogs/DirtyTreeDialog/DirtyTreeDialog";
+import { GitSyncProgressDialog } from "../../src/dialogs/GitSyncProgress/GitSyncProgressDialog";
+import { AuthDialog } from "../../src/dialogs/AuthDialog/AuthDialog";
+import { ConfigImportDialog } from "../../src/dialogs/ConfigImport/ConfigImportDialog";
 import { listTerminals, previewEnv } from "../../src/lib/external-term";
 
 const mockedListTerminals = vi.mocked(listTerminals);
@@ -313,6 +322,159 @@ describe("FEAT-02 dialog chrome copy", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Continue" }),
+    ).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders destructive branch dialog chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <ForceDeleteDialog
+        branch={{ ...mainBranch, name: "feature" }}
+        missingCommits={2}
+        confirmation=""
+        onConfirmationChange={vi.fn()}
+        onConfirm={vi.fn(async () => undefined)}
+        onCancel={vi.fn()}
+        deleting={false}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Force delete branch feature" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/This branch has 2 unmerged commits/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Type branch name to confirm")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Force delete (data loss)" }),
+    ).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders force push dialog chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <ForcePushDialog
+        remote="origin"
+        branch="main"
+        remoteAhead={3}
+        expectedRemoteOid="abcdef1234567890"
+        commits={[{ sha: "abcdef1234567890", message: "keep raw commit" }]}
+        confirmation=""
+        submitting={false}
+        onConfirmationChange={vi.fn()}
+        onConfirm={vi.fn(async () => undefined)}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Force push main to origin" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/will overwrite 3 commits on origin\/main/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Type branch name to confirm")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Force push (destructive)" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("keep raw commit")).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders dirty tree chrome in zh-Hans", () => {
+    render(() => (
+      <DirtyTreeDialog
+        branchName="release"
+        dirty={{ staged: ["src/a.ts"], modified: [], untracked: [] }}
+        onDiscard={vi.fn(async () => undefined)}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", {
+        name: "切换分支前发现未提交修改",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "暂存并切换" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "丢弃并切换" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders git sync progress chrome in zh-Hans", () => {
+    render(() => (
+      <GitSyncProgressDialog
+        kind="fetch"
+        remote="origin"
+        branch="main"
+        stage="fetching"
+        progress={{
+          current: 0,
+          total: 0,
+          bytesDone: 0,
+          bytesTotal: 0,
+          bytesPerSec: 0,
+        }}
+        abortable={true}
+        prune={true}
+        largeTransfer={true}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Fetch 远端 origin" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("等待远端")).toBeInTheDocument();
+    expect(screen.getByText("清理已删除的 refs")).toBeInTheDocument();
+    expect(screen.getByText(/大文件传输中/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders auth dialog chrome in default English", async () => {
+    mockAppSettings.language = "en";
+    await reloadSettings();
+
+    render(() => (
+      <AuthDialog
+        remoteUrl="https://example.test/repo.git"
+        submitting={false}
+        onSubmit={vi.fn(async () => undefined)}
+        onCancel={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("heading", { name: "Authentication required" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Authentication method")).toBeInTheDocument();
+    expect(screen.getByText("Username")).toBeInTheDocument();
+    expect(screen.getByText("Password / token")).toBeInTheDocument();
+    expect(screen.getByText("Save to system keychain")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirm" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders config import chrome in zh-Hans", () => {
+    render(() => <ConfigImportDialog onClose={vi.fn()} />);
+
+    expect(
+      screen.getByRole("heading", { name: "导入终端配置" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("关闭导入对话框")).toBeInTheDocument();
+    expect(screen.getByLabelText("导入步骤")).toBeInTheDocument();
+    expect(screen.getByText("1 · 来源")).toBeInTheDocument();
+    expect(screen.getByText("正在扫描默认路径...")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "跳过，手动配置" }),
     ).toBeInTheDocument();
   });
 });

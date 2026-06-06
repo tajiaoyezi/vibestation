@@ -6,6 +6,8 @@ import {
   type Component,
 } from "solid-js";
 import type { AuthMethod } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./authDialog.css";
 
 type AuthMode = "ssh-agent" | "ssh-key" | "https-helper" | "https-manual";
@@ -19,6 +21,7 @@ interface AuthDialogProps {
 }
 
 export const AuthDialog: Component<AuthDialogProps> = (props) => {
+  const { settings } = useSettings();
   const [mode, setMode] = createSignal<AuthMode>(
     props.remoteUrl.startsWith("http") ? "https-manual" : "ssh-agent",
   );
@@ -27,6 +30,9 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
   const [keyPath, setKeyPath] = createSignal("~/.ssh/id_ed25519");
   const [passphrase, setPassphrase] = createSignal("");
   const [saveToKeychain, setSaveToKeychain] = createSignal(true);
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const resetForm = () => {
     setUsername("");
@@ -105,14 +111,14 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
     >
       <div class="vs-dialog vs-auth-dialog">
         <h3 id="vs-auth-dialog-title" class="vs-dialog-title">
-          需要凭证
+          {label("dialogs.auth.title")}
         </h3>
         <p class="vs-auth-remote">{props.remoteUrl}</p>
 
         <div
           class="vs-auth-tabs"
           role="tablist"
-          aria-label="Authentication method"
+          aria-label={label("dialogs.auth.method")}
         >
           <button
             type="button"
@@ -147,7 +153,7 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
         <div class="vs-dialog-form">
           <Show when={mode() === "https-manual"}>
             <label class="vs-dialog-label">
-              Username
+              {label("dialogs.auth.username")}
               <input
                 class="vs-dialog-input"
                 value={username()}
@@ -157,7 +163,7 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
               />
             </label>
             <label class="vs-dialog-label">
-              Password / token
+              {label("dialogs.auth.passwordToken")}
               <input
                 class="vs-dialog-input"
                 type="password"
@@ -174,26 +180,21 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
                   setSaveToKeychain(event.currentTarget.checked)
                 }
               />
-              <span>保存到系统 keychain</span>
+              <span>{label("dialogs.auth.saveToKeychain")}</span>
             </label>
           </Show>
 
           <Show when={mode() === "https-helper"}>
-            <p class="vs-auth-copy">
-              使用系统 git credential helper 重新读取凭证。
-            </p>
+            <p class="vs-auth-copy">{label("dialogs.auth.helperCopy")}</p>
           </Show>
 
           <Show when={mode() === "ssh-agent"}>
-            <p class="vs-auth-copy">
-              使用系统 ssh-agent。若 agent 没有加载 key，请先在终端执行
-              ssh-add。
-            </p>
+            <p class="vs-auth-copy">{label("dialogs.auth.sshAgentCopy")}</p>
           </Show>
 
           <Show when={mode() === "ssh-key"}>
             <label class="vs-dialog-label">
-              SSH key path
+              {label("dialogs.auth.sshKeyPath")}
               <input
                 class="vs-dialog-input"
                 value={keyPath()}
@@ -201,7 +202,7 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
               />
             </label>
             <label class="vs-dialog-label">
-              Passphrase
+              {label("dialogs.auth.passphrase")}
               <input
                 class="vs-dialog-input"
                 type="password"
@@ -229,7 +230,7 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
               props.onCancel();
             }}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -237,7 +238,9 @@ export const AuthDialog: Component<AuthDialogProps> = (props) => {
             disabled={!canSubmit()}
             onClick={() => void submit()}
           >
-            {props.submitting ? "验证中…" : "Confirm"}
+            {props.submitting
+              ? label("dialogs.auth.submitting")
+              : label("dialogs.common.confirm")}
           </button>
         </div>
       </div>

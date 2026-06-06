@@ -1,5 +1,7 @@
 import { Show, type Component } from "solid-js";
 import type { PullStrategy } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./gitSyncProgress.css";
 
 export type GitSyncKind = "push" | "pull" | "fetch";
@@ -37,29 +39,21 @@ interface GitSyncProgressDialogProps {
   onCancel: () => void;
 }
 
-const stageLabel: Record<GitSyncStage, string> = {
-  counting: "counting",
-  compressing: "compressing",
-  writing: "push",
-  fetch: "fetch",
-  fetching: "fetch",
-  indexing: "indexing",
-  merge: "merge",
-  rebase: "rebase",
-  done: "done",
-};
-
 export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
   props,
 ) => {
+  const { settings } = useSettings();
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
   const title = () => {
     switch (props.kind) {
       case "push":
-        return `Push to ${props.remote}`;
+        return `${label("dialogs.gitSync.pushTitlePrefix")} ${props.remote}`;
       case "pull":
-        return `Pull from ${props.remote}/${props.branch}`;
+        return `${label("dialogs.gitSync.pullTitlePrefix")} ${props.remote}/${props.branch}`;
       case "fetch":
-        return `Fetch ${props.remote}`;
+        return `${label("dialogs.gitSync.fetchTitlePrefix")} ${props.remote}`;
     }
   };
   const ratio = () => {
@@ -71,8 +65,8 @@ export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
   };
   const objectLabel = () =>
     props.progress.total > 0
-      ? `${props.progress.current} / ${props.progress.total} objects`
-      : "waiting for remote";
+      ? `${props.progress.current} / ${props.progress.total} ${label("dialogs.gitSync.objects")}`
+      : label("dialogs.gitSync.waitingForRemote");
   const speedLabel = () => {
     if (props.progress.bytesPerSec <= 0) return "0 KB/s";
     return `${Math.max(1, Math.round(props.progress.bytesPerSec / 1024))} KB/s`;
@@ -101,7 +95,7 @@ export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
             </h3>
             <div class="vs-git-sync-progress-sub">
               <span class="vs-git-sync-chip">{props.branch}</span>
-              <span>{stageLabel[props.stage]}</span>
+              <span>{label(`dialogs.gitSync.stages.${props.stage}`)}</span>
             </div>
           </div>
           <Show when={props.kind === "pull" && props.pullStrategy}>
@@ -136,11 +130,14 @@ export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
               }
               disabled={!props.abortable}
             />
-            <span>Prune deleted refs</span>
+            <span>{label("dialogs.gitSync.pruneDeletedRefs")}</span>
           </label>
         </Show>
 
-        <div class="vs-git-sync-progress-track" aria-label="Git sync progress">
+        <div
+          class="vs-git-sync-progress-track"
+          aria-label={label("dialogs.gitSync.progress")}
+        >
           <div
             class="vs-git-sync-progress-fill"
             style={{ width: `${ratio()}%` }}
@@ -152,7 +149,9 @@ export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
         </div>
 
         <Show when={props.largeTransfer}>
-          <p class="vs-git-sync-large">大文件传输中 ({sizeLabel()})</p>
+          <p class="vs-git-sync-large">
+            {label("dialogs.gitSync.largeTransferPrefix")} ({sizeLabel()})
+          </p>
         </Show>
 
         <div class="vs-dialog-actions">
@@ -161,7 +160,7 @@ export const GitSyncProgressDialog: Component<GitSyncProgressDialogProps> = (
             class="vs-dialog-btn-secondary"
             onClick={props.onCancel}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
         </div>
       </div>

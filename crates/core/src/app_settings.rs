@@ -21,6 +21,7 @@ pub enum SettingsError {
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
+    pub language: String,
     pub theme: String,
     pub font_family: String,
     pub font_size: u32,
@@ -84,6 +85,7 @@ fn default_shell_for_platform() -> &'static str {
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
+            language: "en".to_string(),
             theme: "dark".to_string(),
             font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace".to_string(),
             font_size: 14,
@@ -115,6 +117,7 @@ impl Default for AppSettings {
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct SettingsUpdateRequest {
+    pub language: Option<String>,
     pub theme: Option<String>,
     pub font_family: Option<String>,
     pub font_size: Option<u32>,
@@ -164,6 +167,22 @@ fn get_optional_bool(pool: &DbPool, key: &str) -> Option<bool> {
     }
 }
 
+fn normalize_language(raw: &str) -> &'static str {
+    match raw.trim() {
+        "en" => "en",
+        "zh-Hans" => "zh-Hans",
+        _ => "en",
+    }
+}
+
+fn get_language(pool: &DbPool) -> String {
+    // Keep settings_get/get_all side-effect free: normalize invalid persisted values
+    // for callers, but do not rewrite the DB until settings_update runs.
+    AppSettingsStore::get(pool, "language")
+        .map(|raw| normalize_language(&raw).to_string())
+        .unwrap_or_else(|_| "en".to_string())
+}
+
 pub struct AppSettingsStore;
 
 impl AppSettingsStore {
@@ -194,6 +213,7 @@ impl AppSettingsStore {
     }
 
     pub fn get_all(pool: &DbPool) -> AppSettings {
+        let language = get_language(pool);
         let theme = get_parsed(pool, "theme", "dark");
         let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
@@ -219,6 +239,7 @@ impl AppSettingsStore {
             get_parsed(pool, "external_term_dont_ask_again", "false");
 
         AppSettings {
+            language,
             theme,
             font_family,
             font_size,
@@ -245,6 +266,9 @@ impl AppSettingsStore {
     }
 
     pub fn update(pool: &DbPool, req: &SettingsUpdateRequest) -> Result<(), SettingsError> {
+        if let Some(ref v) = req.language {
+            Self::set(pool, "language", normalize_language(v))?;
+        }
         if let Some(ref v) = req.theme {
             Self::set(pool, "theme", v)?;
         }

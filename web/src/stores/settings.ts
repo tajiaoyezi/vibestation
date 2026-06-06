@@ -8,6 +8,7 @@ import type { AppSettings, SettingsUpdateRequest } from "../bindings";
 export type ThemeSetting = "light" | "dark" | "auto";
 
 const DEFAULTS: AppSettings = {
+  language: "en",
   theme: "dark",
   fontFamily:
     "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",

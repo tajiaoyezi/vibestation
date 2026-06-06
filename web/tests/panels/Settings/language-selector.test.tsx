@@ -69,9 +69,9 @@ describe("FEAT-02 Language selector", () => {
     )) as HTMLSelectElement;
     expect(select.value).toBe("en");
     expect(screen.getByRole("option", { name: "English" })).toHaveValue("en");
-    expect(screen.getByRole("option", { name: "简体中文" })).toHaveValue(
-      "zh-Hans",
-    );
+    expect(
+      screen.getByRole("option", { name: "Simplified Chinese" }),
+    ).toHaveValue("zh-Hans");
 
     fireEvent.change(select, { target: { value: "zh-Hans" } });
 
@@ -85,7 +85,11 @@ describe("FEAT-02 Language selector", () => {
     });
     await waitFor(() => {
       expect(document.documentElement.lang).toBe("zh-Hans");
-      expect(select.value).toBe("zh-Hans");
     });
+    const translatedSelect = screen.getByLabelText("语言") as HTMLSelectElement;
+    expect(translatedSelect.value).toBe("zh-Hans");
+    expect(screen.getByRole("option", { name: "简体中文" })).toHaveValue(
+      "zh-Hans",
+    );
   });
 });

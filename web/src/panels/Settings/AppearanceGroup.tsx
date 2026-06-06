@@ -1,8 +1,18 @@
 import { type Component, For } from "solid-js";
+import { t, normalizeLanguage, type Language } from "../../i18n";
 import { useSettings, type ThemeSetting } from "../../stores/settings";
 
 export const AppearanceGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+  const languages = (): { value: Language; label: string }[] => [
+    { value: "en", label: label("settings.appearance.english") },
+    {
+      value: "zh-Hans",
+      label: label("settings.appearance.simplifiedChinese"),
+    },
+  ];
 
   // updateSettings 走 settings_update IPC · emit settings_changed
   // → ThemeProvider listen 同步 internal signal · settings store applyCssVars
@@ -37,6 +47,24 @@ export const AppearanceGroup: Component = () => {
 
   return (
     <div class="vs-settings-fields">
+      <label class="vs-settings-field">
+        <span class="vs-settings-label">
+          {label("settings.appearance.language")}
+        </span>
+        <select
+          class="vs-settings-select"
+          value={language()}
+          aria-label={label("settings.appearance.language")}
+          onChange={(e) =>
+            updateSettings({ language: e.currentTarget.value as Language })
+          }
+        >
+          <For each={languages()}>
+            {(item) => <option value={item.value}>{item.label}</option>}
+          </For>
+        </select>
+      </label>
+
       <fieldset class="vs-settings-fieldset">
         <legend class="vs-settings-label">Theme</legend>
         <div class="vs-settings-radio-row">

@@ -109,4 +109,50 @@ describe("FEAT-02 first Settings chrome copy", () => {
     expect(t("chrome.status.ipcError", "zh-Hans")).toBe("ipc 错误：");
     expect(t("chrome.status.alpha", "zh-Hans")).toBe("alpha");
   });
+
+  it("TEST-FEAT-02.6: remaining main and dialog chrome labels translate", () => {
+    expect(t("chrome.main.contentArea", "en")).toBe("Main content area");
+    expect(t("chrome.main.contentArea", "zh-Hans")).toBe("主内容区");
+    expect(t("chrome.main.emptyWorkspace", "zh-Hans")).toBe(
+      "选择或创建工作区以开始",
+    );
+    expect(t("chrome.main.diff", "zh-Hans")).toBe("差异");
+    expect(t("chrome.main.backToTerminal", "zh-Hans")).toBe("返回终端");
+    expect(t("chrome.sidebars.secondary", "zh-Hans")).toBe("副侧边栏");
+    expect(t("chrome.sidebars.resizeSecondary", "zh-Hans")).toBe(
+      "调整副侧边栏大小",
+    );
+
+    expect(t("dialogs.telemetry.title", "zh-Hans")).toBe(
+      "帮助改进 Vibestation",
+    );
+    expect(t("dialogs.telemetry.decline", "zh-Hans")).toBe("拒绝");
+    expect(t("dialogs.telemetry.accept", "zh-Hans")).toBe("接受");
+
+    expect(t("dialogs.popToExternal.title", "zh-Hans")).toBe("在外部终端打开");
+    expect(t("dialogs.popToExternal.close", "zh-Hans")).toBe("关闭对话框");
+    expect(t("dialogs.popToExternal.retry", "zh-Hans")).toBe("重试");
+    expect(t("dialogs.popToExternal.detectingTerminals", "zh-Hans")).toBe(
+      "正在检测终端...",
+    );
+    expect(t("dialogs.popToExternal.noTerminals", "zh-Hans")).toBe(
+      "未检测到外部终端。",
+    );
+    expect(t("dialogs.popToExternal.dontAskAgain", "zh-Hans")).toBe(
+      "不要再次询问",
+    );
+    expect(t("dialogs.popToExternal.cancel", "zh-Hans")).toBe("取消");
+
+    expect(t("dialogs.branchSwitcher.title", "zh-Hans")).toBe("切换分支");
+    expect(t("dialogs.branchSwitcher.loadingBranches", "zh-Hans")).toBe(
+      "正在加载分支...",
+    );
+    expect(t("dialogs.branchSwitcher.noBranchMatched", "zh-Hans")).toBe(
+      "没有匹配的分支",
+    );
+    expect(t("dialogs.branchSwitcher.notGitWorkspace", "zh-Hans")).toBe(
+      "当前工作区不是 Git 仓库",
+    );
+    expect(t("dialogs.branchSwitcher.retry", "zh-Hans")).toBe("重试");
+  });
 });

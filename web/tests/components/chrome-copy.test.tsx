@@ -67,12 +67,26 @@ vi.mock("../../src/lib/platform", async (importOriginal) => {
   };
 });
 
+vi.mock("../../src/panels/Terminal", () => ({
+  Terminal: () => <div data-testid="terminal-panel" />,
+}));
+
+vi.mock("../../src/panels/Diff", () => ({
+  DiffPanel: () => <div data-testid="diff-panel" />,
+}));
+
+vi.mock("../../src/panels/GitLog", () => ({
+  GitLogPanel: () => <div data-testid="git-log-panel" />,
+}));
+
 import { reloadSettings } from "../../src/stores/settings";
 import { LayoutProvider } from "../../src/stores/layout-context";
 import { PrimarySidebar } from "../../src/components/PrimarySidebar";
 import { ActivityStrip } from "../../src/components/ActivityStrip";
 import { TopBar } from "../../src/components/TopBar";
 import { BottomPanel } from "../../src/components/BottomPanel";
+import { MainContent } from "../../src/components/MainContent";
+import { SecondarySidebar } from "../../src/components/SecondarySidebar";
 import type { WorkspaceMetadata } from "../../src/bindings/WorkspaceMetadata";
 
 const renderWithLayout = (view: () => unknown) =>
@@ -164,5 +178,67 @@ describe("FEAT-02 workspace chrome copy", () => {
     expect(screen.getByRole("button", { name: "最小化" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "最大化" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "关闭" })).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders main content labels in zh-Hans", () => {
+    const workspace: WorkspaceMetadata = {
+      workspaceId: "ws-1",
+      name: "Repo",
+      path: "C:\\repo",
+      repoRoot: "C:\\repo",
+      hasGit: true,
+      createdAt: 1,
+      lastOpened: 1,
+    };
+
+    render(() => (
+      <MainContent
+        activeWorkspace={() => null}
+        activeDiff={() => null}
+        onCloseDiff={vi.fn()}
+        onCloseWorkspaceView={vi.fn()}
+        workspaces={() => []}
+      />
+    ));
+
+    expect(screen.getByRole("main", { name: "主内容区" })).toBeInTheDocument();
+    expect(screen.getByText("选择或创建工作区以开始")).toBeInTheDocument();
+
+    render(() => (
+      <MainContent
+        activeWorkspace={() => workspace}
+        activeDiff={() => ({
+          workspaceId: workspace.workspaceId,
+          source: "worktree",
+          filePath: "README.md",
+        })}
+        onCloseDiff={vi.fn()}
+        onCloseWorkspaceView={vi.fn()}
+        workspaces={() => [workspace]}
+      />
+    ));
+
+    expect(screen.getByText("差异")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "返回终端" }),
+    ).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders Secondary Sidebar labels in zh-Hans", () => {
+    render(() => (
+      <SecondarySidebar
+        layout={() => ({ secondaryOpen: true, secondaryWidth: 400 })}
+        onResizeStart={vi.fn()}
+        onResizeReset={vi.fn()}
+        activeWorkspace={() => null}
+        onOpenDiff={vi.fn()}
+        onOpenGitStatus={vi.fn()}
+      />
+    ));
+
+    expect(
+      screen.getByRole("complementary", { name: "副侧边栏" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("调整副侧边栏大小")).toBeInTheDocument();
   });
 });

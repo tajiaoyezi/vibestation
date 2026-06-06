@@ -34,4 +34,38 @@ describe("FEAT-02 first Settings chrome copy", () => {
     );
     expect(t("settings.appearance.cursorBlink", "zh-Hans")).toBe("光标闪烁");
   });
+
+  it("TEST-FEAT-02.6: remaining settings control labels translate", () => {
+    expect(t("settings.terminal.defaultShell", "en")).toBe("Default shell");
+    expect(t("settings.terminal.defaultShell", "zh-Hans")).toBe("默认 Shell");
+    expect(t("settings.terminal.pasteProtection", "zh-Hans")).toBe("粘贴保护");
+    expect(t("settings.terminal.ptyWarmPool", "zh-Hans")).toBe("PTY 预热池");
+    expect(t("settings.terminal.poolSize", "zh-Hans")).toBe("池大小");
+
+    expect(t("settings.externalTerminal.preferredTerminal", "en")).toBe(
+      "Preferred terminal",
+    );
+    expect(t("settings.externalTerminal.preferredTerminal", "zh-Hans")).toBe(
+      "首选终端",
+    );
+    expect(t("settings.externalTerminal.askEveryTime", "zh-Hans")).toBe(
+      "每次询问",
+    );
+    expect(t("settings.externalTerminal.dontAskAgain", "zh-Hans")).toBe(
+      "不要再次询问",
+    );
+
+    expect(t("settings.git.userName", "zh-Hans")).toBe("用户名");
+    expect(t("settings.git.userEmail", "zh-Hans")).toBe("用户邮箱");
+    expect(t("settings.git.fromGitConfig", "zh-Hans")).toBe("来自 git config");
+
+    expect(t("settings.privacy.telemetry", "zh-Hans")).toBe("遥测");
+    expect(t("settings.privacy.notDecided", "zh-Hans")).toBe("未决定");
+    expect(t("settings.privacy.collectionEndpoint", "zh-Hans")).toBe(
+      "收集端点",
+    );
+    expect(t("settings.privacy.viewWhatWeCollect", "zh-Hans")).toBe(
+      "查看收集内容",
+    );
+  });
 });

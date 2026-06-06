@@ -49,6 +49,9 @@ vi.mock("@tauri-apps/api/core", () => ({
     if (cmd === "available_shells_list") {
       return [];
     }
+    if (cmd === "external_term_list") {
+      return [];
+    }
     if (cmd === "telemetry_status_get") {
       return {
         optIn: mockAppSettings.telemetryOptIn,
@@ -88,6 +91,41 @@ describe("FEAT-02 Settings chrome copy", () => {
     expect(screen.getByRole("button", { name: "终端" })).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "外部终端" }),
+    ).toBeInTheDocument();
+  });
+
+  it("TEST-FEAT-02.6: renders remaining Settings controls in zh-Hans", async () => {
+    render(() => (
+      <SettingsPanel visible={true} onClose={vi.fn()} onOpenImport={vi.fn()} />
+    ));
+
+    expect(screen.getByLabelText("默认 Shell")).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: "粘贴保护" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/未聚焦窗格不透明度/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: /PTY 预热池/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/池大小/)).toBeInTheDocument();
+
+    screen.getByRole("button", { name: "外部终端" }).click();
+    expect(screen.getByLabelText(/首选终端/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "每次询问" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("switch", { name: /不要再次询问/ }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByLabelText("用户名")).toBeInTheDocument();
+    expect(screen.getByLabelText("用户邮箱")).toBeInTheDocument();
+
+    expect(screen.getByText("遥测")).toBeInTheDocument();
+    expect(screen.getByText("未决定")).toBeInTheDocument();
+    expect(screen.getByText("收集端点")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "查看收集内容" }),
     ).toBeInTheDocument();
   });
 });

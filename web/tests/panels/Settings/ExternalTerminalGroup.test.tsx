@@ -4,6 +4,7 @@ import type { AppSettings } from "../../../src/bindings/AppSettings";
 
 const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
   const defaultFixture = (): AppSettings => ({
+    language: "en",
     theme: "dark",
     fontFamily: "monospace",
     fontSize: 14,

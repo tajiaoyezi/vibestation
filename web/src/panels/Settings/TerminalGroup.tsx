@@ -2,9 +2,12 @@ import { createMemo, createResource, Show, type Component } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettings } from "../../stores/settings";
 import type { ShellInfo } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
 
 export const TerminalGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   // 从后端拿系统真有的 shell 列表（读 /etc/shells + 过滤可执行）·
   // 不再 hardcoded 写死 zsh/bash/fish · 防止用户选了机器上没装的 shell 导致 PTY spawn 失败。
@@ -24,7 +27,9 @@ export const TerminalGroup: Component = () => {
   return (
     <div class="vs-settings-fields">
       <label class="vs-settings-field">
-        <span class="vs-settings-label">Default shell</span>
+        <span class="vs-settings-label">
+          {label("settings.terminal.defaultShell")}
+        </span>
         <select
           class="vs-settings-select"
           value={settings.defaultShell}
@@ -34,7 +39,7 @@ export const TerminalGroup: Component = () => {
         >
           <Show when={isCurrentMissing()}>
             <option value={settings.defaultShell}>
-              {settings.defaultShell} (unavailable)
+              {settings.defaultShell} ({label("settings.terminal.unavailable")})
             </option>
           </Show>
           {shells().map((s) => (
@@ -45,14 +50,15 @@ export const TerminalGroup: Component = () => {
         </select>
         <Show when={isCurrentMissing()}>
           <span class="vs-settings-help vs-settings-help--warn">
-            Current shell isn’t installed on this machine. New terminals will
-            fail to spawn until you pick an available shell above.
+            {label("settings.terminal.currentShellMissing")}
           </span>
         </Show>
       </label>
 
       <label class="vs-settings-field vs-settings-field--row">
-        <span class="vs-settings-label">Paste protection</span>
+        <span class="vs-settings-label">
+          {label("settings.terminal.pasteProtection")}
+        </span>
         <button
           type="button"
           class="vs-settings-toggle"
@@ -69,7 +75,7 @@ export const TerminalGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Unfocused pane opacity{" "}
+          {label("settings.terminal.unfocusedPaneOpacity")}{" "}
           <span class="vs-settings-value">
             {settings.unfocusedPaneOpacity.toFixed(2)}
           </span>
@@ -92,10 +98,9 @@ export const TerminalGroup: Component = () => {
       {/* MVP-20 · PTY 预热池 · 新 tab 启动加速 */}
       <label class="vs-settings-field vs-settings-field--row">
         <span class="vs-settings-label">
-          PTY warm pool
+          {label("settings.terminal.ptyWarmPool")}
           <span class="vs-settings-help">
-            Pre-spawn an idle shell so new tabs feel instant. Disable if your
-            shell init has side effects.
+            {label("settings.terminal.ptyWarmPoolHelp")}
           </span>
         </span>
         <button
@@ -115,7 +120,7 @@ export const TerminalGroup: Component = () => {
       <Show when={settings.ptyPoolEnabled}>
         <label class="vs-settings-field">
           <span class="vs-settings-label">
-            Pool size{" "}
+            {label("settings.terminal.poolSize")}{" "}
             <span class="vs-settings-value">{settings.ptyPoolSize}</span>
           </span>
           <select
@@ -125,9 +130,13 @@ export const TerminalGroup: Component = () => {
               updateSettings({ ptyPoolSize: Number(e.currentTarget.value) })
             }
           >
-            <option value={1}>1 — minimal (recommended)</option>
-            <option value={2}>2 — covers rapid tab opening</option>
-            <option value={3}>3 — max (heavier resource use)</option>
+            <option value={1}>
+              {label("settings.terminal.poolSizeMinimal")}
+            </option>
+            <option value={2}>
+              {label("settings.terminal.poolSizeRapid")}
+            </option>
+            <option value={3}>{label("settings.terminal.poolSizeMax")}</option>
           </select>
         </label>
       </Show>

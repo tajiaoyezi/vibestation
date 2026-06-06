@@ -7,8 +7,10 @@ import {
 } from "solid-js";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { WorkspaceMetadata } from "../App";
+import { t, normalizeLanguage } from "../i18n";
 import { formatShortcut } from "../lib/format-shortcut";
 import { detectPlatform } from "../lib/platform";
+import { useSettings } from "../stores/settings";
 import {
   SidebarLeftIcon,
   WindowCloseIcon,
@@ -27,7 +29,14 @@ interface TopBarProps {
 // Windows frameless：前端自绘 min/max/close（原生标题栏已在 Rust 侧关掉，
 // 见 crates/app/src/lib.rs configure_title_bar）。macOS / Linux 走系统装饰，不渲染。
 const WindowControls: Component = () => {
+  const { settings } = useSettings();
   const [maximized, setMaximized] = createSignal(false);
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+  const maximizeLabel = () =>
+    maximized()
+      ? label("chrome.window.restore")
+      : label("chrome.window.maximize");
 
   onMount(() => {
     const win = getCurrentWindow();
@@ -45,8 +54,8 @@ const WindowControls: Component = () => {
       <button
         type="button"
         class="vs-window-control"
-        aria-label="Minimize"
-        title="Minimize"
+        aria-label={label("chrome.window.minimize")}
+        title={label("chrome.window.minimize")}
         onClick={() => void getCurrentWindow().minimize()}
       >
         <WindowMinimizeIcon />
@@ -54,8 +63,8 @@ const WindowControls: Component = () => {
       <button
         type="button"
         class="vs-window-control"
-        aria-label={maximized() ? "Restore" : "Maximize"}
-        title={maximized() ? "Restore" : "Maximize"}
+        aria-label={maximizeLabel()}
+        title={maximizeLabel()}
         onClick={() => void getCurrentWindow().toggleMaximize()}
       >
         <Show when={maximized()} fallback={<WindowMaximizeIcon />}>
@@ -65,8 +74,8 @@ const WindowControls: Component = () => {
       <button
         type="button"
         class="vs-window-control vs-window-control-close"
-        aria-label="Close"
-        title="Close"
+        aria-label={label("chrome.window.close")}
+        title={label("chrome.window.close")}
         onClick={() => void getCurrentWindow().close()}
       >
         <WindowCloseIcon />
@@ -76,6 +85,11 @@ const WindowControls: Component = () => {
 };
 
 export const TopBar: Component<TopBarProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+  const primarySidebarLabel = () => label("chrome.topbar.togglePrimarySidebar");
+
   return (
     <header
       class="vs-top-bar"
@@ -85,9 +99,9 @@ export const TopBar: Component<TopBarProps> = (props) => {
       <button
         type="button"
         class={`vs-top-bar-toggle${props.primaryOpen() ? "" : " vs-top-bar-toggle-off"}`}
-        aria-label="Toggle primary sidebar"
+        aria-label={primarySidebarLabel()}
         aria-pressed={props.primaryOpen()}
-        title={`Toggle Primary Sidebar (${formatShortcut("⌘B", "Ctrl+B")})`}
+        title={`${primarySidebarLabel()} (${formatShortcut("⌘B", "Ctrl+B")})`}
         onClick={props.onTogglePrimary}
       >
         <SidebarLeftIcon />

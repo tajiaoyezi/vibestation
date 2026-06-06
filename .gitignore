@@ -140,3 +140,7 @@ web/tests/fixtures/syntax-highlight/50mb-*.ts
 .claude/scheduled_tasks.lock
 # dmux（多 agent 编排工具）本地状态
 .dmux/
+
+# 本地工具索引/连接器元数据（由外部 Codex/Pieces/Nyx/understand-anything 工具生成）
+.understand-anything/
+mcps/

@@ -1,8 +1,18 @@
 import { type Component, For } from "solid-js";
+import { t, normalizeLanguage, type Language } from "../../i18n";
 import { useSettings, type ThemeSetting } from "../../stores/settings";
 
 export const AppearanceGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+  const languages = (): { value: Language; label: string }[] => [
+    { value: "en", label: label("settings.appearance.english") },
+    {
+      value: "zh-Hans",
+      label: label("settings.appearance.simplifiedChinese"),
+    },
+  ];
 
   // updateSettings 走 settings_update IPC · emit settings_changed
   // → ThemeProvider listen 同步 internal signal · settings store applyCssVars
@@ -12,10 +22,10 @@ export const AppearanceGroup: Component = () => {
     void updateSettings({ theme });
   };
 
-  const themes: { value: ThemeSetting; label: string }[] = [
-    { value: "auto", label: "Auto" },
-    { value: "light", label: "Light" },
-    { value: "dark", label: "Dark" },
+  const themes = (): { value: ThemeSetting; label: string }[] => [
+    { value: "auto", label: label("settings.appearance.auto") },
+    { value: "light", label: label("settings.appearance.light") },
+    { value: "dark", label: label("settings.appearance.dark") },
   ];
 
   const fonts = [
@@ -29,29 +39,52 @@ export const AppearanceGroup: Component = () => {
     "Monaco",
   ];
 
-  const cursorStyles: { value: string; label: string }[] = [
-    { value: "block", label: "Block" },
-    { value: "bar", label: "Bar" },
-    { value: "underline", label: "Underline" },
+  const cursorStyles = (): { value: string; label: string }[] => [
+    { value: "block", label: label("settings.appearance.cursorBlock") },
+    { value: "bar", label: label("settings.appearance.cursorBar") },
+    {
+      value: "underline",
+      label: label("settings.appearance.cursorUnderline"),
+    },
   ];
 
   return (
     <div class="vs-settings-fields">
+      <label class="vs-settings-field">
+        <span class="vs-settings-label">
+          {label("settings.appearance.language")}
+        </span>
+        <select
+          class="vs-settings-select"
+          value={language()}
+          aria-label={label("settings.appearance.language")}
+          onChange={(e) =>
+            updateSettings({ language: e.currentTarget.value as Language })
+          }
+        >
+          <For each={languages()}>
+            {(item) => <option value={item.value}>{item.label}</option>}
+          </For>
+        </select>
+      </label>
+
       <fieldset class="vs-settings-fieldset">
-        <legend class="vs-settings-label">Theme</legend>
+        <legend class="vs-settings-label">
+          {label("settings.appearance.theme")}
+        </legend>
         <div class="vs-settings-radio-row">
-          <For each={themes}>
-            {(t) => (
+          <For each={themes()}>
+            {(theme) => (
               <label class="vs-settings-radio-label">
                 <input
                   type="radio"
                   name="theme"
-                  value={t.value}
-                  checked={settings.theme === t.value}
-                  onChange={() => handleThemeChange(t.value)}
+                  value={theme.value}
+                  checked={settings.theme === theme.value}
+                  onChange={() => handleThemeChange(theme.value)}
                   class="vs-settings-radio"
                 />
-                <span>{t.label}</span>
+                <span>{theme.label}</span>
               </label>
             )}
           </For>
@@ -59,7 +92,9 @@ export const AppearanceGroup: Component = () => {
       </fieldset>
 
       <label class="vs-settings-field">
-        <span class="vs-settings-label">Font family</span>
+        <span class="vs-settings-label">
+          {label("settings.appearance.fontFamily")}
+        </span>
         <select
           class="vs-settings-select"
           value={settings.fontFamily}
@@ -73,7 +108,8 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Font size <span class="vs-settings-value">{settings.fontSize}px</span>
+          {label("settings.appearance.fontSize")}{" "}
+          <span class="vs-settings-value">{settings.fontSize}px</span>
         </span>
         <input
           type="range"
@@ -90,7 +126,7 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Background opacity{" "}
+          {label("settings.appearance.backgroundOpacity")}{" "}
           <span class="vs-settings-value">{settings.bgOpacity.toFixed(2)}</span>
         </span>
         <input
@@ -108,7 +144,7 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Background blur{" "}
+          {label("settings.appearance.backgroundBlur")}{" "}
           <span class="vs-settings-value">{settings.bgBlur}px</span>
         </span>
         <input
@@ -126,7 +162,7 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Window padding X{" "}
+          {label("settings.appearance.windowPaddingX")}{" "}
           <span class="vs-settings-value">{settings.windowPaddingX}px</span>
         </span>
         <input
@@ -144,7 +180,7 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Window padding Y{" "}
+          {label("settings.appearance.windowPaddingY")}{" "}
           <span class="vs-settings-value">{settings.windowPaddingY}px</span>
         </span>
         <input
@@ -161,9 +197,11 @@ export const AppearanceGroup: Component = () => {
       </label>
 
       <fieldset class="vs-settings-fieldset">
-        <legend class="vs-settings-label">Cursor style</legend>
+        <legend class="vs-settings-label">
+          {label("settings.appearance.cursorStyle")}
+        </legend>
         <div class="vs-settings-radio-row">
-          <For each={cursorStyles}>
+          <For each={cursorStyles()}>
             {(cs) => (
               <label class="vs-settings-radio-label">
                 <input
@@ -182,7 +220,9 @@ export const AppearanceGroup: Component = () => {
       </fieldset>
 
       <label class="vs-settings-field vs-settings-field--row">
-        <span class="vs-settings-label">Cursor blink</span>
+        <span class="vs-settings-label">
+          {label("settings.appearance.cursorBlink")}
+        </span>
         <button
           type="button"
           class="vs-settings-toggle"

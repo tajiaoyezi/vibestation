@@ -1,5 +1,7 @@
 import { For, Show, type Component } from "solid-js";
 import type { BranchInfo } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./forceDelete.css";
 
 interface ForceDeleteDialogProps {
@@ -13,6 +15,10 @@ interface ForceDeleteDialogProps {
 }
 
 export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
+  const { settings } = useSettings();
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
   const canDelete = () =>
     props.confirmation.trim() === props.branch.name && !props.deleting;
   const commitRows = () =>
@@ -20,7 +26,7 @@ export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
       ? [
           {
             sha: props.branch.headCommit.slice(0, 8),
-            message: "branch tip · Phase A payload 未包含完整 commit message",
+            message: label("dialogs.forceDelete.branchTipMissingMessage"),
           },
         ]
       : [];
@@ -34,12 +40,12 @@ export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
     >
       <div class="vs-dialog vs-force-delete-dialog">
         <h3 id="vs-force-delete-title" class="vs-dialog-title">
-          强制删除分支 {props.branch.name}
+          {label("dialogs.forceDelete.titlePrefix")} {props.branch.name}
         </h3>
         <div class="vs-dialog-body vs-force-delete-body">
           <p>
-            该分支含 {props.missingCommits} 个未合并 commit · 删除后无法通过 UI
-            长时间恢复。
+            {label("dialogs.forceDelete.warningPrefix")} {props.missingCommits}{" "}
+            {label("dialogs.forceDelete.warningSuffix")}
           </p>
 
           <Show when={commitRows().length > 0}>
@@ -56,7 +62,7 @@ export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
           </Show>
 
           <label class="vs-dialog-label">
-            输入分支名确认
+            {label("dialogs.forceDelete.confirmLabel")}
             <input
               type="text"
               class="vs-dialog-input"
@@ -76,7 +82,7 @@ export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
             onClick={() => props.onCancel()}
             disabled={props.deleting}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -84,7 +90,9 @@ export const ForceDeleteDialog: Component<ForceDeleteDialogProps> = (props) => {
             onClick={() => void props.onConfirm()}
             disabled={!canDelete()}
           >
-            {props.deleting ? "删除中…" : "Force delete (data loss)"}
+            {props.deleting
+              ? label("dialogs.forceDelete.deleting")
+              : label("dialogs.forceDelete.action")}
           </button>
         </div>
       </div>

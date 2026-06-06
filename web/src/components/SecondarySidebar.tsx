@@ -1,6 +1,8 @@
 import { type Component } from "solid-js";
 import { GitLogPanel } from "../panels/GitLog";
 import type { WorkspaceMetadata } from "../bindings";
+import { t, normalizeLanguage } from "../i18n";
+import { useSettings } from "../stores/settings";
 import type { DiffTarget } from "./MainContent";
 
 interface SecondarySidebarProps {
@@ -13,11 +15,15 @@ interface SecondarySidebarProps {
 }
 
 export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+
   return (
     <div
       class={`vs-secondary-sidebar${props.layout().secondaryOpen ? "" : " vs-panel-hidden"}`}
       role="complementary"
-      aria-label="Secondary sidebar"
+      aria-label={label("chrome.sidebars.secondary")}
       style={{
         width: props.layout().secondaryOpen
           ? `${props.layout().secondaryWidth}px`
@@ -35,7 +41,7 @@ export const SecondarySidebar: Component<SecondarySidebarProps> = (props) => {
         class="vs-resize-handle vs-resize-handle-w"
         role="separator"
         aria-orientation="vertical"
-        aria-label="Resize secondary sidebar"
+        aria-label={label("chrome.sidebars.resizeSecondary")}
         onMouseDown={props.onResizeStart}
         onDblClick={props.onResizeReset}
       />

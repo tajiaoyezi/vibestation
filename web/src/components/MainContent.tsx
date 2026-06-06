@@ -1,7 +1,9 @@
 import { type Component, Show } from "solid-js";
 import type { WorkspaceMetadata } from "../bindings";
+import { t, normalizeLanguage } from "../i18n";
 import { DiffPanel } from "../panels/Diff";
 import { Terminal } from "../panels/Terminal";
+import { useSettings } from "../stores/settings";
 
 export interface DiffTarget {
   workspaceId: string;
@@ -18,6 +20,10 @@ interface MainContentProps {
 }
 
 export const MainContent: Component<MainContentProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+
   const currentDiff = () => {
     const target = props.activeDiff();
     const workspace = props.activeWorkspace();
@@ -31,16 +37,14 @@ export const MainContent: Component<MainContentProps> = (props) => {
     <section
       class="vs-main-content"
       role="main"
-      aria-label="Main content area"
+      aria-label={label("chrome.main.contentArea")}
       tabindex={0}
     >
       <Show
         when={props.activeWorkspace() !== null}
         fallback={
           <div class="vs-welcome-inner">
-            <p class="vs-welcome-hint">
-              Select or create a workspace to get started
-            </p>
+            <p class="vs-welcome-hint">{label("chrome.main.emptyWorkspace")}</p>
           </div>
         }
       >
@@ -55,14 +59,16 @@ export const MainContent: Component<MainContentProps> = (props) => {
               <div class="vs-main-diff-overlay">
                 <div class="vs-main-diff">
                   <div class="vs-panel-head">
-                    <span class="vs-panel-title">Diff</span>
+                    <span class="vs-panel-title">
+                      {label("chrome.main.diff")}
+                    </span>
                     <div class="vs-panel-actions">
                       <button
                         type="button"
                         class="vs-btn-secondary vs-main-diff-back"
                         onClick={props.onCloseDiff}
                       >
-                        Back to Terminal
+                        {label("chrome.main.backToTerminal")}
                       </button>
                     </div>
                   </div>

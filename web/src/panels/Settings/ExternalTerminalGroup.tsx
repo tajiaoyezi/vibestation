@@ -9,6 +9,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import type { ExternalTerminalInfo } from "../../bindings";
 import { useSettings } from "../../stores/settings";
+import { t, normalizeLanguage } from "../../i18n";
 
 /**
  * MVP-17 · §E.4 设置面板 "External Terminal" subsection
@@ -29,6 +30,8 @@ const ENV_WHITELIST: ReadonlyArray<string> = [
 
 export const ExternalTerminalGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const [terminals, setTerminals] = createSignal<ExternalTerminalInfo[]>([]);
 
@@ -46,9 +49,9 @@ export const ExternalTerminalGroup: Component = () => {
     <div class="vs-settings-fields">
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          Preferred terminal
+          {label("settings.externalTerminal.preferredTerminal")}
           <span class="vs-settings-help">
-            Default for &quot;Pop to External&quot; · null = ask every time
+            {label("settings.externalTerminal.preferredTerminalHelp")}
           </span>
         </span>
         <select
@@ -61,23 +64,25 @@ export const ExternalTerminalGroup: Component = () => {
             });
           }}
         >
-          <option value="">Ask every time</option>
+          <option value="">
+            {label("settings.externalTerminal.askEveryTime")}
+          </option>
           <For each={detectedTerminals()}>
             {(t) => <option value={t.id}>{t.displayName}</option>}
           </For>
         </select>
         <Show when={detectedTerminals().length === 0}>
           <span class="vs-settings-help vs-settings-help--warn">
-            No external terminal detected on this machine.
+            {label("settings.externalTerminal.noExternalTerminalDetected")}
           </span>
         </Show>
       </label>
 
       <label class="vs-settings-field vs-settings-field--row">
         <span class="vs-settings-label">
-          Don&apos;t ask again
+          {label("settings.externalTerminal.dontAskAgain")}
           <span class="vs-settings-help">
-            Skip the Pop to External dialog and use preferred terminal directly
+            {label("settings.externalTerminal.dontAskAgainHelp")}
           </span>
         </span>
         <button

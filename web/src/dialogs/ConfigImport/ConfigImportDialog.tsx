@@ -22,6 +22,8 @@ import type {
 } from "../../bindings";
 import { isFieldDisabled, getDisabledReason } from "./fieldRules";
 import { formatShortcut } from "../../lib/format-shortcut";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 import "./styles.css";
 
@@ -33,6 +35,7 @@ interface ConfigImportDialogProps {
 }
 
 type Step = "select" | "preview" | "confirm" | "result";
+type LabelFn = (key: string) => string;
 
 const SOURCE_LABELS: Record<ImportSource, string> = {
   ghostty: "Ghostty",
@@ -63,6 +66,7 @@ interface FontFallback {
 export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
   props,
 ) => {
+  const { settings } = useSettings();
   const [step, setStep] = createSignal<Step>("select");
 
   const [scanResults, setScanResults] = createSignal<ImportScanResult[]>([]);
@@ -86,6 +90,9 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
   const [applyResult, setApplyResult] = createSignal<ImportApplyResult | null>(
     null,
   );
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   onMount(async () => {
     await runScan();
@@ -252,19 +259,22 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
       <div class="vs-config-import-modal">
         <header class="vs-config-import-head">
           <h2 id="vs-config-import-title" class="vs-config-import-title">
-            Import terminal config
+            {label("dialogs.configImport.title")}
           </h2>
           <button
             type="button"
             class="vs-config-import-close"
-            aria-label="Close import dialog"
+            aria-label={label("dialogs.configImport.close")}
             onClick={props.onClose}
           >
             ×
           </button>
         </header>
 
-        <div class="vs-config-import-stepper" aria-label="Import steps">
+        <div
+          class="vs-config-import-stepper"
+          aria-label={label("dialogs.configImport.steps.label")}
+        >
           <span
             classList={{
               "vs-config-import-step": true,
@@ -275,7 +285,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
                 step() === "result",
             }}
           >
-            1 · Source
+            1 · {label("dialogs.configImport.steps.source")}
           </span>
           <span class="vs-config-import-step-sep" />
           <span
@@ -285,7 +295,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
               done: step() === "confirm" || step() === "result",
             }}
           >
-            2 · Preview
+            2 · {label("dialogs.configImport.steps.preview")}
           </span>
           <span class="vs-config-import-step-sep" />
           <span
@@ -295,7 +305,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
               done: step() === "result",
             }}
           >
-            3 · Apply
+            3 · {label("dialogs.configImport.steps.apply")}
           </span>
         </div>
 
@@ -303,6 +313,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
           <Switch>
             <Match when={step() === "select"}>
               <SelectStep
+                label={label}
                 scanning={scanning}
                 scanError={scanError}
                 previewError={previewError}
@@ -353,6 +364,7 @@ export const ConfigImportDialog: Component<ConfigImportDialogProps> = (
 // ─── Step 1 · Source picker ─────────────────────────────────────────────
 
 interface SelectStepProps {
+  label: LabelFn;
   scanning: () => boolean;
   scanError: () => string | null;
   previewError: () => string | null;
@@ -366,37 +378,40 @@ const SelectStep: Component<SelectStepProps> = (props) => {
   return (
     <div class="vs-config-import-select">
       <p class="vs-config-import-lede">
-        Vibestation can import font, theme, shell, and keybindings from your
-        existing terminal. Conflicts with built-in shortcuts (
+        {props.label("dialogs.configImport.selectLedePrefix")}
         {formatShortcut(
           "⌘T / ⌘W / ⌘D / ⌘⇧D / ⌘,",
           "Ctrl+T / Ctrl+W / Ctrl+D / Ctrl+Shift+D / Ctrl+,",
         )}
-        ) are flagged and never imported by default.
+        {props.label("dialogs.configImport.selectLedeSuffix")}
       </p>
 
       <Show when={props.scanError()}>
         <p class="vs-config-import-error" role="alert">
-          Scan failed: {props.scanError()}
+          {props.label("dialogs.configImport.scanFailedPrefix")}{" "}
+          {props.scanError()}
           <button
             type="button"
             class="vs-btn-secondary vs-config-import-rescan"
             onClick={props.onRescan}
           >
-            Retry
+            {props.label("dialogs.configImport.retry")}
           </button>
         </p>
       </Show>
 
       <Show when={props.previewError()}>
         <p class="vs-config-import-error" role="alert">
-          Preview failed: {props.previewError()} · Try selecting a different
-          source.
+          {props.label("dialogs.configImport.previewFailedPrefix")}{" "}
+          {props.previewError()} ·{" "}
+          {props.label("dialogs.configImport.previewFailedSuffix")}
         </p>
       </Show>
 
       <Show when={props.scanning()}>
-        <p class="vs-config-import-loading">Scanning default paths…</p>
+        <p class="vs-config-import-loading">
+          {props.label("dialogs.configImport.scanning")}
+        </p>
       </Show>
 
       <Show when={!props.scanning() && !props.scanError()}>
@@ -425,18 +440,19 @@ const SelectStep: Component<SelectStepProps> = (props) => {
                       when={result.pathExists}
                       fallback={
                         <span class="vs-config-import-source-missing">
-                          Not detected
+                          {props.label("dialogs.configImport.notDetected")}
                         </span>
                       }
                     >
                       <Show when={result.errors.length === 0}>
                         <span class="vs-config-import-source-detected">
-                          ✓ Detected · {result.detectedFields.length} fields
+                          ✓ {result.detectedFields.length}{" "}
+                          {props.label("dialogs.configImport.detectedSuffix")}
                         </span>
                       </Show>
                       <Show when={result.errors.length > 0}>
                         <span class="vs-config-import-source-errored">
-                          ⚠ Parse error
+                          ⚠ {props.label("dialogs.configImport.parseError")}
                         </span>
                       </Show>
                     </Show>
@@ -458,7 +474,7 @@ const SelectStep: Component<SelectStepProps> = (props) => {
                   disabled={!result.pathExists}
                   onClick={() => props.onChoose(result.source)}
                 >
-                  Use
+                  {props.label("dialogs.configImport.use")}
                 </button>
               </li>
             )}
@@ -468,7 +484,7 @@ const SelectStep: Component<SelectStepProps> = (props) => {
 
       <div class="vs-config-import-actions">
         <button type="button" class="vs-btn-secondary" onClick={props.onSkip}>
-          Skip · configure manually
+          {props.label("dialogs.configImport.skipManual")}
         </button>
       </div>
     </div>

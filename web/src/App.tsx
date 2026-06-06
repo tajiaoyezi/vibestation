@@ -49,6 +49,7 @@ import {
   setPopToExternalRequest,
 } from "./lib/external-term";
 import { initPaneDetachStateListener } from "./lib/pane-detach";
+import { t, normalizeLanguage } from "./i18n";
 import { formatShortcut } from "./lib/format-shortcut";
 import { detectPlatform } from "./lib/platform";
 import {
@@ -127,38 +128,52 @@ type ConflictUiState = {
 };
 
 const IpcIndicator: Component<{ state: IpcState }> = (props) => {
-  const label = () => {
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const chromeLabel = (key: string) => t(key, language());
+  const statusLabel = () => {
     switch (props.state.kind) {
       case "pending":
-        return "ipc: connecting…";
+        return chromeLabel("chrome.status.ipcConnecting");
       case "ok":
-        return `ipc: ${props.state.message}`;
+        return `${chromeLabel("chrome.status.ipcOk")} ${props.state.message}`;
       case "error":
-        return `ipc error: ${props.state.message}`;
+        return `${chromeLabel("chrome.status.ipcError")} ${props.state.message}`;
     }
   };
   const className = () =>
     props.state.kind === "error" ? "vs-diag-error" : "vs-diag-ok";
-  return <span class={className()}>{label()}</span>;
+  return <span class={className()}>{statusLabel()}</span>;
 };
 
 const RemoteSyncStatusItem: Component<{
   onOpenGitLog: (direction: RemoteSyncDirection) => void;
 }> = (props) => {
+  const { settings } = useSettings();
   const remoteSync = useRemoteSyncStatus();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
   const snapshot = () => remoteSync.current();
   const hasRemoteDelta = () => snapshot().ahead > 0 || snapshot().behind > 0;
+  const remoteAheadTitle = () =>
+    `${label("chrome.status.remoteAheadTitlePrefix")} ${snapshot().ahead} ${label("chrome.status.remoteAheadTitleSuffix")}`;
+  const remoteAheadAria = () =>
+    `${label("chrome.status.remoteAheadAriaPrefix")} ${snapshot().ahead} ${label("chrome.status.remoteAheadAriaSuffix")}`;
+  const remoteBehindTitle = () =>
+    `${label("chrome.status.remoteBehindTitlePrefix")} ${snapshot().behind} ${label("chrome.status.remoteBehindTitleSuffix")}`;
+  const remoteBehindAria = () =>
+    `${label("chrome.status.remoteBehindAriaPrefix")} ${snapshot().behind} ${label("chrome.status.remoteBehindAriaSuffix")}`;
 
   return (
     <Show when={hasRemoteDelta()}>
       <span class="vs-status-item vs-status-remote">
-        <span class="vs-status-key">remote</span>
+        <span class="vs-status-key">{label("chrome.status.remote")}</span>
         <Show when={snapshot().ahead > 0}>
           <button
             type="button"
             class="vs-status-remote-count is-ahead"
-            title={`在 Git Log 查看本地领先的 ${snapshot().ahead} 个 commit`}
-            aria-label={`在 Git Log 查看本地领先 remote 的 ${snapshot().ahead} 个 commit`}
+            title={remoteAheadTitle()}
+            aria-label={remoteAheadAria()}
             onClick={() => props.onOpenGitLog("ahead")}
           >
             ↑{snapshot().ahead}
@@ -168,8 +183,8 @@ const RemoteSyncStatusItem: Component<{
           <button
             type="button"
             class="vs-status-remote-count is-behind"
-            title={`在 Git Log 查看 remote 领先的 ${snapshot().behind} 个 commit`}
-            aria-label={`在 Git Log 查看 remote 领先本地的 ${snapshot().behind} 个 commit`}
+            title={remoteBehindTitle()}
+            aria-label={remoteBehindAria()}
             onClick={() => props.onOpenGitLog("behind")}
           >
             ↓{snapshot().behind}
@@ -227,6 +242,9 @@ const LayoutShell: Component<{
     string | null
   >(null);
   const remoteSync = useRemoteSyncStatus();
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const activeWorkspace = (): WorkspaceMetadata | null => {
     const v = props.currentView();
@@ -1030,7 +1048,10 @@ const LayoutShell: Component<{
         onOpenDiff={props.onOpenDiff}
       />
 
-      <footer class="vs-status-bar" aria-label="Status bar">
+      <footer
+        class="vs-status-bar"
+        aria-label={label("chrome.status.statusBar")}
+      >
         <div class="vs-status-group">
           <IpcIndicator state={props.ipc()} />
           <RemoteSyncStatusItem onOpenGitLog={openGitLogHighlight} />
@@ -1042,20 +1063,22 @@ const LayoutShell: Component<{
             disabled={!activeWorkspace()?.hasGit}
             onClick={() => void openGlobalMergeDialog()}
           >
-            Merge
+            {label("chrome.status.merge")}
           </button>
           <button
             type="button"
             class="vs-status-icon-btn"
-            aria-label="Open settings"
-            title={`Settings (${formatShortcut("⌘,", "Ctrl+,")})`}
+            aria-label={label("chrome.status.openSettings")}
+            title={`${label("chrome.status.settingsTitle")} (${formatShortcut("⌘,", "Ctrl+,")})`}
             onClick={() => setSettingsVisible(true)}
           >
             <GearIcon />
           </button>
           <ThemeSwitch />
           <span class="vs-status-item">
-            <span class="vs-status-val">v{props.version()} · alpha</span>
+            <span class="vs-status-val">
+              v{props.version()} · {label("chrome.status.alpha")}
+            </span>
           </span>
         </div>
       </footer>
@@ -1067,7 +1090,7 @@ const LayoutShell: Component<{
             type="button"
             class="vs-error-dismiss"
             onClick={props.onDismissError}
-            aria-label="Dismiss error"
+            aria-label={label("chrome.status.dismissError")}
           >
             ×
           </button>

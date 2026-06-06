@@ -4,6 +4,8 @@ import { ExternalTerminalGroup } from "./ExternalTerminalGroup";
 import { TerminalGroup } from "./TerminalGroup";
 import { GitGroup } from "./GitGroup";
 import { PrivacyGroup } from "./PrivacyGroup";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./styles.css";
 
 interface SettingsPanelProps {
@@ -15,23 +17,36 @@ interface SettingsPanelProps {
 
 type GroupDef = {
   id: string;
-  title: string;
+  titleKey: string;
   component: Component;
 };
 
 const GROUPS: GroupDef[] = [
-  { id: "appearance", title: "Appearance", component: AppearanceGroup },
-  { id: "terminal", title: "Terminal", component: TerminalGroup },
+  {
+    id: "appearance",
+    titleKey: "settings.groups.appearance",
+    component: AppearanceGroup,
+  },
+  {
+    id: "terminal",
+    titleKey: "settings.groups.terminal",
+    component: TerminalGroup,
+  },
   {
     id: "external-terminal",
-    title: "External Terminal",
+    titleKey: "settings.groups.externalTerminal",
     component: ExternalTerminalGroup,
   },
-  { id: "git", title: "Git", component: GitGroup },
-  { id: "privacy", title: "Privacy", component: PrivacyGroup },
+  { id: "git", titleKey: "settings.groups.git", component: GitGroup },
+  {
+    id: "privacy",
+    titleKey: "settings.groups.privacy",
+    component: PrivacyGroup,
+  },
 ];
 
 export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
+  const { settings } = useSettings();
   const [expanded, setExpanded] = createSignal<Record<string, boolean>>({
     appearance: true,
     terminal: true,
@@ -43,6 +58,8 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
   const toggleGroup = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   return (
     <Show when={props.visible}>
@@ -50,12 +67,12 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
         class="vs-settings-overlay"
         role="dialog"
         aria-modal="true"
-        aria-label="Preferences"
+        aria-label={label("settings.title")}
         onClick={props.onClose}
       >
         <div class="vs-settings-drawer" onClick={(e) => e.stopPropagation()}>
           <div class="vs-settings-header">
-            <h2 class="vs-settings-title">Preferences</h2>
+            <h2 class="vs-settings-title">{label("settings.title")}</h2>
             <div class="vs-settings-header-actions">
               <Show when={props.onOpenImport}>
                 <button
@@ -65,14 +82,14 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
                     props.onOpenImport?.();
                   }}
                 >
-                  Import…
+                  {label("settings.import")}
                 </button>
               </Show>
               <button
                 type="button"
                 class="vs-settings-close"
                 onClick={props.onClose}
-                aria-label="Close settings"
+                aria-label={label("settings.close")}
               >
                 ✕
               </button>
@@ -88,6 +105,7 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
                     class="vs-settings-group-header"
                     onClick={() => toggleGroup(group.id)}
                     aria-expanded={expanded()[group.id]}
+                    aria-label={label(group.titleKey)}
                   >
                     <span
                       class="vs-settings-group-chevron"
@@ -95,7 +113,9 @@ export const SettingsPanel: Component<SettingsPanelProps> = (props) => {
                     >
                       ▼
                     </span>
-                    <span class="vs-settings-group-title">{group.title}</span>
+                    <span class="vs-settings-group-title">
+                      {label(group.titleKey)}
+                    </span>
                   </button>
                   <Show when={expanded()[group.id]}>
                     <div class="vs-settings-group-content">

@@ -9,11 +9,13 @@ import {
 import type { ExternalTerminalInfo } from "../../bindings/ExternalTerminalInfo";
 import type { ExternalTerminalLaunchRequest } from "../../bindings/ExternalTerminalLaunchRequest";
 import type { EnvPreview } from "../../bindings/EnvPreview";
+import { t, normalizeLanguage } from "../../i18n";
 import {
   listTerminals,
   previewEnv,
   launchTerminal,
 } from "../../lib/external-term";
+import { useSettings } from "../../stores/settings";
 
 import "./styles.css";
 
@@ -37,6 +39,7 @@ interface PopToExternalDialogProps {
 export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
   props,
 ) => {
+  const { settings } = useSettings();
   const [terminals, setTerminals] = createSignal<ExternalTerminalInfo[]>([]);
   const [loading, setLoading] = createSignal(true);
   const [error, setError] = createSignal<string | null>(null);
@@ -48,6 +51,8 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
   const selectedTerminal = createMemo(() =>
     terminals().find((t) => t.id === selectedId()),
   );
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   onMount(async () => {
     if (!props.open) return;
@@ -112,12 +117,12 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
         <div class="vs-pop-to-external-modal">
           <div class="vs-pop-to-external-head">
             <h2 id="vs-pop-to-external-title" class="vs-pop-to-external-title">
-              Open in External Terminal
+              {label("dialogs.popToExternal.title")}
             </h2>
             <button
               class="vs-pop-to-external-close"
               onClick={props.onClose}
-              aria-label="Close dialog"
+              aria-label={label("dialogs.popToExternal.close")}
             >
               ×
             </button>
@@ -127,19 +132,21 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
             <div class="vs-pop-to-external-error">
               <span>{error()}</span>
               <button class="vs-pop-to-external-rescan" onClick={loadData}>
-                Retry
+                {label("dialogs.popToExternal.retry")}
               </button>
             </div>
           </Show>
 
           <div class="vs-pop-to-external-body">
             <Show when={loading()}>
-              <p class="vs-pop-to-external-loading">Detecting terminals…</p>
+              <p class="vs-pop-to-external-loading">
+                {label("dialogs.popToExternal.detectingTerminals")}
+              </p>
             </Show>
 
             <Show when={!loading() && terminals().length === 0}>
               <div class="vs-pop-to-external-empty">
-                <p>No external terminals detected.</p>
+                <p>{label("dialogs.popToExternal.noTerminals")}</p>
                 <p class="vs-pop-to-external-empty-hint">
                   Install Ghostty, iTerm2, or Terminal.app to use this feature.
                 </p>
@@ -150,7 +157,7 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
               {/* 段 1 · 选择终端 */}
               <section class="vs-pop-to-external-section">
                 <h3 class="vs-pop-to-external-section-title">
-                  Select Terminal
+                  {label("dialogs.popToExternal.selectTerminal")}
                 </h3>
                 <ul class="vs-pop-to-external-term-list">
                   <For each={terminals()}>
@@ -174,7 +181,7 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
                         </span>
                         <Show when={!term.detected}>
                           <span class="vs-pop-to-external-term-missing">
-                            Not installed
+                            {label("dialogs.popToExternal.notInstalled")}
                           </span>
                         </Show>
                       </li>
@@ -188,21 +195,25 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
                     checked={dontAskAgain()}
                     onChange={(e) => setDontAskAgain(e.currentTarget.checked)}
                   />
-                  Don't ask again
+                  {label("dialogs.popToExternal.dontAskAgain")}
                 </label>
               </section>
 
               {/* 段 2 · 预览 */}
               <Show when={envPreview()}>
                 <section class="vs-pop-to-external-section">
-                  <h3 class="vs-pop-to-external-section-title">Preview</h3>
+                  <h3 class="vs-pop-to-external-section-title">
+                    {label("dialogs.popToExternal.preview")}
+                  </h3>
 
                   <div class="vs-pop-to-external-preview">
                     <Show
                       when={envPreview()!.visibleEntries.length > 0}
                       fallback={
                         <p class="vs-pop-to-external-preview-empty">
-                          No environment variables to preview.
+                          {label(
+                            "dialogs.popToExternal.noEnvironmentVariables",
+                          )}
                         </p>
                       }
                     >
@@ -226,8 +237,10 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
 
                     <Show when={envPreview()!.filteredCount > 0}>
                       <p class="vs-pop-to-external-filtered-hint">
-                        {envPreview()!.filteredCount} items filtered for
-                        security
+                        {envPreview()!.filteredCount}{" "}
+                        {label(
+                          "dialogs.popToExternal.filteredForSecurityPrefix",
+                        )}
                       </p>
                     </Show>
                   </div>
@@ -241,7 +254,7 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
                   onClick={props.onClose}
                   disabled={launching()}
                 >
-                  Cancel
+                  {label("dialogs.popToExternal.cancel")}
                 </button>
                 <button
                   class="vs-btn-primary"
@@ -252,11 +265,13 @@ export const PopToExternalDialog: Component<PopToExternalDialogProps> = (
                     when={launching()}
                     fallback={
                       <span>
-                        Open in {selectedTerminal()?.displayName ?? "Terminal"}
+                        {label("dialogs.popToExternal.openInPrefix")}{" "}
+                        {selectedTerminal()?.displayName ??
+                          label("dialogs.popToExternal.terminalFallback")}
                       </span>
                     }
                   >
-                    Opening…
+                    {label("dialogs.popToExternal.opening")}
                   </Show>
                 </button>
               </div>

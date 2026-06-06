@@ -1,4 +1,6 @@
 import { For, Show, type Component } from "solid-js";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./forcePushDialog.css";
 
 export interface ForcePushCommit {
@@ -20,6 +22,10 @@ interface ForcePushDialogProps {
 }
 
 export const ForcePushDialog: Component<ForcePushDialogProps> = (props) => {
+  const { settings } = useSettings();
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
   const canConfirm = () =>
     props.confirmation.trim() === props.branch && !props.submitting;
   const visibleCommits = () => props.commits.slice(0, 5);
@@ -33,12 +39,14 @@ export const ForcePushDialog: Component<ForcePushDialogProps> = (props) => {
     >
       <div class="vs-dialog vs-force-push-dialog">
         <h3 id="vs-force-push-title" class="vs-dialog-title">
-          强制推送 {props.branch} 到 {props.remote}
+          {label("dialogs.forcePush.titlePrefix")} {props.branch}{" "}
+          {label("dialogs.forcePush.titleTo")} {props.remote}
         </h3>
         <div class="vs-dialog-body vs-force-push-body">
           <p>
-            将覆盖 {props.remote}/{props.branch} 的 {props.remoteAhead} 个
-            commit · 这些 commit 在远端会丢失，除非其他人已经 fetch。
+            {label("dialogs.forcePush.warningPrefix")} {props.remoteAhead}{" "}
+            {label("dialogs.forcePush.warningMiddle")} {props.remote}/
+            {props.branch}. {label("dialogs.forcePush.warningSuffix")}
           </p>
 
           <Show when={props.expectedRemoteOid}>
@@ -61,7 +69,7 @@ export const ForcePushDialog: Component<ForcePushDialogProps> = (props) => {
           </Show>
 
           <label class="vs-dialog-label">
-            输入分支名确认
+            {label("dialogs.forcePush.confirmLabel")}
             <input
               class="vs-dialog-input"
               value={props.confirmation}
@@ -80,7 +88,7 @@ export const ForcePushDialog: Component<ForcePushDialogProps> = (props) => {
             onClick={props.onCancel}
             disabled={props.submitting}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -88,7 +96,9 @@ export const ForcePushDialog: Component<ForcePushDialogProps> = (props) => {
             onClick={() => void props.onConfirm()}
             disabled={!canConfirm()}
           >
-            {props.submitting ? "推送中…" : "Force push (destructive)"}
+            {props.submitting
+              ? label("dialogs.forcePush.submitting")
+              : label("dialogs.forcePush.action")}
           </button>
         </div>
       </div>

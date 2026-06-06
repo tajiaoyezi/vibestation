@@ -1,4 +1,6 @@
 import { createMemo, createSignal, For, Show, type Component } from "solid-js";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./dirtyTree.css";
 
 export interface DirtyFiles {
@@ -15,8 +17,12 @@ interface DirtyTreeDialogProps {
 }
 
 export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
+  const { settings } = useSettings();
   const [confirmDiscard, setConfirmDiscard] = createSignal(false);
   const [submitting, setSubmitting] = createSignal(false);
+
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const files = createMemo(() => [
     ...props.dirty.staged.map((path) => ({ group: "staged", path })),
@@ -46,11 +52,13 @@ export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
     >
       <div class="vs-dialog vs-dirty-tree-dialog">
         <h3 id="vs-dirty-tree-title" class="vs-dialog-title">
-          切换分支前发现未提交修改
+          {label("dialogs.dirtyTree.title")}
         </h3>
         <div class="vs-dialog-body vs-dirty-tree-body">
           <p>
-            切换到 <code>{props.branchName}</code> 前需要处理以下文件：
+            {label("dialogs.dirtyTree.introPrefix")}{" "}
+            <code>{props.branchName}</code>{" "}
+            {label("dialogs.dirtyTree.introSuffix")}
           </p>
           <ul class="vs-branch-file-list">
             <For each={visibleFiles()}>
@@ -65,11 +73,14 @@ export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
             </For>
           </ul>
           <Show when={hiddenCount() > 0}>
-            <p class="vs-branch-more-files">还有 {hiddenCount()} 个文件</p>
+            <p class="vs-branch-more-files">
+              {label("dialogs.dirtyTree.moreFilesPrefix")} {hiddenCount()}{" "}
+              {label("dialogs.dirtyTree.moreFilesSuffix")}
+            </p>
           </Show>
           <Show when={confirmDiscard()}>
             <p class="vs-branch-danger-copy">
-              将丢弃以上未提交修改 · 该操作不可恢复。
+              {label("dialogs.dirtyTree.dangerCopy")}
             </p>
           </Show>
         </div>
@@ -78,9 +89,9 @@ export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
             type="button"
             class="vs-dialog-btn-secondary"
             disabled
-            title="v0.2 不支持自动 stash · 请在终端执行 git stash 后重试"
+            title={label("dialogs.dirtyTree.stashUnsupportedTitle")}
           >
-            Stash & Switch
+            {label("dialogs.dirtyTree.stashAndSwitch")}
           </button>
           <button
             type="button"
@@ -93,9 +104,9 @@ export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
           >
             {confirmDiscard()
               ? submitting()
-                ? "切换中…"
-                : "确认丢弃并切换"
-              : "Discard & Switch"}
+                ? label("dialogs.dirtyTree.switching")
+                : label("dialogs.dirtyTree.confirmDiscardAndSwitch")
+              : label("dialogs.dirtyTree.discardAndSwitch")}
           </button>
           <button
             type="button"
@@ -103,7 +114,7 @@ export const DirtyTreeDialog: Component<DirtyTreeDialogProps> = (props) => {
             onClick={() => props.onCancel()}
             disabled={submitting()}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
         </div>
       </div>

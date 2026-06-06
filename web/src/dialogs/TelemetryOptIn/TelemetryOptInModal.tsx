@@ -1,5 +1,7 @@
 import { createSignal, onMount, type Component } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 import "./styles.css";
 
@@ -34,7 +36,10 @@ const MOUNT_CLICK_GUARD_MS = 200;
 export const TelemetryOptInModal: Component<TelemetryOptInModalProps> = (
   props,
 ) => {
+  const { settings } = useSettings();
   const [submitting, setSubmitting] = createSignal(false);
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   let mountedAt = 0;
   onMount(() => {
@@ -78,7 +83,7 @@ export const TelemetryOptInModal: Component<TelemetryOptInModalProps> = (
     >
       <div class="vs-telemetry-modal">
         <h2 id="vs-telemetry-title" class="vs-telemetry-title">
-          Help improve Vibestation
+          {label("dialogs.telemetry.title")}
         </h2>
 
         <p id="vs-telemetry-lede" class="vs-telemetry-lede">
@@ -145,7 +150,7 @@ export const TelemetryOptInModal: Component<TelemetryOptInModalProps> = (
             onClick={() => void decide(false)}
             disabled={submitting()}
           >
-            Decline
+            {label("dialogs.telemetry.decline")}
           </button>
           <button
             type="button"
@@ -153,7 +158,7 @@ export const TelemetryOptInModal: Component<TelemetryOptInModalProps> = (
             onClick={() => void decide(true)}
             disabled={submitting()}
           >
-            Accept
+            {label("dialogs.telemetry.accept")}
           </button>
         </div>
       </div>

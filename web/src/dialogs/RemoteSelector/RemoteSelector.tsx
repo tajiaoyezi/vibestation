@@ -1,5 +1,7 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import type { RemoteInfo } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import "./remoteSelector.css";
 
 type RemoteOperation = "push" | "pull" | "fetch";
@@ -15,19 +17,22 @@ interface RemoteSelectorProps {
 }
 
 export const RemoteSelector: Component<RemoteSelectorProps> = (props) => {
+  const { settings } = useSettings();
   const [remote, setRemote] = createSignal(
     props.initialRemote || props.remotes[0]?.name || "origin",
   );
   const [prune, setPrune] = createSignal(Boolean(props.initialPrune));
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const title = () => {
     switch (props.operation) {
       case "push":
-        return "选择 push remote";
+        return label("dialogs.remoteSelector.pushTitle");
       case "pull":
-        return "选择 pull remote";
+        return label("dialogs.remoteSelector.pullTitle");
       case "fetch":
-        return "Fetch remote";
+        return label("dialogs.remoteSelector.fetchTitle");
     }
   };
 
@@ -44,7 +49,9 @@ export const RemoteSelector: Component<RemoteSelectorProps> = (props) => {
         </h3>
         <div class="vs-dialog-body">
           <p class="vs-remote-selector-target">
-            {props.operation === "fetch" ? "remote refs" : props.branch}
+            {props.operation === "fetch"
+              ? label("dialogs.remoteSelector.remoteRefs")
+              : props.branch}
           </p>
           <div class="vs-remote-selector-list">
             <For each={props.remotes}>
@@ -73,7 +80,7 @@ export const RemoteSelector: Component<RemoteSelectorProps> = (props) => {
                 checked={prune()}
                 onChange={(event) => setPrune(event.currentTarget.checked)}
               />
-              <span>Prune deleted refs</span>
+              <span>{label("dialogs.remoteSelector.pruneDeletedRefs")}</span>
             </label>
           </Show>
         </div>
@@ -83,7 +90,7 @@ export const RemoteSelector: Component<RemoteSelectorProps> = (props) => {
             class="vs-dialog-btn-secondary"
             onClick={props.onCancel}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -91,7 +98,7 @@ export const RemoteSelector: Component<RemoteSelectorProps> = (props) => {
             disabled={!remote()}
             onClick={() => props.onConfirm(remote(), prune())}
           >
-            Continue
+            {label("dialogs.common.continue")}
           </button>
         </div>
       </div>

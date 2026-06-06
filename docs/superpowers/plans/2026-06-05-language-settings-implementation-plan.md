@@ -903,6 +903,8 @@ git commit -m "feat(i18n): 迁移设置面板文案" -m "Co-authored-by: Codex C
 
 GREEN commit: `985efc7 feat(i18n): 迁移设置面板文案`.
 
+Grok implementation review on 2026-06-06: `APPROVE-WITH-NITS` for the Settings shell + Appearance labels slice. Required fixes: none. Non-blocking follow-ups applied in `9c69a42 test(settings): 补外观文案审计跟进`: `settings-panel-copy.test.tsx` now asserts initial `zh-Hans` Appearance inner labels (`主题`, `字体`), and `AppearanceGroup.tsx` renames the theme `For` callback parameter from `t` to `theme` to avoid shadowing the imported translation helper.
+
 Additional Settings-controls slice on 2026-06-06:
 
 - RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `settings.terminal.*`, `settings.externalTerminal.*`, `settings.git.*`, and `settings.privacy.*`; `web/tests/panels/Settings/settings-panel-copy.test.tsx` renders real `SettingsPanel` in `zh-Hans` and asserts remaining Settings controls.

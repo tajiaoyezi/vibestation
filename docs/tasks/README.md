@@ -270,8 +270,11 @@ draft ────────► ready ─────────────�
 | ID                                                  | 标题                                                     | 状态      | 目标版本          | 估时 | 依赖     |
 | --------------------------------------------------- | -------------------------------------------------------- | --------- | ----------------- | ---- | -------- |
 | [FEAT-01](./FEAT-01-windows-platform-parity.md)     | Windows 平台 parity 收尾（ADR-024 提前立项后剩余项）     | **draft** | 当前 active scope | 3d   | ADR-024  |
+| [FEAT-02](./FEAT-02-language-settings.md)           | 语言设置与简体中文界面                                   | **in-progress** | 当前 active scope | 3d   | —        |
 
 > FEAT-01 来源：[ADR-024](../adr/ADR-024-windows-platform-pull-forward.md)（2026-06-04 accepted · Windows 从 v0.4 提前到当前 active scope · 修订决策表 #8）实施 §2 钦定的「Windows 剩余项 task spec」· 收纳 app-menu 快捷键 fallback（#452 defer）/ GUI 验证 / mac 回归（R1）/ v0.1 GA parity gate。
+>
+> FEAT-02 来源：用户 2026-06-05 要求“语言设置功能，默认 English，可以修改为简体中文”。按 S2V 规划为新增 feature spec + BDD feature + ADR-025；默认 English，不做 OS locale 自动跟随。
 
 ### BUG
 

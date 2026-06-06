@@ -1,6 +1,8 @@
 import { type Component } from "solid-js";
 import type { WorkspaceMetadata } from "../bindings";
+import { t, normalizeLanguage } from "../i18n";
 import { GitStatusPanel } from "../panels/GitStatus";
+import { useSettings } from "../stores/settings";
 import type { DiffTarget } from "./MainContent";
 import { formatShortcut } from "../lib/format-shortcut";
 
@@ -13,11 +15,15 @@ interface BottomPanelProps {
 }
 
 export const BottomPanel: Component<BottomPanelProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
+
   return (
     <div
       class={`vs-bottom-panel${props.layout().bottomOpen ? "" : " vs-panel-hidden"}`}
       role="region"
-      aria-label="Bottom panel"
+      aria-label={label("chrome.bottom.panel")}
       style={{
         height: props.layout().bottomOpen
           ? `${props.layout().bottomHeight}px`
@@ -28,14 +34,16 @@ export const BottomPanel: Component<BottomPanelProps> = (props) => {
         class="vs-resize-handle vs-resize-handle-n"
         role="separator"
         aria-orientation="horizontal"
-        aria-label="Resize bottom panel"
+        aria-label={label("chrome.bottom.resizePanel")}
         onMouseDown={props.onResizeStart}
         onDblClick={props.onResizeReset}
       />
       <div class="vs-bp-head">
-        <span class="vs-bp-tab vs-bp-tab-on">Git Status</span>
-        <span class="vs-bp-tab">Output</span>
-        <span class="vs-bp-tab">Diff</span>
+        <span class="vs-bp-tab vs-bp-tab-on">
+          {label("chrome.bottom.gitStatus")}
+        </span>
+        <span class="vs-bp-tab">{label("chrome.bottom.output")}</span>
+        <span class="vs-bp-tab">{label("chrome.bottom.diff")}</span>
         <div class="vs-bp-right">
           <span class="vs-kbd-tip">{formatShortcut("⌘J", "Ctrl+J")}</span>
         </div>

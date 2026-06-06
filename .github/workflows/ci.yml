@@ -19,6 +19,10 @@ on:
         description: "Optional: build Windows installers for this tag and upload them to its GitHub Release"
         required: false
         default: ""
+      release_tag:
+        description: "Optional: build all release installers for this tag and upload them to its GitHub Release"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -29,7 +33,7 @@ jobs:
     name: Markdown lint · 文档一致性
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ inputs.release_windows_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -55,7 +59,7 @@ jobs:
   # ────────────── Rust 构建与测试（MVP-01 Phase A 启用 · Task 5.2 跨平台矩阵）──────────────
   rust-build:
     name: Rust · clippy + fmt + test + Tauri build smoke (${{ matrix.os }})
-    if: ${{ inputs.release_windows_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
     # Task 5.2 · windows-ci-matrix：把单 job 展开为 ubuntu + windows 两 leg。
     # windows-latest runner 预装 MSVC toolchain + WebView2 Runtime + Node，无需 apt。
     # 触发仍为 workflow_dispatch（ADR-021 · 见文件顶部 on:），矩阵化让手动 dispatch 覆盖 Windows leg。
@@ -146,7 +150,7 @@ jobs:
     name: Frontend · pnpm lint + typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ inputs.release_windows_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -194,7 +198,7 @@ jobs:
     name: Runtime evidence · R1-R5 + .validator-exceptions.json
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    if: ${{ inputs.release_windows_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -223,7 +227,7 @@ jobs:
     name: Pre-code status · 当前阶段说明
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    if: ${{ inputs.release_windows_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
     steps:
       - name: Status
         run: |
@@ -241,14 +245,14 @@ jobs:
     name: Release · Windows NSIS + MSI installers
     runs-on: windows-latest
     timeout-minutes: 60
-    if: ${{ inputs.release_windows_tag != '' }}
+    if: ${{ inputs.release_windows_tag != '' || inputs.release_tag != '' }}
     permissions:
       contents: write
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.release_windows_tag }}
+          ref: ${{ inputs.release_tag || inputs.release_windows_tag }}
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -282,7 +286,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_windows_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag || inputs.release_windows_tag }}
         run: |
           $assets = @(
             Get-ChildItem -Path "target/release/bundle/nsis" -Filter "*.exe" -File -ErrorAction SilentlyContinue
@@ -293,3 +297,120 @@ jobs:
           }
           $assetPaths = $assets | ForEach-Object { $_.FullName }
           & gh release upload $env:RELEASE_TAG @assetPaths --repo $env:GITHUB_REPOSITORY --clobber
+
+  release-macos-installers:
+    name: Release · macOS DMG installer
+    runs-on: macos-13
+    timeout-minutes: 60
+    if: ${{ inputs.release_tag != '' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build DMG installer
+        run: pnpm exec tauri build --config crates/app/tauri.conf.json --bundles dmg
+
+      - name: List installer assets
+        run: find target/release/bundle -type f -print
+
+      - name: Upload installers to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          assets=()
+          while IFS= read -r -d '' file; do
+            assets+=("$file")
+          done < <(find target/release/bundle/dmg -type f -name '*.dmg' -print0 2>/dev/null)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "::error::No macOS DMG assets were produced"
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+
+  release-linux-installers:
+    name: Release · Linux AppImage + DEB installers
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: ${{ inputs.release_tag != '' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.release_tag }}
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            librsvg2-dev \
+            patchelf \
+            wget
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.9 --activate
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build AppImage and DEB installers
+        run: pnpm exec tauri build --config crates/app/tauri.conf.json --bundles appimage --bundles deb
+
+      - name: List installer assets
+        run: find target/release/bundle -type f -print
+
+      - name: Upload installers to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          assets=()
+          while IFS= read -r -d '' file; do
+            assets+=("$file")
+          done < <(find target/release/bundle -type f \( -name '*.AppImage' -o -name '*.deb' \) -print0 2>/dev/null)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "::error::No Linux installer assets were produced"
+            exit 1
+          fi
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber

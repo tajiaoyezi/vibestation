@@ -960,6 +960,20 @@ Additional Main/Secondary + common-dialog phase 1 slice on 2026-06-06:
 - `pnpm lint` still FAILS on 103 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are not listed.
 - GREEN commit: `decb2e3 feat(i18n): 迁移剩余主界面与常见对话框文案`.
 
+Additional Git operation dialog phase 2 slice on 2026-06-06:
+
+- RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `dialogs.common.*`, `dialogs.createBranch.*`, `dialogs.cherryPick.*`, `dialogs.merge.*`, and `dialogs.remoteSelector.*`; `web/tests/dialogs/chrome-copy.test.tsx` renders Create Branch, Cherry Pick, Merge, and Remote Selector chrome labels.
+- RED command: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` exited 1. Expected failures: missing dictionary keys and still-hardcoded English/Chinese dialog chrome, including Create Branch `取消` / `确认` and Merge/CherryPick/RemoteSelector headings/actions.
+- RED commit: `c1de708 test(i18n): 加 Git 对话框 chrome RED 测试`.
+- GREEN implementation: added common dialog and Git operation dialog dictionary keys, then wired `CreateBranchDialog.tsx`, `CherryPickDialog.tsx`, `MergeDialog.tsx`, and `RemoteSelector.tsx` through `label()`. Branch names, commit messages, remote names/URLs, strategy enum labels, and backend/raw operation errors remain excluded.
+- GREEN verification: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` PASS, 16/16 tests.
+- FEAT-02 regression: `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 45/45 tests.
+- `pnpm typecheck` PASS.
+- `npx prettier --check "web/src/i18n/dictionaries.ts" "web/src/dialogs/CreateBranchDialog/CreateBranchDialog.tsx" "web/src/dialogs/CherryPickDialog/CherryPickDialog.tsx" "web/src/dialogs/MergeDialog/MergeDialog.tsx" "web/src/dialogs/RemoteSelector/RemoteSelector.tsx" "web/tests/i18n/chrome-copy.test.ts" "web/tests/dialogs/chrome-copy.test.tsx"` PASS.
+- `git diff --check` PASS.
+- `pnpm lint` still FAILS on 99 pre-existing repository-wide Prettier warnings outside this slice; touched TSX source/test files pass targeted Prettier check.
+- GREEN commit: `2658179 feat(i18n): 迁移 Git 对话框通用文案`.
+
 ---
 
 ### Task 8: Verification and Spec Closure

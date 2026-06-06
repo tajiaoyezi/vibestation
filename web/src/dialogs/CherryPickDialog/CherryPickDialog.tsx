@@ -5,6 +5,8 @@ import type {
   CherryPickStatus,
   GitLogEntry,
 } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 type CherryPickDialogProps = {
   workspaceId: string;
@@ -15,10 +17,13 @@ type CherryPickDialogProps = {
 };
 
 export const CherryPickDialog: Component<CherryPickDialogProps> = (props) => {
+  const { settings } = useSettings();
   const [commits, setCommits] = createSignal<GitLogEntry[]>(props.commits);
   const [autoCommit, setAutoCommit] = createSignal(true);
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const canSubmit = () => commits().length > 0 && !submitting();
 
@@ -74,13 +79,14 @@ export const CherryPickDialog: Component<CherryPickDialogProps> = (props) => {
       <section class="vs-mvp16-dialog vs-cherry-pick-dialog">
         <header class="vs-mvp16-dialog-head">
           <h3 id="vs-cherry-pick-dialog-title">
-            Cherry-pick {commits().length} commits
+            {label("dialogs.cherryPick.titlePrefix")} {commits().length}{" "}
+            {label("dialogs.cherryPick.titleSuffix")}
           </h3>
           <button
             type="button"
             class="vs-mvp16-icon-btn"
             onClick={props.onCancel}
-            aria-label="Close cherry-pick dialog"
+            aria-label={label("dialogs.cherryPick.close")}
           >
             x
           </button>
@@ -112,7 +118,7 @@ export const CherryPickDialog: Component<CherryPickDialogProps> = (props) => {
               checked={autoCommit()}
               onChange={(event) => setAutoCommit(event.currentTarget.checked)}
             />
-            <span>Auto-commit each</span>
+            <span>{label("dialogs.cherryPick.autoCommitEach")}</span>
           </label>
 
           <Show when={error()}>
@@ -131,7 +137,7 @@ export const CherryPickDialog: Component<CherryPickDialogProps> = (props) => {
             disabled={submitting()}
             onClick={props.onCancel}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -139,7 +145,9 @@ export const CherryPickDialog: Component<CherryPickDialogProps> = (props) => {
             disabled={!canSubmit()}
             onClick={() => void submit()}
           >
-            {submitting() ? "Cherry-picking..." : "Cherry-pick"}
+            {submitting()
+              ? label("dialogs.cherryPick.submitting")
+              : label("dialogs.cherryPick.action")}
           </button>
         </footer>
       </section>

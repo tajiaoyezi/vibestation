@@ -8,6 +8,7 @@ import {
   type Component,
 } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
+import { t, normalizeLanguage } from "../../i18n";
 import type {
   BranchInfo,
   BranchListRequest,
@@ -17,6 +18,7 @@ import type {
   MergeStatus,
   MergeStrategy,
 } from "../../bindings";
+import { useSettings } from "../../stores/settings";
 
 type MergeDialogProps = {
   workspaceId: string;
@@ -35,6 +37,7 @@ const strategies: Array<{ value: MergeStrategy; label: string }> = [
 ];
 
 export const MergeDialog: Component<MergeDialogProps> = (props) => {
+  const { settings } = useSettings();
   const [branches, setBranches] = createSignal<BranchInfo[]>([]);
   const [query, setQuery] = createSignal("");
   const [sourceBranch, setSourceBranch] = createSignal(
@@ -46,6 +49,8 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
   const [submitting, setSubmitting] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
   const [dirtyWarning, setDirtyWarning] = createSignal<string | null>(null);
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const candidates = createMemo(() => {
     const needle = query().trim().toLowerCase();
@@ -128,7 +133,7 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
         req: { workspaceId: props.workspaceId },
       });
       if (isDirty(status)) {
-        setDirtyWarning("工作区有未提交修改 · 请先 commit / stash / discard");
+        setDirtyWarning(label("dialogs.merge.dirtyWarning"));
         props.onOpenGitStatus?.();
         return;
       }
@@ -168,13 +173,14 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
       <section class="vs-mvp16-dialog vs-merge-dialog">
         <header class="vs-mvp16-dialog-head">
           <h3 id="vs-merge-dialog-title">
-            合并 {selectedSource() || "source"} 到 {props.currentBranch}
+            {label("dialogs.merge.titlePrefix")} {selectedSource() || "source"}{" "}
+            {label("dialogs.merge.titleMiddle")} {props.currentBranch}
           </h3>
           <button
             type="button"
             class="vs-mvp16-icon-btn"
             onClick={props.onCancel}
-            aria-label="Close merge dialog"
+            aria-label={label("dialogs.merge.close")}
           >
             x
           </button>
@@ -182,11 +188,15 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
 
         <div class="vs-mvp16-dialog-body">
           <label class="vs-mvp16-field">
-            <span>source branch</span>
+            <span>{label("dialogs.merge.sourceBranch")}</span>
             <input
               class="vs-mvp16-input"
               value={query()}
-              placeholder={loading() ? "Loading branches..." : "Search branch"}
+              placeholder={
+                loading()
+                  ? label("dialogs.merge.loadingBranches")
+                  : label("dialogs.merge.searchBranch")
+              }
               onInput={(event) => {
                 setQuery(event.currentTarget.value);
                 setSourceBranch(event.currentTarget.value);
@@ -232,7 +242,7 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
 
           <Show when={requiresMessage()}>
             <label class="vs-mvp16-field">
-              <span>commit message</span>
+              <span>{label("dialogs.merge.commitMessage")}</span>
               <textarea
                 class="vs-mvp16-textarea"
                 rows={5}
@@ -265,7 +275,7 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
             onClick={props.onCancel}
             disabled={submitting()}
           >
-            Cancel
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -273,7 +283,9 @@ export const MergeDialog: Component<MergeDialogProps> = (props) => {
             disabled={!canMerge()}
             onClick={() => void runMerge()}
           >
-            {submitting() ? "Merging..." : "Merge"}
+            {submitting()
+              ? label("dialogs.merge.submitting")
+              : label("dialogs.merge.action")}
           </button>
         </footer>
       </section>

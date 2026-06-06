@@ -1,5 +1,7 @@
 import { createMemo, createSignal, For, Show, type Component } from "solid-js";
 import type { BranchCreateRequest, BranchInfo } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import { validateBranchName } from "../../utils/branchName";
 import "./createBranch.css";
 
@@ -15,6 +17,7 @@ interface CreateBranchDialogProps {
 export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
   props,
 ) => {
+  const { settings } = useSettings();
   const [name, setName] = createSignal("");
   const [fromRef, setFromRef] = createSignal(props.initialFromRef ?? "");
   const [checkout, setCheckout] = createSignal(false);
@@ -25,6 +28,8 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
   );
   const validation = createMemo(() => validateBranchName(name()));
   const canSubmit = () => validation().valid && !submitting();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
 
   const handleSubmit = async () => {
     if (!canSubmit()) {
@@ -65,12 +70,12 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
     >
       <div class="vs-dialog vs-create-branch-dialog">
         <h3 id="vs-create-branch-title" class="vs-dialog-title">
-          新建分支
+          {label("dialogs.createBranch.title")}
         </h3>
 
         <div class="vs-dialog-form">
           <label class="vs-dialog-label">
-            Name
+            {label("dialogs.createBranch.name")}
             <input
               type="text"
               classList={{
@@ -90,7 +95,7 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
           </label>
 
           <label class="vs-dialog-label">
-            From
+            {label("dialogs.createBranch.from")}
             <select
               class="vs-dialog-input vs-branch-select"
               value={fromRef()}
@@ -114,7 +119,7 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
               checked={checkout()}
               onChange={(event) => setCheckout(event.currentTarget.checked)}
             />
-            <span>create and checkout</span>
+            <span>{label("dialogs.createBranch.createAndCheckout")}</span>
           </label>
         </div>
 
@@ -125,7 +130,7 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
             onClick={() => props.onCancel()}
             disabled={submitting()}
           >
-            取消
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -134,7 +139,9 @@ export const CreateBranchDialog: Component<CreateBranchDialogProps> = (
             disabled={!canSubmit()}
             title={!validation().valid ? validation().reason : ""}
           >
-            {submitting() ? "创建中…" : "确认"}
+            {submitting()
+              ? label("dialogs.createBranch.creating")
+              : label("dialogs.common.confirm")}
           </button>
         </div>
       </div>

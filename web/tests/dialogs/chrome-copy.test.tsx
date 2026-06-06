@@ -286,7 +286,9 @@ describe("FEAT-02 dialog chrome copy", () => {
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Close merge dialog")).toBeInTheDocument();
     expect(screen.getByText("source branch")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search branch")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("Search branch")).toBeInTheDocument();
+    });
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Merge" })).toBeInTheDocument();
   });

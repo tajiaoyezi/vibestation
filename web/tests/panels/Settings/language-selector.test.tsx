@@ -1,0 +1,91 @@
+import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppSettings } from "../../../src/bindings/AppSettings";
+
+const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
+  const defaultFixture = (): AppSettings => ({
+    language: "en",
+    theme: "dark",
+    fontFamily: "JetBrains Mono",
+    fontSize: 14,
+    defaultShell: "/bin/bash",
+    pasteProtection: true,
+    telemetryOptIn: null,
+    gitUserName: null,
+    gitUserEmail: null,
+    bgOpacity: 0.85,
+    bgBlur: 20,
+    windowPaddingX: 2,
+    windowPaddingY: 2,
+    cursorStyle: "block",
+    cursorBlink: false,
+    unfocusedPaneOpacity: 0.7,
+    ptyPoolEnabled: true,
+    ptyPoolSize: 1,
+    primaryWidth: 236,
+    secondaryWidth: 400,
+    bottomHeight: 240,
+    externalTermPreferred: null,
+    externalTermDontAskAgain: false,
+  });
+  const mockAppSettings: AppSettings = defaultFixture();
+  return {
+    mockAppSettings,
+    resetMockSettings: () => {
+      Object.assign(mockAppSettings, defaultFixture());
+    },
+  };
+});
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async (cmd: string, args?: { req?: Partial<AppSettings> }) => {
+    if (cmd === "settings_get") {
+      return { ...mockAppSettings };
+    }
+    if (cmd === "settings_update") {
+      Object.assign(mockAppSettings, args?.req ?? {});
+      return { ...mockAppSettings };
+    }
+    return null;
+  }),
+}));
+
+import { invoke } from "@tauri-apps/api/core";
+import { reloadSettings } from "../../../src/stores/settings";
+import { AppearanceGroup } from "../../../src/panels/Settings/AppearanceGroup";
+
+beforeEach(async () => {
+  resetMockSettings();
+  vi.mocked(invoke).mockClear();
+  await reloadSettings();
+});
+
+describe("FEAT-02 Language selector", () => {
+  it("TEST-FEAT-02.2: renders language selector and updates zh-Hans", async () => {
+    render(() => <AppearanceGroup />);
+
+    const select = (await screen.findByLabelText(
+      "Language",
+    )) as HTMLSelectElement;
+    expect(select.value).toBe("en");
+    expect(screen.getByRole("option", { name: "English" })).toHaveValue("en");
+    expect(screen.getByRole("option", { name: "简体中文" })).toHaveValue(
+      "zh-Hans",
+    );
+
+    fireEvent.change(select, { target: { value: "zh-Hans" } });
+
+    await waitFor(() => {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+        "settings_update",
+        expect.objectContaining({
+          req: expect.objectContaining({ language: "zh-Hans" }),
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(document.documentElement.lang).toBe("zh-Hans");
+      expect(select.value).toBe("zh-Hans");
+    });
+  });
+});

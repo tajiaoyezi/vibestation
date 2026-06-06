@@ -788,7 +788,7 @@ Post-GREEN OpenCode scope audit on 2026-06-06: APPROVE.
 
 ### Task 7: App Chrome Migration
 
-Status: Settings shell/Appearance/remaining-controls and workspace chrome slices completed; Main/Secondary chrome plus dialog/common-error chrome remain pending behind FEAT-02.4c review prompts.
+Status: Settings shell/Appearance/remaining-controls, workspace chrome, and Main/Secondary + common-dialog phase 1 slices completed; Config Import and Git operation dialog chrome remain pending behind the next FEAT-02.4c slice.
 
 **Files:**
 
@@ -803,12 +803,18 @@ Status: Settings shell/Appearance/remaining-controls and workspace chrome slices
 - Modify: `web/src/components/TopBar.tsx`
 - Modify: `web/src/components/BottomPanel.tsx`
 - Modify: `web/src/App.tsx`
+- Modify: `web/src/components/MainContent.tsx`
+- Modify: `web/src/components/SecondarySidebar.tsx`
+- Modify: `web/src/dialogs/TelemetryOptIn/TelemetryOptInModal.tsx`
+- Modify: `web/src/dialogs/PopToExternal/PopToExternalDialog.tsx`
+- Modify: `web/src/dialogs/BranchSwitcher/BranchSwitcher.tsx`
 - Modify: `web/src/i18n/dictionaries.ts`
 - Create: `web/tests/i18n/chrome-copy.test.ts`
 - Create: `web/tests/components/chrome-copy.test.tsx`
+- Create: `web/tests/dialogs/chrome-copy.test.tsx`
 - Modify: `web/tests/panels/Settings/language-selector.test.tsx`
 - Create: `web/tests/panels/Settings/settings-panel-copy.test.tsx`
-- Pending FEAT-02.4c follow-up: Main / Secondary chrome plus selected `web/src/dialogs/**/*.tsx` common chrome items only when explicitly listed by the external inventory/review.
+- Pending FEAT-02.4c follow-up: Config Import and Git operation dialog common chrome items only when explicitly listed by the external inventory/review.
 
 - [x] **Step 1: Write Settings-slice text coverage tests**
 
@@ -938,6 +944,21 @@ Additional workspace-chrome slice on 2026-06-06:
 - `git diff --check` PASS.
 - `pnpm lint` still FAILS on 108 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are not listed.
 - GREEN commit: `73ec6ca feat(i18n): 迁移工作台 chrome 文案`.
+
+Additional Main/Secondary + common-dialog phase 1 slice on 2026-06-06:
+
+- RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `chrome.main.*`, `chrome.sidebars.secondary`, `dialogs.telemetry.*`, `dialogs.popToExternal.*`, and `dialogs.branchSwitcher.*`; `web/tests/components/chrome-copy.test.tsx` renders `MainContent` and `SecondarySidebar`; `web/tests/dialogs/chrome-copy.test.tsx` renders Telemetry opt-in, Pop to External, and Branch Switcher with `mockAppSettings.language = "zh-Hans"`.
+- RED command: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx` exited 1. Expected failures: missing dictionary key returned raw `chrome.main.contentArea`, and component UI still rendered English `Main content area`, `Secondary sidebar`, `Help improve Vibestation`, `Open in External Terminal`, and `Switch branch`.
+- RED commit: `3bcbfa4 test(i18n): 加剩余 chrome 文案 RED 测试`.
+- GREEN implementation: added `chrome.main.*` and selected `dialogs.*` namespaces, then wired `MainContent.tsx`, `SecondarySidebar.tsx`, `TelemetryOptInModal.tsx`, `PopToExternalDialog.tsx`, and `BranchSwitcher.tsx` through `label()`. Long telemetry prose, Git operation business errors, backend raw errors, terminal output, branch names, and commit messages remain excluded.
+- GREEN verification: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx` PASS, 16/16 tests.
+- Existing dialog regression: `pnpm --filter @vibestation/web exec vitest run tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx` PASS, 6/6 tests.
+- FEAT-02 regression: `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 34/34 tests.
+- `pnpm typecheck` PASS.
+- `npx prettier --check "web/src/i18n/dictionaries.ts" "web/src/components/MainContent.tsx" "web/src/components/SecondarySidebar.tsx" "web/src/dialogs/TelemetryOptIn/TelemetryOptInModal.tsx" "web/src/dialogs/PopToExternal/PopToExternalDialog.tsx" "web/src/dialogs/BranchSwitcher/BranchSwitcher.tsx" "web/tests/i18n/chrome-copy.test.ts" "web/tests/components/chrome-copy.test.tsx" "web/tests/dialogs/chrome-copy.test.tsx"` PASS.
+- `git diff --check` PASS.
+- `pnpm lint` still FAILS on 103 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are not listed.
+- GREEN commit: `decb2e3 feat(i18n): 迁移剩余主界面与常见对话框文案`.
 
 ---
 

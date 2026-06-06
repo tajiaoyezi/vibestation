@@ -74,17 +74,17 @@ export const AppearanceGroup: Component = () => {
         </legend>
         <div class="vs-settings-radio-row">
           <For each={themes()}>
-            {(t) => (
+            {(theme) => (
               <label class="vs-settings-radio-label">
                 <input
                   type="radio"
                   name="theme"
-                  value={t.value}
-                  checked={settings.theme === t.value}
-                  onChange={() => handleThemeChange(t.value)}
+                  value={theme.value}
+                  checked={settings.theme === theme.value}
+                  onChange={() => handleThemeChange(theme.value)}
                   class="vs-settings-radio"
                 />
-                <span>{t.label}</span>
+                <span>{theme.label}</span>
               </label>
             )}
           </For>

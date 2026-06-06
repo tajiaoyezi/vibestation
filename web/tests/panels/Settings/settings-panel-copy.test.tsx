@@ -92,6 +92,8 @@ describe("FEAT-02 Settings chrome copy", () => {
     expect(
       screen.getByRole("button", { name: "外部终端" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "主题" })).toBeInTheDocument();
+    expect(screen.getByLabelText("字体")).toBeInTheDocument();
   });
 
   it("TEST-FEAT-02.6: renders remaining Settings controls in zh-Hans", async () => {

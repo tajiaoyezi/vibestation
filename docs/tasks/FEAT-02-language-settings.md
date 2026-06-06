@@ -119,9 +119,9 @@ FEAT-02.4 实施前必须以 OpenCode app chrome 盘点结果为边界。未列�
 - [x] Settings shell：`Preferences` 标题、`Import...` 按钮、关闭按钮 aria-label、`Appearance` / `Terminal` / `External Terminal` / `Git` / `Privacy` 分组标题。
 - [x] Settings Appearance group：`Language` / `Theme` / `Auto` / `Light` / `Dark` / `Font family` / `Font size` / `Background opacity` / `Background blur` / `Window padding` / `Cursor style` / `Block` / `Bar` / `Underline` / `Cursor blink`。
 - [x] Settings Terminal / External Terminal / Git / Privacy first-level controls：`Default shell` / `Paste protection` / `PTY warm pool` / `Don't ask again` / `Ask every time` / `Telemetry` / `Collection endpoint` / `View what we collect` 等固定 label、help text、aria-label；长隐私/遥测说明段落见延期项。
-- [ ] Primary Sidebar：`Workspaces`、`No workspaces yet.`、`Import settings from another terminal`、`Create workspace` aria-label。
-- [ ] Activity Strip / Bottom Panel：`Git Log`、`Git Status`、`Output`、`Diff`、panel toggle tooltip / aria-label；Git 内容、branch/commit/message 原文排除。
-- [ ] TopBar / StatusBar / App chrome：window control label（`Minimize` / `Maximize` / `Close`）、`Toggle primary sidebar`、`remote`、`Merge`、settings gear label、`vX · alpha` status pattern、`ipc: connecting...`、`ipc error`、`Dismiss error`。
+- [x] Primary Sidebar：`Workspaces`、`No workspaces yet.`、`Import settings from another terminal`、`Create workspace` aria-label。
+- [x] Activity Strip / Bottom Panel：`Git Log`、`Git Status`、`Output`、`Diff`、panel toggle tooltip / aria-label；Git 内容、branch/commit/message 原文排除。
+- [x] TopBar / StatusBar / App chrome：window control label（`Minimize` / `Maximize` / `Close`）、`Toggle primary sidebar`、`remote`、`Merge`、settings gear label、`vX · alpha` status pattern、`ipc: connecting...`、`ipc error`、`Dismiss error`。
 - [ ] Main / Secondary chrome：`Select or create a workspace to get started`、`Back to Terminal`、resize/sidebar aria-label。
 - [ ] Dialogs（仅通用 chrome）：`Help improve Vibestation`、`Decline`、`Accept`、`Open in External Terminal`、`Don't ask again`、`Cancel`、`Retry`、`No external terminals detected.`、`No branch matched`、`Loading branches...`、`Switch branch`、`Close <name> dialog` aria-label。
 - [ ] Existing non-English hardcoded copy：OpenCode 已发现的 App remote aria 中文句、CreateBranch `取消` / `确认`、删除模态说明、部分 loading 错误；若位于上述 chrome/dialog/common error 范围内，统一迁移为 `en` canonical + `zh-Hans` 对照。
@@ -151,7 +151,7 @@ Runtime smoke 记录项：
 
 ## §10 Completion Notes
 
-> 2026-06-06 回填：FEAT-02 仍为 `in-progress`。FEAT-02.1-02.3 已完成，FEAT-02.4a（Settings first）已完成；FEAT-02.4b/02.4c、runtime smoke、ADR accepted 翻转与最终 done gate 仍待执行。
+> 2026-06-06 回填：FEAT-02 仍为 `in-progress`。FEAT-02.1-02.3 已完成，FEAT-02.4a（Settings first）与 FEAT-02.4b（workspace chrome）已完成；FEAT-02.4c、runtime smoke、ADR accepted 翻转与最终 done gate 仍待执行。
 
 - RED commit：
   - `8a8c087 test(settings): 增加语言设置契约 RED 测试`
@@ -159,6 +159,7 @@ Runtime smoke 记录项：
   - `c9f8ec3 test(settings): 加语言选择器 RED 测试`
   - `ebbe03f test(i18n): 加首批设置文案迁移 RED 测试`
   - `8f3c84d test(i18n): 加设置控件文案迁移 RED 测试`
+  - `8cf7478 test(i18n): 加工作台 chrome 文案 RED 测试`
 - GREEN commit：
   - `1ffc9fa feat(settings): 持久化应用语言设置`
   - `3f806ad feat(i18n): 添加本地语言字典核心`
@@ -166,6 +167,7 @@ Runtime smoke 记录项：
   - `5efd8cf feat(settings): 添加语言选择器`
   - `985efc7 feat(i18n): 迁移设置面板文案`
   - `3451e48 feat(i18n): 迁移设置控件文案`
+  - `73ec6ca feat(i18n): 迁移工作台 chrome 文案`
 - REFACTOR / review follow-up commit：
   - `a73d84b test(settings): 补语言设置持久化不变量测试`
   - `9c69a42 test(settings): 补外观文案审计跟进`
@@ -176,19 +178,19 @@ Runtime smoke 记录项：
 - 实际验证命令与结果：
   - `cargo test -p vibestation-core app_settings -- --nocapture` PASS（20 passed）。
   - `cargo check -p vibestation-app` PASS，并刷新 `ts-rs` bindings。
-  - `pnpm --dir web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（5 files / 22 tests）。
+  - `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx` PASS（2 files / 8 tests）。
+  - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（6 files / 26 tests）。
   - `pnpm typecheck` PASS（`tsc --noEmit`）。
   - `git diff --check` PASS。
   - `npx prettier --check` on touched FEAT-02 source/test/spec files PASS。
-  - `pnpm --filter @vibestation/web lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 109 files.
+  - `pnpm --filter @vibestation/web lint` / `pnpm lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 108 files.
 - 偏离 spec 的说明：
-  - 按 Kimi `READY-WITH-NITS` 建议采用 `split-settings-first`，将 FEAT-02.4 拆为 02.4a Settings、02.4b app chrome、02.4c dialogs/common errors；当前只声明 02.4a 完成。
+  - 按 Kimi `READY-WITH-NITS` 建议采用 `split-settings-first`，将 FEAT-02.4 拆为 02.4a Settings、02.4b app chrome、02.4c dialogs/common errors；当前声明 02.4a 与 02.4b 完成。
   - `We collect` / `We do NOT collect` 及隐私长 bullet 文案保持排除，后续放入 `content.privacy.*`。
   - 动态 shell label/path、external terminal displayName、endpointHost、Git 内容、terminal output、branch name、commit message 继续保持原文。
-  - 当前 settings slice 未新增插值 helper；本 slice 静态 key 足够覆盖。
+  - 当前未新增通用插值 helper；remote ahead/behind 的运行期计数只用 dictionary 中的静态前后缀拼接，未把动态数据迁入 dictionary。
 - 后续 follow-up：
-  - FEAT-02.4b：Primary Sidebar / Activity Strip / TopBar / Bottom status，使用 `chrome.*` namespace。
-  - FEAT-02.4c：Dialogs / common error chrome，继续排除业务操作长文案与 backend raw errors。
+  - FEAT-02.4c：Main / Secondary chrome、Dialogs / common error chrome，继续排除业务操作长文案与 backend raw errors。
   - FEAT-02.5：完整 §9 verification、runtime smoke、ADR-025 accepted 准备、FEAT-02 done gate。
 
 ## 📝 Notes / 讨论

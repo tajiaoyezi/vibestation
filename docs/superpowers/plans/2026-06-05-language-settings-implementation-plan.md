@@ -788,7 +788,7 @@ Post-GREEN OpenCode scope audit on 2026-06-06: APPROVE.
 
 ### Task 7: App Chrome Migration
 
-Status: Settings shell/Appearance/remaining-controls slices completed; non-Settings chrome migration remains pending behind FEAT-02.4 review prompts.
+Status: Settings shell/Appearance/remaining-controls and workspace chrome slices completed; Main/Secondary chrome plus dialog/common-error chrome remain pending behind FEAT-02.4c review prompts.
 
 **Files:**
 
@@ -798,11 +798,17 @@ Status: Settings shell/Appearance/remaining-controls slices completed; non-Setti
 - Modify: `web/src/panels/Settings/ExternalTerminalGroup.tsx`
 - Modify: `web/src/panels/Settings/GitGroup.tsx`
 - Modify: `web/src/panels/Settings/PrivacyGroup.tsx`
+- Modify: `web/src/components/PrimarySidebar.tsx`
+- Modify: `web/src/components/ActivityStrip.tsx`
+- Modify: `web/src/components/TopBar.tsx`
+- Modify: `web/src/components/BottomPanel.tsx`
+- Modify: `web/src/App.tsx`
 - Modify: `web/src/i18n/dictionaries.ts`
 - Create: `web/tests/i18n/chrome-copy.test.ts`
+- Create: `web/tests/components/chrome-copy.test.tsx`
 - Modify: `web/tests/panels/Settings/language-selector.test.tsx`
 - Create: `web/tests/panels/Settings/settings-panel-copy.test.tsx`
-- Pending broader FEAT-02.4 follow-up: `web/src/components/PrimarySidebar.tsx`, `web/src/components/ActivityStrip.tsx`, `web/src/components/TopBar.tsx`, `web/src/components/BottomPanel.tsx`, selected fixed status labels in `web/src/App.tsx`, and selected `web/src/dialogs/**/*.tsx` common chrome items only when explicitly listed by the external inventory/review.
+- Pending FEAT-02.4c follow-up: Main / Secondary chrome plus selected `web/src/dialogs/**/*.tsx` common chrome items only when explicitly listed by the external inventory/review.
 
 - [x] **Step 1: Write Settings-slice text coverage tests**
 
@@ -918,6 +924,20 @@ Additional Settings-controls slice on 2026-06-06:
 - Scope grep confirmed touched Settings group code uses only `settings.terminal.*`, `settings.externalTerminal.*`, `settings.git.*`, and `settings.privacy.*`; it still contains excluded long privacy prose mentioning commit messages, which remains intentionally unmigrated for `content.privacy.*`.
 - `pnpm --filter @vibestation/web lint` still FAILS on 109 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are no longer listed.
 - GREEN commit: `3451e48 feat(i18n): 迁移设置控件文案`.
+
+Additional workspace-chrome slice on 2026-06-06:
+
+- RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `chrome.sidebars.*`, `chrome.activity.*`, `chrome.bottom.*`, `chrome.topbar.*`, `chrome.window.*`, and `chrome.status.*`; `web/tests/components/chrome-copy.test.tsx` renders real `PrimarySidebar`, `ActivityStrip`, `BottomPanel`, and `TopBar` with `mockAppSettings.language = "zh-Hans"`.
+- RED command: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx` exited 1. Expected failures: missing dictionary key returned raw `chrome.sidebars.primary`, and component UI still rendered English `Primary sidebar`, `Panel toggles`, `Bottom panel`, and `Toggle primary sidebar`.
+- RED commit: `8cf7478 test(i18n): 加工作台 chrome 文案 RED 测试`.
+- GREEN implementation: added `chrome.*` dictionary namespaces and wired `PrimarySidebar.tsx`, `ActivityStrip.tsx`, `BottomPanel.tsx`, `TopBar.tsx`, and selected `App.tsx` status labels through `label()`. Workspace names, paths, Git content, branch/commit/message text, backend raw strings, terminal output, and Tauri native menu labels remain excluded.
+- GREEN verification: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx` PASS, 8/8 tests.
+- Regression verification: `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 26/26 tests.
+- `pnpm typecheck` PASS.
+- `npx prettier --check "web/src/i18n/dictionaries.ts" "web/src/components/PrimarySidebar.tsx" "web/src/components/ActivityStrip.tsx" "web/src/components/BottomPanel.tsx" "web/src/components/TopBar.tsx" "web/src/App.tsx" "web/tests/i18n/chrome-copy.test.ts" "web/tests/components/chrome-copy.test.tsx"` PASS.
+- `git diff --check` PASS.
+- `pnpm lint` still FAILS on 108 pre-existing Prettier warnings outside this slice; touched files pass targeted Prettier check and are not listed.
+- GREEN commit: `73ec6ca feat(i18n): 迁移工作台 chrome 文案`.
 
 ---
 

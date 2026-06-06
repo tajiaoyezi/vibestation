@@ -974,6 +974,19 @@ Additional Git operation dialog phase 2 slice on 2026-06-06:
 - `pnpm lint` still FAILS on 99 pre-existing repository-wide Prettier warnings outside this slice; touched TSX source/test files pass targeted Prettier check.
 - GREEN commit: `2658179 feat(i18n): 迁移 Git 对话框通用文案`.
 
+Additional remaining dialog phase 3 slice on 2026-06-06:
+
+- RED tests: `web/tests/i18n/chrome-copy.test.ts` now covers `dialogs.forceDelete.*`, `dialogs.forcePush.*`, `dialogs.dirtyTree.*`, `dialogs.gitSync.*`, `dialogs.auth.*`, and `dialogs.configImport.*`; `web/tests/dialogs/chrome-copy.test.tsx` renders Force Delete, Force Push, Dirty Tree, Git Sync Progress, Auth, and Config Import chrome labels.
+- RED command: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` exited 1. Expected failures: missing dictionary keys and hardcoded Chinese/English UI in destructive branch dialogs, dirty tree actions, Git sync progress, auth, and config import chrome.
+- RED commit: `b0a0ae5 test(i18n): 加剩余对话框 chrome RED 测试`.
+- GREEN implementation: added remaining dialog dictionary namespaces, then wired `ForceDeleteDialog.tsx`, `ForcePushDialog.tsx`, `DirtyTreeDialog.tsx`, `GitSyncProgressDialog.tsx`, `AuthDialog.tsx`, and `ConfigImportDialog.tsx` through `label()`. Branch names, remote names/URLs, commit messages, file paths, credential values, backend/raw errors, and longer business-process prose remain excluded.
+- GREEN verification: `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` PASS, 24/24 tests.
+- FEAT-02 regression: `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS, 53/53 tests.
+- `pnpm typecheck` PASS.
+- `npx prettier --check "web/src/i18n/dictionaries.ts" "web/src/dialogs/ForceDeleteDialog/ForceDeleteDialog.tsx" "web/src/dialogs/ForcePushDialog/ForcePushDialog.tsx" "web/src/dialogs/DirtyTreeDialog/DirtyTreeDialog.tsx" "web/src/dialogs/GitSyncProgress/GitSyncProgressDialog.tsx" "web/src/dialogs/AuthDialog/AuthDialog.tsx" "web/src/dialogs/ConfigImport/ConfigImportDialog.tsx" "web/tests/i18n/chrome-copy.test.ts" "web/tests/dialogs/chrome-copy.test.tsx"` PASS.
+- `git diff --check` PASS.
+- GREEN commit: `463916e feat(i18n): 迁移剩余对话框通用文案`.
+
 ---
 
 ### Task 8: Verification and Spec Closure

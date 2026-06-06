@@ -125,9 +125,9 @@ FEAT-02.4 实施前必须以 OpenCode app chrome 盘点结果为边界。未列�
 - [x] Main / Secondary chrome：`Select or create a workspace to get started`、`Back to Terminal`、resize/sidebar aria-label。
 - [x] Dialogs phase 1（仅通用 chrome）：Telemetry opt-in 的 `Help improve Vibestation` / `Decline` / `Accept`，Pop to External 的 `Open in External Terminal` / `Don't ask again` / `Cancel` / `Retry` / `No external terminals detected.`，Branch Switcher 的 `No branch matched` / `Loading branches...` / `Switch branch`。
 - [x] Dialogs phase 2（仅通用 chrome）：Create Branch、Merge、Cherry-pick、Remote Selector 的标题、`Cancel` / `Confirm` / `Continue`、close aria-label、固定 loading/search/dirty-warning 文案；branch name、commit message、remote 名称等运行期数据保持原文。
-- [ ] Dialogs phase 3 remaining（仅通用 chrome）：Config Import、Dirty tree、Force push / delete、auth / sync 等剩余 Git operation dialogs 的 `Cancel`、`Retry`、`Close <name> dialog` aria-label 与 checklist 内固定 empty/loading 文案。
-- [ ] Existing non-English hardcoded copy：OpenCode 已发现的 App remote aria 中文句、CreateBranch `取消` / `确认`、删除模态说明、部分 loading 错误；若位于上述 chrome/dialog/common error 范围内，统一迁移为 `en` canonical + `zh-Hans` 对照。
-- [ ] Frontend self-written common errors：只迁移 `ipc: connecting...` / `ipc error`、shell 未安装、`No ... detected` 这类第一屏 chrome 或通用 dialog 错误；复杂业务流程错误另开 follow-up。
+- [x] Dialogs phase 3（仅通用 chrome）：Config Import、Dirty tree、Force push / delete、auth / sync 等剩余 Git operation dialogs 的 `Cancel`、`Retry`、`Close <name> dialog` aria-label 与 checklist 内固定 empty/loading 文案。
+- [x] Existing non-English hardcoded copy：OpenCode 已发现的 App remote aria 中文句、CreateBranch `取消` / `确认`、删除模态说明、部分 loading 错误；位于上述 chrome/dialog/common error 范围内的项目统一迁移为 `en` canonical + `zh-Hans` 对照。
+- [x] Frontend self-written common errors：`ipc: connecting...` / `ipc error`、shell 未安装、`No ... detected` 与本 checklist 内 scan/loading/auth/sync dialog chrome 已迁移；复杂业务流程错误另开 follow-up。
 
 FEAT-02.4 明确排除：class / role / type / 内部 data 值、字体名、env 列表、动态 backend label、后端原始错误、Tauri native menu。`We collect` / `We do NOT collect` 及其长 bullet 文案作为 `content.privacy.*` follow-up，不阻塞 AC7。
 
@@ -153,7 +153,7 @@ Runtime smoke 记录项：
 
 ## §10 Completion Notes
 
-> 2026-06-06 回填：FEAT-02 仍为 `in-progress`。FEAT-02.1-02.3 已完成，FEAT-02.4a（Settings first）、FEAT-02.4b（workspace chrome）与 FEAT-02.4c phase 1（Main/Secondary + common dialogs）/ phase 2（CreateBranch / Merge / CherryPick / RemoteSelector）已完成；dialog phase 3 remaining、runtime smoke、ADR accepted 翻转与最终 done gate 仍待执行。
+> 2026-06-06 回填：FEAT-02 仍为 `in-progress`。FEAT-02.1-02.3 已完成，FEAT-02.4a（Settings first）、FEAT-02.4b（workspace chrome）与 FEAT-02.4c phase 1（Main/Secondary + common dialogs）/ phase 2（CreateBranch / Merge / CherryPick / RemoteSelector）/ phase 3（ConfigImport / DirtyTree / ForcePush / ForceDelete / Auth / GitSync）已完成；runtime smoke、ADR accepted 翻转与最终 done gate 仍待执行。
 
 - RED commit：
   - `8a8c087 test(settings): 增加语言设置契约 RED 测试`
@@ -164,6 +164,7 @@ Runtime smoke 记录项：
   - `8cf7478 test(i18n): 加工作台 chrome 文案 RED 测试`
   - `3bcbfa4 test(i18n): 加剩余 chrome 文案 RED 测试`
   - `c1de708 test(i18n): 加 Git 对话框 chrome RED 测试`
+  - `b0a0ae5 test(i18n): 加剩余对话框 chrome RED 测试`
 - GREEN commit：
   - `1ffc9fa feat(settings): 持久化应用语言设置`
   - `3f806ad feat(i18n): 添加本地语言字典核心`
@@ -174,6 +175,7 @@ Runtime smoke 记录项：
   - `73ec6ca feat(i18n): 迁移工作台 chrome 文案`
   - `decb2e3 feat(i18n): 迁移剩余主界面与常见对话框文案`
   - `2658179 feat(i18n): 迁移 Git 对话框通用文案`
+  - `463916e feat(i18n): 迁移剩余对话框通用文案`
 - REFACTOR / review follow-up commit：
   - `a73d84b test(settings): 补语言设置持久化不变量测试`
   - `9c69a42 test(settings): 补外观文案审计跟进`
@@ -191,17 +193,18 @@ Runtime smoke 记录项：
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（7 files / 34 tests）。
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` PASS（2 files / 16 tests）。
   - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（8 files / 45 tests）。
+  - `pnpm --filter @vibestation/web exec vitest run tests/i18n/chrome-copy.test.ts tests/dialogs/chrome-copy.test.tsx` PASS（2 files / 24 tests）。
+  - `pnpm --filter @vibestation/web exec vitest run tests/i18n/language.test.ts tests/i18n/chrome-copy.test.ts tests/components/chrome-copy.test.tsx tests/dialogs/chrome-copy.test.tsx tests/dialogs/PopToExternal/PopToExternalDialog.test.tsx tests/panels/Settings/ExternalTerminalGroup.test.tsx tests/panels/Settings/language-selector.test.tsx tests/panels/Settings/settings-panel-copy.test.tsx` PASS（8 files / 53 tests）。
   - `pnpm typecheck` PASS（`tsc --noEmit`）。
   - `git diff --check` PASS。
   - `npx prettier --check` on touched FEAT-02 source/test/spec files PASS。
   - `pnpm --filter @vibestation/web lint` / `pnpm lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 103 files.
 - 偏离 spec 的说明：
-  - 按 Kimi `READY-WITH-NITS` 建议采用 `split-settings-first`，将 FEAT-02.4 拆为 02.4a Settings、02.4b app chrome、02.4c dialogs/common errors；当前声明 02.4a、02.4b 与 02.4c phase 1/phase 2 完成。
+  - 按 Kimi `READY-WITH-NITS` 建议采用 `split-settings-first`，将 FEAT-02.4 拆为 02.4a Settings、02.4b app chrome、02.4c dialogs/common errors；当前声明 02.4a、02.4b 与 02.4c phase 1/phase 2/phase 3 完成。
   - `We collect` / `We do NOT collect` 及隐私长 bullet 文案保持排除，后续放入 `content.privacy.*`。
   - 动态 shell label/path、external terminal displayName、endpointHost、Git 内容、terminal output、branch name、commit message 继续保持原文。
   - 当前未新增通用插值 helper；remote ahead/behind 的运行期计数只用 dictionary 中的静态前后缀拼接，未把动态数据迁入 dictionary。
 - 后续 follow-up：
-  - FEAT-02.4c phase 3 remaining：Config Import、Dirty tree、Force push/delete、auth/sync 等剩余 dialog/common error chrome，继续排除业务操作长文案与 backend raw errors。
   - FEAT-02.5：完整 §9 verification、runtime smoke、ADR-025 accepted 准备、FEAT-02 done gate。
 
 ## 📝 Notes / 讨论

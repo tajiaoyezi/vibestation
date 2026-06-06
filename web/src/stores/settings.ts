@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { AppSettings, SettingsUpdateRequest } from "../bindings";
+import { normalizeLanguage, setDocumentLanguage } from "../i18n";
 
 export type ThemeSetting = "light" | "dark" | "auto";
 
@@ -94,6 +95,7 @@ function applyCssVars(s: AppSettings): void {
         : "light"
       : s.theme;
   document.documentElement.dataset.theme = resolvedTheme;
+  setDocumentLanguage(normalizeLanguage(s.language));
   syncWindowTheme(resolvedTheme);
 }
 
@@ -121,6 +123,8 @@ export function useSettings() {
       setSettings(partial as never);
 
       const req = {} as SettingsUpdateRequest;
+      if (partial.language !== undefined)
+        req.language = normalizeLanguage(partial.language);
       if (partial.theme !== undefined) req.theme = partial.theme;
       if (partial.fontFamily !== undefined) req.fontFamily = partial.fontFamily;
       if (partial.fontSize !== undefined) req.fontSize = partial.fontSize;

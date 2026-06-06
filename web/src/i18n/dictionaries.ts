@@ -1,0 +1,73 @@
+export const dictionaries = {
+  en: {
+    settings: {
+      title: "Preferences",
+      import: "Import...",
+      close: "Close settings",
+      groups: {
+        appearance: "Appearance",
+        terminal: "Terminal",
+        externalTerminal: "External Terminal",
+        git: "Git",
+        privacy: "Privacy",
+      },
+      appearance: {
+        language: "Language",
+        english: "English",
+        simplifiedChinese: "Simplified Chinese",
+        theme: "Theme",
+        auto: "Auto",
+        light: "Light",
+        dark: "Dark",
+        fontFamily: "Font family",
+        fontSize: "Font size",
+        backgroundOpacity: "Background opacity",
+        backgroundBlur: "Background blur",
+        windowPaddingX: "Window padding X",
+        windowPaddingY: "Window padding Y",
+        cursorStyle: "Cursor style",
+        cursorBlock: "Block",
+        cursorBar: "Bar",
+        cursorUnderline: "Underline",
+        cursorBlink: "Cursor blink",
+      },
+    },
+  },
+  "zh-Hans": {
+    settings: {
+      title: "偏好设置",
+      import: "导入...",
+      close: "关闭设置",
+      groups: {
+        appearance: "外观",
+        terminal: "终端",
+        externalTerminal: "外部终端",
+        git: "Git",
+        privacy: "隐私",
+      },
+      appearance: {
+        language: "语言",
+        english: "English",
+        simplifiedChinese: "简体中文",
+        theme: "主题",
+        auto: "自动",
+        light: "浅色",
+        dark: "深色",
+        fontFamily: "字体",
+        fontSize: "字号",
+        backgroundOpacity: "背景不透明度",
+        backgroundBlur: "背景模糊",
+        windowPaddingX: "窗口水平内边距",
+        windowPaddingY: "窗口垂直内边距",
+        cursorStyle: "光标样式",
+        cursorBlock: "块状",
+        cursorBar: "竖线",
+        cursorUnderline: "下划线",
+        cursorBlink: "光标闪烁",
+      },
+    },
+  },
+} as const;
+
+export type Dictionaries = typeof dictionaries;
+export type Language = keyof Dictionaries;

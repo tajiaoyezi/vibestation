@@ -110,7 +110,7 @@ describe("FEAT-02 Settings chrome copy", () => {
     expect(screen.getByLabelText(/池大小/)).toBeInTheDocument();
 
     screen.getByRole("button", { name: "外部终端" }).click();
-    expect(screen.getByLabelText(/首选终端/)).toBeInTheDocument();
+    expect(screen.getByText("首选终端")).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "每次询问" }),
     ).toBeInTheDocument();

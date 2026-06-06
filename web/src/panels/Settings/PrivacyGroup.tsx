@@ -2,9 +2,12 @@ import { createSignal, createResource, Show, type Component } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettings } from "../../stores/settings";
 import type { TelemetryStatus } from "../../bindings";
+import { t, normalizeLanguage } from "../../i18n";
 
 export const PrivacyGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
+  const language = () => normalizeLanguage(settings.language);
+  const label = (key: string) => t(key, language());
   const [showDetails, setShowDetails] = createSignal(false);
   const [copied, setCopied] = createSignal(false);
 
@@ -14,8 +17,12 @@ export const PrivacyGroup: Component = () => {
   );
 
   const telemetryLabel = () => {
-    if (settings.telemetryOptIn === null) return "Not decided";
-    return settings.telemetryOptIn ? "Enabled" : "Disabled";
+    if (settings.telemetryOptIn === null) {
+      return label("settings.privacy.notDecided");
+    }
+    return settings.telemetryOptIn
+      ? label("settings.privacy.enabled")
+      : label("settings.privacy.disabled");
   };
 
   const copyEndpoint = async () => {
@@ -30,7 +37,9 @@ export const PrivacyGroup: Component = () => {
     <div class="vs-settings-fields">
       <div class="vs-settings-field vs-settings-field--row">
         <div class="vs-settings-field-labels">
-          <span class="vs-settings-label">Telemetry</span>
+          <span class="vs-settings-label">
+            {label("settings.privacy.telemetry")}
+          </span>
           <span class="vs-settings-sublabel">{telemetryLabel()}</span>
         </div>
         <button
@@ -53,7 +62,7 @@ export const PrivacyGroup: Component = () => {
           }}
           aria-pressed={settings.telemetryOptIn ?? "mixed"}
           role="switch"
-          title="Toggle telemetry"
+          title={label("settings.privacy.toggleTelemetry")}
         >
           <span class="vs-settings-toggle-knob" />
         </button>
@@ -62,9 +71,11 @@ export const PrivacyGroup: Component = () => {
       {/* §C.4 · 收集端点公开显示 + 一键复制 */}
       <div class="vs-settings-field vs-settings-field--row">
         <div class="vs-settings-field-labels">
-          <span class="vs-settings-label">Collection endpoint</span>
+          <span class="vs-settings-label">
+            {label("settings.privacy.collectionEndpoint")}
+          </span>
           <span class="vs-settings-sublabel vs-settings-endpoint-host">
-            {status()?.endpointHost ?? "Loading…"}
+            {status()?.endpointHost ?? label("settings.privacy.loading")}
           </span>
         </div>
         <button
@@ -72,9 +83,11 @@ export const PrivacyGroup: Component = () => {
           class="vs-settings-copy-btn"
           onClick={copyEndpoint}
           disabled={!status() || status()?.endpointHost === "Not configured"}
-          aria-label="Copy collection endpoint"
+          aria-label={label("settings.privacy.copyCollectionEndpoint")}
         >
-          {copied() ? "Copied" : "Copy"}
+          {copied()
+            ? label("settings.privacy.copied")
+            : label("settings.privacy.copy")}
         </button>
       </div>
 
@@ -83,7 +96,7 @@ export const PrivacyGroup: Component = () => {
         class="vs-settings-link"
         onClick={() => setShowDetails(true)}
       >
-        View what we collect
+        {label("settings.privacy.viewWhatWeCollect")}
       </button>
 
       <Show when={showDetails()}>
@@ -98,12 +111,12 @@ export const PrivacyGroup: Component = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div class="vs-settings-detail-header">
-              <h3>Data collection summary</h3>
+              <h3>{label("settings.privacy.dataCollectionSummary")}</h3>
               <button
                 type="button"
                 class="vs-settings-close"
                 onClick={() => setShowDetails(false)}
-                aria-label="Close"
+                aria-label={label("settings.privacy.closeDetails")}
               >
                 ✕
               </button>

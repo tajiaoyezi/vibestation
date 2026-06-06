@@ -393,6 +393,7 @@ mod tests {
     fn get_all_returns_defaults_when_empty() {
         let (_dir, pool) = setup();
         let settings = AppSettingsStore::get_all(&pool);
+        assert_eq!(settings.language, "en");
         assert_eq!(settings.theme, "dark");
         assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         assert_eq!(settings.font_size, 14);
@@ -465,6 +466,23 @@ mod tests {
             AppSettingsStore::set(&pool, "language", invalid).expect("seed invalid language");
             let settings = AppSettingsStore::get_all(&pool);
             assert_eq!(settings.language, "en");
+            assert_eq!(AppSettingsStore::get(&pool, "language").unwrap(), invalid);
+        }
+    }
+
+    #[test]
+    fn app_settings_language_invalid_update_persists_en() {
+        let (_dir, pool) = setup();
+
+        for invalid in ["fr", "", "zh"] {
+            let req = SettingsUpdateRequest {
+                language: Some(invalid.to_string()),
+                ..Default::default()
+            };
+            AppSettingsStore::update(&pool, &req).expect("language update succeeds");
+
+            assert_eq!(AppSettingsStore::get(&pool, "language").unwrap(), "en");
+            assert_eq!(AppSettingsStore::get_all(&pool).language, "en");
         }
     }
 

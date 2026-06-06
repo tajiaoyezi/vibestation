@@ -200,6 +200,7 @@ Runtime smoke 记录项：
   - `cargo fmt --all -- --check` PASS。
   - `pnpm typecheck` PASS（`tsc --noEmit`）。
   - `pnpm --filter @vibestation/web exec vitest run` FAILS on pre-existing script suites outside FEAT-02 scope：`tests/scripts/setup-git-hooks.test.ts` 3 failures（Rolldown parse `#!/usr/bin/env node` after transform）与 `tests/scripts/validate-runtime-evidence.test.ts` 7 failures（temporary report `ENOENT`）；same run reports 68 passed files / 567 passed tests before these 10 script failures.
+  - `pnpm tauri:dev` launch smoke PASS（受控后台启动后停止）：Vite ready at `http://localhost:1420/`，`cargo run` dev build finished，`vibestation-app.exe` started。Observed runtime logs include pre-existing warnings `cleanups created outside a createRoot` and `tab not found ... database not initialized`; manual UI language switch / restart persistence smoke remains pending.
   - `git diff --check` PASS。
   - `npx prettier --check` on touched FEAT-02 source/test/spec files PASS。
   - `pnpm lint` FAILS on pre-existing repository-wide Prettier warnings outside FEAT-02 touched files; latest observed count 94 files.
@@ -210,7 +211,7 @@ Runtime smoke 记录项：
   - 当前未新增通用插值 helper；remote ahead/behind 的运行期计数只用 dictionary 中的静态前后缀拼接，未把动态数据迁入 dictionary。
   - ADR-025 已在 FEAT-02.4 完成后翻为 `accepted`；未引入运行期网络翻译服务或第三方 i18n runtime。
 - 后续 follow-up：
-  - FEAT-02.5：runtime smoke、完整 web vitest/lint 既有失败归档、FEAT-02 done gate。
+  - FEAT-02.5：manual runtime smoke（English first launch、切换 `简体中文`、restart persistence、terminal/Git 原文）、完整 web vitest/lint 既有失败归档、FEAT-02 done gate。
 
 ## 📝 Notes / 讨论
 

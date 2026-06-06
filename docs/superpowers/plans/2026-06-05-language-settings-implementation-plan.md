@@ -1047,6 +1047,9 @@ Progress on 2026-06-06:
   - The same full run reported 68 passed files / 567 passed tests before the 10 script failures.
 - Lint status:
   - `pnpm lint` FAILS on 94 pre-existing repository-wide Prettier warnings outside FEAT-02 touched files.
+- Launch smoke:
+  - `pnpm tauri:dev` PASS for controlled launch: Vite ready at `http://localhost:1420/`, `cargo run` dev build finished, and `vibestation-app.exe` started before the process tree was stopped.
+  - Observed runtime logs included pre-existing warnings `cleanups created outside a createRoot` and `tab not found ... database not initialized`; manual UI language switch / restart persistence smoke is still pending.
 - ADR status:
   - `docs/adr/ADR-025-frontend-i18n-dictionary.md` changed from `proposed` to `accepted` after FEAT-02.4 implementation and multi-agent review.
 

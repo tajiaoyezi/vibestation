@@ -68,4 +68,45 @@ describe("FEAT-02 first Settings chrome copy", () => {
       "查看收集内容",
     );
   });
+
+  it("TEST-FEAT-02.6: workspace chrome labels translate", () => {
+    expect(t("chrome.sidebars.primary", "en")).toBe("Primary sidebar");
+    expect(t("chrome.sidebars.primary", "zh-Hans")).toBe("主侧边栏");
+    expect(t("chrome.sidebars.workspaces", "en")).toBe("Workspaces");
+    expect(t("chrome.sidebars.workspaces", "zh-Hans")).toBe("工作区");
+    expect(t("chrome.sidebars.noWorkspacesYet", "zh-Hans")).toBe(
+      "还没有工作区。",
+    );
+    expect(t("chrome.sidebars.importSettings", "zh-Hans")).toBe(
+      "从其他终端导入设置",
+    );
+    expect(t("chrome.sidebars.createWorkspace", "zh-Hans")).toBe("创建工作区");
+
+    expect(t("chrome.activity.gitLog", "zh-Hans")).toBe("Git 日志");
+    expect(t("chrome.activity.gitStatus", "zh-Hans")).toBe("Git 状态");
+    expect(t("chrome.activity.panelToggles", "zh-Hans")).toBe("面板切换");
+
+    expect(t("chrome.bottom.panel", "zh-Hans")).toBe("底部面板");
+    expect(t("chrome.bottom.resizePanel", "zh-Hans")).toBe("调整底部面板大小");
+    expect(t("chrome.bottom.output", "zh-Hans")).toBe("输出");
+    expect(t("chrome.bottom.diff", "zh-Hans")).toBe("差异");
+
+    expect(t("chrome.topbar.togglePrimarySidebar", "zh-Hans")).toBe(
+      "切换主侧边栏",
+    );
+    expect(t("chrome.window.minimize", "zh-Hans")).toBe("最小化");
+    expect(t("chrome.window.maximize", "zh-Hans")).toBe("最大化");
+    expect(t("chrome.window.restore", "zh-Hans")).toBe("还原");
+    expect(t("chrome.window.close", "zh-Hans")).toBe("关闭");
+
+    expect(t("chrome.status.statusBar", "zh-Hans")).toBe("状态栏");
+    expect(t("chrome.status.remote", "zh-Hans")).toBe("远端");
+    expect(t("chrome.status.merge", "zh-Hans")).toBe("合并");
+    expect(t("chrome.status.openSettings", "zh-Hans")).toBe("打开设置");
+    expect(t("chrome.status.dismissError", "zh-Hans")).toBe("关闭错误");
+    expect(t("chrome.status.ipcConnecting", "zh-Hans")).toBe("ipc：连接中...");
+    expect(t("chrome.status.ipcOk", "zh-Hans")).toBe("ipc：");
+    expect(t("chrome.status.ipcError", "zh-Hans")).toBe("ipc 错误：");
+    expect(t("chrome.status.alpha", "zh-Hans")).toBe("alpha");
+  });
 });

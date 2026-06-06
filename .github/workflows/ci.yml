@@ -23,6 +23,10 @@ on:
         description: "Optional: build all release installers for this tag and upload them to its GitHub Release"
         required: false
         default: ""
+      release_macos_tag:
+        description: "Optional: build only the macOS installer for this tag and upload it to its GitHub Release"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -33,7 +37,7 @@ jobs:
     name: Markdown lint · 文档一致性
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -59,7 +63,7 @@ jobs:
   # ────────────── Rust 构建与测试（MVP-01 Phase A 启用 · Task 5.2 跨平台矩阵）──────────────
   rust-build:
     name: Rust · clippy + fmt + test + Tauri build smoke (${{ matrix.os }})
-    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     # Task 5.2 · windows-ci-matrix：把单 job 展开为 ubuntu + windows 两 leg。
     # windows-latest runner 预装 MSVC toolchain + WebView2 Runtime + Node，无需 apt。
     # 触发仍为 workflow_dispatch（ADR-021 · 见文件顶部 on:），矩阵化让手动 dispatch 覆盖 Windows leg。
@@ -150,7 +154,7 @@ jobs:
     name: Frontend · pnpm lint + typecheck
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -198,7 +202,7 @@ jobs:
     name: Runtime evidence · R1-R5 + .validator-exceptions.json
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -227,7 +231,7 @@ jobs:
     name: Pre-code status · 当前阶段说明
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' }}
+    if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Status
         run: |
@@ -300,16 +304,16 @@ jobs:
 
   release-macos-installers:
     name: Release · macOS DMG installer
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 60
-    if: ${{ inputs.release_tag != '' }}
+    if: ${{ inputs.release_tag != '' || inputs.release_macos_tag != '' }}
     permissions:
       contents: write
     steps:
       - name: Checkout release tag
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_tag || inputs.release_macos_tag }}
 
       - name: Setup Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -337,7 +341,7 @@ jobs:
       - name: Upload installers to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag || inputs.release_macos_tag }}
         run: |
           assets=()
           while IFS= read -r -d '' file; do

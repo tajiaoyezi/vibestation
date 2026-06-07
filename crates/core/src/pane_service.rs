@@ -807,31 +807,33 @@ mod tests {
 
     #[test]
     fn split_rolls_back_when_layout_invalid() {
-        // MVP-14 v0.2: 同向 split 已合法 · 改为测试 max depth exceeded（深度超过 5）
+        // v1.1: 后端兜底 3 columns × 2 rows，防 direct IPC 绕过前端按钮状态。
         let (_dir, pool, tab_id) = setup();
         seed_initial_pane(&pool, &tab_id, "p1");
 
-        // 连续 split 最右侧新 pane 5 次 · 深度达到 6 > MAX_LAYOUT_SPLIT_DEPTH(5)
+        // 依次形成 H(p1, V(p2, H(p3, p4)))，第 4 次继续下分会产生第 3 行。
         let mut parent_pane = "p1".to_string();
         let mut existing_panes = std::collections::HashSet::new();
         existing_panes.insert(parent_pane.clone());
 
-        for i in 0..6 {
+        for i in 0..4 {
             let result = apply_pane_split(
                 &pool,
                 &PaneCreateRequest {
                     tab_id: tab_id.clone(),
                     parent_pane_id: parent_pane.clone(),
-                    direction: if i % 2 == 0 {
-                        SplitDir::Horizontal
-                    } else {
-                        SplitDir::Vertical
-                    },
+                    direction: [
+                        SplitDir::Horizontal,
+                        SplitDir::Vertical,
+                        SplitDir::Horizontal,
+                        SplitDir::Vertical,
+                    ][i]
+                        .clone(),
                     shell: "/bin/zsh".to_string(),
                 },
             );
-            if i < 5 {
-                // 前 5 次成功
+            if i < 3 {
+                // 前 3 次成功，仍在 3 columns × 2 rows 内。
                 let response = result.unwrap();
                 assert_eq!(response.panes.len(), i + 2);
                 // 找到新创建的 pane（不在 existing_panes 中）
@@ -844,10 +846,10 @@ mod tests {
                 existing_panes.insert(new_pane.clone());
                 parent_pane = new_pane;
             } else {
-                // 第 6 次应触发 InvalidLayout（max depth exceeded）
+                // 第 4 次应触发 InvalidLayout（row limit exceeded）
                 assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
-                // rollback：依然 6 pane（不是 7）
-                assert_eq!(pane_count(&pool, &tab_id), 6);
+                // rollback：依然 4 pane（不是 5）
+                assert_eq!(pane_count(&pool, &tab_id), 4);
             }
         }
     }

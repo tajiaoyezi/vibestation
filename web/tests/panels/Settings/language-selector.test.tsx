@@ -109,9 +109,9 @@ describe("FEAT-02 Language selector", () => {
     expect(slider.max).toBe("1");
     expect(slider.step).toBe("0.05");
     expect(slider.value).toBe("0.65");
-    expect(document.documentElement.style.getPropertyValue("--bg-opacity")).toBe(
-      "0.65",
-    );
+    expect(
+      document.documentElement.style.getPropertyValue("--bg-opacity"),
+    ).toBe("0.65");
 
     fireEvent.input(slider, { target: { value: "0.3" } });
 

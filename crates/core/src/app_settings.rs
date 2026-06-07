@@ -178,14 +178,6 @@ fn clamp_bg_opacity(value: f32) -> f32 {
     value.clamp(MIN_BG_OPACITY, MAX_BG_OPACITY)
 }
 
-fn is_windows_cmd_shell(value: &str) -> bool {
-    std::path::Path::new(value)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .map(|name| name.eq_ignore_ascii_case("cmd.exe"))
-        .unwrap_or_else(|| value.eq_ignore_ascii_case("cmd.exe"))
-}
-
 fn get_language(pool: &DbPool) -> String {
     // Keep settings_get/get_all side-effect free: normalize invalid persisted values
     // for callers, but do not rewrite the DB until settings_update runs.
@@ -202,18 +194,9 @@ impl AppSettingsStore {
             return Ok(());
         }
 
-        #[cfg(target_os = "windows")]
-        {
-            let probed_default = default_shell_for_platform();
-            if !is_windows_cmd_shell(&probed_default) {
-                if let Ok(stored_shell) = AppSettingsStore::get(pool, "default_shell") {
-                    if is_windows_cmd_shell(&stored_shell) {
-                        AppSettingsStore::set(pool, "default_shell", &probed_default)?;
-                    }
-                }
-            }
-        }
-
+        // Missing values already fall back to the probed platform default in get_all().
+        // A persisted cmd.exe value may be an explicit user preference, so startup must
+        // not rewrite it without provenance that it was auto-seeded by an older build.
         AppSettingsStore::set(pool, DEFAULT_SHELL_PROBE_MIGRATED_KEY, "true")
     }
 
@@ -689,15 +672,17 @@ mod tests {
 
     #[cfg(target_os = "windows")]
     #[test]
-    fn test_1_3_5_legacy_cmd_default_migrates_to_probe_chain() {
+    fn test_1_3_5_legacy_cmd_default_is_not_silently_overwritten() {
         let (_dir, pool) = setup();
-        AppSettingsStore::set(&pool, "default_shell", r"C:\Windows\System32\cmd.exe").unwrap();
+        let explicit_cmd = r"C:\Windows\System32\cmd.exe";
+        AppSettingsStore::set(&pool, "default_shell", explicit_cmd).unwrap();
 
         AppSettingsStore::migrate_legacy_default_shell(&pool).unwrap();
 
         assert_eq!(
             AppSettingsStore::get_all(&pool).default_shell,
-            crate::pty::resolve_default_shell(None)
+            explicit_cmd,
+            "startup migration must not override a persisted cmd.exe preference"
         );
         assert_eq!(
             AppSettingsStore::get(&pool, DEFAULT_SHELL_PROBE_MIGRATED_KEY).unwrap(),

@@ -11,6 +11,8 @@ use ts_rs::TS;
 
 pub const MAX_LAYOUT_SPLIT_DEPTH: usize = 5;
 pub const MAX_LAYOUT_PANES: usize = 6;
+pub const MAX_LAYOUT_COLUMNS: usize = 3;
+pub const MAX_LAYOUT_ROWS: usize = 2;
 pub const MIN_SPLIT_RATIO: f32 = 0.05;
 pub const MAX_SPLIT_RATIO: f32 = 0.95;
 
@@ -47,7 +49,8 @@ impl LayoutNode {
     /// - depth 上限 5（原为 2）
     /// - 同向连续 split **允许**（不再拒绝 H(H(...))）
     /// - ratio clamp 到 [0.05, 0.95]
-    /// - pane count 上限 6（前端 3 列 / 3 行维度限制的总量保护）
+    /// - pane count 上限 6（前端 3 列 / 2 行维度限制的总量保护）
+    /// - grid 上限 3 列 / 2 行（后端兜底，防 direct IPC / 并发绕过前端按钮状态）
     /// - 空 layout / 缺 pane id / 重复 pane id 拒绝
     pub fn validate_layout(&self) -> Result<(), PaneLayoutError> {
         let mut seen = std::collections::HashSet::new();
@@ -58,7 +61,43 @@ impl LayoutNode {
                 reason: format!("pane count {pane_count} exceeds v0.2 max {MAX_LAYOUT_PANES}"),
             });
         }
+        let (columns, rows) = self.grid_dimensions();
+        if columns > MAX_LAYOUT_COLUMNS {
+            return Err(PaneLayoutError::PresetApplyFailed {
+                preset: LayoutPresetKind::Solo,
+                reason: format!("layout columns {columns} exceeds max {MAX_LAYOUT_COLUMNS}"),
+            });
+        }
+        if rows > MAX_LAYOUT_ROWS {
+            return Err(PaneLayoutError::PresetApplyFailed {
+                preset: LayoutPresetKind::Solo,
+                reason: format!("layout rows {rows} exceeds max {MAX_LAYOUT_ROWS}"),
+            });
+        }
         Ok(())
+    }
+
+    pub fn grid_dimensions(&self) -> (usize, usize) {
+        match self {
+            Self::Single { .. } => (1, 1),
+            Self::Split {
+                direction,
+                first,
+                second,
+                ..
+            } => {
+                let (first_columns, first_rows) = first.grid_dimensions();
+                let (second_columns, second_rows) = second.grid_dimensions();
+                match direction {
+                    SplitDir::Horizontal => {
+                        (first_columns + second_columns, first_rows.max(second_rows))
+                    }
+                    SplitDir::Vertical => {
+                        (first_columns.max(second_columns), first_rows + second_rows)
+                    }
+                }
+            }
+        }
     }
 
     fn validate_inner(
@@ -1695,26 +1734,44 @@ mod tests {
     }
 
     #[test]
-    fn split_layout_rebalances_vertical_group_after_same_direction_split() {
+    fn split_layout_rejects_vertical_rebalance_that_would_create_third_row() {
         let layout = vertical_2pane("p1", "p2");
-        let result = split_layout(&layout, "p1", SplitDir::Vertical, "p3".to_string()).unwrap();
+        let result = split_layout(&layout, "p1", SplitDir::Vertical, "p3".to_string());
 
-        assert_eq!(result.pane_count(), 3);
-        result.validate_layout().unwrap();
-        assert_eq!(
-            result,
-            LayoutNode::Split {
-                direction: SplitDir::Vertical,
-                ratio: 2.0 / 3.0,
-                first: Box::new(LayoutNode::Split {
-                    direction: SplitDir::Vertical,
-                    ratio: 0.5,
-                    first: Box::new(solo_layout("p1")),
-                    second: Box::new(solo_layout("p3")),
-                }),
-                second: Box::new(solo_layout("p2")),
-            }
-        );
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+    }
+
+    #[test]
+    fn split_layout_rejects_fourth_column() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 1.0 / 3.0,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo_layout("p2")),
+                second: Box::new(solo_layout("p3")),
+            }),
+        };
+
+        let result = split_layout(&layout, "p3", SplitDir::Horizontal, "p4".to_string());
+
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
+    }
+
+    #[test]
+    fn split_layout_rejects_third_row() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Vertical,
+            ratio: 0.5,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(solo_layout("p2")),
+        };
+
+        let result = split_layout(&layout, "p2", SplitDir::Vertical, "p3".to_string());
+
+        assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
     }
 
     // --- §H.2 case 5-6 · 非法 split ----------------------------------
@@ -1802,11 +1859,10 @@ mod tests {
 
     #[test]
     fn atomic_split_depth_exceeded_returns_unchanged() {
-        // case 2 · 深度超限 · pure function 返回 Err · layout 不变
-        // 构建 depth 5 布局 · 再 split → depth 6 超限
-        let layout = layout_depth_5_alternating();
+        // case 2 · 布局上限超限 · pure function 返回 Err · layout 不变
+        // 3 columns × 2 rows 已满 · 再 split 会超过总上限 / 轴向上限。
+        let layout = layout_full_3x2_grid();
         let original = layout.clone();
-        // p1 在 depth 5 · 再 split → depth 6 超限
         let result = split_layout(&layout, "p1", SplitDir::Horizontal, "p7".to_string());
         assert!(matches!(result, Err(PaneError::InvalidLayout(_))));
         assert_eq!(layout, original);
@@ -2077,33 +2133,33 @@ mod tests {
 
     // --- A.2 depth validation -----------------------------------------
 
-    fn layout_depth_5_alternating() -> LayoutNode {
-        // H(V(H(V(H(p1, p2), p3), p4), p5), p6) · depth = 5
+    fn layout_full_3x2_grid() -> LayoutNode {
+        // H(V(p1, p4), H(V(p2, p5), V(p3, p6))) · 3 columns × 2 rows
         LayoutNode::Split {
             direction: SplitDir::Horizontal,
-            ratio: 0.5,
+            ratio: 1.0 / 3.0,
             first: Box::new(LayoutNode::Split {
                 direction: SplitDir::Vertical,
                 ratio: 0.5,
-                first: Box::new(LayoutNode::Split {
-                    direction: SplitDir::Horizontal,
-                    ratio: 0.5,
-                    first: Box::new(LayoutNode::Split {
-                        direction: SplitDir::Vertical,
-                        ratio: 0.5,
-                        first: Box::new(LayoutNode::Split {
-                            direction: SplitDir::Horizontal,
-                            ratio: 0.5,
-                            first: Box::new(solo_layout("p1")),
-                            second: Box::new(solo_layout("p2")),
-                        }),
-                        second: Box::new(solo_layout("p3")),
-                    }),
-                    second: Box::new(solo_layout("p4")),
-                }),
-                second: Box::new(solo_layout("p5")),
+                first: Box::new(solo_layout("p1")),
+                second: Box::new(solo_layout("p4")),
             }),
-            second: Box::new(solo_layout("p6")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo_layout("p2")),
+                    second: Box::new(solo_layout("p5")),
+                }),
+                second: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo_layout("p3")),
+                    second: Box::new(solo_layout("p6")),
+                }),
+            }),
         }
     }
 
@@ -2143,8 +2199,9 @@ mod tests {
     }
 
     #[test]
-    fn depth_5_passes_validation() {
-        let layout = layout_depth_5_alternating();
+    fn full_3x2_grid_passes_validation() {
+        let layout = layout_full_3x2_grid();
+        assert_eq!(layout.grid_dimensions(), (3, 2));
         layout.validate_layout().unwrap();
     }
 

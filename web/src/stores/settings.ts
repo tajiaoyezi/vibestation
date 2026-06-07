@@ -169,7 +169,8 @@ export function useSettings() {
         req.gitUserName = normalized.gitUserName;
       if (normalized.gitUserEmail !== undefined)
         req.gitUserEmail = normalized.gitUserEmail;
-      if (normalized.bgOpacity !== undefined) req.bgOpacity = normalized.bgOpacity;
+      if (normalized.bgOpacity !== undefined)
+        req.bgOpacity = normalized.bgOpacity;
       if (normalized.bgBlur !== undefined) req.bgBlur = normalized.bgBlur;
       if (normalized.windowPaddingX !== undefined)
         req.windowPaddingX = normalized.windowPaddingX;

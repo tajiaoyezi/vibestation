@@ -57,7 +57,7 @@
 }
 
 .vs-session-badge--confirmed:hover {
-  background: color-mix(in oklch, var(--accent) 22%, var(--bg-1));
+  background: color-mix(in oklch, var(--accent) 22%, var(--surface-1));
 }
 
 /* §D.2 (c) pending — weakened style (muted + dashed). The ◌ icon is the
@@ -83,7 +83,7 @@
 }
 
 .vs-session-badge--stale:hover {
-  background: color-mix(in oklch, var(--warning) 16%, var(--bg-1));
+  background: color-mix(in oklch, var(--warning) 16%, var(--surface-1));
 }
 
 .vs-session-badge:focus-visible {

@@ -25,7 +25,7 @@
   appearance: none;
   border: 0;
   border-left: 1px solid var(--line-soft);
-  background: var(--bg-1);
+  background: var(--surface-1);
   color: var(--text-3);
   min-width: 0;
   padding: 6px 4px;

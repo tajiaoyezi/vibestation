@@ -26,7 +26,7 @@
   max-width: 112px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: color-mix(in oklch, var(--bg-2) 88%, transparent);
+  background: color-mix(in oklch, var(--surface-2) 88%, transparent);
   color: var(--text-2);
   font: 10px var(--font-mono);
   line-height: 1;
@@ -46,7 +46,7 @@
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: color-mix(in oklch, var(--bg-1) 94%, transparent);
+  background: color-mix(in oklch, var(--surface-1) 94%, transparent);
   padding: 6px;
   box-shadow: 0 12px 24px oklch(0 0 0 / 0.22);
 }

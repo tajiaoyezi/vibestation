@@ -127,7 +127,7 @@
 
 .vs-sub-head-add:hover:not(:disabled) {
   color: var(--text-1);
-  background: var(--bg-1);
+  background: var(--surface-1);
 }
 
 .vs-sub-head-add:focus-visible {
@@ -173,7 +173,7 @@
 }
 
 .vs-branch-row:hover {
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
 }
 
@@ -283,7 +283,7 @@
   align-self: flex-start;
   appearance: none;
   border: 1px solid var(--line-soft);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
   border-radius: var(--r-4);
   padding: 4px 8px;
@@ -299,7 +299,7 @@
   padding: 4px;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-6);
-  background: var(--bg-1);
+  background: var(--surface-1);
   box-shadow: 0 12px 30px rgb(0 0 0 / 0.32);
 }
 
@@ -319,7 +319,7 @@
 }
 
 .vs-branch-context-menu button:hover:not(:disabled) {
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
 }
 

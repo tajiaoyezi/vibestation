@@ -6,7 +6,7 @@
   overflow: hidden;
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.02), transparent 28%),
-    var(--bg-1);
+    var(--surface-1);
 }
 
 .vs-terminal-workspace-row {
@@ -58,7 +58,7 @@
   min-height: 38px;
   padding: 0 var(--space-3);
   border-bottom: 1px solid var(--line-soft);
-  background: var(--bg-0);
+  background: var(--surface-0);
 }
 
 .vs-terminal-tabbar-scroll {
@@ -187,14 +187,14 @@
 
 /* inactive tab hover · 给 chip 形态出来 · close × 也跟着显出来 */
 .vs-terminal-tab:not(.is-active):hover {
-  background: var(--bg-2);
+  background: var(--surface-2);
 }
 
 .vs-terminal-tab.is-active {
   /* active tab bg 跟 stage（--bg-1）一致 · 视觉上 tab + terminal 内容是同一面板凸出。
      accent 蓝条改用底部独立 .vs-terminal-tabbar-indicator 元素 · JS 跟随 active tab
      平滑滑动 · 取代原来 border-bottom 切换"瞬间跳"。 */
-  background: var(--bg-1);
+  background: var(--surface-1);
 }
 
 .vs-terminal-tab-trigger {
@@ -235,7 +235,7 @@
   min-width: 0;
   border: 1px solid var(--accent);
   border-radius: var(--r-4);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
   padding: 4px 6px;
@@ -291,7 +291,7 @@
 .vs-terminal-tab-close:hover,
 .vs-terminal-new-tab:hover {
   border-color: var(--line);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
 }
 
@@ -402,7 +402,7 @@
   min-height: 0;
   background:
     radial-gradient(circle at top, rgb(255 255 255 / 0.03), transparent 40%),
-    var(--bg-1);
+    var(--surface-1);
 }
 
 .vs-terminal-pane {
@@ -446,7 +446,7 @@
   gap: var(--space-2);
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: color-mix(in oklch, var(--bg-0) 88%, var(--accent));
+  background: color-mix(in oklch, var(--surface-0) 88%, var(--accent));
   color: var(--text-1);
   box-shadow: 0 18px 42px rgb(0 0 0 / 0.12);
   font-family: var(--font-mono);
@@ -467,15 +467,17 @@
   height: 100%;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
   overflow: hidden;
 }
 
 .vs-terminal-host .xterm {
   height: 100%;
   padding: var(--space-2) var(--space-3);
+  background: transparent !important;
 }
 
+.vs-terminal-host .xterm-screen,
 .vs-terminal-host .xterm-viewport {
   background: transparent !important;
 }
@@ -503,7 +505,7 @@
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
   color: var(--text-1);
   box-shadow: 0 18px 48px rgb(0 0 0 / 0.26);
 }
@@ -511,7 +513,7 @@
 .vs-terminal-toast.is-error {
   border-color: var(--danger);
   color: var(--danger);
-  background: color-mix(in oklch, var(--bg-0) 88%, var(--danger));
+  background: color-mix(in oklch, var(--surface-0) 88%, var(--danger));
 }
 
 .vs-terminal-modal-backdrop {
@@ -529,7 +531,7 @@
   width: min(520px, calc(100% - 2 * var(--space-5)));
   border: 1px solid var(--line);
   border-radius: var(--r-12);
-  background: var(--bg-1);
+  background: var(--surface-1);
   box-shadow: 0 24px 72px rgb(0 0 0 / 0.34);
   padding: var(--space-5);
 }
@@ -550,7 +552,7 @@
   margin: 0 0 var(--space-4);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
   color: var(--text-2);
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -628,7 +630,7 @@
   appearance: none;
   border: 1px solid #e5484d;
   border-radius: var(--r-6);
-  background: color-mix(in oklch, #e5484d 15%, var(--bg-0));
+  background: color-mix(in oklch, #e5484d 15%, var(--surface-0));
   color: #e5484d;
   cursor: pointer;
   font: inherit;
@@ -638,7 +640,7 @@
 }
 
 .vs-btn-danger:hover {
-  background: color-mix(in oklch, #e5484d 25%, var(--bg-0));
+  background: color-mix(in oklch, #e5484d 25%, var(--surface-0));
 }
 
 @media (width <= 900px) {
@@ -776,15 +778,17 @@
   overflow: hidden;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
 }
 
 /* xterm 必须撑满 host · 否则底部留白显示 host 自身 bg-0 · 形成"边框 + 内部深色块"双重视觉重叠 */
 .vs-pane-terminal-host .xterm {
   height: 100%;
   padding: var(--space-2) var(--space-3);
+  background: transparent !important;
 }
 
+.vs-pane-terminal-host .xterm-screen,
 .vs-pane-terminal-host .xterm-viewport {
   background: transparent !important;
 }
@@ -807,7 +811,7 @@
   color: var(--danger);
   padding: var(--space-2) var(--space-3);
   font-size: 0.8125rem;
-  background: var(--bg-1);
+  background: var(--surface-1);
 }
 
 .vs-pane-missing {
@@ -825,7 +829,7 @@
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: color-mix(in oklch, var(--bg-1) 92%, transparent);
+  background: color-mix(in oklch, var(--surface-1) 92%, transparent);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-6);
   backdrop-filter: blur(6px);
@@ -863,7 +867,7 @@
 }
 
 .vs-pane-action-btn:hover {
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
 }
 
@@ -880,7 +884,7 @@
 }
 
 .vs-pane-action-btn:active {
-  background: var(--bg-3);
+  background: var(--surface-3);
 }
 
 .vs-pane-action-btn-danger:hover {
@@ -909,7 +913,7 @@
   flex-direction: column;
   border: 1px solid var(--line);
   border-radius: var(--r-12);
-  background: var(--bg-1);
+  background: var(--surface-1);
   box-shadow: 0 24px 72px rgb(0 0 0 / 0.4);
   overflow: hidden;
 }
@@ -968,7 +972,7 @@
   padding: var(--space-4);
   border: 1px solid var(--line);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
   color: var(--text-2);
   cursor: pointer;
   text-align: left;
@@ -981,7 +985,7 @@
 
 .vs-smart-layout-preset:hover:not(:disabled) {
   border-color: var(--accent);
-  background: color-mix(in oklch, var(--bg-0) 80%, var(--accent));
+  background: color-mix(in oklch, var(--surface-0) 80%, var(--accent));
 }
 
 .vs-smart-layout-preset.is-selected {
@@ -1036,7 +1040,7 @@
   list-style: none;
   border: 1px solid var(--line-soft);
   border-radius: var(--r-6);
-  background: var(--bg-0);
+  background: var(--surface-0);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
@@ -1071,7 +1075,7 @@
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-6);
-  background: var(--bg-0);
+  background: var(--surface-0);
   color: var(--text-3);
   font-size: 0.75rem;
   line-height: 1.5;
@@ -1082,7 +1086,7 @@
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--danger);
   border-radius: var(--r-6);
-  background: color-mix(in oklch, var(--bg-0) 80%, var(--danger));
+  background: color-mix(in oklch, var(--surface-0) 80%, var(--danger));
   color: var(--danger);
   font-size: 0.8125rem;
   line-height: 1.5;
@@ -1116,7 +1120,7 @@
 
 .vs-smart-layout-btn-cancel {
   border: 1px solid var(--line);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-2);
 }
 
@@ -1129,12 +1133,12 @@
    红色警示 + dry-run 预览齐全等价 spec 要求的二次确认（见 PR body UX 决策） */
 .vs-smart-layout-btn-apply {
   border: 1px solid var(--danger);
-  background: color-mix(in oklch, var(--bg-0) 70%, var(--danger));
+  background: color-mix(in oklch, var(--surface-0) 70%, var(--danger));
   color: var(--danger);
 }
 
 .vs-smart-layout-btn-apply:hover:not(:disabled) {
-  background: color-mix(in oklch, var(--bg-0) 50%, var(--danger));
+  background: color-mix(in oklch, var(--surface-0) 50%, var(--danger));
 }
 
 /* MVP-05 Phase C Track A · pane-mode tab 容器（与 .vs-terminal-pane 同区域 · 但承载 PaneSplitView 递归 layout） */
@@ -1263,7 +1267,7 @@
   padding: 2px 8px;
   border: 1px solid color-mix(in oklch, var(--accent) 40%, transparent);
   border-radius: var(--r-4);
-  background: color-mix(in oklch, var(--accent) 12%, var(--bg-1));
+  background: color-mix(in oklch, var(--accent) 12%, var(--surface-1));
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 0.6875rem;

@@ -6,7 +6,7 @@
 // - createMemo 防止 sibling pane body 因无关 ratio 更新而重渲染
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, cleanup } from "@solidjs/testing-library";
+import { render, cleanup, within } from "@solidjs/testing-library";
 import { createSignal } from "solid-js";
 import { PaneSplitView } from "../../../src/panels/Terminal/PaneSplitView";
 import { PaneLinksProvider } from "../../../src/stores/paneLinks-context";
@@ -55,6 +55,66 @@ function createHVLayout(): LayoutNode {
       ratio: 0.5,
       first: { kind: "single", paneId: "pane-b" },
       second: { kind: "single", paneId: "pane-c" },
+    },
+  };
+}
+
+function createThreeColumnLayout(): LayoutNode {
+  return {
+    kind: "split",
+    direction: "horizontal",
+    ratio: 1 / 3,
+    first: { kind: "single", paneId: "pane-a" },
+    second: {
+      kind: "split",
+      direction: "horizontal",
+      ratio: 0.5,
+      first: { kind: "single", paneId: "pane-b" },
+      second: { kind: "single", paneId: "pane-c" },
+    },
+  };
+}
+
+function createTwoRowLayout(): LayoutNode {
+  return {
+    kind: "split",
+    direction: "vertical",
+    ratio: 0.5,
+    first: { kind: "single", paneId: "pane-a" },
+    second: { kind: "single", paneId: "pane-b" },
+  };
+}
+
+function createThreeByTwoLayout(): LayoutNode {
+  return {
+    kind: "split",
+    direction: "horizontal",
+    ratio: 1 / 3,
+    first: {
+      kind: "split",
+      direction: "vertical",
+      ratio: 0.5,
+      first: { kind: "single", paneId: "pane-a" },
+      second: { kind: "single", paneId: "pane-d" },
+    },
+    second: {
+      kind: "split",
+      direction: "horizontal",
+      ratio: 0.5,
+      first: {
+        kind: "split",
+        direction: "vertical",
+        ratio: 0.5,
+        first: { kind: "single", paneId: "pane-b" },
+        second: { kind: "single", paneId: "pane-e" },
+      },
+      second: {
+        kind: "split",
+        direction: "vertical",
+        ratio: 0.5,
+        first: { kind: "single", paneId: "pane-c" },
+        second: { kind: "single", paneId: "pane-f" },
+      },
     },
   };
 }
@@ -185,12 +245,12 @@ describe("PaneSplitView", () => {
 
     // 初始：split 模式 · 2 个 pane 都渲染
     expect(container.querySelectorAll(".vs-pane-split").length).toBe(1);
-    expect(
-      container.querySelectorAll('[data-pane-id="pane-a"]').length,
-    ).toBe(1);
-    expect(
-      container.querySelectorAll('[data-pane-id="pane-b"]').length,
-    ).toBe(1);
+    expect(container.querySelectorAll('[data-pane-id="pane-a"]').length).toBe(
+      1,
+    );
+    expect(container.querySelectorAll('[data-pane-id="pane-b"]').length).toBe(
+      1,
+    );
 
     // close pane-b · backend 返回 single{pane-a}（已被 panes.rs:1688 测试验证）
     setLayout({ kind: "single", paneId: "pane-a" });
@@ -202,12 +262,12 @@ describe("PaneSplitView", () => {
     // - 只剩 pane-a · pane-b 完全消失
     expect(container.querySelectorAll(".vs-pane-split").length).toBe(0);
     expect(container.querySelectorAll(".vs-pane-missing").length).toBe(0);
-    expect(
-      container.querySelectorAll('[data-pane-id="pane-a"]').length,
-    ).toBe(1);
-    expect(
-      container.querySelectorAll('[data-pane-id="pane-b"]').length,
-    ).toBe(0);
+    expect(container.querySelectorAll('[data-pane-id="pane-a"]').length).toBe(
+      1,
+    );
+    expect(container.querySelectorAll('[data-pane-id="pane-b"]').length).toBe(
+      0,
+    );
   });
 
   // BUG-001 真实复现 · 2026-05-23 session 34 · 标 it.fails（known-failing）
@@ -309,5 +369,106 @@ describe("PaneSplitView", () => {
     // 通过触发 drag end 来验证
     // 注意：由于 splitter 的 onDragEnd 需要 pointer 事件触发，这里只验证渲染结构
     expect(splitters.length).toBe(2);
+  });
+
+  it("disables split buttons per axis and total pane limits", () => {
+    const { container, unmount } = render(() => (
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={createThreeColumnLayout()}
+            panes={createPanes(3)}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId="pane-a"
+            onPaneClick={() => {}}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
+    ));
+
+    const paneA = container.querySelector('[data-pane-id="pane-a"]');
+    expect(paneA).not.toBeNull();
+    expect(
+      (
+        within(paneA as HTMLElement).getByLabelText(
+          "右分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        within(paneA as HTMLElement).getByLabelText(
+          "下分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+
+    unmount();
+
+    const twoRows = render(() => (
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={createTwoRowLayout()}
+            panes={createPanes(2)}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId="pane-a"
+            onPaneClick={() => {}}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
+    ));
+    const rowPaneA = twoRows.container.querySelector('[data-pane-id="pane-a"]');
+    expect(rowPaneA).not.toBeNull();
+    expect(
+      (
+        within(rowPaneA as HTMLElement).getByLabelText(
+          "右分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(false);
+    expect(
+      (
+        within(rowPaneA as HTMLElement).getByLabelText(
+          "下分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+
+    twoRows.unmount();
+
+    const full = render(() => (
+      <PaneLinksProvider>
+        <PaneDraftsProvider>
+          <PaneSplitView
+            layout={createThreeByTwoLayout()}
+            panes={createPanes(6)}
+            workspaceId="ws-test"
+            active={true}
+            focusedPaneId="pane-a"
+            onPaneClick={() => {}}
+          />
+        </PaneDraftsProvider>
+      </PaneLinksProvider>
+    ));
+    const fullPaneA = full.container.querySelector('[data-pane-id="pane-a"]');
+    expect(fullPaneA).not.toBeNull();
+    expect(
+      (
+        within(fullPaneA as HTMLElement).getByLabelText(
+          "右分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(
+      (
+        within(fullPaneA as HTMLElement).getByLabelText(
+          "下分屏",
+        ) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    full.unmount();
   });
 });

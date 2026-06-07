@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 pub const MAX_LAYOUT_SPLIT_DEPTH: usize = 5;
-pub const MAX_LAYOUT_PANES: usize = 16;
+pub const MAX_LAYOUT_PANES: usize = 6;
 pub const MIN_SPLIT_RATIO: f32 = 0.05;
 pub const MAX_SPLIT_RATIO: f32 = 0.95;
 
@@ -47,7 +47,7 @@ impl LayoutNode {
     /// - depth 上限 5（原为 2）
     /// - 同向连续 split **允许**（不再拒绝 H(H(...))）
     /// - ratio clamp 到 [0.05, 0.95]
-    /// - pane count 上限 16（由深度推导的安全上限）
+    /// - pane count 上限 6（前端 3 列 / 3 行维度限制的总量保护）
     /// - 空 layout / 缺 pane id / 重复 pane id 拒绝
     pub fn validate_layout(&self) -> Result<(), PaneLayoutError> {
         let mut seen = std::collections::HashSet::new();
@@ -593,8 +593,10 @@ pub fn build_layout_for_preset(
 
 /// MVP-05 §H.2 · 在指定 Pane 处右分 / 下分一个新 Pane（pure function · 不修改原 layout）。
 ///
-/// 在 `layout` 中找到 `parent_pane_id` 对应的 `Single` 节点 · 用 `Split { direction, ratio: 0.5,
-/// first: Single(parent), second: Single(new) }` 替换。新布局通过 `validate_layout()` 校验。
+/// 在 `layout` 中找到 `parent_pane_id` 对应的 `Single` 节点 · 用 `Split { direction,
+/// first: Single(parent), second: Single(new) }` 替换。若命中处位于同方向连续 split 组内，
+/// 会按该组当前 item 总数重新平均 ratio，避免新增 pane 只平分当前 pane。新布局通过
+/// `validate_layout()` 校验。
 ///
 /// 入参：
 /// - `layout`：当前布局（不被修改）
@@ -621,20 +623,8 @@ pub fn split_layout(
             "new pane id {new_pane_id} already exists in layout"
         )));
     }
-    let new_layout = replace_single(
-        layout,
-        parent_pane_id,
-        LayoutNode::Split {
-            direction,
-            ratio: 0.5,
-            first: Box::new(LayoutNode::Single {
-                pane_id: parent_pane_id.to_string(),
-            }),
-            second: Box::new(LayoutNode::Single {
-                pane_id: new_pane_id,
-            }),
-        },
-    );
+    let new_layout = split_layout_inner(layout, parent_pane_id, &direction, &new_pane_id)
+        .ok_or_else(|| PaneError::NotFound(parent_pane_id.to_string()))?;
     new_layout.validate_layout().map_err(PaneError::from)?;
     Ok(new_layout)
 }
@@ -816,24 +806,113 @@ fn collect_pane_ids_inner(layout: &LayoutNode, ids: &mut Vec<String>) {
     }
 }
 
-/// 把 layout 中所有 `Single { pane_id == target }` 替换为 `replacement`（递归 deep-copy）。
-fn replace_single(layout: &LayoutNode, target: &str, replacement: LayoutNode) -> LayoutNode {
+fn split_layout_inner(
+    layout: &LayoutNode,
+    target: &str,
+    split_direction: &SplitDir,
+    new_pane_id: &str,
+) -> Option<LayoutNode> {
     match layout {
-        LayoutNode::Single { pane_id } if pane_id == target => replacement,
-        LayoutNode::Single { pane_id } => LayoutNode::Single {
-            pane_id: pane_id.clone(),
-        },
+        LayoutNode::Single { pane_id } if pane_id == target => Some(LayoutNode::Split {
+            direction: split_direction.clone(),
+            ratio: 0.5,
+            first: Box::new(LayoutNode::Single {
+                pane_id: pane_id.clone(),
+            }),
+            second: Box::new(LayoutNode::Single {
+                pane_id: new_pane_id.to_string(),
+            }),
+        }),
+        LayoutNode::Single { .. } => None,
         LayoutNode::Split {
             direction,
             ratio,
             first,
             second,
-        } => LayoutNode::Split {
-            direction: direction.clone(),
-            ratio: *ratio,
-            first: Box::new(replace_single(first, target, replacement.clone())),
-            second: Box::new(replace_single(second, target, replacement)),
-        },
+        } => {
+            if layout_contains_pane(first, target) {
+                let updated_first =
+                    split_layout_inner(first, target, split_direction, new_pane_id)?;
+                let updated = LayoutNode::Split {
+                    direction: direction.clone(),
+                    ratio: *ratio,
+                    first: Box::new(updated_first),
+                    second: second.clone(),
+                };
+                return Some(rebalance_matching_split_group(updated, split_direction));
+            }
+            if layout_contains_pane(second, target) {
+                let updated_second =
+                    split_layout_inner(second, target, split_direction, new_pane_id)?;
+                let updated = LayoutNode::Split {
+                    direction: direction.clone(),
+                    ratio: *ratio,
+                    first: first.clone(),
+                    second: Box::new(updated_second),
+                };
+                return Some(rebalance_matching_split_group(updated, split_direction));
+            }
+            None
+        }
+    }
+}
+
+fn rebalance_matching_split_group(layout: LayoutNode, split_direction: &SplitDir) -> LayoutNode {
+    match layout {
+        LayoutNode::Split {
+            direction,
+            ratio,
+            first,
+            second,
+        } if direction == *split_direction => rebalance_split_group(
+            LayoutNode::Split {
+                direction,
+                ratio,
+                first,
+                second,
+            },
+            split_direction,
+        ),
+        other => other,
+    }
+}
+
+fn rebalance_split_group(layout: LayoutNode, split_direction: &SplitDir) -> LayoutNode {
+    match layout {
+        LayoutNode::Split {
+            direction,
+            first,
+            second,
+            ..
+        } if direction == *split_direction => {
+            let first = rebalance_split_group(*first, split_direction);
+            let second = rebalance_split_group(*second, split_direction);
+            let first_items = split_axis_item_count(&first, split_direction);
+            let second_items = split_axis_item_count(&second, split_direction);
+            let total_items = first_items + second_items;
+            LayoutNode::Split {
+                direction,
+                ratio: first_items as f32 / total_items as f32,
+                first: Box::new(first),
+                second: Box::new(second),
+            }
+        }
+        other => other,
+    }
+}
+
+fn split_axis_item_count(layout: &LayoutNode, split_direction: &SplitDir) -> usize {
+    match layout {
+        LayoutNode::Split {
+            direction,
+            first,
+            second,
+            ..
+        } if direction == split_direction => {
+            split_axis_item_count(first, split_direction)
+                + split_axis_item_count(second, split_direction)
+        }
+        _ => 1,
     }
 }
 
@@ -868,22 +947,24 @@ fn remove_pane(layout: &LayoutNode, pane_id: &str) -> Option<LayoutNode> {
             if layout_contains_pane(first, pane_id) {
                 let new_first =
                     remove_pane(first, pane_id).expect("pane known to exist in first subtree");
-                return Some(LayoutNode::Split {
+                let new_layout = LayoutNode::Split {
                     direction: direction.clone(),
                     ratio: *ratio,
                     first: Box::new(new_first),
                     second: second.clone(),
-                });
+                };
+                return Some(rebalance_matching_split_group(new_layout, direction));
             }
             if layout_contains_pane(second, pane_id) {
                 let new_second =
                     remove_pane(second, pane_id).expect("pane known to exist in second subtree");
-                return Some(LayoutNode::Split {
+                let new_layout = LayoutNode::Split {
                     direction: direction.clone(),
                     ratio: *ratio,
                     first: first.clone(),
                     second: Box::new(new_second),
-                });
+                };
+                return Some(rebalance_matching_split_group(new_layout, direction));
             }
             // pane_id 不在任何子树（前置条件违反）· 原样返回
             Some(layout.clone())
@@ -1590,6 +1671,52 @@ mod tests {
         assert_eq!(result, horizontal_2pane("only", "new"));
     }
 
+    #[test]
+    fn split_layout_rebalances_horizontal_group_after_same_direction_split() {
+        let layout = horizontal_2pane("p1", "p2");
+        let result = split_layout(&layout, "p2", SplitDir::Horizontal, "p3".to_string()).unwrap();
+
+        assert_eq!(result.pane_count(), 3);
+        result.validate_layout().unwrap();
+        assert_eq!(
+            result,
+            LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 1.0 / 3.0,
+                first: Box::new(solo_layout("p1")),
+                second: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Horizontal,
+                    ratio: 0.5,
+                    first: Box::new(solo_layout("p2")),
+                    second: Box::new(solo_layout("p3")),
+                }),
+            }
+        );
+    }
+
+    #[test]
+    fn split_layout_rebalances_vertical_group_after_same_direction_split() {
+        let layout = vertical_2pane("p1", "p2");
+        let result = split_layout(&layout, "p1", SplitDir::Vertical, "p3".to_string()).unwrap();
+
+        assert_eq!(result.pane_count(), 3);
+        result.validate_layout().unwrap();
+        assert_eq!(
+            result,
+            LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 2.0 / 3.0,
+                first: Box::new(LayoutNode::Split {
+                    direction: SplitDir::Vertical,
+                    ratio: 0.5,
+                    first: Box::new(solo_layout("p1")),
+                    second: Box::new(solo_layout("p3")),
+                }),
+                second: Box::new(solo_layout("p2")),
+            }
+        );
+    }
+
     // --- §H.2 case 5-6 · 非法 split ----------------------------------
 
     #[test]
@@ -1693,6 +1820,44 @@ mod tests {
         assert_eq!(new_layout, solo_layout("p1"));
         // 原 layout 不变
         assert_eq!(layout, horizontal_2pane("p1", "p2"));
+    }
+
+    #[test]
+    fn close_pane_rebalances_horizontal_group_after_removal() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Horizontal,
+            ratio: 1.0 / 3.0,
+            first: Box::new(solo_layout("p1")),
+            second: Box::new(LayoutNode::Split {
+                direction: SplitDir::Horizontal,
+                ratio: 0.5,
+                first: Box::new(solo_layout("p2")),
+                second: Box::new(solo_layout("p3")),
+            }),
+        };
+
+        let result = close_pane_in_layout(&layout, "p2").unwrap();
+
+        assert_eq!(result, horizontal_2pane("p1", "p3"));
+    }
+
+    #[test]
+    fn close_pane_rebalances_vertical_group_after_removal() {
+        let layout = LayoutNode::Split {
+            direction: SplitDir::Vertical,
+            ratio: 2.0 / 3.0,
+            first: Box::new(LayoutNode::Split {
+                direction: SplitDir::Vertical,
+                ratio: 0.5,
+                first: Box::new(solo_layout("p1")),
+                second: Box::new(solo_layout("p2")),
+            }),
+            second: Box::new(solo_layout("p3")),
+        };
+
+        let result = close_pane_in_layout(&layout, "p2").unwrap();
+
+        assert_eq!(result, vertical_2pane("p1", "p3"));
     }
 
     #[test]

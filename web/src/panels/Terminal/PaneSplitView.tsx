@@ -23,11 +23,13 @@ import { PaneSplitter } from "./PaneSplitter";
 import { PaneTerminal, type PaneTerminalApi } from "./PaneTerminal";
 import { DetachedPlaceholder } from "./DetachedPlaceholder";
 import { detachedPanes } from "../../lib/pane-detach";
+import { canSplitPaneLayout } from "./paneSplitLimits";
 
 type SplitLayout = Extract<LayoutNode, { kind: "split" }>;
 
 type PaneSplitViewProps = {
   layout: LayoutNode;
+  rootLayout?: LayoutNode;
   panes: PaneState[];
   /** MVP-18 Wave 2 · scope pane-link selectors + create requests to this workspace. */
   workspaceId: string;
@@ -80,6 +82,15 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
     const id = paneId();
     return id ? findPane(props.panes, id) : null;
   };
+  const rootLayout = (): LayoutNode => props.rootLayout ?? props.layout;
+  const canSplitRight = (): boolean => {
+    const id = paneId();
+    return id ? canSplitPaneLayout(rootLayout(), id, "horizontal") : false;
+  };
+  const canSplitDown = (): boolean => {
+    const id = paneId();
+    return id ? canSplitPaneLayout(rootLayout(), id, "vertical") : false;
+  };
   // MVP-17 Phase C wiring · 当 pane 已 detach 到独立 WebviewWindow · 原位置渲染 placeholder
   // backend `pane_detach_state_changed` 事件驱动 `detachedPanes` signal · 跨 worktree 共享
   const detachedLabel = (): string | null => {
@@ -108,6 +119,8 @@ const RenderSingle: Component<PaneSplitViewProps> = (props) => {
             active={props.active}
             focused={props.focusedPaneId === paneId()}
             maximized={props.maximizedPaneId === paneId()}
+            canSplitRight={canSplitRight()}
+            canSplitDown={canSplitDown()}
             onClick={props.onPaneClick}
             onExit={props.onPaneExit}
             onError={props.onPaneError}
@@ -132,6 +145,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
   const ratio = (): number => splitNode()?.ratio ?? 0.5;
   const first = (): LayoutNode | undefined => splitNode()?.first;
   const second = (): LayoutNode | undefined => splitNode()?.second;
+  const rootLayout = (): LayoutNode => props.rootLayout ?? props.layout;
   const parentPaneId = (): string => {
     const node = splitNode();
     return node ? firstPaneInSubtree(node.first) : "";
@@ -149,6 +163,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
         {first() && (
           <PaneSplitView
             layout={first()!}
+            rootLayout={rootLayout()}
             panes={props.panes}
             workspaceId={props.workspaceId}
             active={props.active}
@@ -176,6 +191,7 @@ const RenderSplit: Component<PaneSplitViewProps> = (props) => {
         {second() && (
           <PaneSplitView
             layout={second()!}
+            rootLayout={rootLayout()}
             panes={props.panes}
             workspaceId={props.workspaceId}
             active={props.active}

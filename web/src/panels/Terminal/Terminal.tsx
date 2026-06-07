@@ -32,6 +32,12 @@ import type {
 import { PaneSplitView } from "./PaneSplitView";
 import { paneSnapshots } from "./PaneTerminal";
 import {
+  canSplitPaneLayout,
+  MAX_TERMINAL_PANE_COLUMNS,
+  MAX_TERMINAL_PANE_ROWS,
+  MAX_TERMINAL_PANES,
+} from "./paneSplitLimits";
+import {
   matchesPopToExternalShortcut,
   matchesDetachPaneShortcut,
 } from "../../lib/mvp17-keyboard";
@@ -72,6 +78,19 @@ type PaneApi = {
   copy?: () => void; // legacy TerminalPane 提供 · pane mode 不一定有
   selectAll?: () => void; // 同上
   serialize?: () => string; // pane mode PaneTerminal 提供 · MVP-05 layout 切换 reload 修复用
+  serializeText?: () => string;
+};
+
+const paneSplitLimitMessage = (
+  direction: SplitDir,
+  paneCount: number,
+): string => {
+  if (paneCount >= MAX_TERMINAL_PANES) {
+    return `Pane 已达总上限（${MAX_TERMINAL_PANES} 个）`;
+  }
+  return direction === "horizontal"
+    ? `左右分屏已达上限（最多 ${MAX_TERMINAL_PANE_COLUMNS} 列）`
+    : `上下分屏已达上限（最多 ${MAX_TERMINAL_PANE_ROWS} 行）`;
 };
 
 type TerminalProps = {
@@ -187,6 +206,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
   });
 
   const paneApis = new Map<string, PaneApi>();
+  const snapshotPane = (paneId: string) => {
+    const api = paneApis.get(paneId);
+    const snapshot = api?.serialize?.() ?? "";
+    const text = api?.serializeText?.() ?? "";
+    if (snapshot || text) {
+      paneSnapshots.set(paneId, {
+        ansi: snapshot,
+        text,
+      });
+    }
+  };
   const loadingWorkspaces = new Set<string>();
   const newlyCreatedTabIds = new Set<string>();
   const removingWorkspaces = new Set<string>();
@@ -635,18 +665,19 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) return;
     const tab = findTab(tabId);
     if (!tab) return;
+    const currentList = panesByTabId()[tabId];
+    if (!currentList) return;
+    if (!canSplitPaneLayout(currentList.layout, focusedPaneId, direction)) {
+      showToast(paneSplitLimitMessage(direction, currentList.panes.length));
+      return;
+    }
     // MVP-05 Phase C §F.4 instrumentation · keydown → DOM commit P99 < 150ms 目标
     const t0 = performance.now();
     try {
       // MVP-05 reload 修复 · split 前 snapshot 所有现有 pane · 让重 mount 后 PaneTerminal
       // 通过 paneSnapshots 恢复 xterm 显示。新 pane 的 paneId 不在快照里 · cold spawn 走默认。
-      const currentList = panesByTabId()[tabId];
-      if (currentList) {
-        for (const pane of currentList.panes) {
-          const api = paneApis.get(pane.paneId);
-          const snapshot = api?.serialize?.();
-          if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
-        }
+      for (const pane of currentList.panes) {
+        snapshotPane(pane.paneId);
       }
       const response = await invoke<PaneListResponse>("pane_split", {
         req: {
@@ -699,9 +730,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
       // 后通过 paneSnapshots 恢复 xterm 显示。
       for (const pane of list.panes) {
         if (pane.paneId === paneId) continue;
-        const api = paneApis.get(pane.paneId);
-        const snapshot = api?.serialize?.();
-        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+        snapshotPane(pane.paneId);
       }
       // 先 commit backend layout close · 成功后再 kill PTY · 顺序逆转后即使 pane_close
       // 失败（pool 未 init / DB 错 / stale paneId）· 用户的 shell 进程仍存活 · 可重试 ·
@@ -904,9 +933,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
     const prePaneIds = new Set(preList?.panes.map((p) => p.paneId) ?? []);
     if (preList) {
       for (const pane of preList.panes) {
-        const api = paneApis.get(pane.paneId);
-        const snapshot = api?.serialize?.();
-        if (snapshot) paneSnapshots.set(pane.paneId, snapshot);
+        snapshotPane(pane.paneId);
       }
     }
     const result = await invoke<LayoutApplyResult>(

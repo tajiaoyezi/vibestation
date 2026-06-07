@@ -20,7 +20,6 @@ import { CanvasAddon } from "@xterm/addon-canvas";
 import { FitAddon } from "@xterm/addon-fit";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import {
@@ -46,8 +45,6 @@ import {
   createPaneContextMenu,
   PaneContextMenuOverlay,
 } from "./PaneContextMenu";
-
-const MAX_PANES = 16; // 与后端 panes.rs MAX_LAYOUT_PANES 保持一致
 import { detachPane } from "../../lib/pane-detach";
 import { formatShortcut } from "../../lib/format-shortcut";
 import { setPopToExternalRequest } from "../../lib/external-term";
@@ -65,6 +62,18 @@ import { FailureCallout } from "./FailureCallout";
 import { PaneDraftComposer } from "./PaneDraftComposer";
 import { buildPreviewRequest } from "./paneFailurePreview";
 import type { PaneFailureCallout } from "../../stores/paneLinks";
+import {
+  buildTerminalFontStack,
+  TERMINAL_FONT_WEIGHT,
+  TERMINAL_FONT_WEIGHT_BOLD,
+  TERMINAL_LINE_HEIGHT,
+} from "./terminalTypography";
+import { createTerminalTheme, resolveTerminalThemeMode } from "./terminalTheme";
+import {
+  MAX_TERMINAL_PANE_COLUMNS,
+  MAX_TERMINAL_PANE_ROWS,
+  MAX_TERMINAL_PANES,
+} from "./paneSplitLimits";
 
 type XTermCursorStyle = "block" | "underline" | "bar";
 
@@ -83,14 +92,45 @@ export type PaneTerminalApi = {
   // MVP-05 layout 切换 reload 修复 · 让 caller 在 split / close 之前拿到当前 xterm 完整
   // 状态（buffer + alt screen + cursor + 颜色）的 ANSI 字符串 · remount 时 write 回去恢复。
   serialize: () => string;
+  serializeText: () => string;
 };
 
 /**
- * 模块级 snapshot store · key=paneId · value=SerializeAddon 输出的 ANSI 字符串。
+ * 模块级 snapshot store · key=paneId · value=SerializeAddon 输出的 ANSI / text 快照。
  * 在 layout 切换前由 Terminal.tsx 的 handlePaneSplit / handlePaneClose 写入 ·
- * 新 PaneTerminal mount 时读取并 write 到新 xterm 后删除 entry。
+ * 新 PaneTerminal mount 时在 Terminal.open() 前 write 回 xterm，避免额外 DOM 遮罩污染画面。
  */
-export const paneSnapshots = new Map<string, string>();
+export type PaneSnapshot = {
+  ansi: string;
+  text?: string;
+};
+
+export const paneSnapshots = new Map<string, PaneSnapshot | string>();
+
+const snapshotTextAsAnsi = (
+  snapshot: PaneSnapshot | string | undefined,
+): string => {
+  if (!snapshot || typeof snapshot === "string") return "";
+  const text = snapshot.text?.trimEnd();
+  return text && /\S/.test(text) ? text.replace(/\r?\n/g, "\r\n") : "";
+};
+
+const snapshotAnsi = (snapshot: PaneSnapshot | string | undefined): string =>
+  typeof snapshot === "string"
+    ? snapshot
+    : (snapshot?.ansi ?? "") || snapshotTextAsAnsi(snapshot);
+
+const serializeVisibleText = (term?: XTerm): string => {
+  const buffer = term?.buffer.active;
+  if (!term || !buffer) return "";
+  const start = Math.max(0, buffer.viewportY);
+  const end = Math.min(buffer.length, start + term.rows);
+  const lines: string[] = [];
+  for (let row = start; row < end; row += 1) {
+    lines.push(buffer.getLine(row)?.translateToString(true) ?? "");
+  }
+  return lines.join("\n").trimEnd();
+};
 
 type PaneTerminalProps = {
   paneId: string;
@@ -114,6 +154,8 @@ type PaneTerminalProps = {
   onExit?: (paneId: string, exitCode: number | null) => void;
   onError?: (paneId: string, message: string) => void;
   // MVP-05 visible split UI · toolbar 按钮 wire 到这两个 handler
+  canSplitRight?: boolean;
+  canSplitDown?: boolean;
   onSplit?: (direction: SplitDir, paneId: string) => void;
   onClose?: (paneId: string) => void;
   // cmd+V paste guard 路径 · 与 menu paste / legacy TerminalPane DOM paste 对齐：
@@ -123,51 +165,11 @@ type PaneTerminalProps = {
   onPasteRequest?: (paneId: string, text: string) => void;
 };
 
-const createTheme = () => {
-  const styles = getComputedStyle(document.documentElement);
-  const read = (name: string, fallback: string) =>
-    styles.getPropertyValue(name).trim() || fallback;
-
-  return {
-    background: read("--bg-1", "#11141b"),
-    foreground: read("--text-1", "#f5f7ff"),
-    cursor: read("--text-1", "#f5f7ff"),
-    cursorAccent: read("--bg-1", "#11141b"),
-    selectionBackground: read("--accent-soft", "rgba(120, 169, 255, 0.18)"),
-    // 完整 16 ANSI 调色板 · 否则 xterm 走默认偏暗调色板 · 视觉灰蒙蒙。
-    // 与 legacy TerminalPane.tsx 保持一致 · 防 pane vs tab 颜色分裂。
-    black: read("--bg-0", "#0d1016"),
-    brightBlack: read("--text-4", "#6c7485"),
-    red: read("--danger", "#ff7575"),
-    brightRed: read("--danger", "#ff7575"),
-    green: read("--success", "#4cd38f"),
-    brightGreen: read("--success", "#4cd38f"),
-    yellow: read("--warning", "#f6c24a"),
-    brightYellow: read("--warning", "#f6c24a"),
-    blue: read("--accent", "#6fa9ff"),
-    brightBlue: read("--accent", "#6fa9ff"),
-    magenta: read("--accent", "#6fa9ff"),
-    brightMagenta: read("--accent", "#6fa9ff"),
-    cyan: read("--accent", "#6fa9ff"),
-    brightCyan: read("--accent", "#6fa9ff"),
-    white: read("--text-2", "#c3cad8"),
-    brightWhite: read("--text-1", "#f5f7ff"),
-  };
+type ActiveRenderers = {
+  canvas?: CanvasAddon;
 };
 
-type ActiveRenderers = { webgl?: WebglAddon; canvas?: CanvasAddon };
-
-const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
-  try {
-    const webgl = new WebglAddon();
-    term.loadAddon(webgl);
-    return { webgl };
-  } catch (error) {
-    console.warn(
-      `[mvp-05] pane ${paneId} webgl renderer unavailable, falling back to canvas`,
-      error,
-    );
-  }
+const setupCanvasRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
   try {
     const canvas = new CanvasAddon();
     term.loadAddon(canvas);
@@ -181,12 +183,25 @@ const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers => {
   return {};
 };
 
+const setupRenderer = (term: XTerm, paneId: string): ActiveRenderers =>
+  setupCanvasRenderer(term, paneId);
+
 export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const { settings } = useSettings();
   const [spawnError, setSpawnError] = createSignal<string | null>(null);
 
-  // pane 数量达上限时禁用 split 按钮 · siblingPanes + 自身 = 总数
-  const canSplit = () => props.siblingPanes.length + 1 < MAX_PANES;
+  const paneCount = () => props.siblingPanes.length + 1;
+  const fallbackCanSplit = () => paneCount() < MAX_TERMINAL_PANES;
+  const canSplitRight = () => props.canSplitRight ?? fallbackCanSplit();
+  const canSplitDown = () => props.canSplitDown ?? fallbackCanSplit();
+  const splitLimitTitle = (direction: SplitDir): string => {
+    if (paneCount() >= MAX_TERMINAL_PANES) {
+      return `已达总上限（${MAX_TERMINAL_PANES} 个 Pane）`;
+    }
+    return direction === "horizontal"
+      ? `左右分屏已达上限（最多 ${MAX_TERMINAL_PANE_COLUMNS} 列）`
+      : `上下分屏已达上限（最多 ${MAX_TERMINAL_PANE_ROWS} 行）`;
+  };
 
   // ── MVP-18 Wave 2 · pane linking integration ──────────────────────────────
   const paneLinks = usePaneLinks();
@@ -285,8 +300,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   let resizeObserver: ResizeObserver | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
-  // theme 切换需 dispose + reload addon · WebGL texture atlas 缓存 glyph 不会自动更新
-  let activeWebglAddon: WebglAddon | undefined;
+  // theme 切换需 dispose + reload addon · Canvas atlas 缓存 glyph 不会自动更新
   let activeCanvasAddon: CanvasAddon | undefined;
   let themeObserver: MutationObserver | undefined;
   let paneContainerRef: HTMLDivElement | undefined;
@@ -296,18 +310,12 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   const pendingTimers: Array<ReturnType<typeof setTimeout>> = [];
   let mounted = true;
 
-  // 同步 xterm theme · WebglAddon/CanvasAddon 缓存 atlas 必须 dispose+reload 才能用新色
+  // 同步 xterm theme · CanvasAddon 缓存 atlas 必须 dispose+reload 才能用新色
   // （xterm 5.x term.options.theme 单独设不够 · clearTextureAtlas 实测也不彻底 ·
   //  TerminalPane 已验证 · 此处对齐）
   const syncTheme = () => {
     if (!term) return;
-    term.options.theme = createTheme();
-    if (activeWebglAddon) {
-      try {
-        activeWebglAddon.dispose();
-      } catch {}
-      activeWebglAddon = undefined;
-    }
+    term.options.theme = createTerminalTheme(resolveTerminalThemeMode());
     if (activeCanvasAddon) {
       try {
         activeCanvasAddon.dispose();
@@ -315,7 +323,6 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       activeCanvasAddon = undefined;
     }
     const renderers = setupRenderer(term, props.paneId);
-    activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
   };
 
@@ -330,27 +337,8 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     });
   };
 
-  // 字体栈（用户选的字体放栈首 · bundled + Nerd Font + CJK 兜底）· 读 settings 故响应式
-  const fontStack = () =>
-    [
-      settings.fontFamily,
-      "JetBrains Mono Variable",
-      "JetBrainsMono NF",
-      "JetBrains Mono",
-      "Cascadia Code",
-      "DejaVu Sans Mono",
-      "Ubuntu Mono",
-      "ui-monospace",
-      "Liberation Mono",
-      // CJK 字符 fallback · 防中文光标错位。
-      "Sarasa Term SC",
-      "PingFang SC",
-      "Hiragino Sans GB",
-      "Microsoft YaHei",
-      "Noto Sans CJK SC",
-      "WenQuanYi Micro Hei",
-      "monospace",
-    ].join(", ");
+  // 字体栈 · 普通 JetBrains Mono 优先，Nerd Font 仅作图标兜底。
+  const fontStack = () => buildTerminalFontStack(settings.fontFamily);
 
   createEffect(() => {
     if (props.active) {
@@ -390,14 +378,17 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
   onMount(async () => {
     term = new XTerm({
       allowProposedApi: true,
+      allowTransparency: true,
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
       fontFamily: fontStack(),
       fontSize: settings.fontSize,
-      lineHeight: 1.3,
+      fontWeight: TERMINAL_FONT_WEIGHT,
+      fontWeightBold: TERMINAL_FONT_WEIGHT_BOLD,
+      lineHeight: TERMINAL_LINE_HEIGHT,
       scrollback: 10000,
-      theme: createTheme(),
+      theme: createTerminalTheme(resolveTerminalThemeMode()),
     });
 
     fitAddon = new FitAddon();
@@ -408,11 +399,24 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     term.unicode.activeVersion = "11";
     term.loadAddon(new WebLinksAddon());
 
+    // layout split/close 会 remount affected PaneTerminal。按 SerializeAddon 建议，
+    // 在 Terminal.open() 之前重放 ANSI/text snapshot；不再使用 DOM snapshot 遮罩，
+    // 避免旧画面在 resize/remount 期间覆盖当前 xterm。
+    const snapshot = paneSnapshots.get(props.paneId);
+    if (snapshot) {
+      paneSnapshots.delete(props.paneId);
+      term.write(snapshotAnsi(snapshot));
+    }
+
     if (!hostRef) return;
     term.open(hostRef);
     const renderers = setupRenderer(term, props.paneId);
-    activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
+    if (snapshot) {
+      try {
+        term.refresh(0, term.rows - 1);
+      } catch {}
+    }
 
     // 拦截 cmd/ctrl+C 复制 · cmd/ctrl+V 粘贴 · cmd/ctrl+A 全选。
     // xterm canvas/webgl 渲染不是原生 selectable 文本 · 系统 cmd+C 路径拿不到字。
@@ -473,6 +477,7 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
       // 阻塞 UI 100-300ms · 破 MVP-05 §F P99 latency 目标（Codex review #208 round 4 finding）。
       // 1000 行覆盖正常视觉范围 + 适量向上滚动历史 · viewport + alt screen + cursor 总是含。
       serialize: () => serializeAddon?.serialize({ scrollback: 1000 }) ?? "",
+      serializeText: () => serializeVisibleText(term),
     });
 
     term.onData((data) => {
@@ -496,13 +501,14 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     resizeObserver = new ResizeObserver(() => queueFit());
     resizeObserver.observe(hostRef);
 
-    // 监听 data-theme attribute 变化 · 触发 syncTheme · 跟 TerminalPane fix8 一致
+    // 监听 data-theme / style attribute 变化 · 触发 syncTheme · 跟 TerminalPane fix8 一致。
+    // style 覆盖 Background opacity/blur 这类 CSS var 更新；data-theme 覆盖主题切换。
     // 用 attribute observer 而非 settings.theme reactive · 避免 setSettings/applyCssVars
-    // 顺序 race（applyCssVars 设 data-theme · createTheme 读最新 CSS vars · 有保证）
+    // 顺序 race（applyCssVars 设 CSS vars/data-theme · createTheme 读最新值 · 有保证）
     themeObserver = new MutationObserver(() => syncTheme());
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme"],
+      attributeFilter: ["data-theme", "style"],
     });
 
     // listen 订阅必须在 spawn 之前完成 · Tauri emit 不缓冲 · listener 没 ready
@@ -576,12 +582,6 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     // 注：listener 注册前 (旧 PaneTerminal unlisten 与新 PaneTerminal listen 之间) 仍有
     // 几 ms race window · 该 window 内 backend emit 的 stdout 仍丢失 · 完全消除需 backend
     // pane scrollback replay IPC（超出本 PR · 已记录为 limitation）。
-    const snapshot = paneSnapshots.get(props.paneId);
-    if (snapshot) {
-      paneSnapshots.delete(props.paneId);
-      term.write(snapshot);
-    }
-
     // 等两次 rAF · 确保 host div CSS layout 完成有实际尺寸后再 fit+spawn
     await new Promise<void>((r) => {
       requestAnimationFrame(() => requestAnimationFrame(() => r()));
@@ -701,12 +701,11 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
     // 真"关闭" pane 的 PTY kill 由 caller（handlePaneClose / closeTab）在 invoke backend
     // 之前显式调 pane_pty_kill 完成 · 防 PTY 泄漏。
     try {
-      activeWebglAddon?.dispose();
-    } catch {}
-    try {
       activeCanvasAddon?.dispose();
     } catch {}
-    term?.dispose();
+    try {
+      term?.dispose();
+    } catch {}
   });
 
   return (
@@ -801,17 +800,19 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          class={`vs-pane-action-btn${!canSplitRight() ? " is-disabled" : ""}`}
           title={
-            canSplit()
+            canSplitRight()
               ? `右分屏 (${formatShortcut("⌘\\", "Ctrl+\\")})`
-              : `已达上限（${MAX_PANES} 个 Pane）`
+              : splitLimitTitle("horizontal")
           }
           aria-label="右分屏"
-          disabled={!canSplit()}
+          disabled={!canSplitRight()}
           onClick={(e) => {
             e.stopPropagation();
-            props.onSplit?.("horizontal", props.paneId);
+            if (canSplitRight()) {
+              props.onSplit?.("horizontal", props.paneId);
+            }
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -836,17 +837,19 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
         </button>
         <button
           type="button"
-          class={`vs-pane-action-btn${!canSplit() ? " is-disabled" : ""}`}
+          class={`vs-pane-action-btn${!canSplitDown() ? " is-disabled" : ""}`}
           title={
-            canSplit()
+            canSplitDown()
               ? `下分屏 (${formatShortcut("⌘⇧\\", "Ctrl+Shift+\\")})`
-              : `已达上限（${MAX_PANES} 个 Pane）`
+              : splitLimitTitle("vertical")
           }
           aria-label="下分屏"
-          disabled={!canSplit()}
+          disabled={!canSplitDown()}
           onClick={(e) => {
             e.stopPropagation();
-            props.onSplit?.("vertical", props.paneId);
+            if (canSplitDown()) {
+              props.onSplit?.("vertical", props.paneId);
+            }
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

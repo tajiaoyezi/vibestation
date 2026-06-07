@@ -8,6 +8,9 @@ import { normalizeLanguage, setDocumentLanguage } from "../i18n";
 
 export type ThemeSetting = "light" | "dark" | "auto";
 
+export const MIN_BG_OPACITY = 0.65;
+export const MAX_BG_OPACITY = 1;
+
 const DEFAULTS: AppSettings = {
   language: "en",
   theme: "dark",
@@ -45,7 +48,7 @@ const [loaded, setLoaded] = createSignal(false);
 async function loadSettings(): Promise<void> {
   if (loaded()) return;
   try {
-    const s = await invoke<AppSettings>("settings_get");
+    const s = normalizeSettings(await invoke<AppSettings>("settings_get"));
     setSettings(s);
     applyCssVars(s);
   } catch {}
@@ -59,7 +62,7 @@ async function loadSettings(): Promise<void> {
  */
 export async function reloadSettings(): Promise<void> {
   try {
-    const s = await invoke<AppSettings>("settings_get");
+    const s = normalizeSettings(await invoke<AppSettings>("settings_get"));
     setSettings(s);
     applyCssVars(s);
   } catch {}
@@ -68,13 +71,40 @@ export async function reloadSettings(): Promise<void> {
 loadSettings();
 
 listen<AppSettings>("settings_changed", (event) => {
-  setSettings(event.payload);
-  applyCssVars(event.payload);
+  const s = normalizeSettings(event.payload);
+  setSettings(s);
+  applyCssVars(s);
 });
+
+function clampBgOpacity(value: number): number {
+  if (!Number.isFinite(value)) return DEFAULTS.bgOpacity;
+  return Math.min(MAX_BG_OPACITY, Math.max(MIN_BG_OPACITY, value));
+}
+
+function normalizeSettings(s: AppSettings): AppSettings {
+  return {
+    ...s,
+    bgOpacity: clampBgOpacity(s.bgOpacity),
+  };
+}
+
+function normalizePartialSettings(
+  partial: Partial<AppSettings>,
+): Partial<AppSettings> {
+  return {
+    ...partial,
+    ...(partial.language !== undefined
+      ? { language: normalizeLanguage(partial.language) }
+      : {}),
+    ...(partial.bgOpacity !== undefined
+      ? { bgOpacity: clampBgOpacity(partial.bgOpacity) }
+      : {}),
+  };
+}
 
 function applyCssVars(s: AppSettings): void {
   const root = document.documentElement.style;
-  root.setProperty("--bg-opacity", String(s.bgOpacity));
+  root.setProperty("--bg-opacity", String(clampBgOpacity(s.bgOpacity)));
   root.setProperty("--bg-blur", `${s.bgBlur}px`);
   root.setProperty("--window-padding-x", `${s.windowPaddingX}px`);
   root.setProperty("--window-padding-y", `${s.windowPaddingY}px`);
@@ -120,47 +150,51 @@ export function useSettings() {
   return {
     settings,
     async updateSettings(partial: Partial<AppSettings>) {
-      setSettings(partial as never);
+      const normalized = normalizePartialSettings(partial);
+      setSettings(normalized as never);
 
       const req = {} as SettingsUpdateRequest;
-      if (partial.language !== undefined)
-        req.language = normalizeLanguage(partial.language);
-      if (partial.theme !== undefined) req.theme = partial.theme;
-      if (partial.fontFamily !== undefined) req.fontFamily = partial.fontFamily;
-      if (partial.fontSize !== undefined) req.fontSize = partial.fontSize;
-      if (partial.defaultShell !== undefined)
-        req.defaultShell = partial.defaultShell;
-      if (partial.pasteProtection !== undefined)
-        req.pasteProtection = partial.pasteProtection;
-      if (partial.telemetryOptIn !== undefined)
-        req.telemetryOptIn = partial.telemetryOptIn;
-      if (partial.gitUserName !== undefined)
-        req.gitUserName = partial.gitUserName;
-      if (partial.gitUserEmail !== undefined)
-        req.gitUserEmail = partial.gitUserEmail;
-      if (partial.bgOpacity !== undefined) req.bgOpacity = partial.bgOpacity;
-      if (partial.bgBlur !== undefined) req.bgBlur = partial.bgBlur;
-      if (partial.windowPaddingX !== undefined)
-        req.windowPaddingX = partial.windowPaddingX;
-      if (partial.windowPaddingY !== undefined)
-        req.windowPaddingY = partial.windowPaddingY;
-      if (partial.cursorStyle !== undefined)
-        req.cursorStyle = partial.cursorStyle;
-      if (partial.cursorBlink !== undefined)
-        req.cursorBlink = partial.cursorBlink;
-      if (partial.unfocusedPaneOpacity !== undefined)
-        req.unfocusedPaneOpacity = partial.unfocusedPaneOpacity;
-      if (partial.ptyPoolEnabled !== undefined)
-        req.ptyPoolEnabled = partial.ptyPoolEnabled;
-      if (partial.ptyPoolSize !== undefined)
-        req.ptyPoolSize = partial.ptyPoolSize;
-      if (partial.externalTermPreferred !== undefined)
-        req.externalTermPreferred = partial.externalTermPreferred;
-      if (partial.externalTermDontAskAgain !== undefined)
-        req.externalTermDontAskAgain = partial.externalTermDontAskAgain;
+      if (normalized.language !== undefined) req.language = normalized.language;
+      if (normalized.theme !== undefined) req.theme = normalized.theme;
+      if (normalized.fontFamily !== undefined)
+        req.fontFamily = normalized.fontFamily;
+      if (normalized.fontSize !== undefined) req.fontSize = normalized.fontSize;
+      if (normalized.defaultShell !== undefined)
+        req.defaultShell = normalized.defaultShell;
+      if (normalized.pasteProtection !== undefined)
+        req.pasteProtection = normalized.pasteProtection;
+      if (normalized.telemetryOptIn !== undefined)
+        req.telemetryOptIn = normalized.telemetryOptIn;
+      if (normalized.gitUserName !== undefined)
+        req.gitUserName = normalized.gitUserName;
+      if (normalized.gitUserEmail !== undefined)
+        req.gitUserEmail = normalized.gitUserEmail;
+      if (normalized.bgOpacity !== undefined)
+        req.bgOpacity = normalized.bgOpacity;
+      if (normalized.bgBlur !== undefined) req.bgBlur = normalized.bgBlur;
+      if (normalized.windowPaddingX !== undefined)
+        req.windowPaddingX = normalized.windowPaddingX;
+      if (normalized.windowPaddingY !== undefined)
+        req.windowPaddingY = normalized.windowPaddingY;
+      if (normalized.cursorStyle !== undefined)
+        req.cursorStyle = normalized.cursorStyle;
+      if (normalized.cursorBlink !== undefined)
+        req.cursorBlink = normalized.cursorBlink;
+      if (normalized.unfocusedPaneOpacity !== undefined)
+        req.unfocusedPaneOpacity = normalized.unfocusedPaneOpacity;
+      if (normalized.ptyPoolEnabled !== undefined)
+        req.ptyPoolEnabled = normalized.ptyPoolEnabled;
+      if (normalized.ptyPoolSize !== undefined)
+        req.ptyPoolSize = normalized.ptyPoolSize;
+      if (normalized.externalTermPreferred !== undefined)
+        req.externalTermPreferred = normalized.externalTermPreferred;
+      if (normalized.externalTermDontAskAgain !== undefined)
+        req.externalTermDontAskAgain = normalized.externalTermDontAskAgain;
 
       try {
-        const updated = await invoke<AppSettings>("settings_update", { req });
+        const updated = normalizeSettings(
+          await invoke<AppSettings>("settings_update", { req }),
+        );
         setSettings(updated);
         applyCssVars(updated);
       } catch {

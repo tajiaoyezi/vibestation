@@ -27,7 +27,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg-1);
+  background: var(--surface-1);
   border-left: 1px solid var(--line-soft);
   animation: vs-settings-slide-in 240ms var(--panel-ease);
 }
@@ -73,7 +73,7 @@
 
 .vs-settings-close:hover {
   color: var(--text-1);
-  background: var(--bg-2);
+  background: var(--surface-2);
 }
 
 .vs-settings-header-actions {
@@ -100,7 +100,7 @@
 
 .vs-settings-import-btn:hover {
   color: var(--text-1);
-  background: var(--bg-2);
+  background: var(--surface-2);
   border-color: var(--accent, #4f9eff);
 }
 
@@ -115,7 +115,7 @@
 .vs-settings-group {
   margin-bottom: var(--space-2);
   border-radius: var(--r-8);
-  background: var(--bg-0);
+  background: var(--surface-0);
   border: 1px solid var(--line-soft);
   overflow: hidden;
 }
@@ -139,7 +139,7 @@
 }
 
 .vs-settings-group-header:hover {
-  background: var(--bg-2);
+  background: var(--surface-2);
 }
 
 .vs-settings-group-chevron {
@@ -205,7 +205,7 @@
 .vs-settings-select {
   appearance: none;
   border: 1px solid var(--line);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--r-6);
@@ -273,7 +273,7 @@
   height: 16px;
   border: 1.5px solid var(--line);
   border-radius: 50%;
-  background: var(--bg-2);
+  background: var(--surface-2);
   cursor: pointer;
   transition: border-color var(--dur-fast) var(--ease);
   position: relative;
@@ -320,7 +320,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--bg-1);
+  background: var(--surface-1);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
   transition: transform var(--dur-fast) var(--ease);
 }
@@ -360,7 +360,7 @@
 .vs-settings-copy-btn {
   appearance: none;
   border: 1px solid var(--line-soft);
-  background: var(--bg-2);
+  background: var(--surface-2);
   color: var(--text-1);
   font-size: 0.75rem;
   font-family: inherit;
@@ -374,7 +374,7 @@
 }
 
 .vs-settings-copy-btn:hover:not(:disabled) {
-  background: var(--bg-3);
+  background: var(--surface-3);
   border-color: var(--accent);
 }
 
@@ -408,7 +408,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-1);
+  background: var(--surface-1);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-12);
   box-shadow: 0 24px 48px rgb(0 0 0 / 0.35);
@@ -490,7 +490,7 @@
   list-style: none;
   margin: 0;
   padding: 0.5em 0.75em;
-  background: var(--bg-2);
+  background: var(--surface-2);
   border-radius: 4px;
   font-family: var(--font-mono);
   font-size: 0.85em;

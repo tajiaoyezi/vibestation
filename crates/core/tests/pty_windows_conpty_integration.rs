@@ -16,7 +16,11 @@
 //! （`reply_dsr` · 模拟 VT-capable 消费端）· 否则 cmd.exe 永久 stall（非 reader bug · 是 ConPTY 语义）。
 #![cfg(windows)]
 
-use std::time::{Duration, Instant};
+use std::{
+    ffi::OsString,
+    sync::{Mutex, MutexGuard},
+    time::{Duration, Instant},
+};
 
 use crossbeam_channel::{Receiver, RecvTimeoutError};
 use vibestation_core::pty::{PtyEvent, PtyManager, PtySpawnRequest};
@@ -28,6 +32,39 @@ const CONPTY_TIMEOUT: Duration = Duration::from_secs(20);
 const DSR_QUERY: &str = "\u{1b}[6n";
 /// 模拟前端回复光标在 (1,1)（ESC[1;1R）· 让 cmd.exe 越过 DSR 握手开始画 prompt。
 const DSR_REPLY: &str = "\u{1b}[1;1R";
+
+static APPDATA_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+struct EnvVarGuard {
+    key: &'static str,
+    original: Option<OsString>,
+    _lock: MutexGuard<'static, ()>,
+}
+
+impl EnvVarGuard {
+    fn set(key: &'static str, value: impl AsRef<std::ffi::OsStr>) -> Self {
+        let lock = APPDATA_ENV_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let original = std::env::var_os(key);
+        std::env::set_var(key, value);
+        Self {
+            key,
+            original,
+            _lock: lock,
+        }
+    }
+}
+
+impl Drop for EnvVarGuard {
+    fn drop(&mut self) {
+        if let Some(value) = &self.original {
+            std::env::set_var(self.key, value);
+        } else {
+            std::env::remove_var(self.key);
+        }
+    }
+}
 
 /// 若 stdout 段含 DSR 查询 · 代前端回复（模拟 xterm.js）· 让 cmd.exe 越过握手。
 /// 回复失败容错（tab 可能已退出）· 不 panic。
@@ -47,16 +84,20 @@ fn manager_with_events() -> (PtyManager, Receiver<PtyEvent>) {
 
 fn spawn_cmd(manager: &PtyManager, tab_id: &str) {
     // 用裸名 cmd.exe（task-2.1 resolve_shell 经 where.exe 解析为全路径）· cwd 用系统临时目录。
+    spawn_shell(manager, tab_id, "cmd.exe");
+}
+
+fn spawn_shell(manager: &PtyManager, tab_id: &str, shell: &str) {
     let cwd = std::env::temp_dir().to_string_lossy().to_string();
     manager
         .spawn(PtySpawnRequest {
             tab_id: tab_id.to_string(),
-            shell: "cmd.exe".to_string(),
+            shell: shell.to_string(),
             cwd,
             cols: 80,
             rows: 24,
         })
-        .expect("ConPTY spawn cmd.exe should succeed on Windows");
+        .unwrap_or_else(|e| panic!("ConPTY spawn {shell} should succeed on Windows: {e}"));
 }
 
 /// 收 Stdout 直到累计输出含 `needle`（大小写不敏感）或超时 · 返回累计输出。
@@ -103,6 +144,34 @@ fn recv_until_contains(
             }
         }
     }
+}
+
+fn recv_for(
+    manager: &PtyManager,
+    events: &Receiver<PtyEvent>,
+    tab_id: &str,
+    dwell: Duration,
+) -> String {
+    let started = Instant::now();
+    let mut output = String::new();
+
+    while started.elapsed() < dwell {
+        let remaining = dwell
+            .checked_sub(started.elapsed())
+            .filter(|d| !d.is_zero())
+            .unwrap_or_else(|| Duration::from_millis(1));
+        match events.recv_timeout(remaining.min(Duration::from_millis(150))) {
+            Ok(PtyEvent::Stdout(event)) if event.tab_id == tab_id => {
+                reply_dsr_if_needed(manager, tab_id, &event.data);
+                output.push_str(&event.data);
+            }
+            Ok(_) => {}
+            Err(RecvTimeoutError::Timeout) => {}
+            Err(RecvTimeoutError::Disconnected) => return output,
+        }
+    }
+
+    output
 }
 
 /// 收事件直到 tab 的 Exited 出现或超时 · 返回 (累计 stdout, exit_code)。
@@ -213,6 +282,102 @@ fn test_2_2_2_conpty_echo_roundtrip() {
     );
 
     let _ = manager.kill("conpty-echo");
+}
+
+/// Regression: PowerShell spawned by Vibestation must enable PSReadLine inline
+/// history prediction. The test seeds a unique command in the same session,
+/// then types the prefix without Enter and expects the suffix to be rendered.
+#[test]
+fn test_2_2_5_pwsh_history_prediction_renders_after_prefix() {
+    let temp_appdata = tempfile::tempdir().expect("temp APPDATA should be created");
+    let history_dir = temp_appdata
+        .path()
+        .join("Microsoft")
+        .join("Windows")
+        .join("PowerShell")
+        .join("PSReadLine");
+    std::fs::create_dir_all(&history_dir).expect("PSReadLine history dir should be created");
+    std::fs::write(
+        history_dir.join("ConsoleHost_history.txt"),
+        "Write-Output VibestationPredictSeed123\r\n",
+    )
+    .expect("PSReadLine history fixture should be written");
+    let _appdata = EnvVarGuard::set("APPDATA", temp_appdata.path());
+
+    let (manager, events) = manager_with_events();
+    spawn_shell(&manager, "conpty-pwsh-prediction", "pwsh.exe");
+
+    pump_dsr(
+        &manager,
+        &events,
+        "conpty-pwsh-prediction",
+        Duration::from_millis(1500),
+    );
+    manager
+        .stdin("conpty-pwsh-prediction", "Write-Output Vibe")
+        .expect("stdin write should succeed");
+
+    let output = recv_for(
+        &manager,
+        &events,
+        "conpty-pwsh-prediction",
+        Duration::from_millis(2000),
+    );
+    let _ = manager.kill("conpty-pwsh-prediction");
+
+    assert!(
+        output
+            .to_ascii_lowercase()
+            .contains("stationpredictseed123"),
+        "typing a known history prefix should render the PSReadLine prediction suffix · output: {output:?}"
+    );
+}
+
+/// Regression: parent dev/test wrappers may set NO_COLOR for their own logs, but
+/// user PTY sessions must not inherit it because CLIs such as Claude disable
+/// their ANSI color output when NO_COLOR is present.
+#[test]
+fn test_2_2_6_spawn_env_does_not_inherit_no_color() {
+    let _no_color = EnvVarGuard::set("NO_COLOR", "1");
+    let (manager, events) = manager_with_events();
+    spawn_shell(&manager, "conpty-env-color", "pwsh.exe");
+
+    let env = manager
+        .environment("conpty-env-color")
+        .expect("spawned ConPTY session should expose its initial environment");
+
+    assert_eq!(env.get("TERM"), Some(&"xterm-256color".to_string()));
+    assert_eq!(env.get("COLORTERM"), Some(&"truecolor".to_string()));
+    assert!(
+        !env.contains_key("NO_COLOR"),
+        "NO_COLOR from Vibestation's parent process must not disable colors inside user terminals"
+    );
+
+    pump_dsr(
+        &manager,
+        &events,
+        "conpty-env-color",
+        Duration::from_millis(1500),
+    );
+    manager
+        .stdin(
+            "conpty-env-color",
+            "Write-Output ('VIBE_MARKER_' + $env:NO_COLOR + '_END')\r\n",
+        )
+        .expect("stdin write should succeed");
+    let output = recv_until_contains(
+        &manager,
+        &events,
+        "conpty-env-color",
+        "VIBE_MARKER__END",
+        CONPTY_TIMEOUT,
+    );
+    let _ = manager.kill("conpty-env-color");
+
+    assert!(
+        !output.contains("VIBE_MARKER_1_END"),
+        "spawned cmd.exe should not observe NO_COLOR in its process environment · output: {output:?}"
+    );
 }
 
 /// TEST-2.2.3（SCEN-2.2.3 · AC3）：写 `exit` → reader 经 try_wait 检测退出 emit Exited（不 hang）。

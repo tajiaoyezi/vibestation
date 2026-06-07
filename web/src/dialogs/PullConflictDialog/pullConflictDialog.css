@@ -39,6 +39,6 @@
   padding: var(--space-2);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-4);
-  background: var(--bg-1);
+  background: var(--surface-1);
   color: var(--text-3);
 }

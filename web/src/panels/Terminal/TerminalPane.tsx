@@ -6,7 +6,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Terminal as XTerm } from "@xterm/xterm";
+import { Terminal as XTerm, type IDisposable } from "@xterm/xterm";
 import {
   createEffect,
   createSignal,
@@ -25,6 +25,13 @@ import {
   type TabRuntimeState,
   writeScrollbackToTerm,
 } from "./hooks";
+import {
+  buildTerminalFontStack,
+  TERMINAL_FONT_WEIGHT,
+  TERMINAL_FONT_WEIGHT_BOLD,
+  TERMINAL_LINE_HEIGHT,
+} from "./terminalTypography";
+import { createTerminalTheme, resolveTerminalThemeMode } from "./terminalTheme";
 
 type XTermCursorStyle = "block" | "underline" | "bar";
 
@@ -58,53 +65,17 @@ type TerminalPaneProps = {
   onUnregisterApi: (tabId: string) => void;
 };
 
-const createTheme = () => {
-  const styles = getComputedStyle(document.documentElement);
-  const read = (name: string, fallback: string) =>
-    styles.getPropertyValue(name).trim() || fallback;
-
-  return {
-    background: read("--bg-1", "#11141b"),
-    foreground: read("--text-1", "#f5f7ff"),
-    cursor: read("--text-1", "#f5f7ff"),
-    cursorAccent: read("--bg-1", "#11141b"),
-    selectionBackground: read("--accent-soft", "rgba(120, 169, 255, 0.18)"),
-    black: read("--bg-0", "#0d1016"),
-    brightBlack: read("--text-4", "#6c7485"),
-    red: read("--danger", "#ff7575"),
-    brightRed: read("--danger", "#ff7575"),
-    green: read("--success", "#4cd38f"),
-    brightGreen: read("--success", "#4cd38f"),
-    yellow: read("--warning", "#f6c24a"),
-    brightYellow: read("--warning", "#f6c24a"),
-    blue: read("--accent", "#6fa9ff"),
-    brightBlue: read("--accent", "#6fa9ff"),
-    magenta: read("--accent", "#6fa9ff"),
-    brightMagenta: read("--accent", "#6fa9ff"),
-    cyan: read("--accent", "#6fa9ff"),
-    brightCyan: read("--accent", "#6fa9ff"),
-    white: read("--text-2", "#c3cad8"),
-    brightWhite: read("--text-1", "#f5f7ff"),
-  };
+type ActiveRenderers = {
+  webgl?: WebglAddon;
+  canvas?: CanvasAddon;
+  contextLoss?: IDisposable;
 };
 
-const setupRenderer = (
+const setupCanvasRenderer = (
   term: XTerm,
   tabId: string,
   onRendererChange: (renderer: RendererKind) => void,
-): { webgl?: WebglAddon; canvas?: CanvasAddon } => {
-  try {
-    const webgl = new WebglAddon();
-    term.loadAddon(webgl);
-    onRendererChange("webgl");
-    return { webgl };
-  } catch (error) {
-    console.warn(
-      `[mvp-04] ${tabId} webgl renderer unavailable, falling back to canvas`,
-      error,
-    );
-  }
-
+): ActiveRenderers => {
   try {
     const canvas = new CanvasAddon();
     term.loadAddon(canvas);
@@ -119,6 +90,40 @@ const setupRenderer = (
 
   onRendererChange("dom");
   return {};
+};
+
+const setupRenderer = (
+  term: XTerm,
+  tabId: string,
+  onRendererChange: (renderer: RendererKind) => void,
+  onReplace?: (renderers: ActiveRenderers) => void,
+): ActiveRenderers => {
+  try {
+    const webgl = new WebglAddon();
+    term.loadAddon(webgl);
+    onRendererChange("webgl");
+    const contextLoss = webgl.onContextLoss(() => {
+      console.warn(
+        `[mvp-04] ${tabId} webgl context lost, falling back to canvas`,
+      );
+      try {
+        webgl.dispose();
+      } catch {}
+      const fallback = setupCanvasRenderer(term, tabId, onRendererChange);
+      onReplace?.(fallback);
+      try {
+        term.refresh(0, term.rows - 1);
+      } catch {}
+    });
+    return { webgl, contextLoss };
+  } catch (error) {
+    console.warn(
+      `[mvp-04] ${tabId} webgl renderer unavailable, falling back to canvas`,
+      error,
+    );
+  }
+
+  return setupCanvasRenderer(term, tabId, onRendererChange);
 };
 
 const hasPrintableOutput = (data: string): boolean => {
@@ -142,6 +147,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
   // WebGL/Canvas addon ref · syncTheme 时 dispose + reload · 强制 atlas 重建用新 theme 色
   let activeWebglAddon: WebglAddon | undefined;
   let activeCanvasAddon: CanvasAddon | undefined;
+  let activeWebglContextLoss: IDisposable | undefined;
   let unlistenStdout: UnlistenFn | undefined;
   let unlistenExited: UnlistenFn | undefined;
   let themeObserver: MutationObserver | undefined;
@@ -157,37 +163,31 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     rows: term?.rows || props.runtime.rows || DEFAULT_PTY_ROWS,
   });
 
-  // 字体栈（用户选的字体放栈首 · bundled + Nerd Font + CJK 兜底）· 读 settings 故响应式
-  const fontStack = () =>
-    [
-      settings.fontFamily,
-      "JetBrains Mono Variable",
-      "JetBrainsMono NF",
-      "JetBrains Mono",
-      "Cascadia Code",
-      "DejaVu Sans Mono",
-      "Ubuntu Mono",
-      "ui-monospace",
-      "Liberation Mono",
-      // CJK 字符 fallback · 防中文光标错位。
-      "Sarasa Term SC",
-      "PingFang SC",
-      "Hiragino Sans GB",
-      "Microsoft YaHei",
-      "Noto Sans CJK SC",
-      "WenQuanYi Micro Hei",
-      "monospace",
-    ].join(", ");
+  // 字体栈 · 普通 JetBrains Mono 优先，Nerd Font 仅作图标兜底。
+  const fontStack = () => buildTerminalFontStack(settings.fontFamily);
+
+  const replaceRenderer = (renderers: ActiveRenderers) => {
+    try {
+      activeWebglContextLoss?.dispose();
+    } catch {}
+    activeWebglContextLoss = renderers.contextLoss;
+    activeWebglAddon = renderers.webgl;
+    activeCanvasAddon = renderers.canvas;
+  };
 
   const syncTheme = () => {
     if (!term) {
       return;
     }
 
-    term.options.theme = createTheme();
+    term.options.theme = createTerminalTheme(resolveTerminalThemeMode());
+    try {
+      activeWebglContextLoss?.dispose();
+    } catch {}
+    activeWebglContextLoss = undefined;
     // WebglAddon / CanvasAddon 自己 cache 字符 glyph 到 texture atlas · clearTextureAtlas
     // 不彻底（实测 atlas 仍按旧 theme 色重新生成）。dispose + 重新 loadAddon 才能强制
-    // 用新 theme 色重建 atlas · 这是 xterm 5.x WebGL theme 切换的唯一可靠方案。
+    // 用新 theme 色重建 atlas · 这是 xterm 5.x theme 切换的可靠方案。
     if (activeWebglAddon) {
       try {
         activeWebglAddon.dispose();
@@ -204,11 +204,15 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
       }
       activeCanvasAddon = undefined;
     }
-    const renderers = setupRenderer(term, props.tab.tabId, (renderer) =>
-      props.onRendererChange(props.tab.tabId, renderer),
+    const renderers = setupRenderer(
+      term,
+      props.tab.tabId,
+      (renderer) => props.onRendererChange(props.tab.tabId, renderer),
+      replaceRenderer,
     );
     activeWebglAddon = renderers.webgl;
     activeCanvasAddon = renderers.canvas;
+    activeWebglContextLoss = renderers.contextLoss;
   };
 
   const queueFit = () => {
@@ -272,14 +276,17 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
 
     term = new XTerm({
       allowProposedApi: true,
+      allowTransparency: true,
       convertEol: false,
       cursorBlink: settings.cursorBlink,
       cursorStyle: toCursorStyle(settings.cursorStyle),
       fontFamily: fontStack(),
       fontSize: settings.fontSize,
-      lineHeight: 1.3,
+      fontWeight: TERMINAL_FONT_WEIGHT,
+      fontWeightBold: TERMINAL_FONT_WEIGHT_BOLD,
+      lineHeight: TERMINAL_LINE_HEIGHT,
       scrollback: 10000,
-      theme: createTheme(),
+      theme: createTerminalTheme(resolveTerminalThemeMode()),
     });
 
     fitAddon = new FitAddon();
@@ -298,11 +305,15 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
 
     term.open(hostRef);
     {
-      const renderers = setupRenderer(term, props.tab.tabId, (renderer) =>
-        props.onRendererChange(props.tab.tabId, renderer),
+      const renderers = setupRenderer(
+        term,
+        props.tab.tabId,
+        (renderer) => props.onRendererChange(props.tab.tabId, renderer),
+        replaceRenderer,
       );
       activeWebglAddon = renderers.webgl;
       activeCanvasAddon = renderers.canvas;
+      activeWebglContextLoss = renderers.contextLoss;
     }
     props.onRegisterApi(props.tab.tabId, {
       focus: () => term?.focus(),
@@ -354,7 +365,7 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     });
     themeObserver.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme"],
+      attributeFilter: ["data-theme", "style"],
     });
 
     if (!props.isNewlyCreated) {
@@ -437,12 +448,17 @@ export const TerminalPane: Component<TerminalPaneProps> = (props) => {
     // WebGL/Canvas addon 必须在 term.dispose() 之前清理 · 否则 addon 内部
     // 访问 this._terminal._core._store._isDisposed 抛 undefined 错误
     try {
+      activeWebglContextLoss?.dispose();
+    } catch {}
+    try {
       activeWebglAddon?.dispose();
     } catch {}
     try {
       activeCanvasAddon?.dispose();
     } catch {}
-    term?.dispose();
+    try {
+      term?.dispose();
+    } catch {}
   });
 
   return (

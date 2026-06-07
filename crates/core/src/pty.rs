@@ -49,9 +49,45 @@ const EXIT_WAIT_TIMEOUT: Duration = Duration::from_secs(2);
 const EXIT_WAIT_STEP: Duration = Duration::from_millis(20);
 const SCROLLBACK_FLUSH_INTERVAL: Duration = Duration::from_millis(100);
 const SCROLLBACK_FLUSH_THRESHOLD: usize = 100;
+const COLOR_SUPPRESSION_ENV_VARS: &[&str] = &["NO_COLOR"];
+const TERMINAL_ENV_OVERRIDES: &[(&str, &str)] = &[
+    ("TERM", "xterm-256color"),
+    ("COLORTERM", "truecolor"),
+    ("LANG", "en_US.UTF-8"),
+    ("LC_ALL", "en_US.UTF-8"),
+];
 /// MVP-20 BUG-001 backend filter 兜底超时 · zsh ZLE echo + clear 命令通常 50-150ms 完成 ·
 /// 给 300ms 余量。过长会让 legacy TerminalPane 的 "Waiting for first shell output" UI 卡。
 const CD_ECHO_FILTER_TIMEOUT: Duration = Duration::from_millis(300);
+#[cfg(windows)]
+const POWERSHELL_PREDICTION_BOOTSTRAP: &str =
+    "try { Import-Module PSReadLine } catch { }; try { if ((Get-PSReadLineOption).PredictionSource -eq 'None') { Set-PSReadLineOption -PredictionSource History } } catch { }; try { $esc = [char]27; Set-PSReadLineOption -Colors @{ InlinePrediction = \"${esc}[38;2;107;114;128m\"; ListPredictionSelected = \"${esc}[38;2;31;41;55;48;2;232;237;244m\" } } catch { }";
+
+fn terminal_spawn_env() -> HashMap<String, String> {
+    let mut env: HashMap<String, String> = std::env::vars().collect();
+    strip_color_suppression_env(&mut env);
+    for (key, value) in TERMINAL_ENV_OVERRIDES {
+        env.insert((*key).to_string(), (*value).to_string());
+    }
+    env
+}
+
+fn strip_color_suppression_env(env: &mut HashMap<String, String>) {
+    env.retain(|key, _| {
+        !COLOR_SUPPRESSION_ENV_VARS
+            .iter()
+            .any(|suppressed| key.eq_ignore_ascii_case(suppressed))
+    });
+}
+
+fn apply_terminal_spawn_env(command: &mut CommandBuilder) {
+    for key in COLOR_SUPPRESSION_ENV_VARS {
+        command.env_remove(*key);
+    }
+    for (key, value) in TERMINAL_ENV_OVERRIDES {
+        command.env(*key, *value);
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[ts(export)]
@@ -687,17 +723,10 @@ impl PtyManager {
             .map_err(|error| PtyError::OpenFailed(error.to_string()))?;
 
         let initial_cwd = normalize_cwd(cwd.clone());
-        let mut initial_env: HashMap<String, String> = std::env::vars().collect();
-        initial_env.insert("TERM".to_string(), "xterm-256color".to_string());
-        initial_env.insert("COLORTERM".to_string(), "truecolor".to_string());
-        initial_env.insert("LANG".to_string(), "en_US.UTF-8".to_string());
-        initial_env.insert("LC_ALL".to_string(), "en_US.UTF-8".to_string());
-        let mut command = CommandBuilder::new(resolved_shell.as_os_str());
+        let initial_env = terminal_spawn_env();
+        let mut command = command_builder_for_shell(&resolved_shell);
         command.cwd(cwd);
-        command.env("TERM", "xterm-256color");
-        command.env("COLORTERM", "truecolor");
-        command.env("LANG", "en_US.UTF-8");
-        command.env("LC_ALL", "en_US.UTF-8");
+        apply_terminal_spawn_env(&mut command);
 
         let child = pair
             .slave
@@ -1341,6 +1370,33 @@ fn parse_signal_windows(signal: &str) -> Result<WindowsSignal, PtyError> {
     }
 }
 
+fn command_builder_for_shell(resolved_shell: &Path) -> CommandBuilder {
+    let mut command = CommandBuilder::new(resolved_shell.as_os_str());
+    configure_interactive_shell(&mut command, resolved_shell);
+    command
+}
+
+#[cfg(windows)]
+fn configure_interactive_shell(command: &mut CommandBuilder, resolved_shell: &Path) {
+    if is_windows_powershell_shell(resolved_shell) {
+        command.args(["-NoExit", "-Command", POWERSHELL_PREDICTION_BOOTSTRAP]);
+    }
+}
+
+#[cfg(not(windows))]
+fn configure_interactive_shell(_command: &mut CommandBuilder, _resolved_shell: &Path) {}
+
+#[cfg(windows)]
+fn is_windows_powershell_shell(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| {
+            let name = name.to_ascii_lowercase();
+            name == "pwsh.exe" || name == "powershell.exe"
+        })
+        .unwrap_or(false)
+}
+
 fn exit_code_from_status(status: &ExitStatus) -> Option<i32> {
     if status.signal().is_some() {
         None
@@ -1429,6 +1485,18 @@ pub fn resolve_default_shell(pool: Option<&DbPool>) -> String {
     }
 }
 
+#[cfg(windows)]
+pub(crate) fn effective_shell_for_spawn(requested: &str, _env_shell: Option<&str>) -> String {
+    let requested = requested.trim();
+
+    if requested.is_empty() {
+        return default_shell_path();
+    }
+
+    requested.to_string()
+}
+
+#[cfg(not(windows))]
 pub(crate) fn effective_shell_for_spawn(requested: &str, env_shell: Option<&str>) -> String {
     let requested = requested.trim();
     let env_shell = env_shell
@@ -1847,6 +1915,45 @@ mod tests {
         assert!(decl.contains("cwd"));
     }
 
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn powershell_spawn_enables_psreadline_history_prediction() {
+        let shell = Path::new(r"C:\Program Files\PowerShell\7\pwsh.exe");
+        let command = command_builder_for_shell(shell);
+        let argv: Vec<String> = command
+            .get_argv()
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        assert_eq!(argv[0], r"C:\Program Files\PowerShell\7\pwsh.exe");
+        assert!(argv.iter().any(|arg| arg == "-NoExit"), "{argv:?}");
+        assert!(argv.iter().any(|arg| arg == "-Command"), "{argv:?}");
+        assert!(
+            argv.iter().any(|arg| arg.contains("Set-PSReadLineOption")
+                && arg.contains("-PredictionSource History")),
+            "{argv:?}"
+        );
+        assert!(
+            argv.iter()
+                .any(|arg| arg.contains("InlinePrediction") && arg.contains("38;2;107;114;128")),
+            "{argv:?}"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn non_powershell_spawn_does_not_receive_psreadline_bootstrap() {
+        let command = command_builder_for_shell(Path::new(r"C:\Windows\System32\cmd.exe"));
+        let argv: Vec<String> = command
+            .get_argv()
+            .iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        assert_eq!(argv, vec![r"C:\Windows\System32\cmd.exe".to_string()]);
+    }
+
     #[test]
     fn error_display_is_human_readable() {
         assert_eq!(
@@ -1937,11 +2044,23 @@ mod tests {
         assert_eq!(exit_code_from_status(&status), None);
     }
 
+    #[cfg(unix)]
     #[test]
     fn effective_shell_prefers_env_shell_for_default_request() {
         assert_eq!(
             effective_shell_for_spawn(&default_shell_path(), Some("/opt/homebrew/bin/fish")),
             "/opt/homebrew/bin/fish"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn effective_shell_keeps_windows_default_request_over_env_shell() {
+        let default_shell = default_shell_path();
+        let env_shell = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+        assert_eq!(
+            effective_shell_for_spawn(&default_shell, Some(env_shell)),
+            default_shell
         );
     }
 
@@ -1953,11 +2072,23 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn effective_shell_falls_back_when_request_is_empty() {
         assert_eq!(
             effective_shell_for_spawn("", Some("/usr/local/bin/bash")),
             "/usr/local/bin/bash"
+        );
+        assert_eq!(effective_shell_for_spawn("", None), default_shell_path());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn effective_shell_empty_request_uses_windows_default_not_env_shell() {
+        let env_shell = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe";
+        assert_eq!(
+            effective_shell_for_spawn("", Some(env_shell)),
+            default_shell_path()
         );
         assert_eq!(effective_shell_for_spawn("", None), default_shell_path());
     }

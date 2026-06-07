@@ -1,6 +1,10 @@
 import { type Component, For } from "solid-js";
 import { t, normalizeLanguage, type Language } from "../../i18n";
-import { useSettings, type ThemeSetting } from "../../stores/settings";
+import {
+  MIN_BG_OPACITY,
+  useSettings,
+  type ThemeSetting,
+} from "../../stores/settings";
 
 export const AppearanceGroup: Component = () => {
   const { settings, updateSettings } = useSettings();
@@ -29,9 +33,9 @@ export const AppearanceGroup: Component = () => {
   ];
 
   const fonts = [
-    "JetBrainsMono NF",
-    "JetBrains Mono Variable",
     "JetBrains Mono",
+    "JetBrains Mono Variable",
+    "JetBrainsMono NF",
     "Cascadia Code",
     "Fira Code",
     "SF Mono",
@@ -131,7 +135,7 @@ export const AppearanceGroup: Component = () => {
         </span>
         <input
           type="range"
-          min={0}
+          min={MIN_BG_OPACITY}
           max={1}
           step={0.05}
           value={settings.bgOpacity}

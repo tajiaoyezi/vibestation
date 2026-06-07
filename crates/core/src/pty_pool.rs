@@ -144,6 +144,9 @@ impl PtyPool {
         let Some(resolved_shell) = resolve_shell(&requested_shell) else {
             return TakeResult::Cold;
         };
+        if !warm_pool_supported_for_shell(&resolved_shell) {
+            return TakeResult::Cold;
+        }
 
         let Some(mut idle) = self.pop_matching_idle(&resolved_shell) else {
             return TakeResult::Cold;
@@ -183,6 +186,17 @@ impl PtyPool {
 
     pub fn refill_async(&self, shell: PathBuf, cwd: PathBuf) {
         if self.shutdown.load(Ordering::SeqCst) {
+            return;
+        }
+
+        let requested_shell = effective_shell_for_spawn(
+            &shell.to_string_lossy(),
+            std::env::var("SHELL").ok().as_deref(),
+        );
+        let Some(resolved_shell) = resolve_shell(&requested_shell) else {
+            return;
+        };
+        if !warm_pool_supported_for_shell(&resolved_shell) {
             return;
         }
 
@@ -463,6 +477,13 @@ fn should_keep_idle(
     config.enabled && lock(idle).len() < config.target_size as usize
 }
 
+fn warm_pool_supported_for_shell(_shell: &Path) -> bool {
+    // Windows ConPTY defaults to cmd.exe/powershell, while the current warm reuse
+    // path injects Unix-style `cd -- ...; clear` and waits for ANSI clear output.
+    // Use cold spawn on Windows until the injection protocol is shell-aware.
+    !cfg!(windows)
+}
+
 /// 给 idle PTY 注入 cd + clear · 让它从 $HOME 切到目标 workspace。
 /// 返回 Err 时调用方应走 cold spawn（路径不可安全 escape）。
 fn inject_cd_clear(session: &PtySession, target_cwd: &Path) -> Result<(), String> {
@@ -612,6 +633,32 @@ mod tests {
             TakeResult::Cold => panic!("expected warm PTY"),
         }
         assert_eq!(pool.idle_count(), 0);
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn warm_pool_support_is_disabled_for_windows_shells() {
+        assert!(!warm_pool_supported_for_shell(Path::new("cmd.exe")));
+        assert!(!warm_pool_supported_for_shell(Path::new(
+            "C:\\Windows\\System32\\cmd.exe"
+        )));
+    }
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn refill_async_skips_unsupported_windows_shells() {
+        let (_manager, pool) = manager_and_pool(1);
+        pool.refill_async(PathBuf::from("powershell.exe"), PathBuf::from("C:\\"));
+
+        let started = Instant::now();
+        while started.elapsed() < Duration::from_secs(2) {
+            assert_eq!(
+                pool.idle_count(),
+                0,
+                "Windows shell warm pool refill must not create idle PTYs"
+            );
+            thread::sleep(Duration::from_millis(25));
+        }
     }
 
     #[test]

@@ -95,4 +95,33 @@ describe("FEAT-02 Language selector", () => {
     expect(screen.getByRole("group", { name: "主题" })).toBeInTheDocument();
     expect(screen.getByLabelText(/字体/)).toBeInTheDocument();
   });
+
+  it("keeps background opacity in a readable glass range", async () => {
+    mockAppSettings.bgOpacity = 0.2;
+    await reloadSettings();
+
+    render(() => <AppearanceGroup />);
+
+    const slider = (await screen.findByLabelText(
+      /Background opacity/,
+    )) as HTMLInputElement;
+    expect(slider.min).toBe("0.65");
+    expect(slider.max).toBe("1");
+    expect(slider.step).toBe("0.05");
+    expect(slider.value).toBe("0.65");
+    expect(document.documentElement.style.getPropertyValue("--bg-opacity")).toBe(
+      "0.65",
+    );
+
+    fireEvent.input(slider, { target: { value: "0.3" } });
+
+    await waitFor(() => {
+      expect(vi.mocked(invoke)).toHaveBeenCalledWith(
+        "settings_update",
+        expect.objectContaining({
+          req: expect.objectContaining({ bgOpacity: 0.65 }),
+        }),
+      );
+    });
+  });
 });

@@ -315,6 +315,7 @@ fn workspace_init(state: State<'_, AppState>, app: AppHandle) -> Result<String, 
     let db_path = dir.join("vibestation.db");
     let pool = vibestation_core::db::open_pool(&db_path).map_err(|e| e.to_string())?;
     apply_rebase_state_migration(&pool)?;
+    AppSettingsStore::migrate_legacy_default_shell(&pool).map_err(|e| e.to_string())?;
     state.pty.set_pool(pool.clone());
 
     // MVP-10 Phase B · 同步 telemetry runtime opt-in atomic（panic hook 用）+

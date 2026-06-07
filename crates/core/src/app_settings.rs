@@ -2,6 +2,11 @@ use crate::db::{DbError, DbPool};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+const MIN_BG_OPACITY: f32 = 0.65;
+const MAX_BG_OPACITY: f32 = 1.0;
+const DEFAULT_BG_OPACITY: f32 = 0.85;
+const DEFAULT_BG_OPACITY_RAW: &str = "0.85";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSetting {
@@ -61,25 +66,14 @@ pub struct AppSettings {
     pub external_term_dont_ask_again: bool,
 }
 
-/// 平台默认 shell（task-1.3 · ADR-003）。
+/// 平台默认 shell（task-1.3 + task-2.1 · ADR-003）。
 ///
-/// macOS → `/bin/zsh` · Windows → `cmd.exe`（占位 · 永远保底 · Phase 2 task-2.1
-///   `resolve_default_shell` 探测链运行期细化为 pwsh→powershell→cmd）· Linux/其他 → `/bin/bash`。
+/// Windows 复用 `resolve_default_shell(None)` 的 pwsh → powershell → cmd 探测链；
+/// macOS → `/bin/zsh` · Linux/其他 → `/bin/bash`。
 ///
 /// 收敛 `impl Default` 与 `get_all` fallback 两处字面值，避免漂移（AC2）。
-fn default_shell_for_platform() -> &'static str {
-    #[cfg(target_os = "macos")]
-    {
-        "/bin/zsh"
-    }
-    #[cfg(target_os = "windows")]
-    {
-        "cmd.exe" // 占位 · 与 ADR-003 探测链对齐 · Phase 2 运行期 resolve 细化
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-    {
-        "/bin/bash"
-    }
+fn default_shell_for_platform() -> String {
+    crate::pty::resolve_default_shell(None)
 }
 
 impl Default for AppSettings {
@@ -89,12 +83,12 @@ impl Default for AppSettings {
             theme: "dark".to_string(),
             font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace".to_string(),
             font_size: 14,
-            default_shell: default_shell_for_platform().to_string(),
+            default_shell: default_shell_for_platform(),
             paste_protection: true,
             telemetry_opt_in: None,
             git_user_name: None,
             git_user_email: None,
-            bg_opacity: 0.85,
+            bg_opacity: DEFAULT_BG_OPACITY,
             bg_blur: 20,
             window_padding_x: 2,
             window_padding_y: 2,
@@ -143,6 +137,8 @@ pub struct SettingsUpdateRequest {
     pub external_term_dont_ask_again: Option<bool>,
 }
 
+const DEFAULT_SHELL_PROBE_MIGRATED_KEY: &str = "default_shell_probe_migrated_v1";
+
 fn get_parsed<T: std::str::FromStr>(pool: &DbPool, key: &str, default: &str) -> T
 where
     <T as std::str::FromStr>::Err: std::fmt::Debug,
@@ -175,6 +171,21 @@ fn normalize_language(raw: &str) -> &'static str {
     }
 }
 
+fn clamp_bg_opacity(value: f32) -> f32 {
+    if !value.is_finite() {
+        return DEFAULT_BG_OPACITY;
+    }
+    value.clamp(MIN_BG_OPACITY, MAX_BG_OPACITY)
+}
+
+fn is_windows_cmd_shell(value: &str) -> bool {
+    std::path::Path::new(value)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name.eq_ignore_ascii_case("cmd.exe"))
+        .unwrap_or_else(|| value.eq_ignore_ascii_case("cmd.exe"))
+}
+
 fn get_language(pool: &DbPool) -> String {
     // Keep settings_get/get_all side-effect free: normalize invalid persisted values
     // for callers, but do not rewrite the DB until settings_update runs.
@@ -186,6 +197,26 @@ fn get_language(pool: &DbPool) -> String {
 pub struct AppSettingsStore;
 
 impl AppSettingsStore {
+    pub fn migrate_legacy_default_shell(pool: &DbPool) -> Result<(), SettingsError> {
+        if AppSettingsStore::get(pool, DEFAULT_SHELL_PROBE_MIGRATED_KEY).is_ok() {
+            return Ok(());
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            let probed_default = default_shell_for_platform();
+            if !is_windows_cmd_shell(&probed_default) {
+                if let Ok(stored_shell) = AppSettingsStore::get(pool, "default_shell") {
+                    if is_windows_cmd_shell(&stored_shell) {
+                        AppSettingsStore::set(pool, "default_shell", &probed_default)?;
+                    }
+                }
+            }
+        }
+
+        AppSettingsStore::set(pool, DEFAULT_SHELL_PROBE_MIGRATED_KEY, "true")
+    }
+
     pub fn get(pool: &DbPool, key: &str) -> Result<String, SettingsError> {
         let conn = pool.get().map_err(DbError::from)?;
         let value: String = conn
@@ -217,12 +248,14 @@ impl AppSettingsStore {
         let theme = get_parsed(pool, "theme", "dark");
         let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
-        let default_shell = get_parsed(pool, "default_shell", default_shell_for_platform());
+        let fallback_shell = default_shell_for_platform();
+        let default_shell = get_parsed(pool, "default_shell", &fallback_shell);
         let paste_protection: bool = get_parsed(pool, "paste_protection", "true");
         let telemetry_opt_in = get_optional_bool(pool, "telemetry_opt_in");
         let git_user_name = get_optional_string(pool, "git_user_name");
         let git_user_email = get_optional_string(pool, "git_user_email");
-        let bg_opacity: f32 = get_parsed(pool, "bg_opacity", "0.85");
+        let bg_opacity: f32 =
+            clamp_bg_opacity(get_parsed(pool, "bg_opacity", DEFAULT_BG_OPACITY_RAW));
         let bg_blur: u32 = get_parsed(pool, "bg_blur", "20");
         let window_padding_x: u32 = get_parsed(pool, "window_padding_x", "2");
         let window_padding_y: u32 = get_parsed(pool, "window_padding_y", "2");
@@ -294,7 +327,7 @@ impl AppSettingsStore {
             Self::set(pool, "git_user_email", v)?;
         }
         if let Some(v) = req.bg_opacity {
-            Self::set(pool, "bg_opacity", &v.to_string())?;
+            Self::set(pool, "bg_opacity", &clamp_bg_opacity(v).to_string())?;
         }
         if let Some(v) = req.bg_blur {
             Self::set(pool, "bg_blur", &v.to_string())?;
@@ -553,6 +586,24 @@ mod tests {
     }
 
     #[test]
+    fn bg_opacity_is_clamped_to_readable_glass_floor() {
+        let (_dir, pool) = setup();
+        AppSettingsStore::set(&pool, "bg_opacity", "0.2").unwrap();
+
+        let settings = AppSettingsStore::get_all(&pool);
+        assert!((settings.bg_opacity - 0.65).abs() < f32::EPSILON);
+
+        let req = SettingsUpdateRequest {
+            bg_opacity: Some(0.1),
+            ..Default::default()
+        };
+        AppSettingsStore::update(&pool, &req).unwrap();
+
+        let val = AppSettingsStore::get(&pool, "bg_opacity").unwrap();
+        assert!((val.parse::<f32>().unwrap() - 0.65).abs() < f32::EPSILON);
+    }
+
+    #[test]
     fn settings_persist_across_pool_reopen() {
         // MVP-11 Phase 4 §D.6 · 模拟应用重启 · pool drop 后重新打开同一 db
         // 必须读回先前写入的 7 字段（不依赖 in-memory · 走真实 sqlite 文件）
@@ -580,7 +631,7 @@ mod tests {
         let s = AppSettingsStore::get_all(&pool2);
         assert_eq!(s.theme, "light");
         assert_eq!(s.font_size, 16);
-        assert!((s.bg_opacity - 0.5).abs() < f32::EPSILON);
+        assert!((s.bg_opacity - 0.65).abs() < f32::EPSILON);
         assert_eq!(s.bg_blur, 40);
         assert_eq!(s.window_padding_x, 8);
         assert_eq!(s.window_padding_y, 6);
@@ -592,20 +643,9 @@ mod tests {
     // ─── task-1.3 · 跨平台 default_shell 默认值（SCEN-1.3.1~1.3.4 / AC1~AC5） ───
 
     /// 当前平台期望的默认 shell（测试断言基准）。
-    /// macOS → /bin/zsh · Windows → cmd.exe（占位 · ADR-003）· Linux/其他 → /bin/bash。
-    fn expected_default_shell() -> &'static str {
-        #[cfg(target_os = "macos")]
-        {
-            "/bin/zsh"
-        }
-        #[cfg(target_os = "windows")]
-        {
-            "cmd.exe"
-        }
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        {
-            "/bin/bash"
-        }
+    /// Windows 必须复用 task-2.1 的 pwsh → powershell → cmd 探测链。
+    fn expected_default_shell() -> String {
+        crate::pty::resolve_default_shell(None)
     }
 
     // SCEN-1.3.1 / AC1 — AppSettings::default().default_shell 三平台各自正确
@@ -631,18 +671,37 @@ mod tests {
         assert_eq!(from_get_all, expected_default_shell());
     }
 
-    // SCEN-1.3.3 / AC3 — Windows 默认占位为 cmd.exe（绝不回落 Unix 路径）
+    // SCEN-1.3.3 / AC3 — Windows 默认走 pwsh → powershell → cmd 探测链（绝不回落 Unix 路径）
     #[cfg(target_os = "windows")]
     #[test]
-    fn test_1_3_3_windows_default_is_cmd() {
+    fn test_1_3_3_windows_default_uses_probe_chain() {
         let shell = AppSettings::default().default_shell;
-        assert_eq!(
-            shell, "cmd.exe",
-            "Windows 默认 shell 占位应为 cmd.exe（ADR-003）"
-        );
         assert!(
             !shell.starts_with("/bin/"),
             "Windows 默认 shell 绝不应是 Unix 路径（/bin/bash 在 Windows 不存在 → PTY spawn 立即失败），实际={shell}"
+        );
+        assert_eq!(
+            shell,
+            crate::pty::resolve_default_shell(None),
+            "Windows settings 默认 shell 必须与 task-2.1 探测链一致"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn test_1_3_5_legacy_cmd_default_migrates_to_probe_chain() {
+        let (_dir, pool) = setup();
+        AppSettingsStore::set(&pool, "default_shell", r"C:\Windows\System32\cmd.exe").unwrap();
+
+        AppSettingsStore::migrate_legacy_default_shell(&pool).unwrap();
+
+        assert_eq!(
+            AppSettingsStore::get_all(&pool).default_shell,
+            crate::pty::resolve_default_shell(None)
+        );
+        assert_eq!(
+            AppSettingsStore::get(&pool, DEFAULT_SHELL_PROBE_MIGRATED_KEY).unwrap(),
+            "true"
         );
     }
 

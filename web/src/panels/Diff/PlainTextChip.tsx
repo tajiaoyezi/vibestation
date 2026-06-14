@@ -6,6 +6,8 @@
 // - 不弹 toast（避免烦扰）
 
 import { type Component, Show } from "solid-js";
+import { t } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import { guessLanguageFromPath } from "../../utils/shiki";
 
 type PlainTextReason = "unsupported-language" | "large-file";
@@ -23,6 +25,10 @@ function formatBytes(bytes: number): string {
 }
 
 export const PlainTextChip: Component<PlainTextChipProps> = (props) => {
+  const { settings: appSettings } = useSettings();
+  const language = () => appSettings.language;
+  const label = (key: string) => t(key, language());
+
   const lang = () => guessLanguageFromPath(props.filePath);
   const reason = () => props.reason ?? "unsupported-language";
   const showLargeFileChip = () => reason() === "large-file";
@@ -30,19 +36,20 @@ export const PlainTextChip: Component<PlainTextChipProps> = (props) => {
     reason() === "unsupported-language" && lang() === null;
   const chipText = () => {
     if (!showLargeFileChip()) {
-      return "Plain text";
+      return label("diff.plainText");
     }
 
+    const disabled = label("diff.syntaxHighlightDisabled");
     if ((props.fileSize ?? 0) <= 0) {
-      return "Large file · 语法高亮已禁用";
+      return `${label("diff.largeFile")} · ${disabled}`;
     }
 
-    return `Large file (${formatBytes(props.fileSize ?? 0)}) · 语法高亮已禁用`;
+    return `${label("diff.largeFile")} (${formatBytes(props.fileSize ?? 0)}) · ${disabled}`;
   };
   const chipTitle = () =>
     showLargeFileChip()
-      ? "文件过大，语法高亮已禁用"
-      : "此文件类型暂不支持语法高亮 · 作为纯文本显示";
+      ? label("diff.largeFileTitle")
+      : label("diff.plainTextTitle");
 
   return (
     <Show when={showLargeFileChip() || showUnsupportedChip()}>

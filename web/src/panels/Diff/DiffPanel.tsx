@@ -9,6 +9,8 @@ import type { DiffHunk, DiffResponse } from "../../bindings";
 import { computeDiff, getDiffViewMode, setDiffViewMode } from "./diffApi";
 import { DiffLineContent } from "./DiffLine";
 import { PlainTextChip } from "./PlainTextChip";
+import { t } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 interface DiffPanelProps {
   workspaceId: string;
@@ -20,6 +22,10 @@ type ViewMode = "split" | "unified";
 const SYNTAX_HIGHLIGHT_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const DiffPanel: Component<DiffPanelProps> = (props) => {
+  const { settings: appSettings } = useSettings();
+  const language = () => appSettings.language;
+  const label = (key: string) => t(key, language());
+
   const [viewMode, setViewMode] = createSignal<ViewMode>("split");
   const [loading, setLoading] = createSignal(false);
   const [error, setError] = createSignal<string | null>(null);
@@ -130,7 +136,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
             onClick={() => handleViewModeChange("split")}
             aria-pressed={viewMode() === "split"}
           >
-            Split
+            {label("diff.split")}
           </button>
           <button
             type="button"
@@ -138,13 +144,13 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
             onClick={() => handleViewModeChange("unified")}
             aria-pressed={viewMode() === "unified"}
           >
-            Unified
+            {label("diff.unified")}
           </button>
         </div>
       </div>
 
       <Show when={loading() && !response()}>
-        <div class="vs-diff-state vs-diff-loading">Loading diff...</div>
+        <div class="vs-diff-state vs-diff-loading">{label("diff.loading")}</div>
       </Show>
 
       <Show when={error()}>
@@ -158,15 +164,19 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
           <div class="vs-diff-content">
             <Show when={resp().binary}>
               <div class="vs-diff-state vs-diff-binary">
-                <div class="vs-diff-binary-title">Binary file</div>
+                <div class="vs-diff-binary-title">{label("diff.binaryFile")}</div>
                 <Show
                   when={
                     resp().oldSizeBytes !== null || resp().newSizeBytes !== null
                   }
                 >
                   <div class="vs-diff-binary-sizes">
-                    <span>Old: {formatBytes(resp().oldSizeBytes)}</span>
-                    <span>New: {formatBytes(resp().newSizeBytes)}</span>
+                    <span>
+                      {label("diff.oldSize")} {formatBytes(resp().oldSizeBytes)}
+                    </span>
+                    <span>
+                      {label("diff.newSize")} {formatBytes(resp().newSizeBytes)}
+                    </span>
                   </div>
                 </Show>
               </div>
@@ -174,7 +184,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
 
             <Show when={resp().truncated && !allowLargeFile()}>
               <div class="vs-diff-state vs-diff-truncated">
-                <div class="vs-diff-truncated-title">Large file</div>
+                <div class="vs-diff-truncated-title">{label("diff.largeFile")}</div>
                 <Show when={resp().truncatedReason}>
                   <div class="vs-diff-truncated-reason">
                     {resp().truncatedReason}
@@ -182,7 +192,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
                 </Show>
                 <Show when={resp().lineCount !== null}>
                   <div class="vs-diff-truncated-count">
-                    {resp().lineCount} lines
+                    {resp().lineCount} {label("diff.lines")}
                   </div>
                 </Show>
                 <button
@@ -190,7 +200,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
                   class="vs-diff-show-anyway"
                   onClick={handleShowAnyway}
                 >
-                  Show anyway
+                  {label("diff.showAnyway")}
                 </button>
               </div>
             </Show>
@@ -201,7 +211,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
               <Show
                 when={resp().hunks.length > 0}
                 fallback={
-                  <div class="vs-diff-state vs-diff-empty">No changes</div>
+                  <div class="vs-diff-state vs-diff-empty">{label("diff.noChanges")}</div>
                 }
               >
                 <div class="vs-diff-hunks">

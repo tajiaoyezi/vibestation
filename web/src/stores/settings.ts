@@ -14,6 +14,7 @@ export const MAX_BG_OPACITY = 1;
 const DEFAULTS: AppSettings = {
   language: "en",
   theme: "dark",
+  uiFontFamily: "Inter",
   fontFamily:
     "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, monospace",
   fontSize: 14,
@@ -117,6 +118,10 @@ function applyCssVars(s: AppSettings): void {
     '"JetBrains Mono Variable", "JetBrainsMono NF", "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", "Consolas", monospace';
   root.setProperty("--font-mono", `"${s.fontFamily}", ${fallback}`);
 
+  const uiFallback =
+    '"Inter Variable", "Inter", -apple-system, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif';
+  root.setProperty("--font-ui", `"${s.uiFontFamily}", ${uiFallback}`);
+
   // 同步 data-theme attribute · 避免 ThemeProvider race · settings_changed 一并生效
   const resolvedTheme =
     s.theme === "auto"
@@ -156,6 +161,8 @@ export function useSettings() {
       const req = {} as SettingsUpdateRequest;
       if (normalized.language !== undefined) req.language = normalized.language;
       if (normalized.theme !== undefined) req.theme = normalized.theme;
+      if (normalized.uiFontFamily !== undefined)
+        req.uiFontFamily = normalized.uiFontFamily;
       if (normalized.fontFamily !== undefined)
         req.fontFamily = normalized.fontFamily;
       if (normalized.fontSize !== undefined) req.fontSize = normalized.fontSize;

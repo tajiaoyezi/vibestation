@@ -15,6 +15,7 @@ const {
   const defaultFixture = (): AppSettings => ({
     language: "en",
     theme: "dark",
+    uiFontFamily: "Inter",
     fontFamily: "JetBrains Mono",
     fontSize: 14,
     defaultShell: "/bin/bash",

@@ -534,25 +534,30 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
               <For each={GROUPS}>
                 {(group) => (
                   <section class="vs-git-status-group">
-                    <button
-                      type="button"
-                      class="vs-git-status-group-head"
-                      onClick={() =>
-                        void handleToggleGroup(group.key, group.binding)
-                      }
-                      aria-expanded={!isCollapsed(group.key)}
-                    >
-                      <div class="vs-git-status-group-titlewrap">
-                        <span class="vs-git-status-chevron" aria-hidden="true">
-                          {isCollapsed(group.key) ? "▸" : "▾"}
+                    <div class="vs-git-status-group-head">
+                      <button
+                        type="button"
+                        class="vs-git-status-group-toggle"
+                        onClick={() =>
+                          void handleToggleGroup(group.key, group.binding)
+                        }
+                        aria-expanded={!isCollapsed(group.key)}
+                      >
+                        <div class="vs-git-status-group-titlewrap">
+                          <span
+                            class="vs-git-status-chevron"
+                            aria-hidden="true"
+                          >
+                            {isCollapsed(group.key) ? "▸" : "▾"}
+                          </span>
+                          <span class="vs-git-status-group-title">
+                            {label(group.titleKey)}
+                          </span>
+                        </div>
+                        <span class="vs-git-status-group-count">
+                          {groupItems(group.key).length}
                         </span>
-                        <span class="vs-git-status-group-title">
-                          {label(group.titleKey)}
-                        </span>
-                      </div>
-                      <span class="vs-git-status-group-count">
-                        {groupItems(group.key).length}
-                      </span>
+                      </button>
                       <Show when={groupItems(group.key).length > 0}>
                         <Show
                           when={group.key !== "staged"}
@@ -560,10 +565,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                             <button
                               type="button"
                               class="vs-git-status-group-action"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void handleUnstageAll();
-                              }}
+                              onClick={() => void handleUnstageAll()}
                             >
                               {label("gitStatus.unstageAll")}
                             </button>
@@ -572,16 +574,13 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                           <button
                             type="button"
                             class="vs-git-status-group-action"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void handleStageAll(group.key);
-                            }}
+                            onClick={() => void handleStageAll(group.key)}
                           >
                             {label("gitStatus.stageAll")}
                           </button>
                         </Show>
                       </Show>
-                    </button>
+                    </div>
 
                     <Show when={!isCollapsed(group.key)}>
                       <Show

@@ -25,7 +25,13 @@ describe("FEAT-02 first Settings chrome copy", () => {
   it("TEST-FEAT-02.6: appearance labels translate", () => {
     expect(t("settings.appearance.theme", "zh-Hans")).toBe("主题");
     expect(t("settings.appearance.auto", "zh-Hans")).toBe("自动");
-    expect(t("settings.appearance.fontFamily", "zh-Hans")).toBe("字体");
+    expect(t("settings.appearance.uiFontFamily", "zh-Hans")).toBe("界面字体");
+    expect(t("settings.appearance.terminalFontFamily", "zh-Hans")).toBe(
+      "终端字体",
+    );
+    expect(t("settings.appearance.terminalFontSize", "zh-Hans")).toBe(
+      "终端字号",
+    );
     expect(t("settings.appearance.backgroundOpacity", "zh-Hans")).toBe(
       "背景不透明度",
     );
@@ -245,6 +251,31 @@ describe("FEAT-02 first Settings chrome copy", () => {
       "保存到系统 keychain",
     );
     expect(t("dialogs.auth.submitting", "zh-Hans")).toBe("验证中...");
+  });
+
+  it("TEST-FEAT-02.6: git status panel labels translate", () => {
+    expect(t("gitStatus.refresh", "en")).toBe("Refresh");
+    expect(t("gitStatus.refresh", "zh-Hans")).toBe("刷新");
+    expect(t("gitStatus.groupStaged", "zh-Hans")).toBe("已暂存");
+    expect(t("gitStatus.stageAll", "zh-Hans")).toBe("全部暂存");
+    expect(t("gitStatus.nothingHere", "zh-Hans")).toBe("暂无内容");
+    expect(t("gitStatus.summaryUnstaged", "zh-Hans")).toBe("未暂存");
+  });
+
+  it("TEST-FEAT-02.6: diff panel labels translate", () => {
+    expect(t("diff.split", "en")).toBe("Split");
+    expect(t("diff.split", "zh-Hans")).toBe("分栏");
+    expect(t("diff.unified", "zh-Hans")).toBe("统一");
+    expect(t("diff.noChanges", "zh-Hans")).toBe("无变更");
+    expect(t("diff.plainText", "zh-Hans")).toBe("纯文本");
+  });
+
+  it("TEST-FEAT-02.6: commit bar labels translate", () => {
+    expect(t("commitBar.commit", "en")).toBe("Commit");
+    expect(t("commitBar.commit", "zh-Hans")).toBe("提交");
+    expect(t("commitBar.amend", "zh-Hans")).toBe("修正提交");
+    expect(t("commitBar.messagePlaceholder", "zh-Hans")).toBe("提交说明…");
+    expect(t("commitBar.noStagedChanges", "zh-Hans")).toBe("无暂存变更");
   });
 
   it("TEST-FEAT-02.6: config import dialog chrome labels translate", () => {

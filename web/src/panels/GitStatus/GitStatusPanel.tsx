@@ -31,6 +31,8 @@ import {
 } from "./gitStatusApi";
 import { CommitBar } from "../CommitBar";
 import type { DiffTarget } from "../../components/MainContent";
+import { t } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 interface GitStatusPanelProps {
   activeWorkspace: () => WorkspaceMetadata | null;
@@ -53,15 +55,22 @@ const DEFAULT_SETTINGS: GitStatusPanelSettings = {
 
 const GROUPS: {
   key: GroupKey;
-  title: string;
+  titleKey: string;
   binding: GitStatusGroup;
 }[] = [
-  { key: "staged", title: "Staged", binding: "staged" },
-  { key: "unstaged", title: "Unstaged", binding: "unstaged" },
-  { key: "untracked", title: "Untracked", binding: "untracked" },
+  { key: "staged", titleKey: "gitStatus.groupStaged", binding: "staged" },
+  { key: "unstaged", titleKey: "gitStatus.groupUnstaged", binding: "unstaged" },
+  {
+    key: "untracked",
+    titleKey: "gitStatus.groupUntracked",
+    binding: "untracked",
+  },
 ];
 
 export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
+  const { settings: appSettings } = useSettings();
+  const language = () => appSettings.language;
+  const label = (key: string) => t(key, language());
   const [status, setStatus] = createSignal<GitStatusResponse>(EMPTY_STATUS);
   const [settings, setSettings] =
     createSignal<GitStatusPanelSettings>(DEFAULT_SETTINGS);
@@ -284,7 +293,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
       // revert
       moveFileOptimistically(filePath, "staged", fromGroup);
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`无法 stage：${msg}`);
+      setError(`${label("gitStatus.errorCannotStage")} ${msg}`);
     }
   };
 
@@ -302,7 +311,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     } catch (err) {
       moveFileOptimistically(filePath, "unstaged", "staged");
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`无法 unstage：${msg}`);
+      setError(`${label("gitStatus.errorCannotUnstage")} ${msg}`);
     }
   };
 
@@ -327,7 +336,9 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         filePaths: files,
       });
       if (result.failed.length > 0) {
-        setError(`${result.failed.length} 个文件 stage 失败`);
+        setError(
+          `${result.failed.length} ${label("gitStatus.errorPartialStage")}`,
+        );
       }
     } catch (err) {
       // revert
@@ -339,7 +350,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         [group]: currentFiles,
       }));
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Stage All 失败：${msg}`);
+      setError(`${label("gitStatus.errorStageAllFailed")} ${msg}`);
     }
   };
 
@@ -373,7 +384,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         ),
       }));
       const msg = err instanceof Error ? err.message : String(err);
-      setError(`Unstage All 失败：${msg}`);
+      setError(`${label("gitStatus.errorUnstageAllFailed")} ${msg}`);
     }
   };
 
@@ -436,7 +447,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
 
   const lastUpdatedLabel = (): string => {
     const value = lastUpdated();
-    if (!value) return "not loaded";
+    if (!value) return label("gitStatus.notLoaded");
     return value.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -448,18 +459,14 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     <Switch>
       <Match when={!props.activeWorkspace()}>
         <div class="vs-git-status-empty">
-          <p class="vs-placeholder-text">
-            Select a workspace to inspect status
-          </p>
+          <p class="vs-placeholder-text">{label("gitStatus.selectWorkspace")}</p>
         </div>
       </Match>
 
       <Match when={!hasGit()}>
         <div class="vs-git-status-empty">
-          <p class="vs-placeholder-text">No git repository found</p>
-          <p class="vs-placeholder-text">
-            Open a workspace containing a <code>.git</code> folder
-          </p>
+          <p class="vs-placeholder-text">{label("gitStatus.noGitRepo")}</p>
+          <p class="vs-placeholder-text">{label("gitStatus.openGitWorkspace")}</p>
         </div>
       </Match>
 
@@ -468,18 +475,19 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
           <div class="vs-git-status-toolbar">
             <div class="vs-git-status-summary">
               <span class="vs-git-status-summary-item">
-                {status().staged.length} staged
+                {status().staged.length} {label("gitStatus.summaryStaged")}
               </span>
               <span class="vs-git-status-summary-item">
-                {status().unstaged.length} unstaged
+                {status().unstaged.length} {label("gitStatus.summaryUnstaged")}
               </span>
               <span class="vs-git-status-summary-item">
-                {status().untracked.length} untracked
+                {status().untracked.length}{" "}
+                {label("gitStatus.summaryUntracked")}
               </span>
             </div>
             <div class="vs-git-status-toolbar-right">
               <span class="vs-git-status-updated">
-                updated {lastUpdatedLabel()}
+                {label("gitStatus.updated")} {lastUpdatedLabel()}
               </span>
               <button
                 type="button"
@@ -487,7 +495,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                 onClick={() => void handleRefresh()}
                 disabled={loading()}
               >
-                Refresh
+                {label("gitStatus.refresh")}
               </button>
             </div>
           </div>
@@ -496,8 +504,8 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
             <div class="vs-git-status-error" role="alert">
               <div>{error()}</div>
               <div class="vs-git-status-error-hint">
-                If repository health is suspect, try{" "}
-                <code>git fsck --full</code>.
+                {label("gitStatus.errorHintPrefix")}{" "}
+                <code>{label("gitStatus.errorHintCommand")}</code>.
               </div>
             </div>
           </Show>
@@ -511,7 +519,9 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                   status().untracked.length >
                   0
               }
-              fallback={<div class="vs-git-status-loading">Loading...</div>}
+              fallback={
+                <div class="vs-git-status-loading">{label("gitStatus.loading")}</div>
+              }
             >
               <For each={GROUPS}>
                 {(group) => (
@@ -529,7 +539,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                           {isCollapsed(group.key) ? "▸" : "▾"}
                         </span>
                         <span class="vs-git-status-group-title">
-                          {group.title}
+                          {label(group.titleKey)}
                         </span>
                       </div>
                       <span class="vs-git-status-group-count">
@@ -547,7 +557,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                 void handleUnstageAll();
                               }}
                             >
-                              Unstage All
+                              {label("gitStatus.unstageAll")}
                             </button>
                           }
                         >
@@ -559,7 +569,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                               void handleStageAll(group.key);
                             }}
                           >
-                            Stage All
+                            {label("gitStatus.stageAll")}
                           </button>
                         </Show>
                       </Show>
@@ -570,7 +580,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                         when={groupItems(group.key).length > 0}
                         fallback={
                           <div class="vs-git-status-group-empty">
-                            Nothing here
+                            {label("gitStatus.nothingHere")}
                           </div>
                         }
                       >
@@ -614,7 +624,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                     <button
                                       type="button"
                                       class="vs-git-status-action vs-git-status-action-unstage"
-                                      title="Unstage"
+                                      title={label("gitStatus.unstage")}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         void handleUnstage(file.path);
@@ -627,7 +637,7 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                   <button
                                     type="button"
                                     class="vs-git-status-action vs-git-status-action-stage"
-                                    title="Stage"
+                                    title={label("gitStatus.stage")}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       void handleStage(file.path);

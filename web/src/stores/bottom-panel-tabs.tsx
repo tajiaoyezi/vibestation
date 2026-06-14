@@ -21,6 +21,7 @@ import {
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
   FetchProgressEvent,
+  NetworkOpError,
   OperationDoneEvent,
   PushProgressEvent,
 } from "../bindings";
@@ -57,6 +58,39 @@ function kindFromOperation(op: string): OutputEntryKind | null {
   return null;
 }
 
+/** 把 NetworkOpError（11 变体判别联合）渲染成可读字符串 · 避免 [object Object] */
+function formatNetworkError(e: NetworkOpError): string {
+  switch (e.kind) {
+    case "authFailed":
+      return `auth failed: ${e.detail}`;
+    case "networkUnreachable":
+      return `network unreachable: ${e.detail}`;
+    case "remoteNotFound":
+      return `remote not found: ${e.remote}`;
+    case "nonFastForward":
+      return `non-fast-forward (${e.remoteBranch} · local ahead ${e.localAhead}, remote ahead ${e.remoteAhead})`;
+    case "mergeConflict":
+      return `merge conflict (${e.files.length} files · aborted=${e.aborted})`;
+    case "aborted":
+      return `aborted: ${e.reason}`;
+    case "dirtyWorkingTree":
+      return `dirty working tree (modified=${e.modified.length}, staged=${e.staged.length}, untracked=${e.untracked.length})`;
+    case "rejectedByRemote":
+      return `rejected by remote: ${e.detail}`;
+    case "staleLease":
+      return `stale lease (expected=${e.expected}, actual=${e.actual})`;
+    case "sslError":
+      return `ssl error: ${e.detail}`;
+    case "git2Error":
+      return `git2 error (class=${e.class}, code=${e.code}): ${e.message}`;
+    default: {
+      // 兜底 · 防止 NetworkOpError 新增变体时崩溃
+      const exhaustive: never = e;
+      return String(exhaustive);
+    }
+  }
+}
+
 interface BottomPanelTabsContextValue {
   activeTab: () => BottomPanelTab;
   setActiveTab: (tab: BottomPanelTab) => void;
@@ -70,12 +104,20 @@ const BottomPanelTabsContext = createContext<BottomPanelTabsContextValue>();
 export const BottomPanelTabsProvider: ParentComponent = (props) => {
   const [activeTab, setActiveTab] = createSignal<BottomPanelTab>("status");
   const [entries, setEntries] = createSignal<OutputEntry[]>([]);
+
+  // mounted 守卫 · 防止 listen Promise resolve 前组件 unmount 导致 unlisten 丢失
+  // （Provider 常驻挂载正常不会触发，但 hot-reload / 测试场景下需要防御 · 对齐 App.tsx 现有 idiom）
+  let mounted = true;
   let unlistenPush: UnlistenFn | undefined;
   let unlistenFetch: UnlistenFn | undefined;
   let unlistenDone: UnlistenFn | undefined;
 
   /** 在 FIFO 头部插入/更新 entry · 维持 MAX_ENTRIES 上限。 */
-  const upsert = (taskId: string, mutator: (e: OutputEntry) => OutputEntry) => {
+  const upsert = (
+    taskId: string,
+    fallbackKind: OutputEntryKind,
+    mutator: (e: OutputEntry) => OutputEntry,
+  ) => {
     setEntries((prev) => {
       const idx = prev.findIndex((e) => e.id === taskId);
       if (idx >= 0) {
@@ -83,10 +125,10 @@ export const BottomPanelTabsProvider: ParentComponent = (props) => {
         next[idx] = mutator(prev[idx]);
         return next;
       }
-      // 新建 · 时间戳作为 startedAt · kind 占位（operation-done 会纠正）
+      // 新建 · 时间戳作为 startedAt · kind 用 fallbackKind（progress 事件已知操作类型）
       const fresh: OutputEntry = mutator({
         id: taskId,
-        kind: "fetch",
+        kind: fallbackKind,
         workspaceId: "",
         outcome: "running",
         startedAt: Date.now(),
@@ -102,66 +144,68 @@ export const BottomPanelTabsProvider: ParentComponent = (props) => {
     });
   };
 
-  onMount(async () => {
-    unlistenPush = await listen<PushProgressEvent>(
-      GIT_PUSH_PROGRESS_EVENT,
-      (event) => {
-        const p = event.payload;
-        upsert(p.taskId, (e) => ({
-          ...e,
-          kind: "push",
-          workspaceId: p.workspaceId,
-          stage: p.stage,
-          objectsDone: p.objectsDone,
-          objectsTotal: p.objectsTotal,
-          bytesDone: p.bytesDone,
-          bytesTotal: p.bytesTotal,
-        }));
-      },
-    );
+  onMount(() => {
+    void listen<PushProgressEvent>(GIT_PUSH_PROGRESS_EVENT, (event) => {
+      const p = event.payload;
+      upsert(p.taskId, "push", (e) => ({
+        ...e,
+        kind: "push",
+        workspaceId: p.workspaceId,
+        stage: p.stage,
+        objectsDone: p.objectsDone,
+        objectsTotal: p.objectsTotal,
+        bytesDone: p.bytesDone,
+        bytesTotal: p.bytesTotal,
+      }));
+    }).then((u) => {
+      if (mounted) unlistenPush = u;
+      else u();
+    });
 
-    unlistenFetch = await listen<FetchProgressEvent>(
-      GIT_FETCH_PROGRESS_EVENT,
-      (event) => {
-        const p = event.payload;
-        upsert(p.taskId, (e) => ({
-          ...e,
-          kind: "fetch",
-          workspaceId: p.workspaceId,
-          stage: p.stage,
-          objectsDone: p.receivedObjects,
-          objectsTotal: p.totalObjects,
-          bytesDone: p.receivedBytes,
-          bytesTotal: e.bytesTotal,
-        }));
-      },
-    );
+    void listen<FetchProgressEvent>(GIT_FETCH_PROGRESS_EVENT, (event) => {
+      const p = event.payload;
+      upsert(p.taskId, "fetch", (e) => ({
+        ...e,
+        kind: "fetch",
+        workspaceId: p.workspaceId,
+        stage: p.stage,
+        objectsDone: p.receivedObjects,
+        objectsTotal: p.totalObjects,
+        bytesDone: p.receivedBytes,
+        bytesTotal: e.bytesTotal,
+      }));
+    }).then((u) => {
+      if (mounted) unlistenFetch = u;
+      else u();
+    });
 
-    unlistenDone = await listen<OperationDoneEvent>(
-      GIT_OPERATION_DONE_EVENT,
-      (event) => {
-        const p = event.payload;
-        const kind = kindFromOperation(p.operation);
-        const outcome: OutputEntryOutcome =
-          p.outcome === "success"
-            ? "success"
-            : p.outcome === "cancelled"
-              ? "cancelled"
-              : "error";
-        upsert(p.taskId, (e) => ({
-          ...e,
-          kind: kind ?? e.kind,
-          workspaceId: p.workspaceId || e.workspaceId,
-          outcome,
-          endedAt: Date.now(),
-          stage: e.stage,
-          error: outcome === "error" && p.error ? String(p.error) : null,
-        }));
-      },
-    );
+    void listen<OperationDoneEvent>(GIT_OPERATION_DONE_EVENT, (event) => {
+      const p = event.payload;
+      const kind = kindFromOperation(p.operation);
+      const outcome: OutputEntryOutcome =
+        p.outcome === "success"
+          ? "success"
+          : p.outcome === "cancelled"
+            ? "cancelled"
+            : "error";
+      upsert(p.taskId, kind ?? "fetch", (e) => ({
+        ...e,
+        kind: kind ?? e.kind,
+        workspaceId: p.workspaceId || e.workspaceId,
+        outcome,
+        endedAt: Date.now(),
+        stage: e.stage,
+        error:
+          outcome === "error" && p.error ? formatNetworkError(p.error) : null,
+      }));
+    }).then((u) => {
+      if (mounted) unlistenDone = u;
+      else u();
+    });
   });
 
   onCleanup(() => {
+    mounted = false;
     unlistenPush?.();
     unlistenFetch?.();
     unlistenDone?.();

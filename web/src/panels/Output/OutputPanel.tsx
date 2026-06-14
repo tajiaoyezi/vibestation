@@ -3,6 +3,10 @@
  *
  * 纯渲染组件 · 事件订阅 + entry 存储在 BottomPanelTabsProvider（常驻挂载），
  * 这样 tab 关闭/切换时不会丢失正在进行的操作记录。
+ *
+ * 响应式注意：outputEntries() 必须在 JSX 表达式内直接调用（each={outputEntries()}、
+ * when={outputEntries().length}），不能在组件体顶层一次性解包给 const —— 否则 For/Show
+ * 不追踪 signal，面板不更新。
  */
 import { type Component, For, Show, createSignal } from "solid-js";
 import { t, normalizeLanguage } from "../../i18n";
@@ -36,13 +40,11 @@ export const OutputPanel: Component = () => {
         ? label("output.kindPull")
         : label("output.kindFetch");
 
-  const entries = outputEntries();
-
   return (
     <div class="vs-output-panel" role="log" aria-label={label("output.title")}>
       <div class="vs-output-head">
         <span class="vs-output-head-title">{label("output.title")}</span>
-        <Show when={entries.length > 0}>
+        <Show when={outputEntries().length > 0}>
           <button
             type="button"
             class="vs-output-clear-btn"
@@ -58,14 +60,14 @@ export const OutputPanel: Component = () => {
       </div>
       <div class="vs-output-body">
         <Show
-          when={entries.length > 0}
+          when={outputEntries().length > 0}
           fallback={
             <div class="vs-output-empty" role="status">
               {label("output.empty")}
             </div>
           }
         >
-          <For each={entries}>
+          <For each={outputEntries()}>
             {(entry) => (
               <div
                 class={`vs-output-row vs-output-row-${entry.outcome}`}

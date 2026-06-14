@@ -260,6 +260,7 @@ describe("FEAT-02 first Settings chrome copy", () => {
     expect(t("gitStatus.stageAll", "zh-Hans")).toBe("全部暂存");
     expect(t("gitStatus.nothingHere", "zh-Hans")).toBe("暂无内容");
     expect(t("gitStatus.summaryUnstaged", "zh-Hans")).toBe("未暂存");
+    expect(t("gitStatus.errorStageFailed", "zh-Hans")).toBe("暂存失败");
   });
 
   it("TEST-FEAT-02.6: diff panel labels translate", () => {
@@ -276,6 +277,12 @@ describe("FEAT-02 first Settings chrome copy", () => {
     expect(t("commitBar.amend", "zh-Hans")).toBe("修正提交");
     expect(t("commitBar.messagePlaceholder", "zh-Hans")).toBe("提交说明…");
     expect(t("commitBar.noStagedChanges", "zh-Hans")).toBe("无暂存变更");
+    expect(t("commitBar.hookFailedSummary", "en")).toBe(
+      "Hook failed (exit {code})",
+    );
+    expect(
+      t("commitBar.hookFailedSummary", "zh-Hans").replace("{code}", "1"),
+    ).toBe("Hook 失败（退出码 1）");
   });
 
   it("TEST-FEAT-02.6: config import dialog chrome labels translate", () => {

@@ -287,7 +287,9 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
         filePaths: [filePath],
       });
       if (result.failed.length > 0) {
-        throw new Error(result.failed[0]?.error ?? "stage failed");
+        throw new Error(
+          result.failed[0]?.error ?? label("gitStatus.errorStageFailed"),
+        );
       }
     } catch (err) {
       // revert
@@ -459,14 +461,18 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
     <Switch>
       <Match when={!props.activeWorkspace()}>
         <div class="vs-git-status-empty">
-          <p class="vs-placeholder-text">{label("gitStatus.selectWorkspace")}</p>
+          <p class="vs-placeholder-text">
+            {label("gitStatus.selectWorkspace")}
+          </p>
         </div>
       </Match>
 
       <Match when={!hasGit()}>
         <div class="vs-git-status-empty">
           <p class="vs-placeholder-text">{label("gitStatus.noGitRepo")}</p>
-          <p class="vs-placeholder-text">{label("gitStatus.openGitWorkspace")}</p>
+          <p class="vs-placeholder-text">
+            {label("gitStatus.openGitWorkspace")}
+          </p>
         </div>
       </Match>
 
@@ -520,7 +526,9 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                   0
               }
               fallback={
-                <div class="vs-git-status-loading">{label("gitStatus.loading")}</div>
+                <div class="vs-git-status-loading">
+                  {label("gitStatus.loading")}
+                </div>
               }
             >
               <For each={GROUPS}>

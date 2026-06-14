@@ -103,7 +103,12 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           setHookErrorExitCode(parsed.exit_code);
           setHookErrorCopied(false);
           setHookErrorDialogOpen(true);
-          props.onError?.(`Hook failed (exit ${parsed.exit_code})`);
+          props.onError?.(
+            label("commitBar.hookFailedSummary").replace(
+              "{code}",
+              String(parsed.exit_code),
+            ),
+          );
           return;
         }
         case "noStagedFiles": {
@@ -247,7 +252,9 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       <Show when={detachedHeadDialogOpen()}>
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
-            <h3 class="vs-dialog-title">{label("commitBar.detachedHeadTitle")}</h3>
+            <h3 class="vs-dialog-title">
+              {label("commitBar.detachedHeadTitle")}
+            </h3>
             <p class="vs-dialog-body">{label("commitBar.detachedHeadBody")}</p>
             <div class="vs-dialog-actions">
               <button
@@ -265,7 +272,9 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       <Show when={hookErrorDialogOpen()}>
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
-            <h3 class="vs-dialog-title">{label("commitBar.hookFailedTitle")}</h3>
+            <h3 class="vs-dialog-title">
+              {label("commitBar.hookFailedTitle")}
+            </h3>
             <p class="vs-dialog-hook-meta">
               {label("commitBar.hookFailedMetaPrefix")}{" "}
               <code>{hookErrorExitCode()}</code>{" "}

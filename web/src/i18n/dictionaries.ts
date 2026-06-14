@@ -177,6 +177,7 @@ export const dictionaries = {
       errorPartialStage: "files failed to stage",
       errorStageAllFailed: "Stage all failed:",
       errorUnstageAllFailed: "Unstage all failed:",
+      errorStageFailed: "stage failed",
     },
     commitBar: {
       messagePlaceholder: "Commit message…",
@@ -193,6 +194,7 @@ export const dictionaries = {
         "You are in detached HEAD state. Run git checkout to a branch before committing.",
       detachedHeadOk: "OK",
       hookFailedTitle: "Pre-commit hook failed",
+      hookFailedSummary: "Hook failed (exit {code})",
       hookFailedMetaPrefix: "Hook exit code",
       hookFailedMetaSuffix: "· showing last 20 lines of stderr",
       copyStderr: "Copy stderr",
@@ -204,8 +206,7 @@ export const dictionaries = {
       identityName: "Name",
       identityEmail: "Email",
       identityNamePlaceholder: "Your Name",
-      identityEmailInvalid:
-        "Invalid email format (must include @ and domain)",
+      identityEmailInvalid: "Invalid email format (must include @ and domain)",
       identitySaveLocal: "Save to local git config",
     },
     diff: {
@@ -577,6 +578,7 @@ export const dictionaries = {
       errorPartialStage: "个文件暂存失败",
       errorStageAllFailed: "全部暂存失败：",
       errorUnstageAllFailed: "全部取消暂存失败：",
+      errorStageFailed: "暂存失败",
     },
     commitBar: {
       messagePlaceholder: "提交说明…",
@@ -593,6 +595,7 @@ export const dictionaries = {
         "当前处于 detached HEAD 状态。请先 git checkout 到分支后再提交。",
       detachedHeadOk: "知道了",
       hookFailedTitle: "Pre-commit hook 失败",
+      hookFailedSummary: "Hook 失败（退出码 {code}）",
       hookFailedMetaPrefix: "hook 退出码",
       hookFailedMetaSuffix: "· 显示 stderr 最后 20 行",
       copyStderr: "复制 stderr",

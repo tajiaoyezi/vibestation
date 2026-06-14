@@ -139,6 +139,17 @@ export const dictionaries = {
         alpha: "alpha",
       },
     },
+    output: {
+      title: "Output",
+      empty:
+        "No git operations yet. Push, pull, or fetch to see activity here.",
+      clear: "Clear",
+      errorDetail: "Show error",
+      kindPush: "push",
+      kindPull: "pull",
+      kindFetch: "fetch",
+      diffEmptyHint: "Click a file in Git Status to view its diff.",
+    },
     dialogs: {
       common: {
         cancel: "Cancel",
@@ -453,6 +464,16 @@ export const dictionaries = {
         remoteBehindAriaSuffix: "个 commit",
         alpha: "alpha",
       },
+    },
+    output: {
+      title: "输出",
+      empty: "还没有 Git 操作记录。推送、拉取或抓取后这里会显示活动。",
+      clear: "清空",
+      errorDetail: "查看错误",
+      kindPush: "推送",
+      kindPull: "拉取",
+      kindFetch: "抓取",
+      diffEmptyHint: "在 Git 状态里点一个文件查看其差异。",
     },
     dialogs: {
       common: {

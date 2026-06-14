@@ -26,6 +26,7 @@ import {
 import { PaneLinksProvider } from "./stores/paneLinks-context";
 import { PaneDraftsProvider } from "./stores/paneDrafts-context";
 import { SessionsProvider } from "./stores/sessions-context";
+import { BottomPanelTabsProvider } from "./stores/bottom-panel-tabs";
 import { SessionDetailHost } from "./panels/Sessions/SessionDetailHost";
 import { ThemeProvider } from "./stores/theme";
 import { useSettings, reloadSettings } from "./stores/settings";
@@ -1425,32 +1426,34 @@ const App: Component = () => {
           <PaneLinksProvider>
             <PaneDraftsProvider>
               <SessionsProvider>
-                <LayoutShell
-                  workspaces={workspaces}
-                  currentView={currentView}
-                  activeDiff={activeDiff}
-                  ipc={ipc}
-                  version={version}
-                  dbReady={dbReady}
-                  loading={loading}
-                  deleteConfirm={deleteConfirm}
-                  error={error}
-                  onOpen={handleOpenWorkspace}
-                  onCreate={handleCreateWorkspace}
-                  onDeleteConfirm={(id) => setDeleteConfirm(id)}
-                  onDeleteExecute={handleDeleteWorkspace}
-                  onDeleteCancel={() => setDeleteConfirm(null)}
-                  onDismissError={() => setError(null)}
-                  onOpenDiff={handleOpenDiff}
-                  onCloseDiff={() => setActiveDiff(null)}
-                  onCloseWorkspaceView={handleCloseWorkspaceView}
-                />
-                <Show when={dbReady() && !telemetryDecided()}>
-                  <TelemetryOptInModal />
-                </Show>
-                {/* MVP-19 §D · Phase D fills SessionDetailHost (renders on
-                    activeDetail() from sessions-context · A.0.1 mounts host). */}
-                <SessionDetailHost />
+                <BottomPanelTabsProvider>
+                  <LayoutShell
+                    workspaces={workspaces}
+                    currentView={currentView}
+                    activeDiff={activeDiff}
+                    ipc={ipc}
+                    version={version}
+                    dbReady={dbReady}
+                    loading={loading}
+                    deleteConfirm={deleteConfirm}
+                    error={error}
+                    onOpen={handleOpenWorkspace}
+                    onCreate={handleCreateWorkspace}
+                    onDeleteConfirm={(id) => setDeleteConfirm(id)}
+                    onDeleteExecute={handleDeleteWorkspace}
+                    onDeleteCancel={() => setDeleteConfirm(null)}
+                    onDismissError={() => setError(null)}
+                    onOpenDiff={handleOpenDiff}
+                    onCloseDiff={() => setActiveDiff(null)}
+                    onCloseWorkspaceView={handleCloseWorkspaceView}
+                  />
+                  <Show when={dbReady() && !telemetryDecided()}>
+                    <TelemetryOptInModal />
+                  </Show>
+                  {/* MVP-19 §D · Phase D fills SessionDetailHost (renders on
+                      activeDetail() from sessions-context · A.0.1 mounts host). */}
+                  <SessionDetailHost />
+                </BottomPanelTabsProvider>
               </SessionsProvider>
             </PaneDraftsProvider>
           </PaneLinksProvider>

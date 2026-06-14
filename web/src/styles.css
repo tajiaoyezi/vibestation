@@ -455,7 +455,8 @@ textarea {
   position: absolute;
   inset: 0;
   background: var(--surface-1);
-  z-index: 2;
+  /* z-index 高于 .vs-pane-actions(4) · 否则终端操作按钮（分屏/关闭）会浮在 diff 视图之上遮挡内容 */
+  z-index: 5;
 }
 
 .vs-main-diff-body {
@@ -568,6 +569,9 @@ textarea {
 }
 
 .vs-bp-tab {
+  appearance: none;
+  background: transparent;
+  border: 0;
   padding: 5px 12px;
   font-size: 11px;
   font-family: var(--font-mono);
@@ -582,6 +586,11 @@ textarea {
 .vs-bp-tab:hover {
   color: var(--text-1);
   background: var(--surface-1);
+}
+
+.vs-bp-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
 }
 
 .vs-bp-tab-on {

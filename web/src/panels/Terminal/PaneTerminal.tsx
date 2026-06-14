@@ -779,25 +779,36 @@ export const PaneTerminal: Component<PaneTerminalProps> = (props) => {
             />
           )}
         </Show>
-        <button
-          type="button"
-          class="vs-pane-action-btn"
-          title="链接 Pane 失败反馈到 AI Pane"
-          aria-label="Link pane failures to an AI pane"
-          onClick={(e) => {
-            e.stopPropagation();
-            setLinkCreateOpen(true);
-          }}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M6.5 9.5a2.5 2.5 0 0 1 0-3.5l2-2a2.5 2.5 0 0 1 3.5 3.5l-1 1M9.5 6.5a2.5 2.5 0 0 1 0 3.5l-2 2a2.5 2.5 0 0 1-3.5-3.5l1-1"
-              stroke="currentColor"
-              stroke-width="1.3"
-              stroke-linecap="round"
-            />
-          </svg>
-        </button>
+        {/* MVP-18 入口隐藏（用户决策 · 2026-06-14）· 后端代码保留 · 恢复时改 true 即可 */}
+        {false && (
+          <button
+            type="button"
+            class="vs-pane-action-btn"
+            title="链接 Pane 失败反馈到 AI Pane"
+            aria-label="Link pane failures to an AI pane"
+            onClick={(e) => {
+              e.stopPropagation();
+              // MVP-18 UX: 单 pane 时无可链接目标 · 走 toast 提示而非弹空 popover
+              if (candidatePanes().length === 0) {
+                props.onError?.(
+                  props.paneId,
+                  "需要先分屏创建另一个 Pane 才能建立链接",
+                );
+                return;
+              }
+              setLinkCreateOpen(true);
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M6.5 9.5a2.5 2.5 0 0 1 0-3.5l2-2a2.5 2.5 0 0 1 3.5 3.5l-1 1M9.5 6.5a2.5 2.5 0 0 1 0 3.5l-2 2a2.5 2.5 0 0 1-3.5-3.5l1-1"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linecap="round"
+              />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           class={`vs-pane-action-btn${!canSplitRight() ? " is-disabled" : ""}`}

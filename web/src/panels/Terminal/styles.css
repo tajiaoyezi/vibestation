@@ -1297,3 +1297,283 @@
     transition: none;
   }
 }
+
+/* MVP-18 D.4 · Pane link popover（create + manage）· 锚定在 .vs-pane-actions 右下方
+ * 两个组件镜像 idiom（PaneLinkCreateMenu / LinkManagePopover）· 共用结构样式。
+ * 关键：position:absolute + 固定宽度 + 高 z-index · 否则会作为块级元素插入 .vs-pane-actions
+ * 的 flex 流，撑开布局并永久占据空间。 */
+.vs-link-create-menu,
+.vs-link-manage-popover {
+  /* popover 是 .vs-pane-terminal（position: relative）的直接子元素 · 用 top:100% 会
+   * 相对整个 pane 高度定位（跑到底部外消失）· 改为锚定右上角：right 对齐 actions 的
+   * right · top = actions top(--space-3 + 6px) + actions 自身高(~34px) + 6px gap */
+  position: absolute;
+  top: calc(var(--space-3) + 6px + 34px + 6px);
+  right: calc(var(--space-3) + 6px);
+  width: 240px;
+  max-height: min(360px, calc(100vh - 80px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: color-mix(in oklch, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--surface-0) 60%, transparent),
+    0 2px 6px color-mix(in oklch, var(--surface-0) 40%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 5;
+}
+
+.vs-link-create-menu-header,
+.vs-link-manage-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.vs-link-create-menu-title,
+.vs-link-manage-popover-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vs-link-create-menu-close,
+.vs-link-manage-popover-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-link-create-menu-close:hover,
+.vs-link-manage-popover-close:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.vs-link-create-menu-close:focus-visible,
+.vs-link-manage-popover-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 空状态 · 居中提示文案（No other panes to link / No active links） */
+.vs-link-create-menu-empty,
+.vs-link-manage-popover-empty {
+  padding: var(--space-3) var(--space-2);
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* 候选 pane 列表（create）· 现有链接列表（manage）· 共用 list / item 结构 */
+.vs-link-create-menu-list,
+.vs-link-manage-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.vs-link-create-menu-item,
+.vs-link-manage-popover-item {
+  margin: 0;
+}
+
+.vs-link-create-menu-option {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-create-menu-option:hover {
+  background: var(--surface-2);
+  border-color: var(--line-soft);
+  color: var(--text-1);
+}
+
+.vs-link-create-menu-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.vs-link-create-menu-option-icon {
+  flex: 0 0 auto;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
+
+.vs-link-create-menu-option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+/* manage popover · link item 双行布局（info + actions） */
+.vs-link-manage-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--surface-1);
+}
+
+.vs-link-manage-popover-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.vs-link-manage-popover-item-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-1);
+  text-transform: capitalize;
+}
+
+.vs-link-manage-popover-item-target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-link-manage-popover-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+/* enable/disable toggle switch */
+.vs-link-manage-popover-toggle {
+  appearance: none;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.vs-link-manage-popover-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-4);
+}
+
+.vs-link-manage-toggle-track {
+  display: inline-block;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  position: relative;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-toggle-track.is-on {
+  background: color-mix(in oklch, var(--accent) 30%, var(--surface-2));
+  border-color: var(--accent);
+}
+
+.vs-link-manage-toggle-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-1);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-toggle-track.is-on .vs-link-manage-toggle-thumb {
+  transform: translateX(12px);
+}
+
+.vs-link-manage-popover-unlink {
+  appearance: none;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-popover-unlink:hover {
+  background: color-mix(in oklch, var(--danger) 12%, transparent);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.vs-link-manage-popover-unlink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-link-create-menu-option,
+  .vs-link-create-menu-close,
+  .vs-link-manage-popover-close,
+  .vs-link-manage-toggle-track,
+  .vs-link-manage-toggle-thumb,
+  .vs-link-manage-popover-unlink {
+    transition: none;
+  }
+}

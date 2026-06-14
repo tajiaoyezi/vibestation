@@ -1,6 +1,52 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, cleanup, waitFor, screen } from "@solidjs/testing-library";
+import { cleanup, render, screen, waitFor } from "@solidjs/testing-library";
+import type { AppSettings } from "../../../src/bindings/AppSettings";
 import type { DiffResponse } from "../../../src/bindings";
+
+const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
+  const defaultFixture = (): AppSettings => ({
+    language: "en",
+    theme: "dark",
+    uiFontFamily: "Inter",
+    fontFamily: "JetBrains Mono",
+    fontSize: 14,
+    defaultShell: "/bin/bash",
+    pasteProtection: true,
+    telemetryOptIn: null,
+    gitUserName: null,
+    gitUserEmail: null,
+    bgOpacity: 0.85,
+    bgBlur: 20,
+    windowPaddingX: 2,
+    windowPaddingY: 2,
+    cursorStyle: "block",
+    cursorBlink: false,
+    unfocusedPaneOpacity: 0.7,
+    ptyPoolEnabled: true,
+    ptyPoolSize: 1,
+    primaryWidth: 236,
+    secondaryWidth: 400,
+    bottomHeight: 240,
+    externalTermPreferred: null,
+    externalTermDontAskAgain: false,
+  });
+  const mockAppSettings: AppSettings = defaultFixture();
+  return {
+    mockAppSettings,
+    resetMockSettings: () => {
+      Object.assign(mockAppSettings, defaultFixture());
+    },
+  };
+});
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "settings_get") {
+      return { ...mockAppSettings };
+    }
+    return null;
+  }),
+}));
 
 const diffApiMocks = vi.hoisted(() => ({
   computeDiff: vi.fn(),
@@ -22,12 +68,16 @@ vi.mock("../../../src/panels/Diff/diffApi", () => ({
 }));
 
 vi.mock("../../../src/panels/Diff/DiffLine", () => ({
-  DiffLineContent: (props: { disableHighlight?: boolean; fileSize?: number }) => {
+  DiffLineContent: (props: {
+    disableHighlight?: boolean;
+    fileSize?: number;
+  }) => {
     diffLineHarness.props.push(props);
     return <span data-testid="mock-diff-line">line</span>;
   },
 }));
 
+import { reloadSettings } from "../../../src/stores/settings";
 import { DiffPanel } from "../../../src/panels/Diff/DiffPanel";
 
 function buildDiffResponse(
@@ -59,8 +109,11 @@ function buildDiffResponse(
 }
 
 describe("DiffPanel · Phase C file-size gate", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     cleanup();
+    resetMockSettings();
+    mockAppSettings.language = "zh-Hans";
+    await reloadSettings();
     diffLineHarness.props.length = 0;
     diffApiMocks.computeDiff.mockReset();
     diffApiMocks.getDiffViewMode.mockReset();
@@ -89,9 +142,7 @@ describe("DiffPanel · Phase C file-size gate", () => {
 
     expect(diffLineHarness.props[0].disableHighlight).toBe(true);
     expect(diffLineHarness.props[0].fileSize).toBe(55 * 1024 * 1024);
-    expect(
-      screen.queryByText(/Large file.*语法高亮已禁用/i),
-    ).not.toBeNull();
+    expect(screen.queryByText(/大文件.*语法高亮已禁用/i)).not.toBeNull();
   });
 
   it("< 50MB 时 disableHighlight=false", async () => {

@@ -6,6 +6,7 @@ const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
   const defaultFixture = (): AppSettings => ({
     language: "en",
     theme: "dark",
+    uiFontFamily: "Inter",
     fontFamily: "JetBrains Mono",
     fontSize: 14,
     defaultShell: "/bin/bash",
@@ -93,7 +94,8 @@ describe("FEAT-02 Settings chrome copy", () => {
       screen.getByRole("button", { name: "外部终端" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "主题" })).toBeInTheDocument();
-    expect(screen.getByLabelText("字体")).toBeInTheDocument();
+    expect(screen.getByLabelText("界面字体")).toBeInTheDocument();
+    expect(screen.getByLabelText("终端字体")).toBeInTheDocument();
   });
 
   it("TEST-FEAT-02.6: renders remaining Settings controls in zh-Hans", async () => {

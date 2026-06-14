@@ -6,6 +6,7 @@ const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
   const defaultFixture = (): AppSettings => ({
     language: "en",
     theme: "dark",
+    uiFontFamily: "Inter",
     fontFamily: "monospace",
     fontSize: 14,
     defaultShell: "/bin/bash",

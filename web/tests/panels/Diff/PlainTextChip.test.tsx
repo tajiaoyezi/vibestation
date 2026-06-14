@@ -4,9 +4,63 @@
 // - 已识别 lang · chip 不显示
 // - 不识别 lang · chip 显示 "Plain text" · 含 hover tooltip
 
-import { describe, it, expect, afterEach } from "vitest";
-import { render, cleanup } from "@solidjs/testing-library";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render } from "@solidjs/testing-library";
+import type { AppSettings } from "../../../src/bindings/AppSettings";
+
+const { mockAppSettings, resetMockSettings } = vi.hoisted(() => {
+  const defaultFixture = (): AppSettings => ({
+    language: "en",
+    theme: "dark",
+    uiFontFamily: "Inter",
+    fontFamily: "JetBrains Mono",
+    fontSize: 14,
+    defaultShell: "/bin/bash",
+    pasteProtection: true,
+    telemetryOptIn: null,
+    gitUserName: null,
+    gitUserEmail: null,
+    bgOpacity: 0.85,
+    bgBlur: 20,
+    windowPaddingX: 2,
+    windowPaddingY: 2,
+    cursorStyle: "block",
+    cursorBlink: false,
+    unfocusedPaneOpacity: 0.7,
+    ptyPoolEnabled: true,
+    ptyPoolSize: 1,
+    primaryWidth: 236,
+    secondaryWidth: 400,
+    bottomHeight: 240,
+    externalTermPreferred: null,
+    externalTermDontAskAgain: false,
+  });
+  const mockAppSettings: AppSettings = defaultFixture();
+  return {
+    mockAppSettings,
+    resetMockSettings: () => {
+      Object.assign(mockAppSettings, defaultFixture());
+    },
+  };
+});
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(async (cmd: string) => {
+    if (cmd === "settings_get") {
+      return { ...mockAppSettings };
+    }
+    return null;
+  }),
+}));
+
+import { reloadSettings } from "../../../src/stores/settings";
 import { PlainTextChip } from "../../../src/panels/Diff/PlainTextChip";
+
+beforeEach(async () => {
+  resetMockSettings();
+  mockAppSettings.language = "zh-Hans";
+  await reloadSettings();
+});
 
 afterEach(cleanup);
 
@@ -25,22 +79,22 @@ describe("PlainTextChip", () => {
     expect(container.querySelector(".vs-diff-plain-text-chip")).toBeNull();
   });
 
-  it("不识别 lang（自定义后缀）· 渲染 chip 含 'Plain text'", () => {
+  it("不识别 lang（自定义后缀）· 渲染 chip 含 '纯文本'", () => {
     // 不在 Tier 1 后缀映射 · chip 显示
     const { container } = render(() => (
       <PlainTextChip filePath="data/blob.unknown_ext" />
     ));
     const chip = container.querySelector(".vs-diff-plain-text-chip");
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toContain("Plain text");
+    expect(chip!.textContent).toContain("纯文本");
   });
 
-  it("无后缀文件（如 Dockerfile）· 渲染 chip 含 'Plain text'", () => {
+  it("无后缀文件（如 Dockerfile）· 渲染 chip 含 '纯文本'", () => {
     // Tier 1 不含 dockerfile · 走纯文本降级
     const { container } = render(() => <PlainTextChip filePath="Dockerfile" />);
     const chip = container.querySelector(".vs-diff-plain-text-chip");
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toContain("Plain text");
+    expect(chip!.textContent).toContain("纯文本");
   });
 
   it("chip 含 title / aria-label 解释（无障碍 + 鼠标 hover）", () => {
@@ -61,7 +115,7 @@ describe("PlainTextChip", () => {
     ));
     const chip = container.querySelector(".vs-diff-plain-text-chip");
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toContain("Large file");
+    expect(chip!.textContent).toContain("大文件");
     expect(chip!.textContent).toContain("语法高亮已禁用");
   });
 
@@ -71,7 +125,7 @@ describe("PlainTextChip", () => {
     ));
     const chip = container.querySelector(".vs-diff-plain-text-chip");
     expect(chip).not.toBeNull();
-    expect(chip!.textContent).toContain("Large file");
+    expect(chip!.textContent).toContain("大文件");
     expect(chip!.textContent).toContain("语法高亮已禁用");
   });
 });

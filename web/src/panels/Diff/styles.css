@@ -57,32 +57,50 @@
   cursor: default;
 }
 
+.vs-diff-mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface-1);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  padding: 2px;
+  flex-shrink: 0;
+}
+
 .vs-diff-mode-btn {
   appearance: none;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  border: none;
+  background: none;
   color: var(--text-3);
-  padding: var(--space-1) var(--space-2);
+  padding: 3px var(--space-2);
   border-radius: var(--r-4);
   font-size: 0.6875rem;
+  font-weight: 500;
   cursor: pointer;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
   transition:
     background var(--dur-fast) var(--ease),
-    border-color var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease);
+    color var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease);
 }
 
 .vs-diff-mode-btn:hover {
-  background: var(--surface-3);
-  border-color: var(--accent);
   color: var(--text-1);
 }
 
+.vs-diff-mode-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
 .vs-diff-mode-btn-on {
-  background: var(--surface-3);
-  border-color: var(--accent);
   color: var(--text-1);
+  background: var(--surface-2);
+  box-shadow: 0 0 0 1px var(--line-soft);
 }
 
 /* Content area */

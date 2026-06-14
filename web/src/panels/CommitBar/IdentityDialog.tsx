@@ -1,4 +1,6 @@
 import { createSignal, Show, type Component } from "solid-js";
+import { t } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 
 const isValidEmail = (e: string): boolean =>
   /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.trim());
@@ -9,6 +11,10 @@ interface IdentityDialogProps {
 }
 
 export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => settings.language;
+  const label = (key: string) => t(key, language());
+
   const [name, setName] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [saveLocal, setSaveLocal] = createSignal(true);
@@ -21,24 +27,22 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
   return (
     <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
       <div class="vs-dialog">
-        <h3 class="vs-dialog-title">Git Identity 未设置</h3>
-        <p class="vs-dialog-body">
-          提交需要 user.name 和 user.email。请填写以下信息：
-        </p>
+        <h3 class="vs-dialog-title">{label("commitBar.identityTitle")}</h3>
+        <p class="vs-dialog-body">{label("commitBar.identityBody")}</p>
 
         <div class="vs-dialog-form">
           <label class="vs-dialog-label">
-            Name
+            {label("commitBar.identityName")}
             <input
               type="text"
               class="vs-dialog-input"
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
-              placeholder="Your Name"
+              placeholder={label("commitBar.identityNamePlaceholder")}
             />
           </label>
           <label class="vs-dialog-label">
-            Email
+            {label("commitBar.identityEmail")}
             <input
               type="email"
               class="vs-dialog-input"
@@ -48,7 +52,7 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
             />
             <Show when={email().trim().length > 0 && !isValidEmail(email())}>
               <span class="vs-dialog-error-hint">
-                邮箱格式不正确（需包含 @ 和域名）
+                {label("commitBar.identityEmailInvalid")}
               </span>
             </Show>
           </label>
@@ -58,7 +62,7 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
               checked={saveLocal()}
               onChange={(e) => setSaveLocal(e.currentTarget.checked)}
             />
-            <span>保存到 local git config</span>
+            <span>{label("commitBar.identitySaveLocal")}</span>
           </label>
         </div>
 
@@ -68,7 +72,7 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
             class="vs-dialog-btn-secondary"
             onClick={() => props.onCancel()}
           >
-            取消
+            {label("dialogs.common.cancel")}
           </button>
           <button
             type="button"
@@ -78,7 +82,7 @@ export const IdentityDialog: Component<IdentityDialogProps> = (props) => {
               props.onConfirm(name().trim(), email().trim(), saveLocal())
             }
           >
-            确认
+            {label("dialogs.common.confirm")}
           </button>
         </div>
       </div>

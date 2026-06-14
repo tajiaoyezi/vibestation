@@ -32,7 +32,14 @@ export const AppearanceGroup: Component = () => {
     { value: "dark", label: label("settings.appearance.dark") },
   ];
 
-  const fonts = [
+  const uiFonts = [
+    "Inter",
+    "Inter Variable",
+    "Segoe UI",
+    "system-ui",
+  ];
+
+  const terminalFonts = [
     "JetBrains Mono",
     "JetBrains Mono Variable",
     "JetBrainsMono NF",
@@ -97,22 +104,41 @@ export const AppearanceGroup: Component = () => {
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          {label("settings.appearance.fontFamily")}
+          {label("settings.appearance.uiFontFamily")}
         </span>
         <select
           class="vs-settings-select"
-          value={settings.fontFamily}
+          value={settings.uiFontFamily}
+          aria-label={label("settings.appearance.uiFontFamily")}
           onChange={(e) =>
-            updateSettings({ fontFamily: e.currentTarget.value })
+            updateSettings({ uiFontFamily: e.currentTarget.value })
           }
         >
-          <For each={fonts}>{(f) => <option value={f}>{f}</option>}</For>
+          <For each={uiFonts}>{(f) => <option value={f}>{f}</option>}</For>
         </select>
       </label>
 
       <label class="vs-settings-field">
         <span class="vs-settings-label">
-          {label("settings.appearance.fontSize")}{" "}
+          {label("settings.appearance.terminalFontFamily")}
+        </span>
+        <select
+          class="vs-settings-select"
+          value={settings.fontFamily}
+          aria-label={label("settings.appearance.terminalFontFamily")}
+          onChange={(e) =>
+            updateSettings({ fontFamily: e.currentTarget.value })
+          }
+        >
+          <For each={terminalFonts}>
+            {(f) => <option value={f}>{f}</option>}
+          </For>
+        </select>
+      </label>
+
+      <label class="vs-settings-field">
+        <span class="vs-settings-label">
+          {label("settings.appearance.terminalFontSize")}{" "}
           <span class="vs-settings-value">{settings.fontSize}px</span>
         </span>
         <input

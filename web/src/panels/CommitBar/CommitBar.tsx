@@ -7,6 +7,8 @@ import type {
 } from "../../bindings";
 import { commit as apiCommit, setGitIdentity } from "../GitStatus/gitStatusApi";
 import { formatShortcut } from "../../lib/format-shortcut";
+import { t } from "../../i18n";
+import { useSettings } from "../../stores/settings";
 import { IdentityDialog } from "./IdentityDialog";
 import "./styles.css";
 
@@ -25,6 +27,10 @@ interface ToastState {
 }
 
 export const CommitBar: Component<CommitBarProps> = (props) => {
+  const { settings } = useSettings();
+  const language = () => settings.language;
+  const label = (key: string) => t(key, language());
+
   const [message, setMessage] = createSignal("");
   const [amend, setAmend] = createSignal(false);
   const [committing, setCommitting] = createSignal(false);
@@ -66,7 +72,7 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       const response = await apiCommit(req);
       setMessage("");
       setAmend(false);
-      showToast(`已提交 ${response.shortSha}`);
+      showToast(`${label("commitBar.committed")} ${response.shortSha}`);
       props.onCommitSuccess?.(response);
     } catch (err) {
       handleCommitError(err);
@@ -97,12 +103,17 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           setHookErrorExitCode(parsed.exit_code);
           setHookErrorCopied(false);
           setHookErrorDialogOpen(true);
-          props.onError?.(`Hook failed (exit ${parsed.exit_code})`);
+          props.onError?.(
+            label("commitBar.hookFailedSummary").replace(
+              "{code}",
+              String(parsed.exit_code),
+            ),
+          );
           return;
         }
         case "noStagedFiles": {
-          showToast("无暂存变更", "error");
-          props.onError?.("无暂存变更");
+          showToast(label("commitBar.noStagedChanges"), "error");
+          props.onError?.(label("commitBar.noStagedChanges"));
           return;
         }
         case "git2Error": {
@@ -140,16 +151,13 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       await handleCommit();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      showToast(`保存 identity 失败: ${msg}`, "error");
+      showToast(`${label("commitBar.identitySaveFailed")} ${msg}`, "error");
     }
   };
 
   const handleDetachedHeadConfirm = () => {
     setDetachedHeadDialogOpen(false);
-    showToast(
-      "当前处于 detached HEAD · commit 暂不支持 · 请先 git checkout 到分支",
-      "error",
-    );
+    showToast(label("commitBar.detachedHeadBody"), "error");
   };
 
   const copyHookStderr = async () => {
@@ -171,8 +179,8 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
   };
 
   const tooltipText = () => {
-    if (props.stagedCount() === 0) return "无暂存变更";
-    if (message().trim().length === 0) return "需要提交信息";
+    if (props.stagedCount() === 0) return label("commitBar.noStagedChanges");
+    if (message().trim().length === 0) return label("commitBar.needsMessage");
     return "";
   };
 
@@ -190,7 +198,7 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           />
           <textarea
             class="vs-commit-message"
-            placeholder={`Commit message… (${formatShortcut("⌘↵", "Ctrl+Enter")} 提交)`}
+            placeholder={`${label("commitBar.messagePlaceholder")} (${formatShortcut("⌘↵", "Ctrl+Enter")} ${label("commitBar.submit")})`}
             value={message()}
             onInput={(e) => setMessage(e.currentTarget.value)}
             onKeyDown={handleKeyDown}
@@ -207,7 +215,7 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
               onChange={(e) => setAmend(e.currentTarget.checked)}
               disabled={committing()}
             />
-            <span>Amend</span>
+            <span>{label("commitBar.amend")}</span>
           </label>
 
           <div class="vs-commit-btn-wrap" title={tooltipText()}>
@@ -217,7 +225,9 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
               onClick={() => void handleCommit()}
               disabled={!canCommit() || committing()}
             >
-              {committing() ? "提交中…" : "Commit"}
+              {committing()
+                ? label("commitBar.committing")
+                : label("commitBar.commit")}
             </button>
           </div>
         </div>
@@ -242,17 +252,17 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       <Show when={detachedHeadDialogOpen()}>
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
-            <h3 class="vs-dialog-title">Detached HEAD · commit 暂不支持</h3>
-            <p class="vs-dialog-body">
-              当前处于 detached HEAD 状态 · 请先 git checkout 到分支后再提交
-            </p>
+            <h3 class="vs-dialog-title">
+              {label("commitBar.detachedHeadTitle")}
+            </h3>
+            <p class="vs-dialog-body">{label("commitBar.detachedHeadBody")}</p>
             <div class="vs-dialog-actions">
               <button
                 type="button"
                 class="vs-dialog-btn-primary"
                 onClick={() => handleDetachedHeadConfirm()}
               >
-                OK · 我知道了
+                {label("commitBar.detachedHeadOk")}
               </button>
             </div>
           </div>
@@ -262,10 +272,13 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
       <Show when={hookErrorDialogOpen()}>
         <div class="vs-dialog-overlay" role="dialog" aria-modal="true">
           <div class="vs-dialog">
-            <h3 class="vs-dialog-title">Pre-commit hook 失败</h3>
+            <h3 class="vs-dialog-title">
+              {label("commitBar.hookFailedTitle")}
+            </h3>
             <p class="vs-dialog-hook-meta">
-              hook 退出码 <code>{hookErrorExitCode()}</code> · 显示 stderr 最后
-              20 行
+              {label("commitBar.hookFailedMetaPrefix")}{" "}
+              <code>{hookErrorExitCode()}</code>{" "}
+              {label("commitBar.hookFailedMetaSuffix")}
             </p>
             <pre class="vs-dialog-pre">{hookErrorContent()}</pre>
             <div class="vs-dialog-actions">
@@ -273,16 +286,18 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
                 type="button"
                 class="vs-dialog-copy-btn"
                 onClick={() => void copyHookStderr()}
-                aria-label="Copy stderr"
+                aria-label={label("commitBar.copyStderr")}
               >
-                {hookErrorCopied() ? "Copied" : "Copy stderr"}
+                {hookErrorCopied()
+                  ? label("commitBar.copied")
+                  : label("commitBar.copyStderr")}
               </button>
               <button
                 type="button"
                 class="vs-dialog-btn-primary"
                 onClick={() => setHookErrorDialogOpen(false)}
               >
-                关闭
+                {label("commitBar.close")}
               </button>
             </div>
           </div>

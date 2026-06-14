@@ -28,6 +28,9 @@ pub enum SettingsError {
 pub struct AppSettings {
     pub language: String,
     pub theme: String,
+    /// 界面 UI 字体（写入 CSS `--font-ui` · 侧边栏 / 设置 / 按钮等）
+    pub ui_font_family: String,
+    /// 终端等宽字体（xterm + CSS `--font-mono`）
     pub font_family: String,
     pub font_size: u32,
     pub default_shell: String,
@@ -81,6 +84,7 @@ impl Default for AppSettings {
         Self {
             language: "en".to_string(),
             theme: "dark".to_string(),
+            ui_font_family: "Inter".to_string(),
             font_family: "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace".to_string(),
             font_size: 14,
             default_shell: default_shell_for_platform(),
@@ -113,6 +117,7 @@ impl Default for AppSettings {
 pub struct SettingsUpdateRequest {
     pub language: Option<String>,
     pub theme: Option<String>,
+    pub ui_font_family: Option<String>,
     pub font_family: Option<String>,
     pub font_size: Option<u32>,
     pub default_shell: Option<String>,
@@ -229,6 +234,7 @@ impl AppSettingsStore {
     pub fn get_all(pool: &DbPool) -> AppSettings {
         let language = get_language(pool);
         let theme = get_parsed(pool, "theme", "dark");
+        let ui_font_family = get_parsed(pool, "ui_font_family", "Inter");
         let font_family = get_parsed(pool, "font_family", "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         let font_size: u32 = get_parsed(pool, "font_size", "14");
         let fallback_shell = default_shell_for_platform();
@@ -257,6 +263,7 @@ impl AppSettingsStore {
         AppSettings {
             language,
             theme,
+            ui_font_family,
             font_family,
             font_size,
             default_shell,
@@ -287,6 +294,9 @@ impl AppSettingsStore {
         }
         if let Some(ref v) = req.theme {
             Self::set(pool, "theme", v)?;
+        }
+        if let Some(ref v) = req.ui_font_family {
+            Self::set(pool, "ui_font_family", v)?;
         }
         if let Some(ref v) = req.font_family {
             Self::set(pool, "font_family", v)?;
@@ -411,6 +421,7 @@ mod tests {
         let settings = AppSettingsStore::get_all(&pool);
         assert_eq!(settings.language, "en");
         assert_eq!(settings.theme, "dark");
+        assert_eq!(settings.ui_font_family, "Inter");
         assert_eq!(settings.font_family, "JetBrains Mono, DejaVu Sans Mono, Ubuntu Mono, ui-monospace, Liberation Mono, Sarasa Term SC, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans CJK SC, WenQuanYi Micro Hei, monospace");
         assert_eq!(settings.font_size, 14);
         assert!((settings.bg_opacity - 0.85).abs() < f32::EPSILON);
@@ -453,6 +464,18 @@ mod tests {
 
         let settings = AppSettingsStore::get_all(&pool);
         assert_eq!(settings.language, "zh-Hans");
+    }
+
+    #[test]
+    fn app_settings_ui_font_family_persists() {
+        let (_dir, pool) = setup();
+        let req = SettingsUpdateRequest {
+            ui_font_family: Some("Segoe UI".to_string()),
+            ..Default::default()
+        };
+        AppSettingsStore::update(&pool, &req).expect("ui_font_family update succeeds");
+        let settings = AppSettingsStore::get_all(&pool);
+        assert_eq!(settings.ui_font_family, "Segoe UI");
     }
 
     #[test]

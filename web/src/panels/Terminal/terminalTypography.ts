@@ -1,12 +1,12 @@
-export const TERMINAL_LINE_HEIGHT = 1.2;
-export const TERMINAL_FONT_WEIGHT = 450;
-export const TERMINAL_FONT_WEIGHT_BOLD = 700;
-
 import {
   buildFontStack,
   primaryFontFamily,
   quoteFontFamily,
 } from "../../utils/font-stack";
+
+export const TERMINAL_LINE_HEIGHT = 1.2;
+export const TERMINAL_FONT_WEIGHT = 450;
+export const TERMINAL_FONT_WEIGHT_BOLD = 700;
 
 const TERMINAL_FONT_FALLBACKS = [
   "JetBrains Mono",

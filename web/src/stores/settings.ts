@@ -151,8 +151,10 @@ export function useSettings() {
     settings,
     async updateSettings(partial: Partial<AppSettings>) {
       const normalized = normalizePartialSettings(partial);
+      const snapshot = { ...settings };
+      const optimistic = normalizeSettings({ ...snapshot, ...normalized });
       setSettings(normalized as never);
-      applyCssVars(normalizeSettings({ ...settings, ...normalized }));
+      applyCssVars(optimistic);
 
       const req = {} as SettingsUpdateRequest;
       if (normalized.language !== undefined) req.language = normalized.language;
@@ -201,7 +203,8 @@ export function useSettings() {
         setSettings(updated);
         applyCssVars(updated);
       } catch {
-        applyCssVars(settings);
+        setSettings(snapshot);
+        applyCssVars(snapshot);
       }
     },
   };

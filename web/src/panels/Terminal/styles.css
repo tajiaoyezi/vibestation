@@ -69,7 +69,7 @@
   gap: var(--space-1);
   overflow-x: auto;
   padding: var(--space-1) 0 0;
-  /* relative 定位让 .vs-terminal-tabbar-indicator absolute 找到正确父级 */
+  /* relative 瀹氫綅璁?.vs-terminal-tabbar-indicator absolute 鎵惧埌姝ｇ‘鐖剁骇 */
   position: relative;
 }
 
@@ -77,12 +77,9 @@
   height: 6px;
 }
 
-/* 底部独立 indicator · JS 通过 transform translateX + scaleX 跟随 active tab。
-   关键：用 scaleX 替代 width 实现拉伸 · transform 是 GPU 加速 compositor 属性 ·
-   单一 transition 同时滑动 + 缩放 · 不会出现 width transition 跟不上 transform 的
-   "先变短再变长" 视觉错乱（旧实现 width + transform 双 transition · width layout
-    属性不在 compositor 上 · 节奏不一致）。
-   3px 高 · 跟原 active border-bottom-width 一致 · 视觉无变化 · 只是行为变平滑。 */
+/* 搴曢儴鐙珛 indicator 路 JS 閫氳繃 transform translateX + scaleX 璺熼殢 active tab銆?   鍏抽敭锛氱敤 scaleX 鏇夸唬 width 瀹炵幇鎷変几 路 transform 鏄?GPU 鍔犻€?compositor 灞炴€?路
+   鍗曚竴 transition 鍚屾椂婊戝姩 + 缂╂斁 路 涓嶄細鍑虹幇 width transition 璺熶笉涓?transform 鐨?   "鍏堝彉鐭啀鍙橀暱" 瑙嗚閿欎贡锛堟棫瀹炵幇 width + transform 鍙?transition 路 width layout
+    灞炴€т笉鍦?compositor 涓?路 鑺傚涓嶄竴鑷达級銆?   3px 楂?路 璺熷師 active border-bottom-width 涓€鑷?路 瑙嗚鏃犲彉鍖?路 鍙槸琛屼负鍙樺钩婊戙€?*/
 .vs-terminal-tabbar-indicator {
   position: absolute;
   bottom: 0;
@@ -93,7 +90,7 @@
   border-radius: 2px 2px 0 0;
   pointer-events: none;
   opacity: 0;
-  /* JS 设 left + width · transition 让两者同步过渡到新值 · 视觉上是"滑动 + 拉伸" */
+  /* JS 璁?left + width 路 transition 璁╀袱鑰呭悓姝ヨ繃娓″埌鏂板€?路 瑙嗚涓婃槸"婊戝姩 + 鎷変几" */
   transition:
     left 200ms cubic-bezier(0.4, 0, 0.2, 1),
     width 200ms cubic-bezier(0.4, 0, 0.2, 1),
@@ -102,7 +99,7 @@
 }
 
 .vs-terminal-tabbar-indicator.is-ready {
-  /* opacity 由 JS updateIndicator 控制（active 存在 → 1 · 不存在 → 0） */
+  /* opacity 鐢?JS updateIndicator 鎺у埗锛坅ctive 瀛樺湪 鈫?1 路 涓嶅瓨鍦?鈫?0锛?*/
 }
 
 .vs-terminal-tab {
@@ -111,20 +108,18 @@
   max-width: 240px;
   flex: 0 0 auto;
   align-items: center;
-  /* 不用 gap · 否则 trigger 和 close 之间会留出无主空白区域 · click 无响应 ·
-     视觉间距改用 trigger 自身 padding-right 实现 · trigger 命中区延伸到 close 边缘。 */
+  /* 涓嶇敤 gap 路 鍚﹀垯 trigger 鍜?close 涔嬮棿浼氱暀鍑烘棤涓荤┖鐧藉尯鍩?路 click 鏃犲搷搴?路
+     瑙嗚闂磋窛鏀圭敤 trigger 鑷韩 padding-right 瀹炵幇 路 trigger 鍛戒腑鍖哄欢浼稿埌 close 杈圭紭銆?*/
   height: 32px;
   padding: 0 var(--space-2) 0 var(--space-3);
   border-bottom: 2px solid transparent;
   border-radius: var(--r-6) var(--r-6) 0 0;
   background: transparent;
-  /* enter 用 transition 而非 CSS animation · 防 SolidJS <For> reorder 时
-     insertBefore 触发 DOM detach/reattach · CSS animation 默认会从 0% 重启
-     （spec 行为）· 让 active tab 的 max-width/padding 中间帧抖动 · indicator
-     跟着 ResizeObserver 漂移。CSS transition 是 property change-based · reattach
-     不触发 · 一劳永逸。
-     mount 瞬间由 .is-entering class 提供压缩起始态 · 双 rAF 后移除 · 触发
-     transition 同步展开 max-width / padding / opacity / transform。 */
+  /* enter 鐢?transition 鑰岄潪 CSS animation 路 闃?SolidJS <For> reorder 鏃?     insertBefore 瑙﹀彂 DOM detach/reattach 路 CSS animation 榛樿浼氫粠 0% 閲嶅惎
+     锛坰pec 琛屼负锛壜?璁?active tab 鐨?max-width/padding 涓棿甯ф姈鍔?路 indicator
+     璺熺潃 ResizeObserver 婕傜Щ銆侰SS transition 鏄?property change-based 路 reattach
+     涓嶈Е鍙?路 涓€鍔虫案閫搞€?     mount 鐬棿鐢?.is-entering class 鎻愪緵鍘嬬缉璧峰鎬?路 鍙?rAF 鍚庣Щ闄?路 瑙﹀彂
+     transition 鍚屾灞曞紑 max-width / padding / opacity / transform銆?*/
   transition:
     max-width var(--dur-normal) var(--ease),
     padding var(--dur-normal) var(--ease),
@@ -135,7 +130,7 @@
     color var(--dur-fast) var(--ease);
 }
 
-/* mount 瞬间起始态 · TabBar.tsx ref 函数 add · 双 rAF 后 remove 触发 enter transition */
+/* mount 鐬棿璧峰鎬?路 TabBar.tsx ref 鍑芥暟 add 路 鍙?rAF 鍚?remove 瑙﹀彂 enter transition */
 .vs-terminal-tab.is-entering {
   max-width: 0;
   padding-left: 0;
@@ -144,17 +139,14 @@
   transform: translateY(2px);
 }
 
-/* leave 动画 · TabBar.tsx 点 × 时加 .is-leaving · 240ms 总时长。
-   多维度退场：原位 fade + 上飞 + 缩小 + 微模糊 → 然后宽度收缩让位。
-   60% 完成消失 + 后 40% 完成收缩 · 让"消失"和"让位"分清节奏。
-   Material standard ease (0.4, 0, 0.2, 1) · 比 ease-in-out 略灵动。 */
+/* leave 鍔ㄧ敾 路 TabBar.tsx 鐐?脳 鏃跺姞 .is-leaving 路 240ms 鎬绘椂闀裤€?   澶氱淮搴﹂€€鍦猴細鍘熶綅 fade + 涓婇 + 缂╁皬 + 寰ā绯?鈫?鐒跺悗瀹藉害鏀剁缉璁╀綅銆?   60% 瀹屾垚娑堝け + 鍚?40% 瀹屾垚鏀剁缉 路 璁?娑堝け"鍜?璁╀綅"鍒嗘竻鑺傚銆?   Material standard ease (0.4, 0, 0.2, 1) 路 姣?ease-in-out 鐣ョ伒鍔ㄣ€?*/
 .vs-terminal-tab.is-leaving {
   animation: vs-tab-leave 240ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   pointer-events: none;
-  /* z-index 抬高 · leaving tab overlay 在邻近 tab 上 · 收缩时不被推走的 ghost 视觉 */
+  /* z-index 鎶珮 路 leaving tab overlay 鍦ㄩ偦杩?tab 涓?路 鏀剁缉鏃朵笉琚帹璧扮殑 ghost 瑙嗚 */
   position: relative;
   z-index: 1;
-  /* transform-origin 中心偏下 · 让缩小看起来像"沉下去" · 而不是从左上角缩 */
+  /* transform-origin 涓績鍋忎笅 路 璁╃缉灏忕湅璧锋潵鍍?娌変笅鍘? 路 鑰屼笉鏄粠宸︿笂瑙掔缉 */
   transform-origin: center 60%;
 }
 
@@ -185,15 +177,14 @@
   }
 }
 
-/* inactive tab hover · 给 chip 形态出来 · close × 也跟着显出来 */
+/* inactive tab hover 路 缁?chip 褰㈡€佸嚭鏉?路 close 脳 涔熻窡鐫€鏄惧嚭鏉?*/
 .vs-terminal-tab:not(.is-active):hover {
   background: var(--surface-2);
 }
 
 .vs-terminal-tab.is-active {
-  /* active tab bg 跟 stage（--bg-1）一致 · 视觉上 tab + terminal 内容是同一面板凸出。
-     accent 蓝条改用底部独立 .vs-terminal-tabbar-indicator 元素 · JS 跟随 active tab
-     平滑滑动 · 取代原来 border-bottom 切换"瞬间跳"。 */
+  /* active tab bg 璺?stage锛?-bg-1锛変竴鑷?路 瑙嗚涓?tab + terminal 鍐呭鏄悓涓€闈㈡澘鍑稿嚭銆?     accent 钃濇潯鏀圭敤搴曢儴鐙珛 .vs-terminal-tabbar-indicator 鍏冪礌 路 JS 璺熼殢 active tab
+     骞虫粦婊戝姩 路 鍙栦唬鍘熸潵 border-bottom 鍒囨崲"鐬棿璺?銆?*/
   background: var(--surface-1);
 }
 
@@ -209,8 +200,7 @@
   color: var(--text-3);
   cursor: pointer;
   font: inherit;
-  /* padding-right 提供与 close × 之间的视觉间距 · 同时把 trigger 自身的
-     click 命中区扩展到 close 边缘 · 消除中间空白死区。 */
+  /* padding-right 鎻愪緵涓?close 脳 涔嬮棿鐨勮瑙夐棿璺?路 鍚屾椂鎶?trigger 鑷韩鐨?     click 鍛戒腑鍖烘墿灞曞埌 close 杈圭紭 路 娑堥櫎涓棿绌虹櫧姝诲尯銆?*/
   padding: 0 var(--space-1) 0 0;
   transition: color var(--dur-fast) var(--ease);
 }
@@ -271,8 +261,8 @@
     color var(--dur-fast) var(--ease);
 }
 
-/* inactive tab hover / active tab / close 自身 focus 时 · close × 显出来 ·
-   不再常驻吸引视觉 · 让 tab label 是主角 */
+/* inactive tab hover / active tab / close 鑷韩 focus 鏃?路 close 脳 鏄惧嚭鏉?路
+   涓嶅啀甯搁┗鍚稿紩瑙嗚 路 璁?tab label 鏄富瑙?*/
 .vs-terminal-tab:hover .vs-terminal-tab-close,
 .vs-terminal-tab.is-active .vs-terminal-tab-close,
 .vs-terminal-tab-close:focus-visible {
@@ -295,28 +285,26 @@
   color: var(--text-1);
 }
 
-/* + 按钮按下微反馈 · 给用户"已点击"的物理感 · 60ms ease 不打断快速连点节奏 */
+/* + 鎸夐挳鎸変笅寰弽棣?路 缁欑敤鎴?宸茬偣鍑?鐨勭墿鐞嗘劅 路 60ms ease 涓嶆墦鏂揩閫熻繛鐐硅妭濂?*/
 .vs-terminal-new-tab:active {
   transform: scale(0.94);
   transition: transform 60ms var(--ease);
 }
 
-/* ===== Drag & Drop · tab 拖拽调换顺序 ===== */
+/* ===== Drag & Drop 路 tab 鎷栨嫿璋冩崲椤哄簭 ===== */
 
-/* tab 默认 cursor 跟随子元素（trigger 是 button → 自然 pointer）·
-   不在 hover 时暗示 "可拖动" · 与 VSCode / Chrome 标签行为一致。
-   真正进入拖拽时由 TabBar.tsx 把 document.body.cursor 锁成 grabbing。 */
+/* tab 榛樿 cursor 璺熼殢瀛愬厓绱狅紙trigger 鏄?button 鈫?鑷劧 pointer锛壜?   涓嶅湪 hover 鏃舵殫绀?"鍙嫋鍔? 路 涓?VSCode / Chrome 鏍囩琛屼负涓€鑷淬€?   鐪熸杩涘叆鎷栨嫿鏃剁敱 TabBar.tsx 鎶?document.body.cursor 閿佹垚 grabbing銆?*/
 .vs-terminal-tab {
-  position: relative; /* drop indicator ::before/::after 定位基准 */
+  position: relative; /* drop indicator ::before/::after 瀹氫綅鍩哄噯 */
 }
 
-/* 拖拽中的 ghost · 半透明 · 让用户看到原位置 */
+/* 鎷栨嫿涓殑 ghost 路 鍗婇€忔槑 路 璁╃敤鎴风湅鍒板師浣嶇疆 */
 .vs-terminal-tab.is-dragging {
   opacity: 0.4;
   cursor: grabbing;
 }
 
-/* drop indicator · vertical accent line · before/after 区分插入位置 */
+/* drop indicator 路 vertical accent line 路 before/after 鍖哄垎鎻掑叆浣嶇疆 */
 .vs-terminal-tab.is-drop-before::before,
 .vs-terminal-tab.is-drop-after::after {
   content: "";
@@ -328,7 +316,7 @@
   border-radius: 1px;
   z-index: 5;
   pointer-events: none;
-  /* 平滑出现 · 不闪 */
+  /* 骞虫粦鍑虹幇 路 涓嶉棯 */
   animation: vs-drop-indicator-fade 80ms ease-out;
 }
 
@@ -352,10 +340,8 @@
 }
 
 /*
- * Tab trigger button 完全关 focus ring · button 占满 tab content area · 任何
- * outline / inset shadow 都视觉等同 tab 内圈线条。tab 的 .is-active 状态自带
- * accent border-bottom + gradient bg 作 visual indicator · button focus ring 冗余。
- */
+ * Tab trigger button 瀹屽叏鍏?focus ring 路 button 鍗犳弧 tab content area 路 浠讳綍
+ * outline / inset shadow 閮借瑙夌瓑鍚?tab 鍐呭湀绾挎潯銆倀ab 鐨?.is-active 鐘舵€佽嚜甯? * accent border-bottom + gradient bg 浣?visual indicator 路 button focus ring 鍐椾綑銆? */
 .vs-terminal-tab-trigger:focus,
 .vs-terminal-tab-trigger:focus-visible {
   box-shadow: none !important;
@@ -363,8 +349,7 @@
 }
 
 /*
- * close × / + new-tab button 是小尺寸独立按钮 · keep inset focus ring 给 keyboard nav。
- */
+ * close 脳 / + new-tab button 鏄皬灏哄鐙珛鎸夐挳 路 keep inset focus ring 缁?keyboard nav銆? */
 .vs-terminal-tab-close:focus-visible,
 .vs-terminal-new-tab:focus-visible {
   box-shadow: inset 0 0 0 2px var(--focus-ring);
@@ -372,12 +357,10 @@
 }
 
 /*
- * Terminal area click 后 · xterm 自己的 cursor blink 已是 focus 指示器 ·
- * 不需要 outer ring。屏蔽所有可能的 focus chain（main-content tabindex=0 / xterm
- * 内部 .xterm 元素 tabindex=0 / 任何 .vs-terminal-* 容器）的 :focus / :focus-visible
- * box-shadow + outline · 防 user 看到 stage / host 大小蓝色 outline 视觉污染。
- * 用 !important 覆盖全局 :focus-visible 设的 box-shadow: 0 0 0 2px var(--focus-ring)。
- */
+ * Terminal area click 鍚?路 xterm 鑷繁鐨?cursor blink 宸叉槸 focus 鎸囩ず鍣?路
+ * 涓嶉渶瑕?outer ring銆傚睆钄芥墍鏈夊彲鑳界殑 focus chain锛坢ain-content tabindex=0 / xterm
+ * 鍐呴儴 .xterm 鍏冪礌 tabindex=0 / 浠讳綍 .vs-terminal-* 瀹瑰櫒锛夌殑 :focus / :focus-visible
+ * box-shadow + outline 路 闃?user 鐪嬪埌 stage / host 澶у皬钃濊壊 outline 瑙嗚姹℃煋銆? * 鐢?!important 瑕嗙洊鍏ㄥ眬 :focus-visible 璁剧殑 box-shadow: 0 0 0 2px var(--focus-ring)銆? */
 .vs-terminal-shell:focus,
 .vs-terminal-shell:focus-visible,
 .vs-terminal-stage:focus,
@@ -594,7 +577,7 @@
   background: color-mix(in oklch, var(--accent-soft) 70%, var(--accent));
 }
 
-/* 确认类弹窗（关闭 workspace 等）· 比粘贴确认弹窗更紧凑 · 加 warning 色调 */
+/* 纭绫诲脊绐楋紙鍏抽棴 workspace 绛夛級路 姣旂矘璐寸‘璁ゅ脊绐楁洿绱у噾 路 鍔?warning 鑹茶皟 */
 .vs-terminal-confirm-backdrop {
   background: rgb(0 0 0 / 0.56);
   backdrop-filter: blur(6px);
@@ -666,7 +649,7 @@
   }
 }
 
-/* MVP-05 Phase C · Pane multi-split UI */
+/* MVP-05 Phase C 路 Pane multi-split UI */
 
 .vs-pane-split {
   display: flex;
@@ -714,7 +697,7 @@
 }
 
 .vs-pane-splitter.is-dragging {
-  /* 拖拽中加强可见 · 对齐 hit area · 视觉反馈用户当前正在调整 */
+  /* 鎷栨嫿涓姞寮哄彲瑙?路 瀵归綈 hit area 路 瑙嗚鍙嶉鐢ㄦ埛褰撳墠姝ｅ湪璋冩暣 */
   z-index: 2;
 }
 
@@ -728,8 +711,8 @@
   cursor: row-resize;
 }
 
-/* Hit area 扩展 · splitter 本体 1px · ::before 沿 resize 轴向扩 ±3px ·
-   防 1px 难点击 · 不影响布局（pseudo-element 不参与 flex 计算）。 */
+/* Hit area 鎵╁睍 路 splitter 鏈綋 1px 路 ::before 娌?resize 杞村悜鎵?卤3px 路
+   闃?1px 闅剧偣鍑?路 涓嶅奖鍝嶅竷灞€锛坧seudo-element 涓嶅弬涓?flex 璁＄畻锛夈€?*/
 .vs-pane-splitter::before {
   content: "";
   position: absolute;
@@ -754,18 +737,15 @@
 }
 
 /*
- * Multi-pane focus indicator 单 pane 时冗余视觉污染（accent 蓝色 outline 围绕整个
- * Terminal area · 用户不需要）。Multi-pane 时 unfocused pane 自带 opacity 0.7 dim ·
- * focused pane normal opacity · 已是 visual indicator · 不需要额外 border。
- * 用 :has 把 border 限定在真有 sibling pane 的容器内。
- */
+ * Multi-pane focus indicator 鍗?pane 鏃跺啑浣欒瑙夋薄鏌擄紙accent 钃濊壊 outline 鍥寸粫鏁翠釜
+ * Terminal area 路 鐢ㄦ埛涓嶉渶瑕侊級銆侻ulti-pane 鏃?unfocused pane 鑷甫 opacity 0.7 dim 路
+ * focused pane normal opacity 路 宸叉槸 visual indicator 路 涓嶉渶瑕侀澶?border銆? * 鐢?:has 鎶?border 闄愬畾鍦ㄧ湡鏈?sibling pane 鐨勫鍣ㄥ唴銆? */
 .vs-pane-split .vs-pane-terminal.is-focused {
   outline: 1px solid var(--accent);
   outline-offset: -1px;
 }
 
-/* 点击 pane 外区域时（sidebar / tab 区 / 空白）隐藏 focused outline · focused 状态本身
- * 仍保留 · 切回 webview / 再次点击 pane 时由 :not(.is-focus-suppressed) 自动恢复。 */
+/* 鐐瑰嚮 pane 澶栧尯鍩熸椂锛坰idebar / tab 鍖?/ 绌虹櫧锛夐殣钘?focused outline 路 focused 鐘舵€佹湰韬? * 浠嶄繚鐣?路 鍒囧洖 webview / 鍐嶆鐐瑰嚮 pane 鏃剁敱 :not(.is-focus-suppressed) 鑷姩鎭㈠銆?*/
 .vs-pane-tab-host.is-focus-suppressed
   .vs-pane-split
   .vs-pane-terminal.is-focused {
@@ -781,7 +761,7 @@
   background: var(--surface-0);
 }
 
-/* xterm 必须撑满 host · 否则底部留白显示 host 自身 bg-0 · 形成"边框 + 内部深色块"双重视觉重叠 */
+/* xterm 蹇呴』鎾戞弧 host 路 鍚﹀垯搴曢儴鐣欑櫧鏄剧ず host 鑷韩 bg-0 路 褰㈡垚"杈规 + 鍐呴儴娣辫壊鍧?鍙岄噸瑙嗚閲嶅彔 */
 .vs-pane-terminal-host .xterm {
   height: 100%;
   padding: var(--space-2) var(--space-3);
@@ -820,8 +800,8 @@
   font-size: 0.8125rem;
 }
 
-/* MVP-05 visible split actions · pane 右上角悬浮按钮组
- * 默认 dim · pane hover / focused 时高亮 · 不占用 terminal 内容区域 */
+/* MVP-05 visible split actions 路 pane 鍙充笂瑙掓偓娴寜閽粍
+ * 榛樿 dim 路 pane hover / focused 鏃堕珮浜?路 涓嶅崰鐢?terminal 鍐呭鍖哄煙 */
 .vs-pane-actions {
   position: absolute;
   top: calc(var(--space-3) + 6px);
@@ -892,7 +872,7 @@
   color: var(--danger);
 }
 
-/* MVP-05 Phase C · Smart Layouts 菜单（Solo / AI+Runner 预设 + dry-run 预览） */
+/* MVP-05 Phase C 路 Smart Layouts 鑿滃崟锛圫olo / AI+Runner 棰勮 + dry-run 棰勮锛?*/
 
 .vs-smart-layout-overlay {
   position: absolute;
@@ -1129,8 +1109,8 @@
   color: var(--text-1);
 }
 
-/* "确认应用" 红色按钮 · UX 决策替代嵌套二次确认 dialog
-   红色警示 + dry-run 预览齐全等价 spec 要求的二次确认（见 PR body UX 决策） */
+/* "纭搴旂敤" 绾㈣壊鎸夐挳 路 UX 鍐崇瓥鏇夸唬宓屽浜屾纭 dialog
+   绾㈣壊璀︾ず + dry-run 棰勮榻愬叏绛変环 spec 瑕佹眰鐨勪簩娆＄‘璁わ紙瑙?PR body UX 鍐崇瓥锛?*/
 .vs-smart-layout-btn-apply {
   border: 1px solid var(--danger);
   background: color-mix(in oklch, var(--surface-0) 70%, var(--danger));
@@ -1141,7 +1121,7 @@
   background: color-mix(in oklch, var(--surface-0) 50%, var(--danger));
 }
 
-/* MVP-05 Phase C Track A · pane-mode tab 容器（与 .vs-terminal-pane 同区域 · 但承载 PaneSplitView 递归 layout） */
+/* MVP-05 Phase C Track A 路 pane-mode tab 瀹瑰櫒锛堜笌 .vs-terminal-pane 鍚屽尯鍩?路 浣嗘壙杞?PaneSplitView 閫掑綊 layout锛?*/
 .vs-pane-tab-host {
   position: absolute;
   inset: 0;
@@ -1160,9 +1140,9 @@
   visibility: visible;
 }
 
-/* MVP-14 Phase C §E · 临时最大化模式 · 让 maximized pane 撑满 host · 其他 pane
- * visibility hidden 但保持 mount + DOM 尺寸为 0 → xterm fitAddon 不触发 PTY
- * resize · stdout 仍照常进 SerializeAddon · §E.1 不丢事件。 */
+/* MVP-14 Phase C 搂E 路 涓存椂鏈€澶у寲妯″紡 路 璁?maximized pane 鎾戞弧 host 路 鍏朵粬 pane
+ * visibility hidden 浣嗕繚鎸?mount + DOM 灏哄涓?0 鈫?xterm fitAddon 涓嶈Е鍙?PTY
+ * resize 路 stdout 浠嶇収甯歌繘 SerializeAddon 路 搂E.1 涓嶄涪浜嬩欢銆?*/
 .vs-pane-tab-host.is-maximized .vs-pane-split,
 .vs-pane-tab-host.is-maximized .vs-pane-splitter {
   visibility: hidden;
@@ -1171,18 +1151,18 @@
 
 .vs-pane-tab-host.is-maximized
   .vs-pane-terminal[data-pane-id]:not([data-pane-id=""]) {
-  /* 默认隐藏所有 pane terminal · 下面 attribute selector 把 maximized 那个露出来 */
+  /* 榛樿闅愯棌鎵€鏈?pane terminal 路 涓嬮潰 attribute selector 鎶?maximized 閭ｄ釜闇插嚭鏉?*/
   visibility: hidden;
   pointer-events: none;
 }
 
 .vs-pane-tab-host.is-maximized[data-maximized-pane-id]
   .vs-pane-terminal[data-pane-id] {
-  /* 仅 maximized pane 撑满整个 host · 用 attribute selector 在 caller dataset 选中 */
+  /* 浠?maximized pane 鎾戞弧鏁翠釜 host 路 鐢?attribute selector 鍦?caller dataset 閫変腑 */
 }
 
-/* §E.3 maximized pane 撑满 host · 用 :where 0 specificity 让其他 outline / pane
- * style 仍能优先 · transition 200ms 进入 / 退出 · prefers-reduced-motion 跳过 transform */
+/* 搂E.3 maximized pane 鎾戞弧 host 路 鐢?:where 0 specificity 璁╁叾浠?outline / pane
+ * style 浠嶈兘浼樺厛 路 transition 200ms 杩涘叆 / 閫€鍑?路 prefers-reduced-motion 璺宠繃 transform */
 .vs-pane-tab-host.is-maximized .vs-pane-terminal[data-is-maximized="true"] {
   visibility: visible;
   pointer-events: auto;
@@ -1201,15 +1181,15 @@
   }
 }
 
-/* §E.4 maximized 期间 split / close / preset 按钮 disabled 视觉 · 用 attribute hint */
+/* 搂E.4 maximized 鏈熼棿 split / close / preset 鎸夐挳 disabled 瑙嗚 路 鐢?attribute hint */
 .vs-pane-tab-host.is-maximized
   .vs-pane-action-btn[data-disabled-when-maximized] {
   opacity: 0.4;
   pointer-events: none;
 }
 
-/* §D.4 几何导航 no-op flash · 150ms shake 让用户感知 "已到边界"
- * 仅命中 data-noop-flash-pane-id 的 pane 闪一次 outline pulse。 */
+/* 搂D.4 鍑犱綍瀵艰埅 no-op flash 路 150ms shake 璁╃敤鎴锋劅鐭?"宸插埌杈圭晫"
+ * 浠呭懡涓?data-noop-flash-pane-id 鐨?pane 闂竴娆?outline pulse銆?*/
 @keyframes vs-pane-noop-flash {
   0% {
     outline-color: var(--accent);
@@ -1227,7 +1207,7 @@
 
 .vs-pane-tab-host[data-noop-flash-pane-id]:not([data-noop-flash-pane-id=""])
   .vs-pane-terminal[data-pane-id] {
-  /* 默认 splitter 已有 outline 在 .is-focused · 这里只对 noop flash 目标做 1 次动画 */
+  /* 榛樿 splitter 宸叉湁 outline 鍦?.is-focused 路 杩欓噷鍙 noop flash 鐩爣鍋?1 娆″姩鐢?*/
 }
 
 .vs-pane-tab-host[data-noop-flash-pane-id]:not([data-noop-flash-pane-id=""])
@@ -1242,7 +1222,7 @@
   }
 }
 
-/* §C.1 / §D §a11y · splitter 可 keyboard focus · arrow key resize · focus ring */
+/* 搂C.1 / 搂D 搂a11y 路 splitter 鍙?keyboard focus 路 arrow key resize 路 focus ring */
 .vs-pane-splitter:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -1250,15 +1230,14 @@
   z-index: 3;
 }
 
-/* §a11y · pane terminal focus ring 200ms transition · 已有 outline · 加 transition 让
- * 键盘导航 focus 切换有 visual continuity */
+/* 搂a11y 路 pane terminal focus ring 200ms transition 路 宸叉湁 outline 路 鍔?transition 璁? * 閿洏瀵艰埅 focus 鍒囨崲鏈?visual continuity */
 .vs-pane-split .vs-pane-terminal {
   transition:
     outline-color 0.2s var(--ease, cubic-bezier(0.4, 0, 0.2, 1)),
     outline-offset 0.2s var(--ease, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
-/* §E.4 maximized pane 右上 chip · 提示用户当前处于临时最大化模式 · ⌘Enter / Esc 退出 */
+/* 搂E.4 maximized pane 鍙充笂 chip 路 鎻愮ず鐢ㄦ埛褰撳墠澶勪簬涓存椂鏈€澶у寲妯″紡 路 鈱楨nter / Esc 閫€鍑?*/
 .vs-pane-maximized-chip {
   position: absolute;
   top: var(--space-3);
@@ -1279,13 +1258,13 @@
 }
 
 .vs-pane-maximized-chip[data-visible="true"]::before {
-  content: "maximized · ⌘Enter or Esc";
+  content: "maximized 路 鈱楨nter or Esc";
 }
 
-/* Task 4.2 · Windows 平台文案（消费 Task 4.1 在 <html> 设的 data-platform） */
+/* Task 4.2 路 Windows 骞冲彴鏂囨锛堟秷璐?Task 4.1 鍦?<html> 璁剧殑 data-platform锛?*/
 :root[data-platform="windows"]
   .vs-pane-maximized-chip[data-visible="true"]::before {
-  content: "maximized · Ctrl+Enter or Esc";
+  content: "maximized 路 Ctrl+Enter or Esc";
 }
 
 .vs-pane-maximized-chip[data-visible="true"] {
@@ -1294,6 +1273,282 @@
 
 @media (prefers-reduced-motion: reduce) {
   .vs-pane-split .vs-pane-terminal {
+    transition: none;
+  }
+}
+
+/* MVP-18 D.4 路 Pane link popover锛坈reate + manage锛壜?閿氬畾鍦?.vs-pane-actions 鍙充笅鏂? * 涓や釜缁勪欢闀滃儚 idiom锛圥aneLinkCreateMenu / LinkManagePopover锛壜?鍏辩敤缁撴瀯鏍峰紡銆? * 鍏抽敭锛歱osition:absolute + 鍥哄畾瀹藉害 + 楂?z-index 路 鍚﹀垯浼氫綔涓哄潡绾у厓绱犳彃鍏?.vs-pane-actions
+ * 鐨?flex 娴侊紝鎾戝紑甯冨眬骞舵案涔呭崰鎹┖闂达紙session-38 淇銆孨o other panes to link銆嶄竴鐩存樉绀?bug锛夈€?*/
+.vs-link-create-menu,
+.vs-link-manage-popover {
+  /* 是 .vs-pane-terminal(relative) 子元素 · top:100% 会跑出 pane 底部 · 改锚右上角按钮下方 */
+  position: absolute;
+  top: calc(var(--space-3) + 6px + 34px + 6px);
+  right: calc(var(--space-3) + 6px);
+  width: 240px;
+  max-height: min(360px, calc(100vh - 80px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: color-mix(in oklch, var(--surface-1) 94%, transparent);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-6);
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--surface-0) 60%, transparent),
+    0 2px 6px color-mix(in oklch, var(--surface-0) 40%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 5;
+}
+
+.vs-link-create-menu-header,
+.vs-link-manage-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.vs-link-create-menu-title,
+.vs-link-manage-popover-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.vs-link-create-menu-close,
+.vs-link-manage-popover-close {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.vs-link-create-menu-close:hover,
+.vs-link-manage-popover-close:hover {
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.vs-link-create-menu-close:focus-visible,
+.vs-link-manage-popover-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 绌虹姸鎬?路 灞呬腑鎻愮ず鏂囨锛圢o other panes to link / No active links锛?*/
+.vs-link-create-menu-empty,
+.vs-link-manage-popover-empty {
+  padding: var(--space-3) var(--space-2);
+  color: var(--text-3);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* 鍊欓€?pane 鍒楄〃锛坈reate锛壜?鐜版湁閾炬帴鍒楄〃锛坢anage锛壜?鍏辩敤 list / item 缁撴瀯 */
+.vs-link-create-menu-list,
+.vs-link-manage-popover-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.vs-link-create-menu-item,
+.vs-link-manage-popover-item {
+  margin: 0;
+}
+
+.vs-link-create-menu-option {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-create-menu-option:hover {
+  background: var(--surface-2);
+  border-color: var(--line-soft);
+  color: var(--text-1);
+}
+
+.vs-link-create-menu-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.vs-link-create-menu-option-icon {
+  flex: 0 0 auto;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+}
+
+.vs-link-create-menu-option-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+/* manage popover 路 link item 鍙岃甯冨眬锛坕nfo + actions锛?*/
+.vs-link-manage-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: var(--surface-1);
+}
+
+.vs-link-manage-popover-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.vs-link-manage-popover-item-role {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-1);
+  text-transform: capitalize;
+}
+
+.vs-link-manage-popover-item-target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-4);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.vs-link-manage-popover-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: 0 0 auto;
+}
+
+/* enable/disable toggle switch */
+.vs-link-manage-popover-toggle {
+  appearance: none;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.vs-link-manage-popover-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-4);
+}
+
+.vs-link-manage-toggle-track {
+  display: inline-block;
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  position: relative;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-toggle-track.is-on {
+  background: color-mix(in oklch, var(--accent) 30%, var(--surface-2));
+  border-color: var(--accent);
+}
+
+.vs-link-manage-toggle-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-1);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-toggle-track.is-on .vs-link-manage-toggle-thumb {
+  transform: translateX(12px);
+}
+
+.vs-link-manage-popover-unlink {
+  appearance: none;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-4);
+  background: transparent;
+  color: var(--text-3);
+  font: inherit;
+  font-size: 0.6875rem;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+
+.vs-link-manage-popover-unlink:hover {
+  background: color-mix(in oklch, var(--danger) 12%, transparent);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.vs-link-manage-popover-unlink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vs-link-create-menu-option,
+  .vs-link-create-menu-close,
+  .vs-link-manage-popover-close,
+  .vs-link-manage-toggle-track,
+  .vs-link-manage-toggle-thumb,
+  .vs-link-manage-popover-unlink {
     transition: none;
   }
 }

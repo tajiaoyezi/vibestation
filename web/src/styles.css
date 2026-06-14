@@ -455,7 +455,8 @@ textarea {
   position: absolute;
   inset: 0;
   background: var(--surface-1);
-  z-index: 2;
+  /* z-index 高于 .vs-pane-actions(4) · 否则终端操作按钮（分屏/关闭）会浮在 diff 视图之上遮挡内容 */
+  z-index: 5;
 }
 
 .vs-main-diff-body {

@@ -76,10 +76,10 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
   });
 
   const handleViewModeChange = (mode: ViewMode) => {
+    const previous = viewMode();
     setViewMode(mode);
-    void setDiffViewMode(props.workspaceId, mode).catch((err) => {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
+    void setDiffViewMode(props.workspaceId, mode).catch(() => {
+      setViewMode(previous);
     });
   };
 

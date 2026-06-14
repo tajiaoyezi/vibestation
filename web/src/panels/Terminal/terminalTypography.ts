@@ -2,6 +2,12 @@ export const TERMINAL_LINE_HEIGHT = 1.2;
 export const TERMINAL_FONT_WEIGHT = 450;
 export const TERMINAL_FONT_WEIGHT_BOLD = 700;
 
+import {
+  buildFontStack,
+  primaryFontFamily,
+  quoteFontFamily,
+} from "../../utils/font-stack";
+
 const TERMINAL_FONT_FALLBACKS = [
   "JetBrains Mono",
   "JetBrains Mono Variable",
@@ -20,18 +26,14 @@ const TERMINAL_FONT_FALLBACKS = [
   "monospace",
 ];
 
-function quoteFontFamily(font: string): string {
-  if (font === "ui-monospace" || font === "monospace") return font;
-  return `"${font}"`;
-}
-
 export function buildTerminalFontStack(preferred: string): string {
-  const normalized = preferred.trim();
+  const normalized = primaryFontFamily(preferred);
   const shouldPreferUserFont =
     normalized !== "" && normalized !== "JetBrainsMono NF";
-  const stack = shouldPreferUserFont
-    ? [normalized, ...TERMINAL_FONT_FALLBACKS]
-    : TERMINAL_FONT_FALLBACKS;
-
-  return Array.from(new Set(stack)).map(quoteFontFamily).join(", ");
+  if (!shouldPreferUserFont) {
+    return Array.from(new Set(TERMINAL_FONT_FALLBACKS))
+      .map(quoteFontFamily)
+      .join(", ");
+  }
+  return buildFontStack(normalized, TERMINAL_FONT_FALLBACKS);
 }

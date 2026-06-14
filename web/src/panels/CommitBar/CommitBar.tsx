@@ -103,12 +103,6 @@ export const CommitBar: Component<CommitBarProps> = (props) => {
           setHookErrorExitCode(parsed.exit_code);
           setHookErrorCopied(false);
           setHookErrorDialogOpen(true);
-          props.onError?.(
-            label("commitBar.hookFailedSummary").replace(
-              "{code}",
-              String(parsed.exit_code),
-            ),
-          );
           return;
         }
         case "noStagedFiles": {

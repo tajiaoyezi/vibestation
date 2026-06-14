@@ -5,6 +5,8 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { AppSettings, SettingsUpdateRequest } from "../bindings";
 import { normalizeLanguage, setDocumentLanguage } from "../i18n";
+import { buildUiFontStack } from "../utils/font-stack";
+import { buildTerminalFontStack } from "../panels/Terminal/terminalTypography";
 
 export type ThemeSetting = "light" | "dark" | "auto";
 
@@ -112,15 +114,8 @@ function applyCssVars(s: AppSettings): void {
   root.setProperty("--cursor-style", s.cursorStyle);
   root.setProperty("--unfocused-opacity", String(s.unfocusedPaneOpacity));
 
-  // 用户选的字体放栈首 · 后接 bundled JetBrains Mono Variable + Nerd Font + 系统等宽兜底
-  // （选 "JetBrains Mono" 不匹配 bundled "JetBrains Mono Variable" 时由此兜底渲染）
-  const fallback =
-    '"JetBrains Mono Variable", "JetBrainsMono NF", "JetBrains Mono", ui-monospace, "Cascadia Code", "SF Mono", "Consolas", monospace';
-  root.setProperty("--font-mono", `"${s.fontFamily}", ${fallback}`);
-
-  const uiFallback =
-    '"Inter Variable", "Inter", -apple-system, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif';
-  root.setProperty("--font-ui", `"${s.uiFontFamily}", ${uiFallback}`);
+  root.setProperty("--font-mono", buildTerminalFontStack(s.fontFamily));
+  root.setProperty("--font-ui", buildUiFontStack(s.uiFontFamily));
 
   // 同步 data-theme attribute · 避免 ThemeProvider race · settings_changed 一并生效
   const resolvedTheme =
@@ -157,6 +152,7 @@ export function useSettings() {
     async updateSettings(partial: Partial<AppSettings>) {
       const normalized = normalizePartialSettings(partial);
       setSettings(normalized as never);
+      applyCssVars(normalizeSettings({ ...settings, ...normalized }));
 
       const req = {} as SettingsUpdateRequest;
       if (normalized.language !== undefined) req.language = normalized.language;

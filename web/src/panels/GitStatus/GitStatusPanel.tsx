@@ -450,7 +450,8 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
   const lastUpdatedLabel = (): string => {
     const value = lastUpdated();
     if (!value) return label("gitStatus.notLoaded");
-    return value.toLocaleTimeString([], {
+    const locale = language() === "zh-Hans" ? "zh-CN" : "en-US";
+    return value.toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
@@ -594,37 +595,38 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                         <div class="vs-git-status-items" role="list">
                           <For each={groupItems(group.key)}>
                             {(file) => (
-                              <button
-                                type="button"
-                                class="vs-git-status-item"
-                                role="listitem"
-                                onClick={() =>
-                                  openDiff(
-                                    group.key === "staged"
-                                      ? "staged"
-                                      : "unstaged",
-                                    file.path,
-                                  )
-                                }
-                              >
-                                <span
-                                  class={`vs-git-status-code ${statusClass(file.status)}`}
+                              <div class="vs-git-status-item" role="listitem">
+                                <button
+                                  type="button"
+                                  class="vs-git-status-item-main"
+                                  onClick={() =>
+                                    openDiff(
+                                      group.key === "staged"
+                                        ? "staged"
+                                        : "unstaged",
+                                      file.path,
+                                    )
+                                  }
                                 >
-                                  {file.status}
-                                </span>
-                                <span
-                                  class="vs-git-status-path"
-                                  title={file.path}
-                                >
-                                  {file.path}
-                                </span>
-                                <Show when={formatStats(file)}>
-                                  {(stats) => (
-                                    <span class="vs-git-status-stats">
-                                      {stats()}
-                                    </span>
-                                  )}
-                                </Show>
+                                  <span
+                                    class={`vs-git-status-code ${statusClass(file.status)}`}
+                                  >
+                                    {file.status}
+                                  </span>
+                                  <span
+                                    class="vs-git-status-path"
+                                    title={file.path}
+                                  >
+                                    {file.path}
+                                  </span>
+                                  <Show when={formatStats(file)}>
+                                    {(stats) => (
+                                      <span class="vs-git-status-stats">
+                                        {stats()}
+                                      </span>
+                                    )}
+                                  </Show>
+                                </button>
                                 <Show
                                   when={group.key !== "staged"}
                                   fallback={
@@ -632,10 +634,9 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                       type="button"
                                       class="vs-git-status-action vs-git-status-action-unstage"
                                       title={label("gitStatus.unstage")}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        void handleUnstage(file.path);
-                                      }}
+                                      onClick={() =>
+                                        void handleUnstage(file.path)
+                                      }
                                     >
                                       ✗
                                     </button>
@@ -645,15 +646,12 @@ export const GitStatusPanel: Component<GitStatusPanelProps> = (props) => {
                                     type="button"
                                     class="vs-git-status-action vs-git-status-action-stage"
                                     title={label("gitStatus.stage")}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      void handleStage(file.path);
-                                    }}
+                                    onClick={() => void handleStage(file.path)}
                                   >
                                     ✓
                                   </button>
                                 </Show>
-                              </button>
+                              </div>
                             )}
                           </For>
                         </div>

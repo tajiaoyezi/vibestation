@@ -210,6 +210,7 @@ export const dictionaries = {
       identitySaveLocal: "Save to local git config",
     },
     diff: {
+      viewMode: "Diff view mode",
       split: "Split",
       unified: "Unified",
       loading: "Loading diff...",
@@ -610,6 +611,7 @@ export const dictionaries = {
       identitySaveLocal: "保存到 local git config",
     },
     diff: {
+      viewMode: "差异视图模式",
       split: "分栏",
       unified: "统一",
       loading: "正在加载差异...",

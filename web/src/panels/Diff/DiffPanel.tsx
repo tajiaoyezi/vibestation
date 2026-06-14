@@ -130,22 +130,30 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
             }
             fileSize={totalSizeBytes()}
           />
-          <button
-            type="button"
-            class={`vs-diff-mode-btn ${viewMode() === "split" ? "vs-diff-mode-btn-on" : ""}`}
-            onClick={() => handleViewModeChange("split")}
-            aria-pressed={viewMode() === "split"}
+          <div
+            class="vs-diff-mode-switch"
+            role="radiogroup"
+            aria-label={label("diff.viewMode")}
           >
-            {label("diff.split")}
-          </button>
-          <button
-            type="button"
-            class={`vs-diff-mode-btn ${viewMode() === "unified" ? "vs-diff-mode-btn-on" : ""}`}
-            onClick={() => handleViewModeChange("unified")}
-            aria-pressed={viewMode() === "unified"}
-          >
-            {label("diff.unified")}
-          </button>
+            <button
+              type="button"
+              class={`vs-diff-mode-btn${viewMode() === "split" ? " vs-diff-mode-btn-on" : ""}`}
+              role="radio"
+              aria-checked={viewMode() === "split"}
+              onClick={() => handleViewModeChange("split")}
+            >
+              {label("diff.split")}
+            </button>
+            <button
+              type="button"
+              class={`vs-diff-mode-btn${viewMode() === "unified" ? " vs-diff-mode-btn-on" : ""}`}
+              role="radio"
+              aria-checked={viewMode() === "unified"}
+              onClick={() => handleViewModeChange("unified")}
+            >
+              {label("diff.unified")}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -164,7 +172,9 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
           <div class="vs-diff-content">
             <Show when={resp().binary}>
               <div class="vs-diff-state vs-diff-binary">
-                <div class="vs-diff-binary-title">{label("diff.binaryFile")}</div>
+                <div class="vs-diff-binary-title">
+                  {label("diff.binaryFile")}
+                </div>
                 <Show
                   when={
                     resp().oldSizeBytes !== null || resp().newSizeBytes !== null
@@ -184,7 +194,9 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
 
             <Show when={resp().truncated && !allowLargeFile()}>
               <div class="vs-diff-state vs-diff-truncated">
-                <div class="vs-diff-truncated-title">{label("diff.largeFile")}</div>
+                <div class="vs-diff-truncated-title">
+                  {label("diff.largeFile")}
+                </div>
                 <Show when={resp().truncatedReason}>
                   <div class="vs-diff-truncated-reason">
                     {resp().truncatedReason}
@@ -211,7 +223,9 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
               <Show
                 when={resp().hunks.length > 0}
                 fallback={
-                  <div class="vs-diff-state vs-diff-empty">{label("diff.noChanges")}</div>
+                  <div class="vs-diff-state vs-diff-empty">
+                    {label("diff.noChanges")}
+                  </div>
                 }
               >
                 <div class="vs-diff-hunks">

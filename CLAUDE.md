@@ -212,7 +212,7 @@ gh pr create
 
 ## 🏁 当前可执行动作（session 38 · 2026-06-14 · **全部代码主线 ship 完整收口 · v0.1/v0.2/v0.3 sprint + v1.0 vision 全 done · 下一步均需 Arbiter 拍板或外部资源 · ⚠️ 治理文档同步待决（PROGRESS/CLAUDE 下一步候选已过时修正中）**）
 
-> 权威当前态以 [`docs/PROGRESS.md`](./docs/PROGRESS.md) 为准（本 🏁 段下方 session-32/33 详述为历史快照 · 不再逐项追平 · 见「自审四问」边界：scalar 当前态归 PROGRESS）。**当前位置**：代码主线 100% 收口——v0.1（MVP-01..11）/ v0.2（MVP-22/13/21）/ v0.3（MVP-12..17）/ v1.0 vision（MVP-18/19/20）全 done · spec frontmatter **22 done / 1 blocked / 1 draft**（blocked = SPIKE-06 §B Apple Dev · draft = _template）。**近期 main 活动**（session 38 · 2026-06-14 前后）：① #452 Windows titlebar 合入（无边框 + 自绘标题栏 + 字体 bundle + pane 焦点修复）· ② #453-#455 ADR-024 Windows 提前 + 账本 housekeeping（断链 43→17）· ③ #459 FEAT-02 语言设置 spec · ④ #464/#465 i18n + Git 状态/Diff UI + 字体拆分设置 + 跟进修复 · ⑤ #463 底部 Output Tab（Git 操作日志）+ Diff z-index 修复 + MVP-18 入口隐藏（代码审查修复 3 Critical + 2 Medium）· ⑥ #460-#462 dependabot（chrono/shiki 4.2/patch group）。**⚠️ 治理待决（决策表 #8 vs 现实漂移）**：#452 + #431 已把 Windows 产品代码合入 main，但锁定决策表 #8 仍写「Windows 推到 v0.4」——**待 Arbiter 定向**：(a) 正式提前立项（ADR 推翻 #8 + 建 Windows task spec）/ (b) 当探索不入表（保 #8 文字 + 注记）。**主 agent 不替拍**。本段下方的 session-32/33 实况作为历史快照保留（审计价值），其「下一步候选」已被本段 supersede。
+> 权威当前态以 [`docs/PROGRESS.md`](./docs/PROGRESS.md) 为准（本 🏁 段下方 session-32/33 详述为历史快照 · 不再逐项追平 · 见「自审四问」边界：scalar 当前态归 PROGRESS）。**当前位置**：代码主线 100% 收口——v0.1（MVP-01..11）/ v0.2（MVP-22/13/21）/ v0.3（MVP-12..17）/ v1.0 vision（MVP-18/19/20）全 done · spec frontmatter **22 done / 1 blocked / 1 draft**（blocked = SPIKE-06 §B Apple Dev · draft = _template）。**近期 main 活动**（session 38 · 2026-06-14 前后）：① #452 Windows titlebar 合入（无边框 + 自绘标题栏 + 字体 bundle + pane 焦点修复）· ② #453-#455 ADR-024 Windows 提前 + 账本 housekeeping（断链 43→17）· ③ #459 FEAT-02 语言设置 spec · ④ #464/#465 i18n + Git 状态/Diff UI + 字体拆分设置 + 跟进修复 · ⑤ #463 底部 Output Tab（Git 操作日志）+ Diff z-index 修复 + MVP-18 入口隐藏（代码审查修复 3 Critical + 2 Medium）· ⑥ #460-#462 dependabot（chrono/shiki 4.2/patch group）。**Windows 平台治理已收口**：决策表 #8 已由 [ADR-024](./docs/adr/ADR-024-windows-platform-pull-forward.md)（accepted · 2026-06-04 Arbiter 选 (a) 正式提前立项）修订为「macOS 15 + Ubuntu 24 + Windows 11 三平台并列当前 active scope」· FEAT-01 task spec 已建（app-menu 快捷键 #456 已实现 · 其余 parity 项 draft）。本段下方的 session-32/33 实况作为历史快照保留（审计价值），其「下一步候选」已被本段 supersede。
 
 **代码状态**：
 
@@ -226,7 +226,7 @@ gh pr create
 **下一步候选**（代码主线全 done · 下一步均需 Arbiter 拍板或外部资源 · 按紧迫性排序）：
 
 1. **⚠️ 治理债（P0 · 必须先做）**：
-   - **决策表 #8 Windows 治理定向**：#452 + #431 已把 Windows 产品代码合入 main，但锁定 #8 仍写「Windows 推到 v0.4」。待 Arbiter 定向：(a) 正式提前立项（开 ADR 推翻 #8 + 建 Windows task spec）/ (b) 当探索不入表。**主 agent 不替拍**。
+   - ~~**决策表 #8 Windows 治理定向**~~：✅ 已由 [ADR-024](./docs/adr/ADR-024-windows-platform-pull-forward.md)（accepted · 2026-06-04 Arbiter 选 (a) 正式提前立项）完成——#8 已修订为「macOS + Ubuntu + Windows 三平台并列 active scope」· FEAT-01 task spec 已建（parity 收尾 · app-menu 快捷键 #456 已实现）。
    - **治理文档同步**（本 PR docs/sync-governance-status 处理）：PROGRESS.md 补录近期 session、CLAUDE.md「下一步候选」去过时。
 2. **非代码发布物料（P1 · Arbiter/设计决策）**：决策表 #16 域名 TLD（.app/.dev/.io）· #17 Logo 最终定稿 · 营销文案 / landing page。这些是 Arbiter/设计决策，主 agent 不代劳。
 3. **Apple Developer Program（P1 · 外部资源）**：解 SPIKE-06 §B blocked（macOS notarize · v0.2 GA 候选）。需 Arbiter 申请 Apple 开发者账号（外部资源 + 费用）。

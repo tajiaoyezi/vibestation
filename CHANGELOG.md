@@ -191,6 +191,40 @@
 
 ---
 
+## [1.1.2] - 2026-06-14 · 补丁版本
+
+### Added · 新增
+
+- **底部 Output Tab**（#463）：记录 push/pull/fetch 操作日志（进度 · 结果 · 错误展开）· 常驻 Provider 订阅事件避免 tab 关闭丢历史
+- **i18n 接入**（#464）：Git 状态面板 / 提交栏 / Diff 面板接入语言字典
+- **字体拆分设置**（#464）：拆分界面字体与终端字体设置
+- **Windows 无边框窗口 + 自绘标题栏**（#452）：WebView2 配色统一 + 字体 latin 子集 bundle + 终端关闭确认自绘模态 + pane 分屏焦点切换修复
+- **Windows app-menu 快捷键 fallback**（#456）：Ctrl+Shift+T/W/, 键盘 accelerator
+- **FEAT-02 语言设置**（#459）：task spec + runtime smoke
+
+### Fixed · 修复
+
+- **diff overlay z-index**（#463）：从 2 提到 5，修复终端悬浮按钮遮挡 diff 内容
+- **MVP-18 链接按钮入口隐藏**（#463）：单 pane 时走 toast 提示，隐藏不完整功能的入口
+- **PaneLinkCreateMenu/LinkManagePopover CSS 补全**（#463）：popover 之前完全缺样式撑开布局
+- **Git 状态文件行 gutter 区域恢复可点击**（#465）
+- **IPC 失败时回滚乐观更新快照**（#465）
+- **全部暂存按钮加厚 + 嵌套 button 压扁修复**（#464）
+
+### Changed · 变更
+
+- **决策表 #8 修订**（ADR-024）：Windows 从 v0.4 提前到当前 active scope（macOS + Ubuntu + Windows 三平台并列）
+- **删除底部 Diff Tab**（#463）：纯装饰死按钮，diff 仍从 Git Status / 主区域 overlay 打开
+
+### Dependencies · 依赖升级
+
+- shiki 4.1.0 → 4.2.0（#462）
+- chrono patch（#461）· npm patch group（#460）
+- esbuild 0.28.0 → 0.28.1 · prettier patch（#466）
+- uuid 1.23.2 → 1.23.3 · regex patch（#467）
+
+---
+
 ## [0.1.0] - 2026-04-XX · v0.1 GA
 
 > 主 agent 实际发版时把 `XX` 替换为发版日期。

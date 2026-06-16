@@ -33,12 +33,14 @@ export const OutputPanel: Component = () => {
     ).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
   };
 
-  const kindLabel = (k: "push" | "pull" | "fetch") =>
+  const kindLabel = (k: "push" | "pull" | "fetch" | "app") =>
     k === "push"
       ? label("output.kindPush")
       : k === "pull"
         ? label("output.kindPull")
-        : label("output.kindFetch");
+        : k === "fetch"
+          ? label("output.kindFetch")
+          : label("output.kindApp");
 
   return (
     <div class="vs-output-panel" role="log" aria-label={label("output.title")}>

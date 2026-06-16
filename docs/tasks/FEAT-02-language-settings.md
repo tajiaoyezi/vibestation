@@ -2,7 +2,7 @@
 id: FEAT-02
 type: feat
 title: 语言设置与简体中文界面
-status: in-progress
+status: done
 owner:
 phase: 当前 active scope
 depends_on: []
@@ -212,6 +212,17 @@ Runtime smoke 记录项：
   - ADR-025 已在 FEAT-02.4 完成后翻为 `accepted`；未引入运行期网络翻译服务或第三方 i18n runtime。
 - 后续 follow-up：
   - FEAT-02.5：manual runtime smoke（English first launch、切换 `简体中文`、restart persistence、terminal/Git 原文）、完整 web vitest/lint 既有失败归档、FEAT-02 done gate。
+
+> **2026-06-15 done gate 验证（Arbiter tajiaoyeze + ZCode）**：FEAT-02.5 manual smoke 全 AC 通过，status flip `in-progress` → `done`。
+> - AC1 默认 English：后端 `app_settings.rs:85` 默认 `language: "en"` + 前端 `settings.ts:17` DEFAULTS `language: "en"` + `normalizeLanguage` 非 zh-Hans 一律 en · ✅
+> - AC2 可切换简体中文：Settings → Appearance → Language 下拉选「简体中文」· ✅
+> - AC3 即时刷新：切换后界面立即变中文（不重启）· Arbiter 实测确认 · ✅
+> - AC4 跨重启保持：切 English → Stop app → 重启 dev → 仍 English · Arbiter 实测确认 · ✅
+> - AC5 损坏值回退 en：i18n 测试 `TEST-FEAT-02.4` 覆盖 · ✅
+> - AC6 字典 key 完整性：i18n 测试 `TEST-FEAT-02.5`（`web/tests/i18n/language.test.ts` 10/10 passed）· ✅
+> - AC7 迁移范围达标：FEAT-02.4 checklist 全勾（Settings / Sidebar / Activity / TopBar / StatusBar / Dialogs phase 1-3）· ✅
+> - AC8 无外部依赖：纯前端字典（`dictionaries.ts` 无 import 外部包）· ✅
+> - pre-existing vitest/lint 失败（`tests/scripts/*` 10 failures + 94 files Prettier）非 FEAT-02 引入，单独 follow-up 跟踪。
 
 ## 📝 Notes / 讨论
 

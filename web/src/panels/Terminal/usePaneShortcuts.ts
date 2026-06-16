@@ -17,6 +17,7 @@
  */
 import { onCleanup, onMount } from "solid-js";
 import type { SplitDir } from "../../bindings";
+import { isMacPlatform } from "../../lib/platform";
 
 type PaneShortcutOptions = {
   getFocusedPaneId: () => string | null;
@@ -29,12 +30,8 @@ type PaneShortcutOptions = {
   shouldSuppress?: () => boolean;
 };
 
-const isMac =
-  typeof navigator !== "undefined" &&
-  navigator.platform.toUpperCase().includes("MAC");
-
 const matchesMod = (event: KeyboardEvent): boolean =>
-  isMac ? event.metaKey : event.ctrlKey;
+  isMacPlatform() ? event.metaKey : event.ctrlKey;
 
 export const usePaneShortcuts = (options: PaneShortcutOptions): void => {
   const handler = (event: KeyboardEvent) => {
@@ -74,7 +71,7 @@ export const usePaneShortcuts = (options: PaneShortcutOptions): void => {
     const isMacCloseCombo =
       event.metaKey && event.ctrlKey && !event.shiftKey && event.key === "w";
     const isOtherCloseCombo =
-      !isMac &&
+      !isMacPlatform() &&
       event.ctrlKey &&
       event.altKey &&
       !event.shiftKey &&

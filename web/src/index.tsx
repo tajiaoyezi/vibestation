@@ -1,7 +1,7 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
 import { App } from "./App";
-import { applyPlatformClass } from "./lib/platform";
+import { applyPlatformClass, isMacPlatform } from "./lib/platform";
 import "./styles/fonts-latin.css";
 import "./styles.css";
 import "./styles/typography.css";
@@ -12,7 +12,7 @@ applyPlatformClass();
 if (import.meta.env.PROD) {
   document.addEventListener("contextmenu", (e) => e.preventDefault());
   document.addEventListener("keydown", (e) => {
-    const mac = navigator.platform.toLowerCase().includes("mac");
+    const mac = isMacPlatform();
     const meta = mac ? e.metaKey : e.ctrlKey;
     if (meta && e.key === "r") e.preventDefault();
     if (meta && (e.key === "-" || e.key === "=" || e.key === "+"))

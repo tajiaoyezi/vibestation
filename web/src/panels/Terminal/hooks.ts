@@ -2,6 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { onCleanup, onMount } from "solid-js";
 import type { TabState } from "../../bindings";
+import { isMacPlatform } from "../../lib/platform";
 
 export type RendererKind = "webgl" | "canvas" | "dom";
 export type TabPhase = "idle" | "starting" | "running" | "exited" | "error";
@@ -54,10 +55,6 @@ export const writeScrollbackToTerm = async (
     });
   }
 };
-
-const isMacPlatform = (): boolean =>
-  typeof navigator !== "undefined" &&
-  navigator.platform.toLowerCase().includes("mac");
 
 export const isEditableTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;

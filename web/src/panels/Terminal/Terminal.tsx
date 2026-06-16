@@ -49,6 +49,7 @@ import { TabBar } from "./TabBar";
 import { TerminalPane } from "./TerminalPane";
 import { usePaneShortcuts } from "./usePaneShortcuts";
 import { usePaneMaximizeToggle, usePaneNavigation } from "./usePaneNavigation";
+import { isMacPlatform } from "../../lib/platform";
 import {
   DEFAULT_PTY_COLS,
   DEFAULT_PTY_ROWS,
@@ -955,9 +956,7 @@ export const Terminal: Component<TerminalProps> = (props) => {
    * 仅 pane mode 生效（active tab 在 panesByTabId）· pendingPaste 时不触发。
    */
   onMount(() => {
-    const isMac =
-      typeof navigator !== "undefined" &&
-      navigator.platform.toUpperCase().includes("MAC");
+    const isMac = isMacPlatform();
     const handler = (event: KeyboardEvent) => {
       if (pendingPaste()) return;
       const mod = isMac ? event.metaKey : event.ctrlKey;

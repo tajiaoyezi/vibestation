@@ -672,7 +672,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
       return;
     }
     // MVP-05 Phase C §F.4 instrumentation · keydown → DOM commit P99 < 150ms 目标
-    const t0 = performance.now();
     try {
       // MVP-05 reload 修复 · split 前 snapshot 所有现有 pane · 让重 mount 后 PaneTerminal
       // 通过 paneSnapshots 恢复 xterm 显示。新 pane 的 paneId 不在快照里 · cold spawn 走默认。
@@ -688,14 +687,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
         } satisfies PaneCreateRequest,
       });
       setPaneListForTab(tabId, response);
-      // 等下一帧 · 让 SolidJS 把新 pane DOM commit · 更接近"渲染完成"语义
-      requestAnimationFrame(() => {
-        const dt = performance.now() - t0;
-        // eslint-disable-next-line no-console
-        console.info(
-          `[mvp-05][F.4] pane_split ${direction} → DOM commit: ${dt.toFixed(1)}ms`,
-        );
-      });
     } catch (error) {
       const msg = errorMessage(error);
       // §A spec：超单层上限时 backend InvalidLayout · 给 toast 提示
@@ -724,7 +715,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
       return;
     }
     // MVP-05 Phase C §F.5 instrumentation · keydown → 重排 DOM commit P99 < 100ms 目标
-    const t0 = performance.now();
     try {
       // MVP-05 reload 修复 · close 前 snapshot 保留 panes（被关 paneId 跳过）· 让重 mount
       // 后通过 paneSnapshots 恢复 xterm 显示。
@@ -752,13 +742,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
           showToast(`Pane PTY leak warning: ${msg}`);
         }
       }
-      requestAnimationFrame(() => {
-        const dt = performance.now() - t0;
-        // eslint-disable-next-line no-console
-        console.info(
-          `[mvp-05][F.5] pane_close → 重排 DOM commit: ${dt.toFixed(1)}ms`,
-        );
-      });
     } catch (error) {
       showToast(`Pane 关闭失败：${errorMessage(error)}`);
     }
@@ -928,7 +911,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
     if (!tabId) {
       throw new Error("没有 active tab");
     }
-    const t0 = performance.now();
     const preList = panesByTabId()[tabId];
     const prePaneIds = new Set(preList?.panes.map((p) => p.paneId) ?? []);
     if (preList) {
@@ -966,13 +948,6 @@ export const Terminal: Component<TerminalProps> = (props) => {
         }
       }
     }
-    requestAnimationFrame(() => {
-      const dt = performance.now() - t0;
-      // eslint-disable-next-line no-console
-      console.info(
-        `[mvp-14][B] pane_layout_apply_advanced ${preset} → DOM commit: ${dt.toFixed(1)}ms`,
-      );
-    });
   };
 
   /**

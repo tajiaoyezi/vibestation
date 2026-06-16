@@ -208,6 +208,90 @@ Co-authored-by: <Agent Name> <email>
 
 <br />
 
+## 🚀 发版流程（Release）
+
+> 当前发版为**手动触发**（无 release-please 自动化 · ADR-021）。本节是发版的机械步骤清单，确保版本号全量同步。
+
+### Step 1 · 版本号 bump（必改 6 处 · 漏一个会导致安装包文件名/版本不一致）
+
+> ⚠️ **真实教训（v1.1.2 发版）**：曾漏 bump `crates/app/tauri.conf.json`，导致 Tauri 打包产出的安装包文件名标 `1.1.1` 而非 `1.1.2`。**6 处缺一不可**。
+
+| # | 文件 | 字段 | 备注 |
+|---|------|------|------|
+| 1 | `package.json` | `"version"` | 根包 |
+| 2 | `web/package.json` | `"version"` | 前端包 |
+| 3 | `Cargo.toml` | `[workspace.package] version` | Rust workspace |
+| 4 | `crates/app/tauri.conf.json` | `"version"` | **Tauri bundle 文件名来源 · 最易漏** |
+| 5 | `Cargo.lock` | `vibestation-app` + `vibestation-core` | 用 `cargo update -p vibestation-app --precise X.Y.Z` + `-p vibestation-core` 同步 |
+| 6 | `CHANGELOG.md` | 新增 `[X.Y.Z]` 条目 | Keep a Changelog 格式 · 含 Added/Fixed/Changed/Dependencies |
+
+### Step 2 · commit + tag + PR
+
+```bash
+git checkout -b release/X.Y.Z
+# 改完 6 处后
+git add -A
+git commit -m "chore(release): bump version to X.Y.Z 发布补丁版本"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push -u origin release/X.Y.Z
+git push origin vX.Y.Z
+gh pr create --title "chore(release): bump version to X.Y.Z" --base main
+# 合 PR 后 main 含版本号 commit
+```
+
+> ⚠️ tag 打在 release 分支的 commit 上。PR squash merge 后 main 的 commit hash 不同，但 tag 指向的代码内容一致。
+
+### Step 3 · 触发打包
+
+发版 commit 合入 main 后，手动触发 CI 打包三平台安装包：
+
+```bash
+# 全平台（macOS .dmg + Linux .deb/.AppImage + Windows .exe/.msi）
+gh workflow run ci.yml -f release_tag=vX.Y.Z
+
+# 仅 macOS（单平台快速验证）
+gh workflow run ci.yml -f release_macos_tag=vX.Y.Z
+
+# 仅 Windows
+gh workflow run ci.yml -f release_windows_tag=vX.Y.Z
+```
+
+### Step 4 · 创建 GitHub Release + 验证
+
+```bash
+# 创建 Release（用 CHANGELOG 对应段作为 notes）
+gh release create vX.Y.Z --title "vX.Y.Z" --notes-file <release-notes.md> --prerelease
+
+# 监控打包（通常 15-25 分钟）
+gh run list --workflow=ci.yml --limit 1
+gh run view <run-id> --json status,jobs
+
+# 完成后验证安装包文件名 = 版本号
+gh release view vX.Y.Z --json assets --jq ".assets[].name"
+```
+
+### Step 5 · 版本号选择
+
+| 类型 | 示例 | 适用场景 |
+|------|------|----------|
+| **patch** | `1.1.1 → 1.1.2` | bug 修复 + 小改进 + 依赖升级 |
+| **minor** | `1.1.2 → 1.2.0` | 新功能（新增 feature · 向后兼容） |
+| **major** | `2.0.0` | 破坏性变更（当前阶段不适用） |
+
+> 当前处于 v0.x/v1.x alpha 阶段，版本号以 patch/minor 为主。
+
+### Step 6 · 清理
+
+发版完成后清理 release 分支：
+
+```bash
+git branch -D release/X.Y.Z          # 本地（squash merge 后需 -D）
+git push origin --delete release/X.Y.Z # 远程（若未被 PR auto-delete）
+git remote prune origin               # 清理 stale tracking refs
+```
+
+<br />
+
 ## 🔗 相关文档
 
 - 🗺️ 战略计划 —— [`docs/implementation-plan.md`](docs/implementation-plan.md)

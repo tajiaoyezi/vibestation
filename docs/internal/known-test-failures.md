@@ -5,24 +5,22 @@
 
 ---
 
-## 1. `tests/scripts/*.test.ts` · vitest 环境不匹配（2 文件）
+## 1. `tests/scripts/*.test.ts` · 已修复 vitest 环境配置（2026-06-15）· 剩余 10 个真实断言失败
 
-**症状**：
+**已修复**（PR #478）：vitest 主配置 `exclude` 掉 `tests/scripts/**`（不再假失败 "No such built-in module: node:"）+ 新增 `vitest.config.scripts.ts`（node 环境 · 无 solid plugin）+ `package.json` 加 `test:scripts` 命令。
+
+**现状**：`pnpm vitest run`（前端套件）不再包含 scripts 测试。`pnpm test:scripts`（脚本套件）14 tests · 4 passed / 10 failed。
+
+**剩余 10 个失败**（真实断言 · 非 transform 问题）：`spawnSync` 在测试环境的路径/退出码断言失败（可能是 CI 环境依赖 · 如 `validate-runtime-evidence` 需要真实的 runtime-evidence 目录结构）。后续单独排查。
+
+**跑法**：
+```bash
+# 前端套件（不含 scripts）
+pnpm --filter @vibestation/web test
+
+# 脚本套件（独立 node 环境）
+pnpm --filter @vibestation/web test:scripts
 ```
-Error: No such built-in module: node:
-Test Files  1 failed (1)
-     Tests  no tests
-```
-
-**涉及文件**：
-- `web/tests/scripts/setup-git-hooks.test.ts`
-- `web/tests/scripts/validate-runtime-evidence.test.ts`
-
-**根因**：这两个测试文件测的是 Node.js 脚本（`scripts/setup-git-hooks.mjs` / `scripts/validate-task-spec.mjs`），但 vitest 默认用 **jsdom 环境**（浏览器模拟），Rolldown 转换 `#!/usr/bin/env node` shebang + `node:` 内置模块导入时失败。
-
-**建议修法**：在 `web/vitest.config.ts` 里把 `tests/scripts/**` 排除出 jsdom 环境（用 `test.environmentMatchGlobs` 或 `exclude` + 单独的 Node 环境测试配置）。工作量 ~1h，低风险。
-
-**当前处理**：跑 `pnpm vitest run` 时忽略这 2 个文件失败。FEAT-02.5 §10 已记录。
 
 ---
 

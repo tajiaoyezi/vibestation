@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "prettier --check \"src/**/*.{ts,tsx,css}\" \"index.html\"",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"index.html\""
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"index.html\"",
+    "test": "vitest run",
+    "test:scripts": "vitest run --config vitest.config.scripts.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",

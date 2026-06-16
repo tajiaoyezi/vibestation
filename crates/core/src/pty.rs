@@ -1296,10 +1296,9 @@ fn scrollback_writer_loop(commands: Receiver<ScrollbackCommand>, pool: Arc<Mutex
         match command {
             ScrollbackCommand::Append { tab_id, lines } => {
                 let Some(pool) = lock(&pool).clone() else {
-                    eprintln!(
-                        "[mvp-04] scrollback append skipped for {}: database not initialized",
-                        tab_id
-                    );
+                    // Pool 未初始化（启动时序：PTY 先于 workspace_init）·
+                    // 静默跳过（scrollback 是辅助缓存 · 丢失不影响实时显示）·
+                    // 之前每行 stdout 都 eprintln 导致启动期 stderr 满屏噪音
                     continue;
                 };
 

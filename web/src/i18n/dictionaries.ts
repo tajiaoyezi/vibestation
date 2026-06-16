@@ -149,6 +149,7 @@ export const dictionaries = {
       kindPush: "push",
       kindPull: "pull",
       kindFetch: "fetch",
+      kindApp: "app",
       diffEmptyHint: "Click a file in Git Status to view its diff.",
     },
     gitStatus: {
@@ -551,6 +552,7 @@ export const dictionaries = {
       kindPush: "推送",
       kindPull: "拉取",
       kindFetch: "抓取",
+      kindApp: "应用",
       diffEmptyHint: "在 Git 状态里点一个文件查看其差异。",
     },
     gitStatus: {

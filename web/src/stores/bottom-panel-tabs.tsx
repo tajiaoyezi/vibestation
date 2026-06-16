@@ -28,7 +28,7 @@ import type {
 
 export type BottomPanelTab = "status" | "output";
 
-type OutputEntryKind = "push" | "pull" | "fetch";
+type OutputEntryKind = "push" | "pull" | "fetch" | "app";
 type OutputEntryOutcome = "running" | "success" | "error" | "cancelled";
 
 export interface OutputEntry {
@@ -97,6 +97,7 @@ interface BottomPanelTabsContextValue {
   // Output log（常驻订阅 · tab 关闭也不丢事件）
   outputEntries: Accessor<OutputEntry[]>;
   clearOutputEntries: () => void;
+  pushAppNotification: (message: string, severity: "error" | "info") => void;
 }
 
 const BottomPanelTabsContext = createContext<BottomPanelTabsContextValue>();
@@ -213,6 +214,32 @@ export const BottomPanelTabsProvider: ParentComponent = (props) => {
 
   const clearOutputEntries = () => setEntries([]);
 
+  /** 应用通知/错误累积到 Output（同步 showToast · 让一闪而过的 toast 有历史） */
+  const pushAppNotification = (message: string, severity: "error" | "info") => {
+    const id = `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setEntries((prev) =>
+      [
+        {
+          id,
+          kind: "app" as const,
+          workspaceId: "",
+          outcome: (severity === "error" ? "error" : "success") as
+            | "error"
+            | "success",
+          startedAt: Date.now(),
+          endedAt: Date.now(),
+          stage: null,
+          objectsDone: 0,
+          objectsTotal: 0,
+          bytesDone: 0,
+          bytesTotal: 0,
+          error: severity === "error" ? message : null,
+        },
+        ...prev,
+      ].slice(0, MAX_ENTRIES),
+    );
+  };
+
   return (
     <BottomPanelTabsContext.Provider
       value={{
@@ -220,6 +247,7 @@ export const BottomPanelTabsProvider: ParentComponent = (props) => {
         setActiveTab,
         outputEntries: entries,
         clearOutputEntries,
+        pushAppNotification,
       }}
     >
       {props.children}

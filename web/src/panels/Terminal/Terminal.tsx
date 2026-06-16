@@ -48,6 +48,7 @@ import { SmartLayoutMenu, type SmartLayoutPreset } from "./SmartLayoutMenu";
 import { TabBar } from "./TabBar";
 import { TerminalPane } from "./TerminalPane";
 import { usePaneShortcuts } from "./usePaneShortcuts";
+import { useBottomPanelTabs } from "../../stores/bottom-panel-tabs";
 import { usePaneMaximizeToggle, usePaneNavigation } from "./usePaneNavigation";
 import { isMacPlatform } from "../../lib/platform";
 import {
@@ -258,12 +259,14 @@ export const Terminal: Component<TerminalProps> = (props) => {
   // workspace meta row 整段移到全局 TopBar 后 · 该信息暂不在 UI 显示 ·
   // runtimeByTabId 仍然记录 renderer · 保留 createMemo 以便将来 settings 面板复用。
   void runtimeByTabId; // 防 typecheck 报 unused
+  const { pushAppNotification } = useBottomPanelTabs();
 
   const showToast = (
     message: string,
     kind: TerminalToast["kind"] = "error",
   ) => {
     setToast({ kind, message });
+    pushAppNotification(message, kind);
     if (toastTimer) {
       clearTimeout(toastTimer);
     }
@@ -1425,12 +1428,17 @@ export const Terminal: Component<TerminalProps> = (props) => {
           void createTab(workspace);
           break;
         case "split_horizontal":
-        case "split_vertical":
-          showToast(
-            `Split ${event.payload.action === "split_horizontal" ? "horizontal" : "vertical"} · 即将推出`,
-            "info",
-          );
+        case "split_vertical": {
+          const splitPaneId = activeFocusedPaneId();
+          if (splitPaneId) {
+            const dir =
+              event.payload.action === "split_horizontal"
+                ? "horizontal"
+                : "vertical";
+            void handlePaneSplit(dir, splitPaneId);
+          }
           break;
+        }
         case "clear_terminal":
           if (tabId) {
             getActivePaneApi(tabId)?.clear();

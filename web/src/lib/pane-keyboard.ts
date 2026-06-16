@@ -9,6 +9,8 @@
  *
  * 该函数纯函数 · 不依赖 DOM · 只接受 rect 列表 · 方便 vitest 单测。
  */
+import { isMacPlatform } from "./platform";
+
 export type PaneDirection = "left" | "right" | "up" | "down";
 
 export interface PaneRect {
@@ -146,9 +148,7 @@ export function collectPaneRectsFromDom(
  */
 export function matchesPaneNavigateModifier(event: KeyboardEvent): boolean {
   if (event.shiftKey) return false;
-  const isMac =
-    typeof navigator !== "undefined" &&
-    navigator.platform.toUpperCase().includes("MAC");
+  const isMac = isMacPlatform();
   return isMac
     ? event.metaKey && event.altKey && !event.ctrlKey
     : event.ctrlKey && event.altKey && !event.metaKey;

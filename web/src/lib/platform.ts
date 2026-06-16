@@ -44,3 +44,12 @@ export function applyPlatformClass(
   root.classList.add(className);
   root.setAttribute("data-platform", platform);
 }
+
+/**
+ * 便捷判定 · 当前是否 macOS。统一替代散落各处的 `navigator.platform.includes("MAC")` 内联
+ * （navigator.platform 已废弃 · 收敛到 single source detectPlatform）。含 SSR/测试环境守卫。
+ */
+export function isMacPlatform(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return detectPlatform() === "macos";
+}

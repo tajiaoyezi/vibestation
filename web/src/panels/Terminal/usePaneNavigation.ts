@@ -9,6 +9,7 @@
  * neighborId 自己决定走 IPC pane_focus 还是 frontend-only state。
  */
 import { onCleanup, onMount } from "solid-js";
+import { isMacPlatform } from "../../lib/platform";
 import {
   arrowKeyToDirection,
   collectPaneRectsFromDom,
@@ -90,10 +91,6 @@ export type PaneMaximizeToggleOptions = {
   isMaximized: () => boolean;
   shouldSuppress?: () => boolean;
 };
-
-const isMacPlatform = (): boolean =>
-  typeof navigator !== "undefined" &&
-  navigator.platform.toUpperCase().includes("MAC");
 
 const matchesMaximizeToggle = (event: KeyboardEvent): boolean => {
   if (event.key !== "Enter") return false;

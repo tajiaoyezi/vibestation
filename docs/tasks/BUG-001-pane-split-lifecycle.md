@@ -6,7 +6,7 @@ status: done
 # BUG-001 · Pane 右分屏 lifecycle 状态机异常
 
 > **类型**：BUG（产品 GUI · pane lifecycle 状态机回滚不完整）
-> **状态**：draft（待详化 → ready → in-progress → done）
+> **状态**：done（session 34 第 6 路尝试成功修复 · 详见 §K）
 > **优先级**：中（影响核心 Terminal pane UX · 但非 ship blocker · 已知 workaround = 刷新 app）
 > **发现**：2026-05-23 · session 34 · Arbiter 手动测试发现
 > **依赖**：无前置（pane 模块独立可修）

@@ -40,7 +40,7 @@ jobs:
     if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Check for trailing whitespace
         run: |
@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install system deps (Tauri on Ubuntu)
         # Ubuntu 专属：Tauri 的 webkit2gtk 等系统依赖；Windows leg 跳过（runner 预装 WebView2）
@@ -157,7 +157,7 @@ jobs:
     if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -205,7 +205,7 @@ jobs:
     if: ${{ inputs.release_windows_tag == '' && inputs.release_tag == '' && inputs.release_macos_tag == '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -254,7 +254,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_tag || inputs.release_windows_tag }}
 
@@ -311,7 +311,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_tag || inputs.release_macos_tag }}
 
@@ -362,7 +362,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_tag }}
 

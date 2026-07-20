@@ -14,8 +14,8 @@
     "test:scripts": "vitest run --config vitest.config.scripts.ts"
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.2.8",
-    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-clipboard-manager": "^2.3.2",
     "@tauri-apps/plugin-dialog": "^2.7.1",
@@ -30,15 +30,15 @@
     "solid-js": "^1.9.13"
   },
   "devDependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@solidjs/testing-library": "^0.8.10",
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.4.0",
     "esbuild": "^0.28.1",
     "jsdom": "^29.1.1",
-    "prettier": "^3.8.4",
+    "prettier": "^3.9.5",
     "typescript": "^5.6.2",
-    "vite": "^8.0.16",
+    "vite": "^8.1.5",
     "vite-plugin-solid": "^2.11.0",
     "vitest": "^4.1.8"
   }
